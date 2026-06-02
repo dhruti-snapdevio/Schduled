@@ -1,0 +1,238 @@
+# Availability Management
+
+Availability management controls when hosts can be booked. It bridges the gap between a host's actual calendar and the time slots shown to invitees — with fine-grained rules for buffers, notice periods, limits, and exceptions.
+
+---
+
+## Overview
+
+Schedica syncs with connected calendars to determine real-time availability. On top of that, hosts configure scheduling rules that further restrict when they can be booked. This layered approach ensures the booking page always reflects accurate, intentional availability.
+
+---
+
+## Weekly Availability (Recurring Schedule)
+
+The foundation of availability. Hosts define their standard working hours by day of week.
+
+### Configuration
+- Enable/disable specific days (e.g., no Saturday/Sunday bookings)
+- Set start and end time per day (e.g., Mon–Fri 9:00am–5:00pm)
+- Different hours per day (e.g., Monday 9am–3pm, Friday 9am–12pm)
+- Multiple time blocks per day (e.g., 9am–12pm and 2pm–5pm, skipping lunch)
+
+### Multiple Availability Schedules
+- Create named schedules (e.g., "Standard", "Reduced Hours", "Workshop Days")
+- Assign different schedules to different event types
+- Example: "Client Calls" event uses 9am–5pm schedule; "Deep Work Office Hours" uses 2pm–4pm schedule
+
+---
+
+## Real-Time Calendar Sync
+
+Busy/free data pulled from connected calendars overrides weekly availability.
+
+### How It Works
+1. Schedica reads events from all connected calendars
+2. Any calendar event marked as "Busy" blocks the corresponding time slot
+3. Available slots shown only when both schedule AND calendar agree the time is free
+4. Sync is real-time — changes reflect within minutes
+
+### Busy/Free Override
+- Hosts can mark specific calendar events as "available anyway" (e.g., a blocked "Focus Time" that shouldn't block bookings)
+- Hosts can mark events as "busy even though calendar shows free" (custom blocks)
+- Useful for personal events that show as available but shouldn't allow scheduling
+
+---
+
+## Buffer Times
+
+Buffer times block time immediately before and/or after meetings to prevent back-to-back scheduling.
+
+### Buffer Before Meeting
+- Blocked time before a new meeting starts
+- Use case: Preparation, travel time, context-switching
+- Example: 15-minute buffer before all client calls
+
+### Buffer After Meeting
+- Blocked time after a meeting ends
+- Use case: Writing follow-up notes, bio break, decompression
+- Example: 10-minute buffer after every sales demo
+
+### Per-Event-Type Buffers
+- Buffers are set per event type, not globally
+- Example: Client calls get 15-min buffers; quick internal syncs have no buffer
+
+### How Buffers Affect Available Slots
+- If host has a 1pm meeting and a 15-min buffer after, 1pm–2:15pm is blocked
+- Next available slot after would be 2:15pm or later
+- Buffers are "invisible" to invitees — they just won't see the blocked time
+
+---
+
+## Minimum Notice Period
+
+Prevents last-minute bookings that don't give hosts time to prepare.
+
+### Configuration
+- Minimum: 1 hour (same-day bookings allowed with >1 hour notice)
+- Typical: 24 hours (next day earliest)
+- Maximum: Configurable up to weeks in advance
+
+### Behavior
+- Time slots within the notice period are hidden from invitees
+- Example: If minimum notice is 24 hours and it's 2pm Tuesday, earliest bookable slot shown is 2pm Wednesday
+
+---
+
+## Booking Window (Future Availability Range)
+
+Controls how far into the future invitees can book.
+
+### Configuration Options
+- **Rolling window**: Always open X days ahead (e.g., 60 days rolling)
+- **Fixed date range**: Open from [date] to [date] (one-time event campaign)
+- **Indefinitely**: No end date
+
+### Use Cases
+- Limiting booking window to the next 2 weeks prevents scheduling too far ahead
+- Fixed date ranges useful for events or launch periods
+- Wide windows (90+ days) for recurring clients who book well in advance
+
+---
+
+## Daily and Weekly Meeting Limits
+
+Protects hosts from meeting overload by capping total meetings in a period.
+
+### Daily Limit
+- Maximum number of bookings per day (across all event types or per event type)
+- Example: No more than 4 client calls per day
+- When limit is reached, remaining slots for that day are hidden
+
+### Weekly Limit
+- Maximum bookings per rolling 7-day window
+- Example: No more than 10 total meetings per week
+
+### Per-Event-Type Limits
+- Set a separate daily limit per event type
+- Example: Maximum 2 "Free Consultation" calls per day, no limit on "Paid Sessions"
+
+---
+
+## Date Overrides
+
+One-time exceptions to the weekly schedule. Useful for vacations, holidays, and special availability.
+
+### Block a Specific Date
+- Mark a date as completely unavailable
+- Example: Block December 25th as a holiday
+- Invitees see no available slots on that day
+
+### Override Hours for a Date
+- Change available hours on a specific date
+- Example: Available 9am–12pm only on Christmas Eve
+- Can be different from the normal schedule for that day of week
+
+### Block Multiple Days
+- Block a range of dates (e.g., vacation from Jan 15–22)
+- Bulk selection in the calendar view
+
+---
+
+## Start Time Increments
+
+Controls the granularity of time slot options shown to invitees.
+
+### Options
+- Every 15 minutes
+- Every 30 minutes
+- Every 60 minutes
+- Custom increment
+
+### Effect on UX
+- Smaller increments give invitees more flexibility
+- Larger increments simplify the booking view
+- Example: 30-min meeting with 30-min increments shows 9:00, 9:30, 10:00...
+- Example: 30-min meeting with 15-min increments shows 9:00, 9:15, 9:30, 9:45...
+
+---
+
+## Time Zone Management
+
+### Host Side
+- Host sets their local timezone during onboarding
+- All availability rules stored in host's timezone
+- Calendar sync accounts for DST changes automatically
+
+### Invitee Side
+- Invitee's timezone auto-detected from browser
+- Booking page shows slots in invitee's local timezone
+- Manual timezone selector shown for override
+- Confirmation email and calendar invite include timezone for both parties
+
+### International Teams
+- Round-robin pools display unified availability across multiple timezones
+- Host timezone shown on booking page for transparency
+
+---
+
+## Availability Troubleshooting
+
+A diagnostic tool to help hosts understand why certain slots appear unavailable.
+
+### Features
+- Select any date/time and see "Why is this unavailable?"
+- Shows which calendar event is blocking the slot
+- Shows which rule (buffer, notice, limit) is causing the block
+- Actionable suggestions to resolve conflicts
+
+---
+
+## Ranked Availability (SavvyCal-Inspired)
+
+Hosts can rank their preferred times without hard-blocking other times.
+
+### How It Works
+- Preferred slots (e.g., Tuesday afternoons) are marked "preferred"
+- Preferred slots are shown first / highlighted on the booking page
+- Non-preferred but available slots are still visible further down
+- Invitee can choose any available slot but is nudged toward preferred times
+
+### Use Case
+- Host prefers mornings but doesn't want to hard-block afternoons
+- "Preferred" signals soft preference; invitees can still pick any slot
+- Results in meetings landing at preferred times more often without forcing it
+
+---
+
+## Reference Implementations
+
+| App | Availability Approach |
+|-----|----------------------|
+| **Calendly** | Weekly hours, multi-calendar sync, buffers, limits, date overrides |
+| **Cal.com** | Same as Calendly; multiple named schedules assignable per event type |
+| **SavvyCal** | Ranked availability (preferred slots surfaced first); meeting caps per day/week/month |
+| **Chili Piper** | Availability synced from Salesforce/Google; auto-handles vacation/PTO from HR system |
+| **HubSpot Meetings** | Basic weekly hours; Google/Outlook calendar sync only |
+
+---
+
+## MVP Scope
+
+**In MVP:**
+- Weekly recurring schedule (per day of week)
+- Real-time calendar sync (busy/free)
+- Buffer time before/after meetings
+- Minimum notice period
+- Booking window (rolling and fixed date range)
+- Date overrides (block dates, change hours)
+- Daily meeting limits
+- Start time increments
+- Timezone auto-detection and manual override
+
+**Post-MVP:**
+- Multiple named schedules per user
+- Weekly meeting limits
+- Ranked availability (preferred slots)
+- Availability troubleshooting tool
+- PTO/vacation sync from HR tools (Workday, BambooHR)
