@@ -1,0 +1,470 @@
+# User Onboarding
+
+User Onboarding is the first-run experience that takes a brand-new user from signup to their first live booking page in the shortest possible time. A great onboarding removes friction, builds confidence, and delivers the "aha moment" — the point where the user first understands the product's value.
+
+---
+
+## Overview
+
+Schedica's onboarding has one goal: get the user to a shareable booking link as fast as possible. Every step that doesn't serve that goal is removed.
+
+The full onboarding sequence covers:
+1. Account creation
+2. Calendar connection
+3. Timezone confirmation
+4. First event type setup
+5. Booking page preview and link share
+
+Target completion time: **under 3 minutes** for a motivated user.
+
+---
+
+## Step 1 — Account Creation
+
+### Sign-Up Methods
+
+| Method | Description |
+|--------|-------------|
+| Google OAuth | One-click signup with Google account; no password needed |
+| Microsoft OAuth | One-click signup with Microsoft / Office 365 account |
+| Email + Password | Traditional email and password registration |
+
+### Google / Microsoft OAuth Flow
+1. User clicks "Sign up with Google" or "Sign up with Microsoft"
+2. Redirected to provider's OAuth consent screen
+3. User approves Schedica access
+4. Returned to Schedica — account created instantly
+5. Profile name and photo pre-filled from OAuth provider
+6. No email verification step required (email already verified by provider)
+
+### Email + Password Flow
+1. User enters name, email address, and password
+2. Schedica sends a verification email with a 6-digit code
+3. User enters code on verification screen
+4. Account created and onboarding continues
+
+### Password Requirements
+- Minimum 8 characters
+- At least 1 uppercase letter
+- At least 1 number or special character
+- Strength indicator shown in real-time
+
+### Email Verification Code — Details
+- Code is 6 digits, valid for **15 minutes** from the time of sending
+- If code expires: "Your verification code has expired. Click here to resend."
+- Resend button available after 60 seconds (rate-limited to 3 resends per session)
+- Max attempts before lockout: 5 wrong codes → account creation blocked for 10 minutes
+- Code is single-use: once entered correctly, it cannot be reused
+
+### Terms and Privacy
+- Checkbox: "I agree to the Terms of Service and Privacy Policy"
+- Required before account creation proceeds
+- Links open in new tab (do not interrupt the onboarding flow)
+
+---
+
+## Step 2 — Calendar Connection
+
+The most critical onboarding step. Without a connected calendar, Schedica cannot show real availability or write bookings.
+
+### Calendar Provider Selection Screen
+User sees a clean screen with calendar provider options:
+
+| Provider | Notes |
+|----------|-------|
+| Google Calendar | Most common; recommended for Gmail users |
+| Outlook / Office 365 | For Microsoft 365 work and school accounts |
+| Apple Calendar / iCloud | For iPhone/Mac users using iCloud calendar |
+| Skip for now | Allowed but discouraged — shows a warning |
+
+### OAuth Connection Flow (Google / Outlook)
+1. User clicks their calendar provider
+2. Opens provider OAuth window
+3. User logs in and approves calendar permissions
+4. Returned to Schedica — connection confirmed
+5. Schedica lists all calendars found on the account
+6. User selects:
+   - **Which calendars to check for conflicts** (toggle per calendar)
+   - **Which calendar to add new bookings to** (radio selection)
+7. Connection status shows green: "✓ Google Calendar connected"
+
+### Apple Calendar (iCloud) Connection
+1. User clicks "Apple Calendar"
+2. Shown instructions: "Go to appleid.apple.com → Security → App-Specific Passwords → Generate"
+3. User enters iCloud email and the generated app-specific password
+4. Schedica connects via CalDAV and lists available calendars
+5. User selects which calendars to check and write to
+
+### Why Calendar Connection Matters (Shown to User)
+A brief one-line explanation displayed during this step:
+> "Schedica checks your calendar so invitees only see times when you're actually free — no more double bookings."
+
+### Skip Option
+- User can skip calendar connection and continue
+- Warning shown: "Without a connected calendar, Schedica cannot prevent double-bookings. You can connect your calendar anytime in Settings."
+- Booking pages will still work but availability won't reflect real calendar events
+
+---
+
+## Step 3 — Timezone Confirmation
+
+### Auto-Detection
+- Schedica detects the user's timezone from their browser automatically
+- Shows detected timezone: "We detected your timezone as Asia/Kolkata (IST, UTC+5:30)"
+- User confirms with "Yes, that's correct" or changes it
+
+### Manual Selection
+- If timezone is wrong or not detected, user selects from a searchable dropdown
+- Dropdown includes all IANA timezones with city names
+- Current time preview updates as user selects: "Your current time: 3:45 PM"
+
+### Why It Matters (Shown to User)
+> "Your timezone ensures your availability is shown correctly to people around the world."
+
+---
+
+## Step 4 — First Event Type Setup
+
+Guided creation of the user's first event type. Keeps it simple — only the essential fields, with smart defaults pre-filled.
+
+### Fields Shown in Onboarding (Simplified)
+
+| Field | Default | User Action |
+|-------|---------|-------------|
+| Event name | "30-Minute Meeting" | Edit or keep |
+| Duration | 30 minutes | Select from: 15 / 30 / 45 / 60 / Custom |
+| Location | Google Meet (if Google connected) | Select location type |
+| Available hours | Mon–Fri, 9:00 AM – 5:00 PM | Confirm or adjust |
+
+### What Is Hidden During Onboarding
+Advanced settings are hidden to avoid overwhelming new users:
+- Buffer times
+- Minimum notice period
+- Custom questions
+- Booking window
+- Date overrides
+
+These are accessible after onboarding from the Event Type settings.
+
+### Availability Preview
+After confirming hours, a mini calendar preview shows the first few available slots. This gives instant visual confirmation that the setup is working correctly.
+
+---
+
+## Step 5 — Booking Page Preview and Share
+
+The final onboarding step shows the user their live booking page and gives them their link.
+
+### Booking Page Preview
+- Full-screen preview of the booking page as an invitee would see it
+- Shows host name, profile photo, event type name, duration, and available slots
+- "This is what your invitees will see" label
+
+### Your Booking Link
+- Displays the user's booking URL: `schedica.com/yourname/30-minute-meeting`
+- **Copy Link** button — one click to copy to clipboard
+- **Share via Email** — opens default email client with link pre-filled
+- **Share on LinkedIn** — opens LinkedIn share dialog (optional)
+
+### "You're all set!" Confirmation
+- Checkmark animation and "You're ready to accept bookings!"
+- Clear CTA: "Go to Dashboard" — takes user to the main Schedica dashboard
+
+---
+
+## Post-Onboarding: Dashboard First Visit
+
+First time on the dashboard after onboarding, user sees a brief checklist of recommended next steps:
+
+| Step | Status |
+|------|--------|
+| ✅ Connect your calendar | Done during onboarding |
+| ✅ Create your first event type | Done during onboarding |
+| ☐ Add a profile photo | Link to Profile Settings |
+| ☐ Share your booking link | Link to copy booking URL |
+| ☐ Set up a reminder email | Link to Notifications settings |
+
+Checklist dismissible once all steps complete or manually dismissed.
+
+---
+
+## Re-Onboarding (Returning Incomplete Users)
+
+If a user signed up but didn't finish onboarding (e.g., closed the tab after Step 2):
+- On next login, shown a "Continue setup" banner on the dashboard
+- Banner shows which step was last completed
+- "Continue" button resumes from the incomplete step
+
+---
+
+## Onboarding Progress Indicator
+
+Throughout onboarding, a progress bar or step indicator is shown:
+
+```
+Step 1 of 5: Connect your calendar
+[●●●○○]
+```
+
+- Shows current step and total steps
+- Clicking a previous step allows going back
+- No skipping forward (steps must be completed in order, except the optional "skip calendar" path)
+
+---
+
+## Error States During Onboarding
+
+| Error | Message Shown | Recovery |
+|-------|--------------|----------|
+| OAuth denied (user cancelled) | "Calendar not connected. You can connect later in Settings." | Continue without calendar |
+| Google account already registered | "An account already exists with this Google account. Sign in instead." | Link to sign in |
+| Email already registered | "That email is already registered. Sign in or reset your password." | Link to sign in / forgot password |
+| Calendar connection failed (API error) | "We couldn't connect your calendar. Try again or skip for now." | Retry or skip |
+| iCloud app-specific password wrong | "Incorrect app-specific password. Please try again." | Retry with correct password |
+| Verification code expired | "Your code has expired. Please request a new one." | Resend code |
+| Verification code wrong (5× attempts) | "Too many incorrect attempts. Please wait 10 minutes." | Wait and retry |
+
+---
+
+## Authentication — Sign-In Flow (Returning Users)
+
+Sign-in is separate from onboarding but lives on the same `/login` page. Returning users are routed here after their first session.
+
+### Sign-In Methods
+
+| Method | Description |
+|--------|-------------|
+| Google OAuth | "Sign in with Google" — one click, no password |
+| Microsoft OAuth | "Sign in with Microsoft" — one click, no password |
+| Email + Password | Enter registered email and password |
+| Magic Link (passwordless) | Enter email → receive a one-click sign-in link via email |
+
+### Email + Password Sign-In Flow
+1. User enters email and password
+2. Schedica verifies credentials server-side (bcrypt password comparison)
+3. On success: session created; user redirected to dashboard
+4. On failure: "Incorrect email or password" (no indication which is wrong — security best practice)
+
+### Google / Microsoft OAuth Sign-In Flow
+1. User clicks "Sign in with Google" or "Sign in with Microsoft"
+2. Redirected to provider's OAuth screen (provider may remember the user, making this one-click)
+3. On success: Schedica matches the OAuth email to an existing account
+4. If no account found: "No account found with this Google account. Sign up instead." — link to sign-up
+
+### Magic Link (Passwordless) Sign-In Flow
+1. User clicks "Email me a sign-in link"
+2. Enters their registered email address
+3. Schedica sends an email with a secure one-click link (valid for 10 minutes, single-use)
+4. User clicks the link → instantly signed in; link immediately invalidated
+5. If link is expired: "This sign-in link has expired. Request a new one." → re-enter email
+6. Use case: User forgot their password; user prefers not to manage passwords; shared/public device where typing a password is inconvenient
+
+### Remember Me
+- Checkbox on the sign-in form: "Remember me on this device"
+- **Checked (default on trusted devices):** Session persists for 30 days; no re-login required
+- **Unchecked:** Session expires when browser is closed (session cookie)
+- Sessions are stored server-side; "Remember me" sets a durable refresh token in a secure `HttpOnly` cookie
+
+---
+
+## Forgot Password / Password Reset
+
+For email+password users who have forgotten their password.
+
+### Reset Flow
+1. User clicks "Forgot your password?" on the sign-in page
+2. Enters their registered email address
+3. If email exists: password reset email sent immediately
+4. If email not found: same success message shown ("Check your inbox") — prevents email enumeration
+5. User receives email with a **secure one-time reset link** (valid for 60 minutes)
+6. User clicks link → taken to "Set New Password" page
+7. Enters new password (meets requirements) + confirms it
+8. On success: password updated; all existing sessions invalidated; user signed in automatically
+9. Confirmation: "Your password has been reset. You're now signed in."
+
+### Reset Email Contents
+- Subject: "Reset your Schedica password"
+- Body: "We received a request to reset your password. Click the button below within 60 minutes."
+- Large "Reset Password" button with the secure token link
+- "If you didn't request this, you can safely ignore this email."
+- No password shown in the email
+
+### Reset Link Security
+- Token is a cryptographically random 256-bit string (URL-safe base64)
+- Stored as a hash in the database (not the raw token)
+- Single-use: consumed on first visit to the reset page
+- Expires after 60 minutes regardless of use
+- On expiry: "This link has expired. Request a new password reset."
+
+### Password Reset Limits
+- Maximum 3 reset requests per email per hour (rate-limited to prevent abuse)
+- If limit reached: "Too many reset requests. Please try again in 1 hour."
+
+---
+
+## Two-Factor Authentication (2FA) — Login Challenge
+
+When a user has 2FA enabled (configured in [user-profile-settings.md](user-profile-settings.md)), the login flow adds a second step.
+
+### Login with 2FA — TOTP (Authenticator App)
+1. User enters email + password (or signs in via OAuth)
+2. Credentials are valid → instead of proceeding to dashboard, shown a 2FA challenge screen
+3. Screen shows: "Enter the 6-digit code from your authenticator app"
+4. User opens Google Authenticator / Authy, finds the Schedica entry
+5. Enters the current 6-digit TOTP code (regenerates every 30 seconds)
+6. On valid code: session created; user enters dashboard
+7. On invalid code: "Incorrect code. Please try again." (up to 5 attempts)
+8. After 5 failed attempts: account locked for 15 minutes
+
+### Login with 2FA — Backup Code
+- "Can't access your authenticator app?" link on the 2FA challenge screen
+- User enters one of their 8 downloaded backup codes
+- Backup codes are one-time use: used code is immediately invalidated
+- On valid backup code: session created; warning shown: "You used a backup code. You have X codes remaining. Consider regenerating your backup codes."
+- If all backup codes are used: user must contact support for account recovery
+
+### 2FA — SMS (Post-MVP)
+1. After valid password: "We sent a code to your phone ending in \*\*\*\*1234"
+2. User enters 6-digit SMS code
+3. Code valid for 5 minutes; resend available after 60 seconds
+4. On valid code: session created
+
+### Trusted Devices
+- After successful 2FA login, option: "Trust this device for 30 days"
+- If trusted: 2FA challenge skipped on this device for 30 days
+- Trusted device list visible and revocable in Profile & Settings → Security → Active Sessions
+
+---
+
+## Session Management
+
+### Session Lifecycle
+
+| Event | Behavior |
+|-------|---------|
+| Sign in (remember me on) | Session valid 30 days; refresh token rotates on use |
+| Sign in (remember me off) | Session ends when browser closes |
+| Session expiry | Redirect to sign-in page with message: "Your session has expired. Please sign in again." |
+| Password changed | All existing sessions invalidated immediately |
+| 2FA enabled/disabled | All existing sessions invalidated (security measure) |
+| Account deleted | All sessions invalidated immediately |
+
+### Refresh Token Rotation
+- Access token: short-lived (15 minutes)
+- Refresh token: long-lived (30 days with "remember me")
+- Every time the refresh token is used to get a new access token, the refresh token itself is rotated (new one issued, old one invalidated)
+- If a rotated (old) refresh token is seen: potential token theft detected → all sessions invalidated + security alert email sent to user
+
+### Active Sessions (Managed in Settings)
+- List of all active sessions in Profile & Settings → Security
+- Each session shows: device type, browser, approximate location, last active
+- User can individually sign out any session
+- "Sign out all other devices" button
+
+---
+
+## Account Lockout & Security
+
+### Failed Login Attempts
+- After **5 consecutive failed password attempts** for the same email: account temporarily locked
+- Lock duration: **15 minutes** (exponential backoff on repeat lockouts)
+- User notified via email: "We noticed several failed sign-in attempts. Your account is temporarily locked."
+- Email includes: time of attempts, approximate IP/location, link to reset password if this wasn't them
+
+### Rate Limiting
+| Endpoint | Limit |
+|----------|-------|
+| Sign-in attempts | 10 per minute per IP |
+| Password reset requests | 3 per hour per email |
+| Magic link requests | 3 per hour per email |
+| Verification code resend | 3 per 30-minute window |
+| 2FA code attempts | 5 per login session |
+
+### Suspicious Login Detection
+- If a login comes from an unrecognized device or location: email alert sent to the account owner
+- Email: "New sign-in detected — [Device, Browser, Location]. If this was you, no action needed."
+- If it wasn't them: "Secure my account" link → forces password reset and signs out all sessions
+
+### OAuth Account Linking
+When a user tries to sign in with a social provider but the same email already exists in Schedica via a different method:
+- **Email account + tries Google OAuth with same email:** "An account exists with this email. Sign in with your email and password, then connect Google in Settings."
+- **Google OAuth account + tries Microsoft OAuth with same email:** "An account exists with this email via Google. Sign in with Google or use a different email."
+- Accounts are NOT auto-merged to prevent account takeover attacks
+
+---
+
+## Logout
+
+### Sign Out
+- Available from the top-right user menu → "Sign out"
+- Action: current session token invalidated server-side; access + refresh cookies cleared
+- Redirected to the sign-in page
+- No confirmation dialog for single sign-out (immediate)
+
+### Sign Out All Devices
+- Available in Profile & Settings → Security → "Sign out of all devices"
+- Requires password confirmation before executing
+- All sessions and refresh tokens invalidated
+- Useful when: device lost or stolen, suspected account compromise
+
+---
+
+## Reference Implementations
+
+| App | Sign-Up Methods | Onboarding Steps | Apple Calendar in Onboarding | Timezone Step | Post-Onboarding Checklist | Skip Calendar Option |
+|-----|----------------|-----------------|------------------------------|---------------|--------------------------|----------------------|
+| **Calendly** | Google, Microsoft, Email | Sign-up → calendar connect → availability → first event type → share link | ❌ Dropped Aug 2024 | ❌ No dedicated step — timezone set in profile | ❌ No checklist | ❌ No — must connect calendar to proceed |
+| **Cal.com** | Google, GitHub, Email | Similar to Calendly; open source so customisable | ✅ Yes — iCloud CalDAV | ❌ No dedicated step | ❌ No | ✅ Yes |
+| **SavvyCal** | Google, Email | Short: profile → calendar → availability → link | ✅ Yes | ❌ No | ❌ No | ✅ Yes |
+| **Chili Piper** | SSO / Salesforce OAuth (B2B focused) | Guided setup for admin; not a self-serve consumer onboarding | ❌ No | ❌ No | ❌ No | N/A |
+| **HubSpot Meetings** | Via HubSpot account | Connect Google/Outlook calendar; set availability; link auto-created | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Schedica** | Google OAuth, Email + Password (MVP); Microsoft OAuth (Phase 2) | 5 steps: account → calendar → timezone → first event type → share link | ✅ **Yes — iCloud CalDAV in MVP** (key differentiator vs Calendly) | ✅ **Dedicated timezone confirmation step** with auto-detect | ✅ Post-onboarding checklist on first dashboard visit | ✅ Skip allowed with clear warning about double-booking risk |
+
+---
+
+## MVP Scope
+
+**In MVP — Onboarding:**
+- Google OAuth and Email + Password signup
+- Google Calendar and Outlook connection during onboarding
+- Apple Calendar / iCloud connection option
+- Timezone auto-detection and confirmation
+- First event type creation (simplified 4-field form)
+- Booking page preview with copyable link
+- Post-onboarding dashboard checklist
+
+**In MVP — Authentication:**
+- Email + Password sign-in with "Remember me"
+- Google OAuth sign-in
+- Forgot password / reset password flow (email link, 60-minute expiry)
+- Email verification for new accounts (6-digit code, 15-minute expiry, resend)
+- Account lockout after 5 failed attempts (15-minute lock)
+- Session expiry with redirect to sign-in
+- Logout (current device)
+- OAuth account collision detection (no auto-merge)
+- Rate limiting on sign-in and password reset endpoints
+
+**Post-MVP:**
+- Microsoft OAuth signup and sign-in
+- Magic link (passwordless) sign-in
+- 2FA login challenge (TOTP authenticator app)
+- 2FA backup codes
+- SMS 2FA
+- Trusted devices (skip 2FA for 30 days)
+- Suspicious login detection and email alert
+- Active sessions list and per-session sign-out
+- Refresh token rotation (security hardening)
+- Re-onboarding flow for incomplete signups
+- Social share (LinkedIn, Twitter) of new booking page
+- Team invitation during onboarding (for team accounts)
+
+
+---
+
+## Tech Stack
+
+- **Better Auth** — handles all sign-up methods (email/password, Google OAuth, Microsoft OAuth), email verification codes, session creation, and account lockout. The admin plugin exposes user management to Orbit Admin.
+- **Next.js App Router** — onboarding is a 5-step wizard built as sequential pages. Middleware checks `onboardingDone` on each request and redirects incomplete users back to their current step.
+- **PostgreSQL + Drizzle ORM** — stores the user account, current `onboardingStep`, and `onboardingDone` flag. Drizzle schema extends Better Auth's built-in users table with Schedica-specific fields (username, timezone, onboarding progress).
+- **pg-boss** — schedules a welcome email job immediately after signup to be delivered asynchronously without blocking the onboarding response.
+- **Resend** — delivers the email verification code during sign-up and the welcome email after onboarding completes.
