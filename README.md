@@ -107,7 +107,7 @@ Schedica is organized around five core pillars:
 
 ### 1. Smart Scheduling
 - Create 1-on-1 event types *(MVP)*
-- Group, round-robin, and collective event types *(Phase 2)*
+- Group, round-robin, and collective event types *(Phase 2 — 1-on-1 only in MVP)*
 - Connect calendars and sync availability in real-time *(MVP)*
 - Share booking links that auto-update as availability changes *(MVP)*
 
@@ -289,7 +289,7 @@ schedica/
 │   ├── 0001_initial_schema.sql
 │   └── meta/                             # Drizzle migration metadata
 │
-├── features/                             # MVP feature documentation (14 files)
+├── features/                             # Feature documentation (17 files)
 │   │
 │   ├── — Platform —
 │   ├── billing.md                        # Plan tiers (Free/Standard/Pro), feature gates, upgrade flow, Stripe (Phase 3)

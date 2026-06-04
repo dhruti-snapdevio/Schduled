@@ -243,7 +243,7 @@ Clear messaging when there are no meetings.
 
 The dashboard is also the anchor for in-app notifications.
 
-### Notification Bell
+### Notification Bell *(MVP)*
 - Unread count badge on bell icon
 - Dropdown shows recent booking events:
   - "New booking: Jane Smith — 30-min call on Thursday 3pm"
@@ -279,10 +279,10 @@ The dashboard is also the anchor for in-app notifications.
 - Filter by status (upcoming / past / cancelled)
 - Quick stats bar (today count, this week count)
 - In-app notification bell
+- Post-meeting private notes (host-only)
 
 **Post-MVP:**
 - No-Show status auto-detection
-- Post-meeting notes
 - Bulk actions (export, bulk cancel)
 - Sort options
 - Team-level dashboard (all members' meetings)

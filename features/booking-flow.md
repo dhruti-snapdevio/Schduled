@@ -263,7 +263,7 @@ For events requiring multiple hosts to be present:
 
 ## Tech Stack
 
-- **Next.js App Router** — the full booking flow spans three pages: the public booking calendar (`/[username]/[eventSlug]`), the booking form (step 2 on the same page), and the confirmation screen (`/booking/confirmed`). Cancel and reschedule flows are token-based pages that work without any invitee login.
+- **Next.js App Router** — the full booking flow spans three pages: the public booking calendar (`/[username]/[eventSlug]`), the booking form (step 2 on the same page), and the confirmation screen (`/[username]/[eventSlug]/confirmed`). Cancel and reschedule flows are token-based pages that work without any invitee login.
 - **PostgreSQL** — cancel and reschedule operations use database transactions to ensure atomic state changes (no partial updates). Advisory locks prevent two concurrent reschedule requests from creating conflicting bookings for the same new slot.
 - **Drizzle ORM** — stores a unique `cancelToken` and `rescheduleToken` on every booking record. These tokens are embedded in confirmation email links, allowing invitees to cancel or reschedule without an account. Token lookup is the only authentication needed for these flows.
 - **pg-boss** — orchestrates all async work triggered by the booking flow. On new booking: enqueues video link generation, calendar write, confirmation email, and reminder scheduling. On cancellation or reschedule: cancels pending reminder jobs and enqueues cancellation/reschedule notification emails.

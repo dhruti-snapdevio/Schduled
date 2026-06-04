@@ -46,6 +46,7 @@ Each plan has configurable limits. Limits are enforced server-side on every rele
 
 | Limit | Free | Standard | Pro / Teams |
 |-------|------|----------|-------------|
+| Event types | Unlimited | Unlimited | Unlimited |
 | Custom questions per event type | 3 | 10 | 20 |
 | Date overrides / blocked dates per month | 5 | Unlimited | Unlimited |
 | Event types | Unlimited | Unlimited | Unlimited |
@@ -62,7 +63,7 @@ Some features are gated entirely (on/off) rather than limited by count:
 | Feature | Free | Standard | Pro / Teams |
 |---------|------|----------|-------------|
 | Remove "Powered by Schedica" branding | ❌ | ✅ | ✅ |
-| Custom from-name and reply-to on emails | ❌ | ✅ | ✅ |
+| Custom from-name and reply-to on emails | ✅ | ✅ | ✅ |
 | Full booking page customization (banner, redirect URL) | ❌ | ✅ | ✅ |
 | Multiple availability schedules | ❌ | ❌ | ✅ *(Phase 2)* |
 | Round-robin / collective event types | ❌ | ❌ | ✅ *(Phase 2)* |

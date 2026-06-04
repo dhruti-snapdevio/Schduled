@@ -273,7 +273,7 @@ Instead of Schedica's default confirmation screen, hosts can redirect invitees t
 - Host notification: delivered within 30 seconds of booking
 
 ### Delivery Provider
-- Transactional email via Resend or SendGrid
+- Transactional email via Resend (rendered with React Email)
 - Dedicated sending domain for deliverability (e.g., `notifications.schedica.com`)
 - SPF, DKIM, and DMARC configured to prevent spam classification
 

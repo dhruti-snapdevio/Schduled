@@ -255,7 +255,7 @@ Step 1 of 5: Connect your calendar
 
 ## Authentication — Sign-In Flow (Returning Users)
 
-Sign-in is separate from onboarding but lives on the same `/login` page. Returning users are routed here after their first session.
+Sign-in is separate from onboarding but lives on the same `/sign-in` page. Returning users are routed here after their first session.
 
 ### Sign-In Methods
 

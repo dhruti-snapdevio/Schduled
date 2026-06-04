@@ -282,7 +282,7 @@ Client-side and server-side validation:
 - Pre-fill via URL parameters
 - Answers in host notification email, meeting detail view, and calendar invite
 - Answer variables in reminder email templates (`{answer_1}` through `{answer_10}`)
-- Auto-remember answers for repeat invitees (browser local storage)
+- Auto-remember answers for repeat invitees (server-side email-match lookup — no account or cookie required)
 
 **Post-MVP:**
 - Date picker question type (Phase 2)

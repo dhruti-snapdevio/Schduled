@@ -169,7 +169,7 @@ All event types share a common set of configuration options:
 | Duration | Length of the meeting |
 | URL Slug | Custom path for the booking link |
 | Color / Icon | Visual identifier in dashboard |
-| Status | Active / Draft / Archived |
+| Status | Active / Inactive |
 
 ### Location Options
 
@@ -178,8 +178,8 @@ All event types share a common set of configuration options:
 | Zoom | Auto-generate unique Zoom link per booking |
 | Google Meet | Auto-generate Google Meet link |
 | Microsoft Teams | Auto-generate Teams meeting link |
-| Webex | Auto-generate Webex meeting link |
-| GoTo Meeting | Auto-generate GoTo Meeting link |
+| Webex | Auto-generate Webex meeting link *(Phase 2)* |
+| GoTo Meeting | Auto-generate GoTo Meeting link *(Phase 2)* |
 | Phone — Host calls Invitee | Collect invitee's phone number; host calls them at meeting time |
 | Phone — Invitee calls Host | Host's phone number shown in confirmation; invitee calls in |
 | In-Person | Physical address displayed to invitee in confirmation |
@@ -232,7 +232,7 @@ Two distinct phone call variants exist:
   - Internal scheduling links for team use
   - Event types for specific campaigns (shared in email only)
 
-### Single-Use Booking Links
+### Single-Use Booking Links *(Phase 2)*
 - Generate a **one-time booking link** that expires after a single booking is made
 - Once used, the link returns "This booking link has expired" to anyone who visits it
 - Ideal for: sales outreach where only one prospect should book, controlled-access early-access slots
@@ -320,7 +320,7 @@ Two distinct phone call variants exist:
 
 **In MVP:**
 - One-on-One event types
-- Group event types (limited capacity per slot)
+- One-on-One event types only *(Group, Round-Robin, Collective are Phase 2)*
 - Full configuration: name, duration, location, availability, questions, cancellation policy
 - Active / Inactive toggle
 - Hidden / Secret event types (bookable via direct link only)

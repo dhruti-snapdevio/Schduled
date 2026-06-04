@@ -124,6 +124,10 @@ Phase 19 →  QA & Launch Prep
   ```bash
   npm install date-fns date-fns-tz ical-generator zod
   ```
+- [ ] Install CalDAV library for Apple Calendar / iCloud integration
+  ```bash
+  npm install tsdav
+  ```
 - [ ] Install React Email for email templates
   ```bash
   npm install @react-email/components react-email
@@ -186,32 +190,46 @@ Phase 19 →  QA & Launch Prep
 
 - [ ] Write Drizzle schema files under `src/lib/db/schema/`:
 
-  **`users.ts` — Auth tables (Better Auth managed):**
-  - [ ] `users` — id, name, email, emailVerified, image, createdAt, updatedAt
+  **`users.ts` — Auth + profile tables:**
+  - [ ] `users` — id, name, email, emailVerified, image, username, timezone, onboardingStep, onboardingDone, createdAt, updatedAt *(extends Better Auth base)*
   - [ ] `sessions` — id, userId, token, expiresAt, ipAddress, userAgent
   - [ ] `accounts` — id, userId, provider, providerAccountId, accessToken, refreshToken, expiresAt
   - [ ] `verifications` — id, identifier, value, expiresAt
+  - [ ] `user_profiles` — id, userId, displayName, jobTitle, company, bio, websiteUrl, theme (light/dark/system), dateFormat, timeFormat, updatedAt
+  - [ ] `user_branding` — id, userId, brandColor, logoUrl, bannerUrl, confirmationMessage, removeBranding, updatedAt
 
   **`event-types.ts` — Scheduling setup:**
-  - [ ] `event_types` — id, userId, name, slug, description, duration, locationType, locationValue, color, isActive, isHidden, minimumNotice, bookingWindow, bufferBefore, bufferAfter, maxBookingsPerDay, createdAt, updatedAt
-  - [ ] `event_type_durations` — id, eventTypeId, duration, isDefault (for multi-duration event types)
-  - [ ] `cancellation_policies` — id, eventTypeId, allowCancellation, cutoffHours, showPolicyText, createdAt
+  - [ ] `event_types` — id, userId, name, slug, description, locationType, locationValue, color, isActive, isHidden, status (active/inactive), minimumNotice, bookingWindow, bookingWindowType (rolling/fixed), bufferBefore, bufferAfter, maxBookingsPerDay, startTimeIncrement, requiresApproval, createdAt, updatedAt
+  - [ ] `event_type_durations` — id, eventTypeId, duration, isDefault
+  - [ ] `cancellation_policies` — id, eventTypeId, allowCancellation, cutoffHours, allowRescheduling, rescheduleCutoffHours, maxReschedules, requireCancellationReason, cancellationReasonOptions (json), showPolicyText, createdAt
   - [ ] `availability_schedules` — id, userId, name, isDefault, timezone, createdAt
-  - [ ] `availability_rules` — id, scheduleId, dayOfWeek, startTime, endTime
-  - [ ] `availability_overrides` — id, userId, date, isBlocked, startTime, endTime, reason
+  - [ ] `availability_windows` — id, scheduleId, dayOfWeek, startTime, endTime *(times stored as HH:mm strings in schedule's timezone)*
+  - [ ] `availability_overrides` — id, userId, date, isBlocked, startTime, endTime, reason, createdAt
+  - [ ] `event_type_questions` — id, eventTypeId, label, type (short_text/long_text/phone/single_select/multi_select/dropdown/number/date/url), isRequired, options (json), position, isActive
 
   **`calendars.ts` — Calendar integrations:**
   - [ ] `connected_calendars` — id, userId, provider (google/outlook/apple/caldav), accountEmail, accessToken, refreshToken, tokenExpiresAt, calendarId, calendarName, isPrimary, isConflictCheck, isWriteTarget, createdAt
-  - [ ] `calendar_events_cache` — id, connectedCalendarId, externalEventId, title, startTime, endTime, isBusy, syncedAt
+  - [ ] `calendar_events_cache` — id, connectedCalendarId, externalEventId, title, startTime, endTime, isBusy, hostOverride (null/available/busy), syncedAt
+
+  **`video.ts` — Video conferencing:**
+  - [ ] `video_connections` — id, userId, provider (zoom/teams), accountEmail, accessToken, refreshToken, tokenExpiresAt, providerUserId, createdAt
 
   **`bookings.ts` — Booking records:**
-  - [ ] `bookings` — id, eventTypeId, hostUserId, inviteeName, inviteeEmail, inviteeTimezone, startTime, endTime, status (confirmed/cancelled/rescheduled/noShow), locationValue, videoLinkHost, videoLinkInvitee, cancellationReason, cancelledAt, rescheduledFromId, paymentId, paymentAmount, createdAt, updatedAt
+  - [ ] `bookings` — id, eventTypeId, hostUserId, inviteeName, inviteeEmail, inviteePhone, inviteeTimezone, startTime, endTime, status (confirmed/cancelled/rescheduled/completed/no_show/pending_payment), locationValue, videoLinkHost, videoLinkInvitee, cancelToken, rescheduleToken, cancellationReason, cancelledAt, rescheduledFromId, paymentId, paymentAmount, createdAt, updatedAt
   - [ ] `booking_answers` — id, bookingId, questionId, questionLabel, answer
-  - [ ] `booking_questions` — id, eventTypeId, label, type, isRequired, options, position, isActive
+  - [ ] `booking_guests` — id, bookingId, guestEmail, guestName
+
+  **`billing.ts` — Plans & pricing:**
+  - [ ] `plans` — id, name, displayName, tagline, monthlyPriceUsd, annualPriceUsd, isHighlighted, ctaLabel, ctaAction (signup/contact_sales), status (active/hidden), orderIndex, createdAt, updatedAt
+  - [ ] `plan_limits` — id, planId, limitKey, limitValue (int; -1 = unlimited)
+  - [ ] `plan_feature_flags` — id, planId, featureKey, isEnabled
+  - [ ] `plan_bullets` — id, planId, text, isIncluded, orderIndex
+  - [ ] `user_plans` — id, userId, planId, planOverrideId, status (active/cancelled/past_due), currentPeriodStart, currentPeriodEnd, stripeCustomerId, stripeSubscriptionId, createdAt, updatedAt
+  - [ ] `plan_overrides` — id, userId, planId, reason, expiresAt, createdByAdminId, createdAt
 
   **`notifications.ts` — Notifications & reminders:**
   - [ ] `notification_preferences` — id, userId, bookingConfirmationEmail, bookingNotificationEmail, reminderEmail24h, reminderEmail1h, cancellationEmail, rescheduleEmail, fromName, replyToEmail, updatedAt
-  - [ ] `workflow_jobs` — id, bookingId, jobType (reminder_24h/reminder_1h/followup/noshow_check), pgBossJobId, scheduledFor, status, createdAt
+  - [ ] `workflow_jobs` — id, bookingId, jobType (reminder_24h/reminder_1h/followup/noshow_check), singletonKey, scheduledFor, status, createdAt
 
 - [ ] Run initial migration:
   ```bash
@@ -244,9 +262,9 @@ Phase 19 →  QA & Launch Prep
 - [ ] Social proof bar — e.g. "Used by freelancers and growing teams"
 - [ ] Features section — 6 cards (Smart Booking Links, Calendar Sync, Custom Questions, Reminders, Video Conferencing, Meetings Dashboard)
 - [ ] How It Works — 4 steps (Sign Up → Connect Calendar → Create Event Type → Share Link)
-- [ ] Pricing section — plan cards with CTA buttons
-  - [ ] Monthly / Annual toggle
-  - [ ] Free / Standard / Pro plan cards
+- [ ] Pricing section — plan cards fetched dynamically from `GET /api/plans` (not hardcoded)
+  - [ ] Monthly / Annual toggle (state saved in localStorage)
+  - [ ] Free / Standard / Pro plan cards rendered from API response
   - [ ] "All plans include" row
   - [ ] Pricing FAQ accordion
 - [ ] Comparison table — Schedica vs Calendly vs Cal.com
@@ -370,7 +388,9 @@ Phase 19 →  QA & Launch Prep
 - [ ] List active sessions
 - [ ] Revoke individual session
 - [ ] Revoke all other sessions
+- [ ] Update username / booking URL slug (with uniqueness check in real-time)
 - [ ] Delete account (with confirmation — type email to confirm)
+- [ ] Request GDPR data export (triggers pg-boss job → ZIP via Vercel Blob → email download link within 24h)
 
 **UI (`/settings/`):**
 - [ ] `/settings/profile` — name, display name, bio, photo, job title, company, website
@@ -378,11 +398,13 @@ Phase 19 →  QA & Launch Prep
 - [ ] `/settings/timezone` — timezone picker with current time preview
 - [ ] `/settings/notifications` — toggle per notification type (booking, reminder, cancellation, reschedule)
   - [ ] From name and reply-to email customization
-- [ ] `/settings/security` — change password, 2FA setup, active sessions list with revoke buttons
+- [ ] `/settings/security` — change password, 2FA setup *(Phase 2)*, active sessions list with revoke buttons *(Phase 2)*
 - [ ] `/settings/integrations` — connected calendars + video platforms (links to Phase 8 and Phase 13)
+- [ ] Username change input with real-time uniqueness check and 30-day redirect creation
+- [ ] "Download my data" button → triggers GDPR export job, shows "You'll receive an email within 24 hours"
 - [ ] Danger zone: Delete account with confirmation modal
 
-**Done when:** All profile fields update and persist correctly. Photo upload works. 2FA can be enabled and tested. Session revocation works.
+**Done when:** All profile fields update and persist correctly. Photo upload works. Username change creates a redirect. GDPR export request triggers a job and sends an email.
 
 ---
 
@@ -450,10 +472,13 @@ Phase 19 →  QA & Launch Prep
 - [ ] Minimum notice selector (e.g., 1 hour / 2 hours / 1 day / 2 days)
 - [ ] Booking window selector (e.g., 14 days / 30 days / 60 days / Indefinite)
 - [ ] Daily meeting limit input (None or number)
+- [ ] Start time increment selector (every 15 / 30 / 60 minutes)
+- [ ] Booking window type toggle: Rolling (e.g., next 30 days) vs Fixed date range (select start + end date)
 - [ ] Date overrides section:
   - [ ] Calendar view to pick specific dates
   - [ ] Mark date as fully unavailable (blocked)
   - [ ] Set custom hours for a specific date
+  - [ ] Bulk block a date range (e.g., vacation Jan 15–22) via calendar range picker
   - [ ] List of upcoming overrides with edit / delete
 - [ ] Save changes button with success toast
 
@@ -531,7 +556,9 @@ Phase 19 →  QA & Launch Prep
 - [ ] Store detected/selected timezone with the booking record
 
 **Slot Calculation:**
-- [ ] All availability rules stored in UTC in the database
+- [ ] Availability windows stored as `HH:mm` strings paired with the schedule's IANA timezone (e.g., `09:00`–`17:00` in `Asia/Kolkata`) — NOT converted to UTC, to handle DST correctly
+- [ ] All booking `startTime` / `endTime` stored as UTC timestamps in the database
+- [ ] Slot generation: expand `HH:mm` windows into UTC ranges using `date-fns-tz` → subtract busy events → return available slots
 - [ ] Slot generation uses `date-fns-tz` for DST-safe conversion to invitee timezone
 - [ ] Slots display in invitee local time on booking page
 - [ ] Confirmation screen shows both: invitee time AND host time
@@ -678,7 +705,13 @@ Phase 19 →  QA & Launch Prep
 - [ ] Answers included in host notification email
 - [ ] Answers visible in Meetings Dashboard booking detail view
 
-**Done when:** Hosts can add, reorder, and delete questions. Invitees see and answer them during booking. Answers are stored and visible in the dashboard.
+**Auto-Remember for Repeat Invitees:**
+- [ ] On email field blur during booking: query `bookings` table for previous bookings by same host + same invitee email
+- [ ] If found: pre-fill question answers from most recent booking into form fields
+- [ ] Show notice: "We've pre-filled your answers from a previous booking. Update anything that has changed."
+- [ ] Invitee can edit any pre-filled answer before submitting
+
+**Done when:** Hosts can add, reorder, and delete questions. Invitees see and answer them during booking. Answers are stored and visible in the dashboard. Repeat invitees see pre-filled answers.
 
 ---
 
@@ -811,9 +844,11 @@ Phase 19 →  QA & Launch Prep
 - [ ] Booking notification — host
 - [ ] 24-hour reminder — invitee
 - [ ] 1-hour reminder — invitee
-- [ ] Cancellation notice — invitee
-- [ ] Cancellation notice — host
+- [ ] Cancellation notice — invitee (when invitee or host cancels)
+- [ ] Cancellation notice — host (when invitee cancels)
 - [ ] Reschedule confirmation — invitee
+- [ ] Reschedule confirmation — host
+- [ ] Host cancellation notice — invitee (when host cancels from dashboard)
 
 **Customization:**
 - [ ] Host can set: from name, reply-to email (stored in `notification_preferences`)
@@ -878,8 +913,10 @@ Phase 19 →  QA & Launch Prep
 
 **Cancellation Flow:**
 - [ ] Unique cancel token per booking (stored on `bookings` table)
-- [ ] Cancel page: shows meeting details, cancellation reason textarea (optional), "Cancel Meeting" button
-- [ ] Cancellation policy enforcement — if within locked window: show policy message and block cancellation
+- [ ] Cancel page: shows meeting details, cancellation reason field (free text or host-configured dropdown options), "Cancel Meeting" button
+- [ ] Store cancellation reason on `bookings.cancellationReason` column
+- [ ] Cancellation policy enforcement — if within locked window: show **Cancellation Blocked** page with: heading, explanation of window, host contact email, add-to-calendar button (booking stays confirmed)
+- [ ] Reschedule Blocked page: same design as Cancellation Blocked — shown when reschedule window is also locked
 - [ ] On cancel: update booking status to `cancelled`, cancel all pg-boss reminder jobs, remove from host's calendar, send cancellation emails to both parties
 
 **Reschedule Flow:**
@@ -902,7 +939,57 @@ Phase 19 →  QA & Launch Prep
 
 ---
 
-## Phase 18 — Admin Panel
+## Phase 18 — Billing & Plan Enforcement
+
+**Goal:** Plan limits are enforced server-side on every relevant action. Upgrade prompts appear when limits are hit. Admin can configure plans. Public pricing page fetches data from the API.
+
+**Reference doc:** [features/billing.md](./features/billing.md)
+
+### Tasks
+
+**Database seed (plans already in schema from Phase 1):**
+- [ ] Seed `plans` table: Free, Standard, Pro/Teams (name, displayName, monthlyPriceUsd, annualPriceUsd, status, orderIndex)
+- [ ] Seed `plan_limits` for each plan: custom_questions, date_overrides_per_month, booking_history_days
+- [ ] Seed `plan_feature_flags` for each plan: branding_removal, custom_email_from, analytics, webhooks, payments
+- [ ] Seed `plan_bullets` (marketing bullet points per plan for pricing page)
+- [ ] Assign all existing users to Free plan in `user_plans` on first migration
+
+**Plan Enforcement Utility:**
+- [ ] `getActivePlan(userId)` — reads `user_plans`, resolves override if non-expired
+- [ ] `checkLimit(userId, limitKey)` → `{ allowed, current, max }` — used before any limit-gated action
+- [ ] `checkFeatureFlag(userId, featureKey)` → boolean — used before feature-gated actions
+- [ ] Enforce `custom_questions` limit on question add API
+- [ ] Enforce `date_overrides_per_month` on date override create API
+- [ ] Enforce `branding_removal` flag on booking page render (server component)
+- [ ] Enforce `custom_email_from` flag on notification preference save
+
+**API Routes:**
+- [ ] `GET /api/plans` — public, no auth — returns all active plans with limits, flags, and bullets (for pricing page)
+- [ ] `GET /api/user/plan` — returns current user's plan + usage stats
+- [ ] `GET /api/user/usage` — returns current usage vs plan limits
+
+**Upgrade Prompt:**
+- [ ] On `PLAN_LIMIT_EXCEEDED` API error (403): frontend shows upgrade modal
+- [ ] Modal shows: which limit was hit, what the next plan includes, [View Plans] + [Upgrade Now] buttons
+- [ ] [Upgrade Now] links to `/settings/billing` (full implementation Phase 3 — Stripe)
+
+**UI:**
+- [ ] `/settings/billing` — current plan name, usage stats per limit, "Upgrade" button (disabled in MVP, links to contact)
+- [ ] Pricing page (`/pricing`) fetches from `GET /api/plans` dynamically — not hardcoded
+
+**Admin Plan Config (in Phase 19 Admin Panel):**
+- [ ] `/admin/plans` — list all plans with Edit buttons
+- [ ] `/admin/plans/:id/edit` — edit pricing, limits, feature flags, bullet points, visibility
+- [ ] `GET/PATCH /api/admin/plans/:id` — admin plan update endpoints
+- [ ] `PATCH /api/admin/plans/:id/bullets` — reorder/add/remove bullets
+- [ ] `POST /api/admin/users/:id/plan-override` — set manual plan override for a user
+- [ ] `DELETE /api/admin/users/:id/plan-override` — remove override
+
+**Done when:** Free plan users cannot add more than 3 questions; upgrade prompt appears when they try. Pricing page renders from the API. Admin can edit plan limits without a code deployment.
+
+---
+
+## Phase 19 — Admin Panel
 
 **Goal:** Platform admins can manage users, view bookings, monitor job queues, and configure the platform via Orbit Admin.
 

@@ -108,7 +108,7 @@ For round-robin event types, the engine assigns a host from the pool.
 
 **Atomic Operation:**
 - Assignment written to database in a transaction to prevent two concurrent bookings choosing the same host
-- Optimistic locking used to handle race conditions
+- PostgreSQL advisory lock used to handle race conditions
 
 ---
 
@@ -250,15 +250,18 @@ The booking engine returns a success response to the browser.
 
 The most critical reliability concern: two invitees trying to book the same slot simultaneously.
 
-### Optimistic Locking Strategy
-1. When invitee submits booking form, engine creates a "pending reservation" with 5-minute TTL
-2. Slot is temporarily locked for this session
-3. If payment/form processing takes > 5 minutes, lock expires and slot is released
-4. On booking completion: reservation upgraded to confirmed booking (atomic transaction)
-5. If another session tries to book same slot while reserved: receives "slot unavailable"
+### PostgreSQL Advisory Lock Strategy
+
+Schedica uses **PostgreSQL advisory locks** — a pessimistic locking approach that prevents two concurrent booking requests from both succeeding for the same slot.
+
+1. When an invitee submits the booking form, the engine calls `SELECT pg_advisory_xact_lock(slotHash)` where `slotHash` is a deterministic integer derived from `eventTypeId + startTime`
+2. The lock is held for the duration of the database transaction — any second request for the same slot blocks until the first transaction completes
+3. Inside the lock: perform the final availability check → if slot is free, insert booking record → commit
+4. Lock is released automatically when the transaction commits or rolls back (no manual release needed, no TTL to manage, no extra table required)
+5. If another session is waiting for the same lock: it runs its own check after the first commits — if the first succeeded, the slot is now taken and the second returns "slot unavailable"
 
 ### Database Transaction
-All booking creation steps (write booking record + calendar write trigger) run in a single database transaction. If any step fails, the entire transaction rolls back — no orphaned records.
+All booking creation steps (lock acquisition → availability check → booking insert → job enqueue) run in a single database transaction. If any step fails, the entire transaction rolls back — no orphaned records, no double-bookings.
 
 ---
 
@@ -343,7 +346,7 @@ Booking pages are publicly accessible with no authentication required — making
 
 **In MVP:**
 - Full 10-step booking flow (conflict check → calendar write → email)
-- Optimistic locking for race condition prevention
+- PostgreSQL advisory lock for race condition prevention (no extra table needed)
 - Google Calendar and Outlook write support
 - ICS file generation for invitees
 - Zoom and Google Meet link generation

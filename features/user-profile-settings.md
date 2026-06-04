@@ -24,7 +24,7 @@ This page is accessed from the top-right user menu → "Profile & Settings" or "
 - As a host, I want to change my timezone from settings, so that if I move or travel long-term my availability reflects the correct local time. *(MVP)*
 - As a host, I want to manage connected calendars from settings, so that I can add or remove calendars without going through onboarding again. *(MVP)*
 - As a host, I want to control which email notifications I receive, so that I am not overwhelmed by emails I do not need. *(MVP)*
-- As a host, I want to enable two-factor authentication, so that my account is protected against unauthorized access. *(MVP)*
+- As a host, I want to enable two-factor authentication, so that my account is protected against unauthorized access. *(Phase 2)*
 - As a host, I want to change my password from the settings page, so that I can keep my account secure. *(MVP)*
 - As a host, I want to delete my account and all associated data, so that I can leave Schedica and ensure my information is fully removed. *(MVP)*
 
