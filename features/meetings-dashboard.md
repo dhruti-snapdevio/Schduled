@@ -16,6 +16,20 @@ The Meetings Dashboard answers all of these. It is the first screen a returning 
 
 ---
 
+## User Stories
+
+**Host**
+- As a host, I want to see all my upcoming meetings in one list sorted by date, so that I know exactly who I am meeting and when. *(MVP)*
+- As a host, I want to see a countdown to my next meeting with a one-click join button, so that I never miss a meeting that starts soon. *(MVP)*
+- As a host, I want to view the invitee's form answers directly from the dashboard, so that I can review their context right before the call. *(MVP)*
+- As a host, I want to cancel or reschedule a meeting from the dashboard, so that I do not need to ask the invitee to initiate the change. *(MVP)*
+- As a host, I want to filter meetings by status — upcoming, past, cancelled — so that I can find what I need without scrolling through everything. *(MVP)*
+- As a host, I want to search meetings by invitee name or event type, so that I can quickly locate a specific booking. *(MVP)*
+- As a host, I want to add private notes to past meetings, so that I can log outcomes and follow-up actions for my own records. *(MVP)*
+- As a host, I want to see payment status on each booking, so that I know which meetings have been paid for. *(Phase 3)*
+
+---
+
 ## Upcoming Meetings
 
 A chronological list of all confirmed future bookings.
@@ -76,7 +90,7 @@ A record of all meetings that have already occurred.
 ### Post-Meeting Notes
 - Host can add private notes to any past meeting
 - Notes are internal — not visible to invitee
-- Useful for logging outcomes, follow-up tasks, or CRM notes
+- Useful for logging outcomes and follow-up tasks
 - Character limit: 500
 
 ---
@@ -115,7 +129,7 @@ Clicking any meeting (upcoming or past) opens the full detail view.
 - When the meeting was booked
 - If it was rescheduled, when and by whom
 - If cancelled, when and by whom and the reason
-- Payment status (if paid event type)
+- Payment status (if paid event type — Phase 3)
 
 ---
 

@@ -14,6 +14,20 @@ There are two timezone contexts to manage:
 
 ---
 
+## User Stories
+
+**Host**
+- As a host, I want to set my timezone once during onboarding, so that all my availability and dashboard times are displayed correctly from day one. *(MVP)*
+- As a host, I want all bookings in my dashboard shown in my own timezone, so that I do not have to mentally convert meeting times. *(MVP)*
+- As a host, I want to update my timezone in settings if I move or travel long-term, so that my availability always reflects the correct local time. *(MVP)*
+
+**Invitee**
+- As an invitee, I want the booking page to auto-detect my timezone, so that I see available slots in my local time without any configuration. *(MVP)*
+- As an invitee, I want to manually override the detected timezone, so that I can book for a different timezone if I am traveling. *(MVP)*
+- As an invitee, I want my confirmation email to show the meeting time in both my timezone and the host's timezone, so that I am confident we are both expecting the same call time. *(MVP)*
+
+---
+
 ## Host Timezone
 
 ### Setting Host Timezone

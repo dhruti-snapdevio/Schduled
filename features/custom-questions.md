@@ -8,7 +8,23 @@ Custom Questions allow hosts to collect information from invitees at the time of
 
 Every booking form has two default system fields: **Name** and **Email**. Custom Questions let hosts add their own fields on top of these — up to 20 questions per event type — to gather anything from company name and role to specific agenda topics and technical requirements.
 
-Answers are stored with the booking record, included in the host's notification email, visible in the Meetings Dashboard, and can be passed into CRM systems and reminder email templates.
+Answers are stored with the booking record, included in the host's notification email, visible in the Meetings Dashboard, and can be passed into reminder email templates.
+
+---
+
+## User Stories
+
+**Host**
+- As a host, I want to add custom questions to my booking form, so that I receive the context I need before the meeting starts. *(MVP)*
+- As a host, I want to mark questions as required or optional, so that I control which information is mandatory before a booking is confirmed. *(MVP)*
+- As a host, I want to choose from multiple question types — text, dropdown, checkbox, phone — so that I can collect structured answers rather than just free text. *(MVP)*
+- As a host, I want to see the invitee's answers in my notification email and on the dashboard, so that I can prepare without switching between screens. *(MVP)*
+- As a host, I want to pre-fill booking form fields via URL parameters, so that returning visitors do not have to re-enter information I already have. *(MVP)*
+- As a host, I want to route invitees to different team members based on their answers, so that the right person handles each type of inquiry. *(Phase 2)*
+
+**Invitee**
+- As an invitee, I want the booking form to be short and clearly labeled, so that I can complete it quickly without feeling overwhelmed. *(MVP)*
+- As an invitee, I want to see which questions are optional, so that I know what I must fill in versus what I can skip. *(MVP)*
 
 ---
 
@@ -151,9 +167,26 @@ window.schedica = {
 ```
 
 ### Auto-Remember for Repeat Invitees
-- If an invitee has booked before and uses the same email, their previous answers are pre-filled
-- Invitee can update their answers before submitting
-- Stored locally in browser (no account required)
+
+**Mechanism — email-match lookup (server-side):**
+1. When an invitee types their email address into the booking form, Schedica queries the database for previous bookings by the same host with the same invitee email
+2. If a previous booking exists: question answers from the most recent booking are pre-filled in the form
+3. The invitee can edit any pre-filled answer before submitting — pre-fill is a convenience, not a lock
+4. No account or cookie required — the email address is the identifier
+
+**What is pre-filled:**
+- Custom question answers from the most recent booking with this host (same `hostUserId` + same `inviteeEmail`)
+- Name and phone number fields (if previously provided)
+- Email address itself is always pre-filled if the invitee arrives via a pre-fill URL parameter
+
+**What is NOT pre-filled:**
+- Answers from a different host's booking form (data is scoped per host)
+- Payment details (never pre-filled)
+
+**Privacy note shown to invitee:**
+> "We've pre-filled your answers from a previous booking. Update anything that has changed."
+
+This is displayed only when pre-fill has occurred — not shown on first-time bookings.
 
 ---
 
@@ -229,11 +262,11 @@ Client-side and server-side validation:
 | App | Free Plan Questions | Max Questions (Paid) | Question Types | Pre-fill via URL | Routing from Answers | CRM Field Mapping |
 |-----|--------------------|--------------------|----------------|-----------------|---------------------|-------------------|
 | **Calendly** | ❌ None allowed | 10 | Text, phone, radio, checkbox, dropdown | ✅ Yes | ✅ On radio/dropdown (paid) | ❌ No native mapping |
-| **Cal.com** | ✅ Unlimited | Unlimited | Same + date, number, URL | ✅ Yes | ✅ Yes | ❌ No (via Zapier) |
+| **Cal.com** | ✅ Unlimited | Unlimited | Same + date, number, URL | ✅ Yes | ✅ Yes | ❌ No |
 | **SavvyCal** | ✅ Basic | Limited | Text, checkbox, dropdown | ❌ No | ❌ No | ❌ No |
 | **Chili Piper** | N/A (paid only) | Unlimited | Text, radio, dropdown | ✅ Yes | ✅ Core feature — routing is the main purpose | ✅ Salesforce native |
 | **HubSpot Meetings** | ✅ Yes | Limited | Maps to HubSpot contact properties | ✅ Via URL params | ❌ No | ✅ Auto-syncs to HubSpot contact |
-| **Schedica** | ✅ **3 questions free** (Calendly: 0) | 10 (Standard), 20 (Pro/Teams) | Text, long text, phone, single/multi select, dropdown, number (MVP); date, URL (Phase 2) | ✅ Via URL params (MVP); JS embed (Phase 2) | ✅ Phase 2 — routing forms | ✅ Phase 3 — HubSpot + Salesforce |
+| **Schedica** | ✅ **3 questions free** (Calendly: 0) | 10 (Standard), 20 (Pro/Teams) | Text, long text, phone, single/multi select, dropdown, number (MVP); date, URL (Phase 2) | ✅ Via URL params (MVP); JS embed (Phase 2) | ✅ Phase 2 — routing forms | ❌ No |
 
 ---
 
@@ -257,7 +290,6 @@ Client-side and server-side validation:
 - Up to 20 questions on Pro / Teams plan (Phase 2)
 - Pre-fill via JavaScript embed (Phase 2)
 - Routing-compatible questions — routing forms (Phase 2)
-- CRM field mapping — HubSpot / Salesforce (Phase 3)
 
 
 ---

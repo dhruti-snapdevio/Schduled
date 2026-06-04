@@ -10,6 +10,22 @@ The booking flow eliminates the email back-and-forth of "when are you free?" by 
 
 ---
 
+## User Stories
+
+**Host**
+- As a host, I want to create a booking link in under 3 minutes, so that I can start accepting meetings immediately after signing up. *(MVP)*
+- As a host, I want to share a single link that reflects my real-time availability, so that invitees always see accurate open slots without me updating anything manually. *(MVP)*
+- As a host, I want to add my booking link to my email signature and LinkedIn, so that anyone can book me directly without asking for my availability. *(MVP)*
+- As a host, I want to embed my booking page on my website, so that visitors can schedule a meeting without leaving my site. *(Phase 2)*
+
+**Invitee**
+- As an invitee, I want to book a meeting without creating an account, so that scheduling is fast and friction-free. *(MVP)*
+- As an invitee, I want to see available time slots in my own timezone, so that I do not have to manually convert times. *(MVP)*
+- As an invitee, I want to fill in a short booking form before confirming, so that the host has the context they need before we meet. *(MVP)*
+- As an invitee, I want to reschedule or cancel my booking via a link in my email, so that I do not need to contact the host directly. *(MVP)*
+
+---
+
 ## Host Journey (Setting Up)
 
 ### Step 1 — Connect Calendar
@@ -110,9 +126,25 @@ Per event type, hosts can set a **cancellation window** that blocks invitees fro
 | Block cancellations entirely | Cancel link disabled; invitee must contact host |
 
 **Behavior when invitee tries to cancel within the blocked window:**
-- Cancel link leads to a page: "This booking can no longer be cancelled online. Please contact [host email] to discuss."
-- Host is NOT notified (invitee is expected to reach out directly)
-- Booking remains confirmed
+
+The cancel link is always active (invitee should never see a dead link). When clicked inside the blocked window, the invitee reaches a **Cancellation Blocked** page that shows:
+
+| Element | Content |
+|---------|---------|
+| Heading | "This booking can no longer be cancelled online" |
+| Explanation | "Cancellations for this meeting are not accepted within [X hours] of the start time." |
+| Meeting details | Date, time, host name — so invitee knows which booking this is |
+| Host contact | "To discuss this booking, please contact: **[host reply-to email]**" |
+| Calendar reminder | "Add to calendar" button still visible so invitee can ensure they attend |
+
+- Host is **not automatically notified** when the blocked page is shown — the invitee must reach out directly
+- Booking status remains `confirmed` — no change on the host's dashboard
+- The reschedule link follows the same logic independently: if reschedule window is also blocked, the reschedule link shows a similar page with the host email
+
+**Enforcement Scope:**
+- Applies to invitee-initiated cancellations via email link only
+- Host can always cancel from the dashboard regardless of the enforcement window
+- If the host cancels inside the window: invitee receives a cancellation email with an apology note
 
 ### Reschedule Policy (Separate from Cancel)
 - Reschedule window can be set independently from cancellation window

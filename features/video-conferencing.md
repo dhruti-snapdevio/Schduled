@@ -14,6 +14,22 @@ This eliminates two major pain points:
 
 ---
 
+## User Stories
+
+**Host**
+- As a host, I want to connect my Zoom account once, so that every new booking automatically gets a unique Zoom link without any manual steps from me. *(MVP)*
+- As a host, I want to connect Google Meet, so that meetings are automatically created in Google Meet for each booking. *(MVP)*
+- As a host, I want each booking to receive its own unique video link, so that past meeting recordings and chats are not accessible in new meetings. *(MVP)*
+- As a host, I want the video link to appear in the calendar invite and confirmation email automatically, so that invitees always have the link without me sending it manually. *(MVP)*
+- As a host, I want to set a default video platform per event type, so that client calls use Zoom while internal meetings use Google Meet. *(MVP)*
+- As a host, I want to connect Microsoft Teams, so that meetings with enterprise clients are held in the platform they already use. *(MVP)*
+
+**Invitee**
+- As an invitee, I want to receive a unique join link in my confirmation email, so that I can join the meeting with one click. *(MVP)*
+- As an invitee, I want the join link to also appear in my reminder emails, so that I can find it easily without searching through old messages. *(MVP)*
+
+---
+
 ## Supported Platforms
 
 ### Zoom
@@ -33,6 +49,9 @@ The most widely used business video conferencing platform.
 - OAuth 2.0 — host connects their Zoom account once
 - Requires a Zoom account (Free Zoom account is sufficient)
 - One Zoom account per Schedica user
+
+> ⚠️ **Zoom Marketplace Approval Required**
+> Creating unique meeting links via the Zoom API requires a published Zoom OAuth app approved through the [Zoom Marketplace](https://marketplace.zoom.us). Approval requires a publicly accessible privacy policy, terms of service, and a working demo. Review can take **2–4 weeks**. Submit the app early — this is a hard dependency before Zoom integration can go live for all users. During development, use a development-mode OAuth app (works for up to 100 users without approval).
 
 **Link Format:**
 ```

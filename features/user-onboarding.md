@@ -1,6 +1,6 @@
 # User Onboarding
 
-User Onboarding is the first-run experience that takes a brand-new user from signup to their first live booking page in the shortest possible time. A great onboarding removes friction, builds confidence, and delivers the "aha moment" — the point where the user first understands the product's value.
+User Onboarding covers the complete authentication and first-run experience — from account creation and sign-in to email verification, password reset, and the guided wizard that takes a new user to their first live booking link. A great onboarding removes friction, builds confidence, and delivers the "aha moment" — the point where the user first understands the product's value.
 
 ---
 
@@ -8,14 +8,41 @@ User Onboarding is the first-run experience that takes a brand-new user from sig
 
 Schedica's onboarding has one goal: get the user to a shareable booking link as fast as possible. Every step that doesn't serve that goal is removed.
 
-The full onboarding sequence covers:
-1. Account creation
-2. Calendar connection
-3. Timezone confirmation
-4. First event type setup
-5. Booking page preview and link share
+The full authentication and onboarding sequence covers:
+1. Account creation (sign up — email/password, Google OAuth, Microsoft OAuth)
+2. Sign in (returning users — email/password, OAuth, magic link)
+3. Email verification (6-digit code for email+password sign-ups)
+4. Password reset (forgot password → secure email link → new password)
+5. Calendar connection
+6. Timezone confirmation
+7. First event type setup
+8. Booking page preview and link share
 
-Target completion time: **under 3 minutes** for a motivated user.
+Target completion time for new user wizard (steps 5–8): **under 3 minutes** for a motivated user.
+
+---
+
+## User Stories
+
+**New User (Sign Up)**
+- As a new user, I want to sign up with Google or Microsoft OAuth, so that I do not have to create and remember a new password. *(MVP)*
+- As a new user, I want to sign up with email and password if I prefer not to use OAuth, so that I have full control over my account credentials. *(MVP)*
+- As a new user, I want to receive an email verification code immediately after signing up, so that my email address is confirmed before I can start using the app. *(MVP)*
+- As a new user, I want my name and photo pre-filled from my Google or Microsoft account, so that I do not have to enter basic profile information manually. *(MVP)*
+- As a new user, I want a step-by-step guided setup that takes under 3 minutes, so that I have a shareable booking link the same day I sign up. *(MVP)*
+- As a new user, I want to connect my calendar during onboarding, so that my availability is accurate from the very first booking. *(MVP)*
+- As a new user, I want to see a live preview of my booking page before sharing it, so that I can confirm it looks right before sending the link to anyone. *(MVP)*
+- As a new user, I want to skip optional setup steps and come back to them later, so that I can get to my booking link faster without being blocked by non-essential configuration. *(MVP)*
+
+**Returning User (Sign In)**
+- As a returning user, I want to sign in with the same Google or Microsoft account I signed up with, so that I never need a password. *(MVP)*
+- As a returning user, I want a "Remember me" option on sign-in, so that I stay logged in for 30 days on my own device without signing in every time. *(MVP)*
+- As a returning user, I want to receive a magic link by email if I prefer passwordless sign-in, so that I can access my account without remembering a password. *(MVP)*
+
+**Forgot Password**
+- As a user who forgot my password, I want to request a password reset email, so that I can regain access to my account without contacting support. *(MVP)*
+- As a user resetting my password, I want the reset link to expire after 60 minutes, so that I know my account is protected if I do not use it immediately. *(MVP)*
+- As a user resetting my password, I want all my existing sessions to be signed out after the reset, so that my account is secured if someone else triggered the reset. *(MVP)*
 
 ---
 
@@ -418,14 +445,14 @@ When a user tries to sign in with a social provider but the same email already e
 | **SavvyCal** | Google, Email | Short: profile → calendar → availability → link | ✅ Yes | ❌ No | ❌ No | ✅ Yes |
 | **Chili Piper** | SSO / Salesforce OAuth (B2B focused) | Guided setup for admin; not a self-serve consumer onboarding | ❌ No | ❌ No | ❌ No | N/A |
 | **HubSpot Meetings** | Via HubSpot account | Connect Google/Outlook calendar; set availability; link auto-created | ❌ No | ❌ No | ❌ No | ❌ No |
-| **Schedica** | Google OAuth, Email + Password (MVP); Microsoft OAuth (Phase 2) | 5 steps: account → calendar → timezone → first event type → share link | ✅ **Yes — iCloud CalDAV in MVP** (key differentiator vs Calendly) | ✅ **Dedicated timezone confirmation step** with auto-detect | ✅ Post-onboarding checklist on first dashboard visit | ✅ Skip allowed with clear warning about double-booking risk |
+| **Schedica** | Google OAuth, Microsoft OAuth, Email + Password *(all MVP)* | 5 steps: account → calendar → timezone → first event type → share link | ✅ **Yes — iCloud CalDAV in MVP** (key differentiator vs Calendly) | ✅ **Dedicated timezone confirmation step** with auto-detect | ✅ Post-onboarding checklist on first dashboard visit | ✅ Skip allowed with clear warning about double-booking risk |
 
 ---
 
 ## MVP Scope
 
 **In MVP — Onboarding:**
-- Google OAuth and Email + Password signup
+- Google OAuth, Microsoft OAuth, and Email + Password signup
 - Google Calendar and Outlook connection during onboarding
 - Apple Calendar / iCloud connection option
 - Timezone auto-detection and confirmation
@@ -436,6 +463,8 @@ When a user tries to sign in with a social provider but the same email already e
 **In MVP — Authentication:**
 - Email + Password sign-in with "Remember me"
 - Google OAuth sign-in
+- Microsoft OAuth sign-in
+- Magic link (passwordless) sign-in
 - Forgot password / reset password flow (email link, 60-minute expiry)
 - Email verification for new accounts (6-digit code, 15-minute expiry, resend)
 - Account lockout after 5 failed attempts (15-minute lock)
@@ -445,8 +474,6 @@ When a user tries to sign in with a social provider but the same email already e
 - Rate limiting on sign-in and password reset endpoints
 
 **Post-MVP:**
-- Microsoft OAuth signup and sign-in
-- Magic link (passwordless) sign-in
 - 2FA login challenge (TOTP authenticator app)
 - 2FA backup codes
 - SMS 2FA
@@ -468,3 +495,5 @@ When a user tries to sign in with a social provider but the same email already e
 - **PostgreSQL + Drizzle ORM** — stores the user account, current `onboardingStep`, and `onboardingDone` flag. Drizzle schema extends Better Auth's built-in users table with Schedica-specific fields (username, timezone, onboarding progress).
 - **pg-boss** — schedules a welcome email job immediately after signup to be delivered asynchronously without blocking the onboarding response.
 - **Resend** — delivers the email verification code during sign-up and the welcome email after onboarding completes.
+- **React Email** — renders the verification code email, password reset email, and welcome email as styled React components compiled to HTML before sending via Resend.
+- **@upstash/ratelimit** — enforces rate limits on sign-in, password reset, and magic link endpoints to prevent brute-force and abuse.

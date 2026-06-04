@@ -15,7 +15,7 @@ Schedica is inspired by the best of the scheduling market — the simplicity of 
 | Segment | Use Case |
 |---------|----------|
 | Freelancers / Solopreneurs | Simple booking links, payment collection |
-| Sales Teams | Lead routing, CRM sync, round-robin assignment |
+| Sales Teams | Lead routing, round-robin assignment |
 | Customer Success | Client onboarding, support call scheduling |
 | Recruiters | Interview scheduling, multi-interviewer collective events |
 | Consultants / Coaches | Paid sessions, package bookings |
@@ -31,7 +31,6 @@ Schedica is inspired by the best of the scheduling market — the simplicity of 
 |-----------|---------|
 | **Next.js 15** (App Router) | React framework — server components, server actions, API routes, SSR/SSG |
 | **TypeScript** | Type safety across the entire codebase — frontend, backend, and DB schema |
-| **React 19** | UI rendering; server and client components |
 
 ### Database
 
@@ -82,7 +81,13 @@ Schedica is inspired by the best of the scheduling market — the simplicity of 
 | Service | Purpose |
 |---------|---------|
 | **Resend** | Transactional email delivery — booking confirmations, reminders, password resets, cancellation notices |
-| **Twilio** | SMS reminders sent to invitees before meetings (post-MVP) |
+| **React Email** | Component-based email template rendering — type-safe, styled email templates compiled and sent via Resend |
+
+### File Storage
+
+| Service | Purpose |
+|---------|---------|
+| **Vercel Blob** | Cloud storage for user-uploaded files — profile photos |
 
 ### Key Libraries
 
@@ -91,6 +96,8 @@ Schedica is inspired by the best of the scheduling market — the simplicity of 
 | **Zod** | Runtime validation for all API request bodies, form inputs, and environment variables |
 | **ical-generator** | Generates RFC 5545-compliant `.ics` calendar invite files — attached to confirmation emails |
 | **date-fns-tz** | Timezone-aware date arithmetic using IANA timezone names — DST-safe slot calculation and display |
+| **@upstash/ratelimit** | Rate limiting on auth endpoints and public booking creation — prevents spam and brute-force attacks |
+| **Sentry** | Error monitoring, performance tracing, and alerting — tracks exceptions and slow API calls in production |
 
 ---
 
@@ -99,30 +106,31 @@ Schedica is inspired by the best of the scheduling market — the simplicity of 
 Schedica is organized around five core pillars:
 
 ### 1. Smart Scheduling
-- Create event types (1-on-1, group, round-robin, collective)
-- Connect calendars and sync availability in real-time
-- Share booking links that auto-update as availability changes
+- Create 1-on-1 event types *(MVP)*
+- Group, round-robin, and collective event types *(Phase 2)*
+- Connect calendars and sync availability in real-time *(MVP)*
+- Share booking links that auto-update as availability changes *(MVP)*
 
-### 2. Team Coordination
+### 2. Team Coordination *(Phase 2)*
 - Distribute meetings across team members (round-robin, priority, weighted)
-- Require multiple hosts simultaneously (collective)
+- Require multiple hosts available simultaneously (collective)
 - Manage team workspaces with admin controls
 
 ### 3. Booking Experience
-- Customizable booking pages with branding
-- Custom intake questions before booking
-- Calendar overlay so invitees see mutual availability (inspired by SavvyCal)
+- Customizable booking pages with branding *(MVP)*
+- Custom intake questions before booking *(MVP)*
+- Calendar overlay so invitees see mutual availability *(Phase 3)*
 
 ### 4. Automation & Workflows
-- Automated email and SMS reminders
-- Pre-meeting confirmations and post-meeting follow-ups
-- Webhook and Zapier triggers for any event
+- Automated email reminders (24hr and 1hr pre-meeting) *(MVP)*
+- Pre-meeting confirmation emails *(MVP)*
+- Post-meeting follow-up emails *(Phase 2)*
+- Webhook triggers for any event *(Phase 2)*
 
 ### 5. Revenue & Growth
-- Lead qualification routing forms
-- Stripe / PayPal payment collection at booking
-- CRM sync (HubSpot, Salesforce) with automatic contact creation
-- Analytics dashboard to track meeting performance
+- Lead qualification routing forms *(Phase 2)*
+- Stripe / PayPal payment collection at booking *(Phase 3)*
+- Analytics dashboard to track meeting performance *(Phase 2)*
 
 ---
 
@@ -134,20 +142,20 @@ The MVP focuses on delivering a complete solo + small team scheduling experience
 
 | # | Feature | Description |
 |---|---------|-------------|
-| 1 | User Onboarding | Sign up, connect calendar, set timezone — guided first-run experience |
-| 2 | User Profile & Settings | Name, photo, timezone, connected calendars, notification preferences |
-| 3 | Event Type Builder | Create unlimited event types (name, duration, location, description) |
-| 4 | Availability Settings | Set weekly hours, buffer times, minimum notice, date overrides |
-| 5 | Timezone Management | Auto-detect invitee timezone, manual override, both timezones in emails |
-| 6 | Calendar Sync | Real-time free/busy sync with Google, Outlook, and Apple Calendar |
-| 7 | Booking Page | Public-facing scheduling page with available time slots and host branding |
-| 8 | Booking Engine | Core booking processor — slot selection, conflict check, calendar write, confirmation |
-| 9 | Custom Questions | Add intake questions to booking form (text, dropdown, checkbox, multiple choice) |
+| 1 | User Onboarding | Sign up, sign in, email verification, password reset (Google and Microsoft OAuth supported); guided first-run wizard to connect calendar, set timezone, create first event type, and get booking link |
+| 2 | User Profile & Settings | Name, photo, timezone, connected calendars, notification preferences, 2FA, account security |
+| 3 | Event Type Builder | Create unlimited event types; each supports multiple duration options (15/30/60 min) for invitees to choose |
+| 4 | Availability Settings | Set weekly hours, buffer times, minimum notice, daily limits, date-specific overrides |
+| 5 | Timezone Management | Auto-detect invitee timezone, manual override, both timezones shown in every email and confirmation |
+| 6 | Calendar Sync | Real-time free/busy sync with Google, Outlook, and Apple Calendar — prevents double-booking |
+| 7 | Booking Page | Public-facing scheduling page with available time slots, host branding, and profile overview |
+| 8 | Booking Engine | Core booking processor — slot locking, conflict check, calendar write, async post-booking jobs |
+| 9 | Custom Questions | Add intake questions to booking form (text, dropdown, checkbox, phone, multi-select) |
 | 10 | Video Conferencing | Auto-generate unique Zoom / Google Meet / Teams links per booking |
-| 11 | Booking Confirmation | Instant confirmation email with calendar invite to both host and invitee |
-| 12 | Notifications & Reminders | Automated 24-hour and 1-hour email reminders; post-meeting follow-up |
-| 13 | Meetings Dashboard | View all upcoming and past meetings; search, filter, and manage bookings |
-| 14 | Cancellation & Reschedule | Invitee-initiated cancellation and reschedule via email link |
+| 11 | Booking Confirmation | Confirmation screen + email with both timezones, calendar invite (.ics), and add-to-calendar buttons |
+| 12 | Notifications & Reminders | Automated 24-hour and 1-hour email reminders; instant host notification on new booking |
+| 13 | Meetings Dashboard | View all upcoming and past meetings; search, filter, private notes, and manage bookings |
+| 14 | Cancellation & Reschedule | Invitee-initiated cancellation and reschedule via secure email link; host can cancel from dashboard |
 
 ### Future Roadmap (Post-MVP)
 
@@ -164,9 +172,6 @@ The MVP focuses on delivering a complete solo + small team scheduling experience
 | 2 | Webhooks | Send booking data to external apps in real-time |
 | 2 | AI Notetaker | Auto-join, record, transcribe, summarize with action items |
 | 3 | Payments | Collect payment via Stripe / PayPal at time of booking |
-| 3 | HubSpot Integration | Auto-create contacts; log meetings to deals |
-| 3 | Salesforce Integration | Native CRM sync and lead routing |
-| 3 | Zapier / Make | Connect to 1000+ apps via automation platforms |
 | 3 | Browser Extension | Chrome/Outlook extension; share times directly in Gmail |
 | 3 | Calendar Overlay | Invitees see mutual availability (SavvyCal-style) |
 | 3 | Mobile App | iOS & Android native apps |
@@ -183,8 +188,10 @@ The MVP focuses on delivering a complete solo + small team scheduling experience
 
 | Product | Strength | Gap Schedica Fills |
 |---------|----------|-------------------|
-| **Calendly** | Market leader, ease of use | Expensive for teams; dropped Apple Calendar support |
+| **Calendly** | Market leader, ease of use | Expensive for teams; dropped Apple Calendar support; shows only one timezone |
 | **Cal.com** | Open source, generous free tier | Complex self-hosting; less polished UX |
+| **Acuity Scheduling** | Deep appointment customization, built-in payments | Outdated UI; no real-time calendar overlay; weak team routing |
+| **Microsoft Bookings** | Native Microsoft 365 integration | No invitee timezone auto-detect; limited customization; tied to Microsoft ecosystem |
 | **Chili Piper** | Best-in-class B2B lead routing | Extremely expensive; Salesforce-only; steep learning curve |
 | **HubSpot Meetings** | Native CRM integration | Tied to HubSpot; basic features on free tier |
 | **SavvyCal** | Best booking UX (calendar overlay) | No free tier; small ecosystem |
@@ -201,6 +208,8 @@ Single Next.js application — frontend, API routes, and server actions all in o
 schedica/
 │
 ├── src/
+│   │
+│   ├── middleware.ts                     # Route protection — redirects unauthenticated users, guards admin routes
 │   │
 │   ├── app/                              # Next.js App Router
 │   │   │
@@ -228,7 +237,8 @@ schedica/
 │   │   ├── onboarding/                   # First-run onboarding wizard (5 steps)
 │   │   │
 │   │   ├── [username]/                   # Public booking pages — no auth required
-│   │   │   └── [eventSlug]/              # Specific event type booking page + confirmation
+│   │   │   └── [eventSlug]/              # Specific event type booking page
+│   │   │       └── confirmed/            # Post-booking confirmation page
 │   │   │
 │   │   └── api/                          # Next.js API routes
 │   │       ├── auth/
@@ -236,7 +246,7 @@ schedica/
 │   │       ├── bookings/                 # Booking creation, cancellation, reschedule
 │   │       ├── calendars/                # Calendar OAuth callbacks + push notification receivers
 │   │       ├── video/                    # Zoom / Teams meeting link generation
-│   │       └── webhooks/                 # Outbound webhook delivery to external apps
+│   │       └── webhooks/                 # Outbound webhook delivery to external apps (Phase 2)
 │   │
 │   ├── components/
 │   │   ├── booking/                      # Booking page, date picker, slot grid, confirmation screen
@@ -281,9 +291,12 @@ schedica/
 │
 ├── features/                             # MVP feature documentation (14 files)
 │   │
+│   ├── — Platform —
+│   ├── billing.md                        # Plan tiers (Free/Standard/Pro), feature gates, upgrade flow, Stripe (Phase 3)
+│   │
 │   ├── — Account & Profile —
-│   ├── user-onboarding.md                # Sign-up, auth flows, calendar connection, first event type
-│   ├── user-profile-settings.md          # Name, photo, timezone, calendars, 2FA, account
+│   ├── user-onboarding.md                # Sign-up, sign-in, email verification, password reset, OAuth, onboarding wizard
+│   ├── user-profile-settings.md          # Name, photo, timezone, calendars, 2FA, GDPR export, account
 │   │
 │   ├── — Scheduling Setup —
 │   ├── event-types.md                    # 1:1, Group, Round-Robin, Collective; all settings
@@ -292,9 +305,9 @@ schedica/
 │   ├── timezone-management.md            # Host/invitee timezone, DST, confirmation emails
 │   │
 │   ├── — Booking Experience —
-│   ├── booking-page-customization.md     # Branding, layout, custom domain, white-label
+│   ├── booking-page-customization.md     # Branding, colors, logo, custom messages (MVP); custom domain (Phase 4)
 │   ├── custom-questions.md               # Intake form question types and configuration
-│   ├── video-conferencing.md             # Zoom, Meet, Teams, Webex, custom links
+│   ├── video-conferencing.md             # Zoom, Meet, Teams (MVP); Webex (Phase 2)
 │   ├── booking-engine.md                 # Core booking processor, race conditions, retries
 │   ├── booking-confirmation.md           # Confirmation screen, emails, ICS, calendar writes
 │   │
@@ -311,13 +324,12 @@ schedica/
 ## Key Differentiators
 
 1. **Apple Calendar Support** — Native iCloud/Apple Calendar sync; Calendly dropped this in August 2024
-2. **Calendar Overlay Booking** — Invitees connect their own calendar and see real mutual availability (SavvyCal-style UX, mainstream reach)
-3. **Cancellation Policy Enforcement** — Calendly only shows policy text; Schedica actually enforces cancellation windows
-4. **Affordable B2B Lead Routing** — Chili Piper-grade routing (territory, CRM lookup, round-robin) at Calendly-level pricing
-5. **AI Notetaker Built-In** — Auto-join, record, transcribe, and summarize every meeting; action items tracked
-6. **Multi-CRM Without Lock-In** — HubSpot + Salesforce + Pipedrive natively; not tied to one vendor
-7. **Meeting Overload Protection** — Daily/weekly limits, ranked availability, deep-work time blocking
-8. **Transparent Pricing** — Per-feature tiers; key features not locked behind per-seat enterprise plans
+2. **Both Timezones in Every Email** — Confirmation and reminder emails show the invitee's time AND the host's time; Calendly only shows one timezone
+3. **Cancellation Policy Enforcement** — Calendly only displays policy text; Schedica actually blocks cancellations within the configured window
+4. **Free Custom Questions** — 3 intake questions on the free plan; Calendly gives 0 on free
+5. **Multi-Duration Event Types** — One booking link can offer 15, 30, and 60-min options; invitee picks at booking time
+6. **Meeting Overload Protection** — Daily meeting limits, buffer times, and minimum notice periods prevent back-to-back burnout
+7. **Transparent Pricing** — Per-feature tiers; key features not locked behind per-seat enterprise plans
 
 ---
 

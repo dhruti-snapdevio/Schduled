@@ -10,6 +10,24 @@ An event type is a reusable meeting template. Once created, it generates a booki
 
 ---
 
+## User Stories
+
+**Host**
+- As a host, I want to create a 1-on-1 event type with a custom duration, so that I have a ready-made booking link for standard client calls. *(MVP)*
+- As a host, I want to give each event type its own URL slug, so that I can share specific links for different meeting purposes. *(MVP)*
+- As a host, I want to set a different video platform per event type, so that some events use Zoom and others use Google Meet. *(MVP)*
+- As a host, I want to write a description for each event type, so that invitees understand what the meeting is for before they book. *(MVP)*
+- As a host, I want to hide an event type without deleting it, so that I can temporarily stop accepting bookings for it and re-enable it later. *(MVP)*
+- As a host, I want to offer multiple duration options on a single event type, so that invitees can choose a 30-min or 60-min slot based on their need. *(MVP)*
+- As a host, I want to create round-robin events that auto-assign bookings to team members, so that no single person gets overloaded with meetings. *(Phase 2)*
+- As a host, I want to create collective events that require all team members to be free simultaneously, so that group meetings only appear when everyone is available. *(Phase 2)*
+
+**Invitee**
+- As an invitee, I want to see a host's full list of event types on their profile page, so that I can pick the right meeting type for my purpose. *(MVP)*
+- As an invitee, I want to see the duration and description of an event type before picking a time, so that I know what I am signing up for. *(MVP)*
+
+---
+
 ## One-on-One Events
 
 The most common meeting type. One host, one invitee.
@@ -266,7 +284,7 @@ Two distinct phone call variants exist:
 - One event type can offer multiple duration choices
 - Example: "Consultation Call — 30 min / 45 min / 60 min"
 - Invitee selects duration on the booking page before seeing available slots
-- Price can vary per duration (if payment is enabled)
+- Price can vary per duration (if payment is enabled — Phase 3)
 - Availability windows recalculate based on selected duration
 
 ### Cancellation Policy Text and Enforcement

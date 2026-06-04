@@ -17,6 +17,23 @@ Done well, a confirmation email makes both host and invitee feel confident the m
 
 ---
 
+## User Stories
+
+**Host**
+- As a host, I want to receive an instant email when someone books me, so that I always know about new meetings the moment they are created. *(MVP)*
+- As a host, I want to see the invitee's form answers in my notification email, so that I can prepare for the meeting before it starts. *(MVP)*
+- As a host, I want to set a custom confirmation message, so that invitees receive relevant next steps or instructions after booking. *(MVP)*
+
+**Invitee**
+- As an invitee, I want to see a confirmation screen immediately after booking, so that I know my meeting was successfully scheduled. *(MVP)*
+- As an invitee, I want to see the meeting time in my own timezone on the confirmation screen, so that I know exactly when to join. *(MVP)*
+- As an invitee, I want to see the host's timezone alongside mine, so that I am confident we are both expecting the same time. *(MVP)*
+- As an invitee, I want "Add to Calendar" buttons on the confirmation page, so that I can save the meeting to my calendar with one click. *(MVP)*
+- As an invitee, I want a confirmation email with a reschedule and cancel link, so that I can change plans without contacting the host directly. *(MVP)*
+- As an invitee, I want a payment receipt included in the confirmation email if I paid for the meeting, so that I have a record of the transaction. *(Phase 3)*
+
+---
+
 ## Confirmation Screen (Invitee Browser)
 
 Immediately after the invitee clicks "Book" and the booking is processed, the booking page transitions to a confirmation screen — no page reload needed.
@@ -226,7 +243,7 @@ This means even users who read the calendar event description (without relying o
 - Invitee's confirmation shows all host names: "You'll be meeting with Jane Smith and Mike Lee"
 - All hosts added as attendees on the calendar event
 
-### Paid Event Confirmation
+### Paid Event Confirmation *(Phase 3)*
 - Payment receipt included in the confirmation email
 - "Payment of $150.00 received" shown in confirmation screen and email
 - Stripe/PayPal receipt also sent separately by the payment processor
@@ -328,7 +345,7 @@ Instead of Schedica's default confirmation screen, hosts can redirect invitees t
 - Pixel tracking on custom confirmation page
 - Open/bounce tracking
 - Group event invitee count display
-- Paid event payment receipt in confirmation
+- Paid event payment receipt in confirmation (Phase 3)
 
 
 ---

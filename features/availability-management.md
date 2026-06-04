@@ -10,6 +10,20 @@ Schedica syncs with connected calendars to determine real-time availability. On 
 
 ---
 
+## User Stories
+
+**Host**
+- As a host, I want to set my weekly working hours by day, so that invitees can only book me during times I am available. *(MVP)*
+- As a host, I want to add buffer time before and after meetings, so that I have breathing room between back-to-back calls. *(MVP)*
+- As a host, I want to set a minimum notice period, so that I am never booked with less time than I need to prepare. *(MVP)*
+- As a host, I want to set a maximum booking window, so that I control how far in advance invitees can schedule. *(MVP)*
+- As a host, I want to block specific dates as unavailable, so that my holidays and vacations are never bookable. *(MVP)*
+- As a host, I want my connected calendar's busy events to automatically block availability, so that I am never double-booked. *(MVP)*
+- As a host, I want to set a daily meeting limit, so that I am not overloaded with back-to-back meetings in a single day. *(MVP)*
+- As a host, I want to create multiple availability schedules and assign them to different event types, so that my client call hours differ from my internal meeting hours. *(Phase 2)*
+
+---
+
 ## Weekly Availability (Recurring Schedule)
 
 The foundation of availability. Hosts define their standard working hours by day of week.

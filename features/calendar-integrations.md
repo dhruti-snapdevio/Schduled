@@ -14,6 +14,19 @@ Hosts can connect multiple calendars. All are read for availability, but new boo
 
 ---
 
+## User Stories
+
+**Host**
+- As a host, I want to connect my Google Calendar with OAuth, so that my availability is always accurate without sharing my password. *(MVP)*
+- As a host, I want to connect multiple calendars (work and personal), so that Schedica checks all of them for conflicts before showing available slots. *(MVP)*
+- As a host, I want new bookings to be automatically added to my chosen calendar, so that I never have to manually create calendar events after someone books me. *(MVP)*
+- As a host, I want to connect my Outlook or Office 365 calendar, so that my work calendar is included in availability checks. *(MVP)*
+- As a host, I want to connect my Apple iCloud calendar, so that my personal schedule is factored into my availability. *(MVP)*
+- As a host, I want to disconnect a calendar at any time, so that I can switch providers or remove a calendar without losing my Schedica setup. *(MVP)*
+- As a host, I want calendar sync to happen in real-time, so that a newly added personal event blocks my availability before the next person tries to book that slot. *(MVP)*
+
+---
+
 ## Supported Calendars
 
 ### Google Calendar
@@ -79,12 +92,25 @@ For Microsoft 365 accounts (work or school) and personal Outlook.com accounts.
 - Write new bookings to iCloud calendar (syncs to iPhone/Mac automatically)
 - Requires app-specific password (Apple security requirement)
 
-**Setup Flow:**
-1. Click "Connect Apple Calendar"
-2. Enter iCloud email
-3. Generate app-specific password at appleid.apple.com
-4. Enter app-specific password in Schedica
-5. Schedica connects via CalDAV
+**Setup Flow (with guided UX for non-technical users):**
+1. User clicks "Connect Apple Calendar"
+2. Schedica shows an **inline step-by-step guide** (not just a link) with screenshots:
+   - Step A: "Go to [appleid.apple.com/account/manage](https://appleid.apple.com) and sign in"
+   - Step B: "Scroll to the **Sign-In and Security** section → click **App-Specific Passwords**"
+   - Step C: "Click **+** (Generate Password) → name it 'Schedica' → click Create"
+   - Step D: "Copy the 16-character password shown (it won't be shown again)"
+3. User enters their iCloud email address
+4. User pastes the app-specific password into the Schedica input field
+5. Schedica connects via CalDAV and lists available iCloud calendars
+6. User selects which calendars to check for conflicts and which to write bookings to
+
+**Error Handling:**
+- Wrong password: "Incorrect app-specific password. Please generate a new one and try again." — with link back to step-by-step guide
+- 2FA block: "Your iCloud account requires additional verification. Complete it at appleid.apple.com, then try again."
+- No iCloud calendars found: "No calendars found. Ensure iCloud Calendar is enabled on your Apple device."
+
+**Why App-Specific Passwords Exist (shown to user):**
+> "Apple does not allow third-party apps to use your main Apple ID password. An app-specific password is a one-time generated code that gives Schedica permission to read your calendar — without sharing your real password. You can revoke it at any time from appleid.apple.com."
 
 **Why Apple Calendar Matters:**
 - ~26% of mobile users in the US use iOS

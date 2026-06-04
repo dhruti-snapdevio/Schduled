@@ -16,6 +16,20 @@ The Booking Engine runs on every single booking and must be fast, reliable, and 
 
 ---
 
+## User Stories
+
+**Host**
+- As a host, I want the booking engine to prevent double-bookings in real-time, so that two invitees can never claim the same slot simultaneously. *(MVP)*
+- As a host, I want a booking to only be confirmed after all availability checks pass, so that I never receive a booking for a time I am unavailable. *(MVP)*
+- As a host, I want all post-booking tasks (calendar write, email, video link) to run in the background, so that the invitee gets an instant response without waiting. *(MVP)*
+
+**Invitee**
+- As an invitee, I want to receive clear feedback if a slot is taken while I am booking, so that I can immediately pick another available time. *(MVP)*
+- As an invitee, I want the booking process to complete quickly without page reloads, so that confirming my meeting feels fast and smooth. *(MVP)*
+- As an invitee, I want payment and booking to be handled together atomically, so that I am never charged for a meeting that was not confirmed. *(Phase 3)*
+
+---
+
 ## Booking Engine Flow (Step by Step)
 
 ### 1. Slot Selection
@@ -271,6 +285,32 @@ All booking creation steps (write booking record + calendar write trigger) run i
 | `completed` | Meeting time has passed (no cancellation) |
 | `no_show` | Meeting time passed, marked as no-show by host |
 | `pending_payment` | Awaiting payment confirmation (paid events) |
+
+---
+
+## Rate Limiting on Public Booking Endpoints
+
+Booking pages are publicly accessible with no authentication required — making them a target for scraping, spam bookings, and slot-exhaustion attacks. Rate limiting must be applied at multiple layers.
+
+### Limits Applied
+
+| Endpoint | Limit | Scope | Action on Breach |
+|----------|-------|-------|-----------------|
+| `GET /[username]/[eventSlug]` — slot query | 60 requests / minute | Per IP | Return 429, show "Too many requests. Please wait." |
+| `POST /api/bookings` — booking creation | 5 bookings / hour | Per IP | Return 429, "Too many bookings from this device. Try again later." |
+| `POST /api/bookings` — booking creation | 3 bookings / hour | Per invitee email | Return 429, "You have recently made several bookings. Please wait before booking again." |
+| `GET /api/slots` — available slot fetch | 30 requests / minute | Per IP | Return 429 silently; cache last response |
+
+### Implementation
+- Rate limiting via **@upstash/ratelimit** with a Redis-backed sliding window
+- IP extracted from `x-forwarded-for` header (Vercel sets this behind the proxy)
+- Email-based limits applied after form submission — email is extracted from request body before booking is processed
+- Rate limit headers returned: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+
+### Spam Booking Protection
+- Email format validated with Zod before any DB write
+- Disposable email domain blocklist checked against known throwaway providers
+- CAPTCHA (hCaptcha or Cloudflare Turnstile) shown after 2 failed or suspicious submissions from the same IP — not shown by default to keep the flow frictionless for legitimate users
 
 ---
 

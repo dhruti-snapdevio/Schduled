@@ -17,6 +17,19 @@ This page is accessed from the top-right user menu → "Profile & Settings" or "
 
 ---
 
+## User Stories
+
+**Host**
+- As a host, I want to update my profile photo and display name, so that my booking page always shows accurate and professional information. *(MVP)*
+- As a host, I want to change my timezone from settings, so that if I move or travel long-term my availability reflects the correct local time. *(MVP)*
+- As a host, I want to manage connected calendars from settings, so that I can add or remove calendars without going through onboarding again. *(MVP)*
+- As a host, I want to control which email notifications I receive, so that I am not overwhelmed by emails I do not need. *(MVP)*
+- As a host, I want to enable two-factor authentication, so that my account is protected against unauthorized access. *(MVP)*
+- As a host, I want to change my password from the settings page, so that I can keep my account secure. *(MVP)*
+- As a host, I want to delete my account and all associated data, so that I can leave Schedica and ensure my information is fully removed. *(MVP)*
+
+---
+
 ## Profile Section
 
 The personal identity that represents the host on all booking pages and emails.
@@ -221,9 +234,26 @@ Irreversible account actions, separated and clearly marked.
   - Option to download data before deletion (GDPR-compliant export)
 
 ### Data Export (GDPR)
-- "Download my data" button
-- Exports: all booking history, event type configurations, invitee data
-- Delivered as ZIP file via email within 24 hours
+
+**What is exported:**
+
+| Category | Data Included |
+|----------|--------------|
+| Profile | Name, email, username, bio, job title, timezone, profile photo |
+| Event Types | All event type configurations (name, duration, location, questions, availability rules) |
+| Bookings | Full booking history — invitee name, email, time, status, answers, cancellation reason |
+| Notifications | Notification preference settings |
+| Connected Calendars | Calendar provider names and account emails (tokens are NOT exported) |
+
+**Format:** ZIP file containing JSON files per category (machine-readable) plus a `README.txt` explaining the structure.
+
+**Delivery:** Triggered asynchronously via pg-boss job. Email sent to the account's email address with a secure download link within **24 hours**. Download link expires after 7 days.
+
+**Constraints:**
+- Only the account owner can request their own export
+- Maximum one export request per 24-hour period (rate-limited)
+- Invitee data included only where that invitee booked with this host — no cross-host data leakage
+- Tokens, passwords, and session data are never included in exports
 
 ---
 

@@ -14,6 +14,23 @@ Both types are customizable to match the host's brand and communication style.
 
 ---
 
+## User Stories
+
+**Host**
+- As a host, I want to receive an instant email when someone books, cancels, or reschedules, so that I am always up to date without checking the dashboard. *(MVP)*
+- As a host, I want my invitees to automatically receive 24-hour and 1-hour reminder emails, so that no-shows are reduced without any manual effort from me. *(MVP)*
+- As a host, I want to customize the from-name and reply-to on all emails, so that invitees see my name rather than "Schedica". *(MVP)*
+- As a host, I want to add a custom message to confirmation and reminder emails, so that I can include meeting instructions or next steps. *(MVP)*
+- As a host, I want post-meeting follow-up emails to be sent automatically after a meeting ends, so that I do not have to remember to follow up with every invitee. *(Phase 2)*
+
+**Invitee**
+- As an invitee, I want to receive a confirmation email immediately after booking, so that I have proof the meeting is scheduled and know how to join. *(MVP)*
+- As an invitee, I want to receive a reminder email 24 hours before my meeting, so that I do not forget about it. *(MVP)*
+- As an invitee, I want to receive a reminder email 1 hour before my meeting, so that I have time to prepare and find the join link. *(MVP)*
+- As an invitee, I want cancellation and reschedule links in every email, so that I can update my booking at any time without contacting the host. *(MVP)*
+
+---
+
 ## Transactional Notifications
 
 These fire automatically at specific lifecycle events — no configuration required.
@@ -209,7 +226,7 @@ After the host marks a meeting as no-show (or automatically after X hours if no 
 | Send email to invitee | ✅ MVP | Customizable email sent to the person who booked |
 | Send email to host | ✅ MVP | Notification to the meeting host |
 | Send email to other | ✅ MVP | Email sent to a CC'd third party (e.g., team member, manager) |
-| Send SMS to invitee | Post-MVP Phase 2 | Text message to the invitee's phone number via Twilio |
+| Send SMS to invitee | Post-MVP Phase 2 | Text message to the invitee's phone number |
 | Send SMS to host | Post-MVP Phase 2 | Text message to the host |
 | Send webhook | Post-MVP Phase 2 | HTTP POST to external URL with booking data |
 
@@ -240,7 +257,7 @@ The most impactful use of workflows — reducing no-shows by reminding invitees 
 - Short, direct: "Reminder: Your call with Jane starts in 1 hour. Join here: [link]"
 - Also includes both times: "3 PM for you / 10 AM for Jane"
 - Requires invitee phone number (asked in booking form)
-- Delivered via Twilio — international numbers supported
+- International numbers supported
 
 ---
 
@@ -263,7 +280,6 @@ Automated messages sent after the meeting to nurture the relationship.
 ### Outcome-Based Follow-Up
 - Triggered by host marking a meeting outcome (e.g., "Qualified", "Not a fit")
 - Sends different email based on outcome
-- Advanced: Integrates with CRM deal stage updates
 
 ---
 
@@ -395,12 +411,12 @@ Both hosts and invitees can manage notification preferences.
 
 | App | Email Reminders | SMS Reminders | Both Timezones in Email | Reconfirmation |
 |-----|----------------|--------------|------------------------|----------------|
-| **Calendly** | ✅ Paid plans; 24hr + 1hr pre-built; custom workflows | ✅ Paid plans (Twilio) | ❌ Only invitee's timezone | ❌ No native reconfirmation |
+| **Calendly** | ✅ Paid plans; 24hr + 1hr pre-built; custom workflows | ✅ Paid plans | ❌ Only invitee's timezone | ❌ No native reconfirmation |
 | **Cal.com** | ✅ Free tier; email + SMS; webhook actions | ✅ Free tier | ❌ Only invitee's timezone | ❌ No |
 | **Chili Piper** | Instant alerts to Slack/email for new leads; less focus on invitee reminders | ❌ No | ❌ No | ❌ No |
 | **HubSpot Meetings** | Basic confirmations only; follow-up via HubSpot workflows | ❌ No | ❌ No | ❌ No |
 | **SavvyCal** | ✅ Premium plan; email reminders | Limited | ❌ No | ❌ No |
-| **Schedica** | ✅ All paid plans; 24hr + 1hr in MVP; full workflow builder (Phase 2) | ✅ Phase 2 via Twilio | ✅ **Both timezones in every email** — key differentiator | ✅ Phase 2 |
+| **Schedica** | ✅ All paid plans; 24hr + 1hr in MVP; full workflow builder (Phase 2) | ✅ Phase 2 | ✅ **Both timezones in every email** — key differentiator | ✅ Phase 2 |
 
 ---
 
@@ -422,7 +438,7 @@ Both hosts and invitees can manage notification preferences.
 > **Calendly free plan:** Calendly does not include reminder workflows on the free plan — they require a paid plan. Schedica includes 24hr and 1hr email reminders on all plans including free.
 
 **Post-MVP:**
-- SMS reminders via Twilio (Phase 2)
+- SMS reminders (Phase 2)
 - Post-meeting follow-up workflow emails (Phase 2)
 - No-show detection and automated follow-up email (Phase 2)
 - Reconfirmation workflow — "Confirm Attendance" button for far-in-advance bookings (Phase 2)
@@ -439,5 +455,4 @@ Both hosts and invitees can manage notification preferences.
 
 - **pg-boss** — the primary engine for all timed notifications. At the moment a booking is confirmed, pg-boss schedules four future jobs with exact fire times: 24-hour reminder, 1-hour reminder, post-meeting follow-up (30 min after end), and no-show check (15 min after start). Each job uses a `singletonKey` tied to the booking ID, so it can be individually cancelled if the booking is cancelled or rescheduled — preventing reminders for meetings that no longer exist.
 - **Resend** — delivers all transactional and reminder emails: booking confirmations, cancellation notices, reschedule confirmations, 24-hour reminders, 1-hour reminders, and post-meeting follow-ups. Each email uses the host's name as the sender and routes replies to the host's actual email address.
-- **Twilio** *(Post-MVP)* — SMS reminder delivery for invitees who provide a phone number at booking. Used for the 1-hour and 15-minute pre-meeting text reminders. International numbers supported.
 - **PostgreSQL + Drizzle ORM** — stores notification preferences per user in `notification_preferences` (which reminder types are enabled, daily digest on/off, etc.). pg-boss uses the same PostgreSQL database to store scheduled jobs, so no separate job-queue database is needed.
