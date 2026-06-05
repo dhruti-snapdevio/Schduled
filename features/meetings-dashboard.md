@@ -292,7 +292,7 @@ The dashboard is also the anchor for in-app notifications.
 ## Tech Stack
 
 - **Next.js App Router server components** — the dashboard page fetches all booking data directly on the server at render time using Drizzle queries. No client-side data fetching for the initial page load — the full meeting list renders immediately.
-- **Better Auth** — all dashboard routes are protected. The server component reads the current session using `auth.api.getSession()` and redirects unauthenticated users to the sign-in page. Orbit Admin can access all users' meeting data via the admin role.
+- **Better Auth** — all dashboard routes are protected. The server component reads the current session using `auth.api.getSession()` and redirects unauthenticated users to the sign-in page. Custom Next.js admin pages can access all users' meeting data via the admin role.
 - **PostgreSQL + Drizzle ORM** — all dashboard queries (upcoming list, past list, cancelled list, search, filter, stats) run directly against the `bookings` table with joins to `event_types` and `booking_answers`. Pagination, status filtering, and date range filtering are handled at the database level for efficiency.
 - **pg-boss** — when a host cancels a meeting from the dashboard, the corresponding pg-boss reminder jobs for that booking are cancelled immediately to prevent sending reminders for a meeting that no longer exists.
 - **Shadcn/UI** — provides the meeting list cards, filter chips, search input, status badges, date grouping layout, and the meeting detail drawer/modal.

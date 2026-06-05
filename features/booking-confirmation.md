@@ -266,14 +266,13 @@ Instead of Schedica's default confirmation screen, hosts can redirect invitees t
 - Host notification: delivered within 30 seconds of booking
 
 ### Delivery Provider
-- Transactional email via Resend (rendered with React Email)
+- Transactional email via Nodemailer (rendered with React Email, sent via SMTP)
 - Dedicated sending domain for deliverability (e.g., `notifications.schedica.com`)
 - SPF, DKIM, and DMARC configured to prevent spam classification
 
 ### Delivery Tracking
-- Open tracking (optional — privacy-aware; can be disabled)
-- Bounce detection: if invitee email bounces, host notified
-- Delivery failures logged; host sees alert in dashboard
+- Delivery failures logged via `console.error` and visible in dashboard alert *(MVP)*
+- Open tracking and bounce detection require SMTP feedback loops — **Post-MVP**
 
 ### Retry on Failure
 - Failed delivery retried 2 times with 5-minute spacing
@@ -346,7 +345,7 @@ Instead of Schedica's default confirmation screen, hosts can redirect invitees t
 ## Tech Stack
 
 - **pg-boss** — confirmation emails are sent as async background jobs after the booking API returns. The invitee sees the confirmation screen immediately; email delivery happens within seconds in the background. This prevents email provider latency from affecting booking response time.
-- **Resend** — delivers both the invitee confirmation email (with ICS attachment) and the host notification email. Configured with a custom sending domain (`notifications.schedica.com`) and SPF/DKIM/DMARC records for high deliverability.
+- **Nodemailer (SMTP)** — delivers both the invitee confirmation email (with ICS attachment) and the host notification email. The SMTP server should be configured with proper SPF/DKIM/DMARC records to ensure high deliverability and prevent spam classification.
 - **ical-generator** — generates the RFC 5545-compliant `.ics` calendar invite file attached to the invitee's confirmation email. Includes `TZID` so the event displays correctly in Apple Calendar, Outlook, and Google Calendar.
 - **Google Calendar API** — the `write-calendar-event` background job creates the host's calendar event on Google Calendar after the booking is confirmed. Google also automatically sends the invitee a calendar invitation email.
 - **Microsoft Graph API** — same as Google Calendar, but for hosts using Outlook/Office 365. The calendar event is created via the Graph API with the invitee as an attendee.

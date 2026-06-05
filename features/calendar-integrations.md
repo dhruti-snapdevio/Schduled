@@ -21,7 +21,7 @@ Hosts can connect multiple calendars. All are read for availability, but new boo
 - As a host, I want to connect multiple calendars (work and personal), so that Schedica checks all of them for conflicts before showing available slots. *(MVP)*
 - As a host, I want new bookings to be automatically added to my chosen calendar, so that I never have to manually create calendar events after someone books me. *(MVP)*
 - As a host, I want to connect my Outlook or Office 365 calendar, so that my work calendar is included in availability checks. *(MVP)*
-- As a host, I want to connect my Apple iCloud calendar, so that my personal schedule is factored into my availability. *(MVP)*
+- As a host, I want to connect my Apple iCloud calendar, so that my personal schedule is factored into my availability. *(Phase 2 — CalDAV lacks OAuth; deferred post-MVP)*
 - As a host, I want to disconnect a calendar at any time, so that I can switch providers or remove a calendar without losing my Schedica setup. *(MVP)*
 - As a host, I want calendar sync to happen in real-time, so that a newly added personal event blocks my availability before the next person tries to book that slot. *(MVP)*
 
@@ -81,9 +81,9 @@ For Microsoft 365 accounts (work or school) and personal Outlook.com accounts.
 
 ---
 
-### Apple Calendar / iCloud
+### Apple Calendar / iCloud *(Phase 2 — Post-MVP)*
 
-> Note: Calendly dropped iCloud support in August 2024. Schedica supports it natively — a meaningful differentiator.
+> Note: Calendly dropped iCloud support in August 2024. Schedica will support it in Phase 2 — CalDAV lacks standard OAuth and requires app-specific passwords, making it more complex than Google/Outlook. Phase 2 differentiator vs Calendly.
 
 **Features:**
 - iCloud CalDAV integration
@@ -259,7 +259,7 @@ For enterprise users scheduling physical meeting rooms:
 | **SavvyCal** | ✅ Yes | ✅ Yes | ✅ iCloud CalDAV | ❌ No | ✅ Yes | ✅ Yes |
 | **Chili Piper** | ✅ Yes | ✅ Yes | ❌ No | ❌ No | ✅ Yes | ✅ Yes |
 | **HubSpot Meetings** | ✅ Yes | ✅ Office 365 | ❌ No | ❌ No | ❌ One calendar only | ✅ Yes |
-| **Schedica** | ✅ Yes — OAuth 2.0; also generates Google Meet links | ✅ Yes — Microsoft Graph; also creates Teams meetings | ✅ **Yes — iCloud CalDAV (MVP)** — direct differentiator vs Calendly | ✅ Phase 2 | ✅ Up to 3 calendars in MVP | ✅ 5-min polling in MVP; push notifications Phase 2 |
+| **Schedica** | ✅ Yes — OAuth 2.0; also generates Google Meet links | ✅ Yes — Microsoft Graph; also creates Teams meetings | ✅ **Phase 2 — iCloud CalDAV** — direct differentiator vs Calendly (who dropped it Aug 2024) | ✅ Phase 2 | ✅ Up to 3 calendars in MVP (Google + Outlook only); Apple adds Phase 2 | ✅ 5-min polling in MVP; push notifications Phase 2 |
 
 ---
 
@@ -268,15 +268,15 @@ For enterprise users scheduling physical meeting rooms:
 **In MVP:**
 - Google Calendar (OAuth 2.0)
 - Outlook / Office 365 (Microsoft Graph API)
-- Apple Calendar / iCloud (CalDAV with app-specific password)
-- Multi-calendar conflict detection (connect up to 3 calendars)
+- Multi-calendar conflict detection (connect up to 2 calendars in MVP: Google + Outlook)
 - Calendar event creation on booking
 - Calendar event update on reschedule
 - Calendar event deletion on cancellation
 
 **Post-MVP:**
-- CalDAV (generic servers)
-- Exchange (on-premise EWS)
+- Apple Calendar / iCloud (CalDAV with app-specific password) *(Phase 2 — lacks OAuth, complex protocol)*
+- CalDAV (generic servers — Nextcloud, Fastmail, etc.) *(Phase 2)*
+- Exchange (on-premise EWS) *(Phase 2)*
 - Room and resource calendars
 - Real-time push notification sync (vs polling)
 - Calendar health monitoring dashboard

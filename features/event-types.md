@@ -57,7 +57,7 @@ The most common meeting type. One host, one invitee.
 
 ---
 
-## Group Events
+## Group Events *(Post-MVP — Phase 2)*
 
 One host, multiple invitees in the same time slot. All invitees join the same meeting.
 
@@ -319,8 +319,7 @@ Two distinct phone call variants exist:
 ## MVP Scope
 
 **In MVP:**
-- One-on-One event types
-- One-on-One event types only *(Group, Round-Robin, Collective are Phase 2)*
+- One-on-One event types only *(Group, Round-Robin, and Collective event types are Phase 2)*
 - Full configuration: name, duration, location, availability, questions, cancellation policy
 - Active / Inactive toggle
 - Hidden / Secret event types (bookable via direct link only)

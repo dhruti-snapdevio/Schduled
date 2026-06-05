@@ -7,8 +7,8 @@ Notifications and reminders keep hosts and invitees informed before, during, and
 ## Overview
 
 Schedica sends notifications through two channels:
-1. **Transactional emails** — Booking confirmations, cancellations, reschedules (triggered instantly)
-2. **Workflow automations** — Timed sequences of emails and SMS sent before or after meetings
+1. **Transactional emails** — Booking confirmations, cancellations, reschedules (triggered instantly) *(MVP)*
+2. **Workflow automations** — Timed email sequences before or after meetings *(MVP)*; SMS sequences *(Phase 2)*
 
 Both types are customizable to match the host's brand and communication style.
 
@@ -76,7 +76,7 @@ Sent immediately when a new booking is created.
 - One-click cancel link
 - Link to meeting detail in dashboard
 
-**Use Case:** Host receives instant notification via email; can also receive Slack or push notification (if configured).
+**Use Case:** Host receives instant notification via email. Slack integration is Phase 2.
 
 ---
 
@@ -143,14 +143,14 @@ Sent when a host cancels a meeting.
 
 ## Workflow Automations
 
-Workflows are timed multi-step email and SMS sequences that fire before or after meetings. They are the "set and forget" layer of communication.
+Workflows are timed multi-step sequences that fire before or after meetings. **MVP:** email only. **Phase 2:** SMS added. They are the "set and forget" layer of communication.
 
 ### What Is a Workflow?
 
 A workflow is composed of:
 - **Trigger** — When should this run? (e.g., 24 hours before meeting)
 - **Condition** — Which event types does this apply to? (optional filter)
-- **Action** — What should happen? (send email or SMS)
+- **Action** — What should happen? (send email *(MVP)*; send SMS *(Phase 2)*)
 
 ### Workflow Triggers
 
@@ -330,7 +330,7 @@ Invitee's local time:  Thursday, June 5 at 3:00 PM IST (Asia/Kolkata)
 
 ---
 
-## Dynamic Variables in Emails and SMS
+## Dynamic Variables in Emails *(and SMS — Phase 2)*
 
 All templates support dynamic variables that auto-fill with meeting data.
 
@@ -360,7 +360,7 @@ All templates support dynamic variables that auto-fill with meeting data.
 
 ## In-App Notifications
 
-Beyond email and SMS, notifications appear in the Schedica dashboard.
+Beyond email (and SMS in Phase 2), notifications appear in the Schedica dashboard.
 
 ### Dashboard Notification Feed
 - New booking notifications
@@ -379,12 +379,12 @@ Beyond email and SMS, notifications appear in the Schedica dashboard.
 
 ---
 
-## Slack Integration
+## Slack Integration *(Phase 2 — Post-MVP)*
 
-For teams using Slack, booking notifications can be sent to Slack channels.
+For teams using Slack, booking notifications can be sent to Slack channels. Not included in MVP — requires team workspace feature and OAuth bot setup.
 
-### Slack Notifications
-- New booking → post to `#sales-bookings` channel
+### Planned Slack Notifications (Phase 2)
+- New booking → post to configured `#channel`
 - Cancellation → post alert to channel
 - Round-robin assignment → notify assigned rep
 - Custom message format with meeting details
@@ -396,8 +396,9 @@ For teams using Slack, booking notifications can be sent to Slack channels.
 Both hosts and invitees can manage notification preferences.
 
 ### Host Preferences
-- Toggle email/push/SMS for each event type (new booking, cancel, reschedule)
-- Set SMS notification for urgent bookings only
+- Toggle email for each event type (new booking, cancel, reschedule) *(MVP)*
+- Toggle push notifications *(Phase 2)*
+- Toggle SMS notifications *(Phase 2)*
 - Enable/disable daily digest: summary of tomorrow's meetings
 
 ### Invitee Preferences
@@ -454,5 +455,5 @@ Both hosts and invitees can manage notification preferences.
 ## Tech Stack
 
 - **pg-boss** — the primary engine for all timed notifications. At the moment a booking is confirmed, pg-boss schedules four future jobs with exact fire times: 24-hour reminder, 1-hour reminder, post-meeting follow-up (30 min after end), and no-show check (15 min after start). Each job uses a `singletonKey` tied to the booking ID, so it can be individually cancelled if the booking is cancelled or rescheduled — preventing reminders for meetings that no longer exist.
-- **Resend** — delivers all transactional and reminder emails: booking confirmations, cancellation notices, reschedule confirmations, 24-hour reminders, 1-hour reminders, and post-meeting follow-ups. Each email uses the host's name as the sender and routes replies to the host's actual email address.
+- **Nodemailer (SMTP)** — delivers all transactional and reminder emails: booking confirmations, cancellation notices, reschedule confirmations, 24-hour reminders, 1-hour reminders, and post-meeting follow-ups. Each email uses the host's name as the sender and routes replies to the host's actual email address.
 - **PostgreSQL + Drizzle ORM** — stores notification preferences per user in `notification_preferences` (which reminder types are enabled, daily digest on/off, etc.). pg-boss uses the same PostgreSQL database to store scheduled jobs, so no separate job-queue database is needed.
