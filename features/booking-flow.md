@@ -29,7 +29,7 @@ The booking flow eliminates the email back-and-forth of "when are you free?" by 
 ## Host Journey (Setting Up)
 
 ### Step 1 — Connect Calendar
-- Connect one or more calendars (Google Calendar, Outlook, Apple/iCloud, CalDAV)
+- Connect one or more calendars (Google Calendar, Outlook — both MVP; Apple iCloud and generic CalDAV — Phase 2)
 - Schedica reads busy/free data from connected calendars in real-time
 - Prevents double-booking across all connected calendars
 - User selects which calendar new bookings are added to
@@ -64,31 +64,43 @@ The booking flow eliminates the email back-and-forth of "when are you free?" by 
 
 ## Invitee Journey (Booking a Meeting)
 
+### Step 0 — Duration Selection (Multi-Duration Event Types Only)
+When the event type has `inviteeCanChooseDuration` enabled, the booking page opens with a **duration selection card** before the calendar is shown.
+
+| Element | Description |
+|---------|-------------|
+| Heading | "How long would you like to meet?" |
+| Duration options | One button per configured duration (e.g., 15 min / 30 min / 60 min) |
+| Default selection | The duration marked as default is pre-selected |
+
+> **Why duration must come before the calendar:** Available time slots depend entirely on duration. A 15-minute slot may be open, but the same start time as a 60-minute meeting may not be available if the host has a meeting 30 minutes later. If the invitee selects duration after seeing the calendar, the slot list would need to reload — causing confusing UX. Selecting duration first means the calendar immediately shows correct slots for the chosen length.
+
+After a duration is selected, the normal booking flow continues from Step 1.
+
+---
+
 ### Step 1 — Visit Booking Page
 - Invitee opens the booking link
-- Sees host's name, event type, duration, location type
+- Sees host's name, event type, duration (or selected duration if multi-duration), location type
 - Sees a calendar with available time slots highlighted
 
 ### Step 2 — Select Date and Time
 - Calendar shows current month with available days
 - Click a date to see available time slots for that day
 - Time slots shown in invitee's local timezone (auto-detected)
+- Slots are calculated for the **chosen duration** (only slots with enough consecutive free time are shown)
 - Option to manually change timezone
 
-### Step 3 — Calendar Overlay (Optional — Advanced UX)
-- Invitee can optionally connect their own calendar
-- Their existing events appear as an overlay on the host's available slots
-- Mutual free times are highlighted, busy times shown in context
-- Makes it immediately obvious which slot works for both parties
-- Inspired by SavvyCal's overlay UX
-
-### Step 4 — Fill Booking Form
+### Step 3 — Fill Booking Form
 - Required fields: Name, Email
 - Optional: Phone number
+- **Phone Call direction logic** — when location type is "Phone Call", the `phoneCallDirection` setting on the event type controls the form:
+  - `host_calls_invitee`: invitee's phone number field becomes **required** ("Your phone number — the host will call you at this number")
+  - `invitee_calls_host`: invitee's phone field is hidden; confirmation screen and email display the **host's phone number** instead ("Call us at: +1 555 123 4567")
 - Custom questions (pre-configured by host): text, dropdown, checkbox, radio
 - Pre-fill via URL parameters for embedded forms
 
-### Step 5 — Confirmation
+### Step 4 — Confirmation
 - Instant confirmation screen shown
 - Confirmation email sent to both host and invitee
 - Calendar invite (.ics) attached and added to both parties' calendars
@@ -181,17 +193,21 @@ Event type settings → Cancellation & Reschedule tab:
 
 ### Invitee Cancels
 1. Invitee clicks "Cancel" link in confirmation email
-2. Shown cancellation form (optional reason field)
-3. Cancellation confirmed; both parties notified
-4. Calendar event removed from both calendars
-5. Host can trigger post-cancellation workflows (e.g., offer to reschedule)
+2. **API validates that `startTime > NOW()`** — if the meeting has already started or passed, the cancel link shows a "Meeting Already Completed" page ("This meeting has already taken place and cannot be cancelled."). Cancelling a past meeting would corrupt historical records.
+3. Cancellation policy window checked — if within blocked window, show **Cancellation Blocked** page (see above)
+4. Shown cancellation form (optional reason field)
+5. Cancellation confirmed; both parties notified
+6. Calendar event removed from both calendars
+7. Host can trigger post-cancellation workflows (e.g., offer to reschedule)
 
 ### Invitee Reschedules
 1. Invitee clicks "Reschedule" link in confirmation email
-2. Taken back to booking page with original time slot highlighted
-3. Selects new time
-4. Original calendar invite updated for both parties
-5. Confirmation email sent with updated details
+2. **API validates that `startTime > NOW()`** — if the meeting time has already passed, the reschedule link shows a "Meeting Already Completed" page ("This meeting has already taken place and cannot be rescheduled."). Rescheduling a past meeting would corrupt analytics and host schedules.
+3. Reschedule policy window checked — if within blocked window, show **Reschedule Blocked** page
+4. Taken back to booking page with original time slot highlighted
+5. Selects new time
+6. Original calendar invite updated for both parties
+7. Confirmation email sent with updated details
 
 ### Host Cancels
 - Host can cancel any booking from their dashboard
@@ -252,11 +268,10 @@ For events requiring multiple hosts to be present:
 > **Calendly comparison:** Calendly displays cancellation policy text but does not enforce it — any invitee can cancel at any time regardless of the stated policy. Schedica actually blocks the cancel link when the window has passed, which is a key differentiator for paid sessions, coaching calls, and high-value demos.
 
 **Post-MVP:**
-- Calendar overlay (invitee connects own calendar to see mutual free times)
-- Group booking with capacity limits
-- Collective multi-host booking
-- QR code for sharing booking link
-- Maximum reschedules per booking limit
+- Calendar overlay — invitee connects own calendar to see mutual free times *(Phase 3)*
+- Group booking with capacity limits *(Phase 2)*
+- Collective multi-host booking *(Phase 2)*
+- QR code for sharing booking link *(Phase 2)*
 
 
 ---

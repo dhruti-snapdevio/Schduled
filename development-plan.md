@@ -22,12 +22,11 @@ At the start of each phase, reference the relevant feature doc from the `feature
 | Job Queue | pg-boss (PostgreSQL-backed) |
 | Styling | Tailwind CSS |
 | UI Components | shadcn/ui (Radix UI primitives) |
-| Email Delivery | Resend |
+| Email Delivery | Nodemailer (SMTP) |
 | Email Templates | React Email |
-| File Storage | Vercel Blob |
-| Rate Limiting | @upstash/ratelimit + @upstash/redis |
-| Error Monitoring | Sentry |
-| Admin Panel | Orbit Admin |
+| File Storage | S3-compatible storage (@aws-sdk/client-s3) |
+| Logging | console.log / console.error (built-in) |
+| Admin Panel | Custom Next.js pages (Shadcn/UI + Better Auth Admin Plugin) |
 | Calendar Libs | date-fns-tz, ical-generator |
 | Validation | Zod |
 
@@ -54,8 +53,9 @@ Phase 14 →  Booking Confirmation
 Phase 15 →  Notifications & Reminders
 Phase 16 →  Meetings Dashboard
 Phase 17 →  Cancellation & Reschedule
-Phase 18 →  Admin Panel
-Phase 19 →  QA & Launch Prep
+Phase 18 →  Open Source Configuration
+Phase 19 →  Admin Panel
+Phase 20 →  QA & Launch Prep
 ```
 
 ---
@@ -81,7 +81,7 @@ Phase 19 →  QA & Launch Prep
   ├── app/
   │   ├── (auth)/               ← sign-in, sign-up, forgot/reset password, verify-email
   │   ├── (dashboard)/          ← host dashboard (protected)
-  │   ├── (admin)/              ← Orbit Admin panel
+  │   ├── (admin)/              ← custom admin panel (Next.js pages, protected by Better Auth admin role)
   │   ├── onboarding/           ← first-run wizard
   │   ├── [username]/           ← public booking pages (no auth)
   │   │   └── [eventSlug]/
@@ -89,6 +89,7 @@ Phase 19 →  QA & Launch Prep
   ├── components/
   │   ├── booking/              ← booking page, slot picker, confirmation
   │   ├── dashboard/            ← meetings list, event type cards
+  │   ├── admin/                ← admin panel components (user table, job queue, stats)
   │   ├── onboarding/           ← wizard step components
   │   └── ui/                   ← shadcn components
   ├── lib/
@@ -97,6 +98,20 @@ Phase 19 →  QA & Launch Prep
   │   │   ├── schema/           ← Drizzle schema (one file per domain)
   │   │   ├── index.ts          ← Drizzle client + connection
   │   │   └── queries/          ← reusable query helpers
+  │   ├── email/
+  │   │   ├── client.ts         ← Nodemailer SMTP transporter (singleton)
+  │   │   ├── send.ts           ← send() wrapper — renders template + delivers via SMTP
+  │   │   └── templates/        ← React Email components (one per email type)
+  │   │       ├── booking-confirmation.tsx
+  │   │       ├── booking-notification.tsx
+  │   │       ├── reminder.tsx
+  │   │       ├── cancellation.tsx
+  │   │       ├── reschedule.tsx
+  │   │       ├── welcome.tsx
+  │   │       └── verification.tsx
+  │   ├── storage/
+  │   │   ├── client.ts         ← S3Client singleton (@aws-sdk/client-s3) — points to any S3-compatible endpoint
+  │   │   └── upload.ts         ← upload(), deleteFile(), getPresignedUrl() helpers
   │   └── jobs/
   │       ├── client.ts         ← pg-boss singleton
   │       ├── workers/          ← job handler functions
@@ -116,9 +131,14 @@ Phase 19 →  QA & Launch Prep
   ```bash
   npm install pg-boss
   ```
-- [ ] Install Resend for email
+- [ ] Install Nodemailer for SMTP email
   ```bash
-  npm install resend
+  npm install nodemailer
+  npm install -D @types/nodemailer
+  ```
+- [ ] Install React Email for email templates
+  ```bash
+  npm install @react-email/components react-email
   ```
 - [ ] Install date and calendar libraries
   ```bash
@@ -128,23 +148,30 @@ Phase 19 →  QA & Launch Prep
   ```bash
   npm install tsdav
   ```
-- [ ] Install React Email for email templates
+- [ ] Install S3-compatible storage SDK (works with AWS S3, Cloudflare R2, MinIO, Backblaze B2, DigitalOcean Spaces)
   ```bash
-  npm install @react-email/components react-email
+  npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
   ```
-- [ ] Install Vercel Blob for file storage
+- [ ] Install Google API and Microsoft Graph clients
   ```bash
-  npm install @vercel/blob
+  npm install googleapis @microsoft/microsoft-graph-client
+  npm install -D @microsoft/microsoft-graph-types
   ```
-- [ ] Install Upstash Redis + ratelimit
-  ```bash
-  npm install @upstash/ratelimit @upstash/redis
+- [ ] Set up `src/lib/email/client.ts` — Nodemailer transporter using env vars; use Mailhog (`smtp://localhost:1025`) for local dev
+- [ ] Set up `src/lib/email/send.ts` — `send({ to, subject, template, props })` wrapper that renders React Email component to HTML then calls `transporter.sendMail()`
+- [ ] Set up `src/lib/storage/client.ts` — `S3Client` singleton using `S3_*` env vars; set `endpoint` when using non-AWS provider (Cloudflare R2, MinIO, etc.)
+- [ ] Set up `src/lib/storage/upload.ts` — `getPresignedUploadUrl(key)`, `deleteFile(key)`, `getPublicUrl(key)` helpers
+- [ ] Configure `drizzle.config.ts` — **must include `schemaFilter: ["public"]`** to restrict Drizzle Kit to the `public` schema only. pg-boss automatically creates its own tables in a `pgboss` schema on startup; without this filter, `npx drizzle-kit generate` will detect those untracked tables and attempt to generate migrations that drop or alter them.
+  ```typescript
+  // drizzle.config.ts
+  export default defineConfig({
+    schema: "./src/lib/db/schema/*",
+    out: "./drizzle",
+    dialect: "postgresql",
+    dbCredentials: { url: process.env.DATABASE_URL! },
+    schemaFilter: ["public"],   // ← required: ignore pgboss schema
+  })
   ```
-- [ ] Install and configure Sentry
-  ```bash
-  npx @sentry/wizard@latest -i nextjs
-  ```
-- [ ] Configure `drizzle.config.ts`
 - [ ] Configure `.env` file:
   ```
   DATABASE_URL=
@@ -154,6 +181,8 @@ Phase 19 →  QA & Launch Prep
 
   GOOGLE_CLIENT_ID=
   GOOGLE_CLIENT_SECRET=
+
+  # Microsoft Graph API — Outlook calendar sync + Teams meeting creation (NOT for user sign-in)
   MICROSOFT_CLIENT_ID=
   MICROSOFT_CLIENT_SECRET=
 
@@ -161,16 +190,22 @@ Phase 19 →  QA & Launch Prep
   ZOOM_CLIENT_SECRET=
   ZOOM_REDIRECT_URI=
 
-  RESEND_API_KEY=
-  RESEND_FROM_EMAIL=
+  # SMTP — use any SMTP server (Gmail SMTP, Postfix, Mailhog for dev, etc.)
+  SMTP_HOST=
+  SMTP_PORT=587
+  SMTP_SECURE=false
+  SMTP_USER=
+  SMTP_PASS=
+  SMTP_FROM_EMAIL=
+  SMTP_FROM_NAME=Schedica
 
-  BLOB_READ_WRITE_TOKEN=
-
-  UPSTASH_REDIS_REST_URL=
-  UPSTASH_REDIS_REST_TOKEN=
-
-  SENTRY_DSN=
-  NEXT_PUBLIC_SENTRY_DSN=
+  # S3-compatible storage — profile photos, logos, banners
+  # Works with AWS S3, Cloudflare R2, MinIO, Backblaze B2, DigitalOcean Spaces
+  S3_ACCESS_KEY_ID=
+  S3_SECRET_ACCESS_KEY=
+  S3_REGION=
+  S3_BUCKET_NAME=
+  S3_ENDPOINT=          # omit for AWS S3; set for Cloudflare R2 / MinIO / other providers
   ```
 - [ ] Set up ESLint + Prettier config
 - [ ] Set up git repository and initial commit
@@ -196,10 +231,11 @@ Phase 19 →  QA & Launch Prep
   - [ ] `accounts` — id, userId, provider, providerAccountId, accessToken, refreshToken, expiresAt
   - [ ] `verifications` — id, identifier, value, expiresAt
   - [ ] `user_profiles` — id, userId, displayName, jobTitle, company, bio, websiteUrl, theme (light/dark/system), dateFormat, timeFormat, updatedAt
-  - [ ] `user_branding` — id, userId, brandColor, logoUrl, bannerUrl, confirmationMessage, removeBranding, updatedAt
+  - [ ] `user_branding` — id, userId, brandPrimaryColor, brandTextColor, brandBackgroundColor, logoUrl, bannerUrl, welcomeMessage, confirmationMessage, redirectUrl, customEmailSubject, updatedAt
+  - [ ] `username_redirects` — id, userId, oldUsername, newUsername, expiresAt, createdAt — records old usernames for 30-day redirect; without this table, any old booking link in an email signature would 404 the moment a user changes their username
 
   **`event-types.ts` — Scheduling setup:**
-  - [ ] `event_types` — id, userId, name, slug, description, locationType, locationValue, color, isActive, isHidden, status (active/inactive), minimumNotice, bookingWindow, bookingWindowType (rolling/fixed), bufferBefore, bufferAfter, maxBookingsPerDay, startTimeIncrement, requiresApproval, createdAt, updatedAt
+  - [ ] `event_types` — id, userId, name, slug, description, locationType, locationValue, phoneCallDirection (host_calls_invitee / invitee_calls_host — only used when locationType = phone; drives whether invitee phone is required on the form and whose number is displayed in confirmation), color, isActive, isHidden, status (active/inactive), minimumNotice, bookingWindow, bookingWindowType (rolling/fixed), bufferBefore, bufferAfter, maxBookingsPerDay, startTimeIncrement, requiresApproval, createdAt, updatedAt
   - [ ] `event_type_durations` — id, eventTypeId, duration, isDefault
   - [ ] `cancellation_policies` — id, eventTypeId, allowCancellation, cutoffHours, allowRescheduling, rescheduleCutoffHours, maxReschedules, requireCancellationReason, cancellationReasonOptions (json), showPolicyText, createdAt
   - [ ] `availability_schedules` — id, userId, name, isDefault, timezone, createdAt
@@ -228,7 +264,7 @@ Phase 19 →  QA & Launch Prep
   - [ ] `plan_overrides` — id, userId, planId, reason, expiresAt, createdByAdminId, createdAt
 
   **`notifications.ts` — Notifications & reminders:**
-  - [ ] `notification_preferences` — id, userId, bookingConfirmationEmail, bookingNotificationEmail, reminderEmail24h, reminderEmail1h, cancellationEmail, rescheduleEmail, fromName, replyToEmail, updatedAt
+  - [ ] `notification_preferences` — id, userId, bookingConfirmationEmail, bookingNotificationEmail, reminderEmail24h, reminderEmail1h, cancellationEmail, rescheduleEmail, dailyDigestEmail, weeklySummaryEmail, fromName, replyToEmail, emailFormat (detailed/summary), updatedAt
   - [ ] `workflow_jobs` — id, bookingId, jobType (reminder_24h/reminder_1h/followup/noshow_check), singletonKey, scheduledFor, status, createdAt
 
 - [ ] Run initial migration:
@@ -247,7 +283,9 @@ Phase 19 →  QA & Launch Prep
 
 ## Phase 2 — Landing Page
 
-**Goal:** Full public-facing marketing page is live. Visitors can understand the product, see pricing, and sign up.
+**Goal:** Full public-facing marketing page is live. Visitors can understand the product and sign up.
+
+**Reference doc:** [features/landing-page.md](./features/landing-page.md)
 
 ### Tasks
 
@@ -291,7 +329,7 @@ Phase 19 →  QA & Launch Prep
 
 ## Phase 3 — Authentication
 
-**Goal:** Users can sign up, sign in, sign out, verify email, and reset password. Google and Microsoft OAuth work.
+**Goal:** Users can sign up, sign in, sign out, verify email, and reset password. Google OAuth and magic link work.
 
 **Reference doc:** [features/user-onboarding.md](./features/user-onboarding.md)
 
@@ -301,30 +339,30 @@ Phase 19 →  QA & Launch Prep
 - [ ] Configure Better Auth in `src/lib/auth/config.ts`
   - Email + password provider
   - Google OAuth provider
-  - Microsoft OAuth provider
+  - Magic link provider (passwordless sign-in via email)
   - Admin Plugin
   - Drizzle adapter
   - Session config (7-day TTL, 30-day with "remember me")
 - [ ] Mount Better Auth handler at `src/app/api/auth/[...all]/route.ts`
-- [ ] Configure Resend as the email provider for Better Auth
+- [ ] Configure Nodemailer SMTP as the email provider for Better Auth
 - [ ] Create Better Auth client in `src/lib/auth/client.ts`
 
 **Pages:**
-- [ ] `/sign-up` — sign up form (name, email, password) + Google / Microsoft OAuth buttons
-- [ ] `/sign-in` — sign in form (email, password, remember me checkbox) + OAuth buttons
+- [ ] `/sign-up` — sign up form (name, email, password) + Google OAuth button
+- [ ] `/sign-in` — sign in form (email, password, remember me checkbox) + Google OAuth button + magic link option
 - [ ] `/forgot-password` — email input form
 - [ ] `/reset-password` — new password + confirm password (reads token from URL)
 - [ ] `/verify-email` — handles code from email, shows success or expired error
 
 **Logic:**
-- [ ] On sign-up: send email verification via Resend
-- [ ] On Google/Microsoft OAuth: skip email verification (already verified by provider)
+- [ ] On sign-up: send email verification via Nodemailer (SMTP)
+- [ ] On Google OAuth: skip email verification (already verified by Google)
 - [ ] On password reset: revoke all existing sessions
 - [ ] Redirect authenticated users away from auth pages → `/dashboard`
 - [ ] Protect all `(dashboard)` routes — unauthenticated users redirected to `/sign-in`
 - [ ] Middleware: `src/middleware.ts` — session check on every protected route
 
-**Email templates (via Resend):**
+**Email templates (React Email → Nodemailer SMTP):**
 - [ ] Email verification email (link valid 24 hours)
 - [ ] Password reset email (link valid 1 hour, single-use)
 - [ ] Welcome email (after first successful sign-up)
@@ -350,8 +388,8 @@ Phase 19 →  QA & Launch Prep
 - [ ] **Step 2 — Connect Calendar**
   - [ ] Connect Google Calendar button → OAuth flow
   - [ ] Connect Outlook / Office 365 button → OAuth flow
-  - [ ] Connect Apple Calendar button → App-specific password flow
   - [ ] "Skip for now" option (can connect later in Settings)
+  - [ ] Apple Calendar / iCloud connection — *(Phase 2 — CalDAV is complex, lacks OAuth; do not include in MVP onboarding)*
   - [ ] Show connected calendar with green checkmark after auth
 - [ ] **Step 3 — Set Timezone**
   - [ ] Searchable timezone dropdown (IANA timezones)
@@ -384,13 +422,13 @@ Phase 19 →  QA & Launch Prep
 - [ ] Update timezone
 - [ ] Update notification preferences
 - [ ] Change password (requires current password)
-- [ ] Enable / disable 2FA (TOTP via Better Auth)
-- [ ] List active sessions
-- [ ] Revoke individual session
-- [ ] Revoke all other sessions
+- [ ] Enable / disable 2FA (TOTP via Better Auth) *(Phase 2 — defer to post-MVP)*
+- [ ] List active sessions *(Phase 2)*
+- [ ] Revoke individual session *(Phase 2)*
+- [ ] Revoke all other sessions *(Phase 2)*
 - [ ] Update username / booking URL slug (with uniqueness check in real-time)
 - [ ] Delete account (with confirmation — type email to confirm)
-- [ ] Request GDPR data export (triggers pg-boss job → ZIP via Vercel Blob → email download link within 24h)
+- [ ] Request GDPR data export (triggers pg-boss job → ZIP uploaded to S3-compatible storage → presigned download URL emailed via Nodemailer within 24h)
 
 **UI (`/settings/`):**
 - [ ] `/settings/profile` — name, display name, bio, photo, job title, company, website
@@ -400,7 +438,8 @@ Phase 19 →  QA & Launch Prep
   - [ ] From name and reply-to email customization
 - [ ] `/settings/security` — change password, 2FA setup *(Phase 2)*, active sessions list with revoke buttons *(Phase 2)*
 - [ ] `/settings/integrations` — connected calendars + video platforms (links to Phase 8 and Phase 13)
-- [ ] Username change input with real-time uniqueness check and 30-day redirect creation
+- [ ] Username change input with real-time uniqueness check; on save: write old username to `username_redirects` with `expiresAt = NOW() + 30 days`
+- [ ] Middleware: resolve `GET /[username]/...` — if username not found in `users` table, check `username_redirects` for an unexpired record and return 308 redirect to new username URL
 - [ ] "Download my data" button → triggers GDPR export job, shows "You'll receive an email within 24 hours"
 - [ ] Danger zone: Delete account with confirmation modal
 
@@ -433,6 +472,7 @@ Phase 19 →  QA & Launch Prep
 - [ ] Event type builder page `/event-types/new` and `/event-types/[id]/edit`:
   - [ ] **What** tab: name, description, duration (preset + custom), color picker
   - [ ] **Where** tab: location type selector — Zoom, Google Meet, Teams, Phone, In-Person address, Custom link
+    - [ ] When "Phone" is selected: show `phoneCallDirection` radio — "Host calls invitee" (invitee phone required in form) vs "Invitee calls host" (host phone number shown in confirmation)
   - [ ] **When** tab: availability schedule selector, booking window, minimum notice, buffer before/after, daily limit
   - [ ] **Options** tab: URL slug, hide from profile, booking confirmation message, redirect URL after booking
   - [ ] Multi-duration option: toggle "Let invitees choose duration" → add multiple durations
@@ -512,7 +552,8 @@ Phase 19 →  QA & Launch Prep
 - [ ] Token refresh logic
 - [ ] Disconnect Outlook
 
-**Apple iCloud / CalDAV:**
+**Apple iCloud / CalDAV *(Phase 2 — Post-MVP)*:**
+> CalDAV lacks standard OAuth, requires app-specific passwords, and involves a complex protocol. Include in Phase 2 after Google + Outlook integrations are stable.
 - [ ] App-specific password form (no OAuth for Apple)
 - [ ] CalDAV connection using provided credentials
 - [ ] Read calendar events via CalDAV REPORT request
@@ -558,7 +599,11 @@ Phase 19 →  QA & Launch Prep
 **Slot Calculation:**
 - [ ] Availability windows stored as `HH:mm` strings paired with the schedule's IANA timezone (e.g., `09:00`–`17:00` in `Asia/Kolkata`) — NOT converted to UTC, to handle DST correctly
 - [ ] All booking `startTime` / `endTime` stored as UTC timestamps in the database
-- [ ] Slot generation: expand `HH:mm` windows into UTC ranges using `date-fns-tz` → subtract busy events → return available slots
+- [ ] Slot generation — **generate slots as local-time increments first, then convert each slot to UTC** (do NOT convert the window to a UTC range and iterate through it — on DST transition days the local day is 23 or 25 hours long, and a single-offset UTC range produces slots that are 1 hour off after the transition):
+  1. For a given date in the host's timezone, expand `HH:mm` windows into local datetime strings (e.g., `2026-03-08 09:00 America/New_York`, `2026-03-08 09:30 America/New_York`, …)
+  2. Convert each local datetime to UTC using `date-fns-tz.zonedTimeToUtc()` — each slot gets the correct UTC offset for that exact moment
+  3. Filter out UTC slots that overlap busy calendar events
+  4. Return remaining UTC slots; convert to invitee timezone for display using `date-fns-tz.utcToZonedTime()`
 - [ ] Slot generation uses `date-fns-tz` for DST-safe conversion to invitee timezone
 - [ ] Slots display in invitee local time on booking page
 - [ ] Confirmation screen shows both: invitee time AND host time
@@ -589,6 +634,7 @@ Phase 19 →  QA & Launch Prep
 
 **Event Type Booking Page (`/[username]/[eventSlug]`):**
 - [ ] Server-rendered page (no auth required)
+- [ ] **Multi-duration selection step** — if `inviteeCanChooseDuration` is enabled on the event type, render a duration picker card **before** the calendar. Invitee must select a duration first; the calendar then loads slots calculated for that duration. Without this step, slot availability is undefined (a 15-min slot may exist while a 60-min slot at the same time does not).
 - [ ] Host info in left panel (photo, name, event type name, duration, location, description)
 - [ ] Date picker (calendar) in center — grayed-out unavailable dates, highlighted available dates
 - [ ] Time slot grid — available slots listed for selected date in invitee's timezone
@@ -618,16 +664,13 @@ Phase 19 →  QA & Launch Prep
 
 ### Tasks
 
-**Rate Limiting on Public Booking Endpoints:**
-- [ ] Apply `@upstash/ratelimit` on `GET /api/slots` — 30 requests/min per IP
-- [ ] Apply `@upstash/ratelimit` on `POST /api/bookings` — 5 bookings/hour per IP, 3/hour per invitee email
-- [ ] Return `X-RateLimit-*` headers on all rate-limited responses
+**Spam Booking Protection:**
 - [ ] Validate email format with Zod before any DB write
 - [ ] Block known disposable email domains
 
 **API Route: `POST /api/bookings`**
 - [ ] Validate request body with Zod (eventTypeId, startTime, inviteeName, inviteeEmail, inviteeTimezone, answers)
-- [ ] Acquire PostgreSQL advisory lock for the slot (prevents concurrent double-booking)
+- [ ] Acquire PostgreSQL advisory lock for the slot: `pg_advisory_xact_lock(hostUserId + startTime)` — key must be derived from **hostUserId + startTime**, not eventTypeId, so concurrent bookings across different event types for the same host at the same time are serialised correctly
 - [ ] Re-verify slot availability inside a DB transaction (final check)
 - [ ] Insert booking record into `bookings` table
 - [ ] Release advisory lock
@@ -641,7 +684,7 @@ Phase 19 →  QA & Launch Prep
 **pg-boss Workers:**
 - [ ] `generate-video-link` worker — calls Zoom or Google Meet API, updates booking record with video URLs
 - [ ] `write-calendar-event` worker — creates calendar event on host's calendar with .ics invite
-- [ ] `send-confirmation` worker — sends confirmation emails via Resend
+- [ ] `send-confirmation` worker — renders React Email template and sends via Nodemailer (SMTP)
 - [ ] `schedule-reminders` worker — schedules two future pg-boss jobs (24h and 1h before start)
 
 **Booking Status Flow:**
@@ -781,7 +824,7 @@ Phase 19 →  QA & Launch Prep
 - [ ] Add to Calendar buttons — Google Calendar, iCal/Outlook, Office 365
 - [ ] Reschedule link + Cancel link
 
-**Confirmation Email — Invitee (via Resend):**
+**Confirmation Email — Invitee (via Nodemailer SMTP):**
 - [ ] Subject: "Confirmed: [Event Type Name] with [Host Name]"
 - [ ] Invitee time + host time (both timezones)
 - [ ] Video join link (or address)
@@ -791,7 +834,7 @@ Phase 19 →  QA & Launch Prep
 - [ ] Host's custom confirmation message (if set)
 - [ ] `.ics` file attached (generated via `ical-generator`)
 
-**Notification Email — Host (via Resend):**
+**Notification Email — Host (via Nodemailer SMTP):**
 - [ ] Subject: "New booking: [Invitee Name] — [Date + Time]"
 - [ ] Invitee name + email
 - [ ] Meeting time in host's timezone
@@ -829,7 +872,7 @@ Phase 19 →  QA & Launch Prep
 - [ ] `send-reminder.ts`:
   - [ ] Fetch booking + host + invitee details
   - [ ] Confirm booking is still `confirmed` (skip if cancelled/rescheduled)
-  - [ ] Send reminder email to invitee via Resend
+  - [ ] Send reminder email to invitee via Nodemailer (render React Email template → send via SMTP)
   - [ ] Invitee time + host time in email (both timezones)
   - [ ] Video join link prominently displayed
   - [ ] Reschedule and cancel links in footer
@@ -839,7 +882,7 @@ Phase 19 →  QA & Launch Prep
   - [ ] `send-cancellation-notification` — to both parties (Phase 17)
   - [ ] `send-reschedule-notification` — to both parties (Phase 17)
 
-**Email Templates (Resend):**
+**Email Templates (React Email → Nodemailer SMTP):**
 - [ ] Booking confirmation — invitee
 - [ ] Booking notification — host
 - [ ] 24-hour reminder — invitee
@@ -887,7 +930,6 @@ Phase 19 →  QA & Launch Prep
   - [ ] Invitee's form answers
   - [ ] Private notes textarea (host-only, not visible to invitee)
   - [ ] Cancel meeting button
-  - [ ] Payment status (Phase 3)
 - [ ] Search bar — filter by invitee name in real-time
 - [ ] Filter dropdown — by event type, status
 - [ ] Stats bar at top: Upcoming / This Month / Cancellation Rate
@@ -906,10 +948,10 @@ Phase 19 →  QA & Launch Prep
 ### Tasks
 
 **API Routes:**
-- [ ] `GET /api/bookings/[token]/cancel` — load cancellation page (validate token)
-- [ ] `POST /api/bookings/[token]/cancel` — process cancellation
-- [ ] `GET /api/bookings/[token]/reschedule` — load reschedule page (shows booking page with new slot picker)
-- [ ] `POST /api/bookings/[token]/reschedule` — confirm reschedule (new start time)
+- [ ] `GET /api/bookings/[token]/cancel` — load cancellation page (validate token; if `startTime <= NOW()` return "Meeting Already Completed" page — cannot cancel a past meeting)
+- [ ] `POST /api/bookings/[token]/cancel` — process cancellation (re-validate `startTime > NOW()` before writing; prevents race condition where meeting starts between page load and submit)
+- [ ] `GET /api/bookings/[token]/reschedule` — load reschedule page (validate token; if `startTime <= NOW()` return "Meeting Already Completed" page — cannot reschedule a past meeting)
+- [ ] `POST /api/bookings/[token]/reschedule` — confirm reschedule (re-validate `startTime > NOW()` before writing)
 
 **Cancellation Flow:**
 - [ ] Unique cancel token per booking (stored on `bookings` table)
@@ -943,7 +985,7 @@ Phase 19 →  QA & Launch Prep
 
 **Goal:** Plan limits are enforced server-side on every relevant action. Upgrade prompts appear when limits are hit. Admin can configure plans. Public pricing page fetches data from the API.
 
-**Reference doc:** [features/billing.md](./features/billing.md)
+**Note:** No billing or plan system — Schedica is fully open source. All features are available to all users with no restrictions.
 
 ### Tasks
 
@@ -991,7 +1033,9 @@ Phase 19 →  QA & Launch Prep
 
 ## Phase 19 — Admin Panel
 
-**Goal:** Platform admins can manage users, view bookings, monitor job queues, and configure the platform via Orbit Admin.
+**Goal:** Platform admins can manage users, view bookings, monitor job queues, and configure the platform via the custom Next.js admin panel (no third-party admin dependency).
+
+**Reference doc:** [features/admin-panel.md](./features/admin-panel.md)
 
 ### Tasks
 
@@ -999,12 +1043,14 @@ Phase 19 →  QA & Launch Prep
 - [ ] `/admin` route group — check `is_platform_admin = true` via Better Auth Admin Plugin, else redirect to `/`
 - [ ] All `/api/admin/*` routes return 403 for non-platform-admins
 
-**Orbit Admin Setup:**
-- [ ] Install and configure Orbit Admin
-- [ ] Connect to Better Auth Admin Plugin for user management
+**Admin Panel Setup (custom — built with Next.js App Router + Shadcn/UI):**
+- [ ] Create `src/app/(admin)/admin/layout.tsx` — admin shell layout (sidebar nav + auth check)
+- [ ] Create `src/components/admin/` — shared admin UI components (data table, stats card, job row)
+- [ ] All admin pages are Next.js Server Components — data fetched server-side via Drizzle ORM directly
+- [ ] Better Auth Admin Plugin provides `auth.api.listUsers()`, `auth.api.banUser()`, `auth.api.impersonateUser()`, `auth.api.listSessions()` — call these from admin server actions
 
 **Dashboard:**
-- [ ] Metrics: total users, active bookings, bookings today, bookings this month
+- [ ] `/admin` — Metrics: total users, active bookings, bookings today, bookings this month
 - [ ] Sign-up trend chart (last 30 days)
 
 **User Management:**
@@ -1033,7 +1079,7 @@ Phase 19 →  QA & Launch Prep
 
 ---
 
-## Phase 19 — QA & Launch Prep
+## Phase 20 — QA & Launch Prep
 
 **Goal:** The product is stable, fully tested, and ready for real users.
 
@@ -1068,13 +1114,16 @@ Phase 19 →  QA & Launch Prep
 - [ ] `/privacy` page live with real content
 - [ ] `/terms` page live with real content
 - [ ] `/cookies` page live
-- [ ] Email sender domain verified in Resend (SPF, DKIM, DMARC)
-- [ ] Google OAuth app reviewed and not in "Testing" mode
-- [ ] Microsoft OAuth app registered for production
+- [ ] SMTP server configured with SPF, DKIM, and DMARC records on sending domain
+- [ ] SMTP sending tested in production — confirm emails arrive in inbox (not spam)
+- [ ] S3-compatible storage bucket created with correct access policy (allow PutObject/GetObject/DeleteObject for the app credentials only)
+- [ ] S3 bucket not publicly accessible — all access via presigned URLs only
+- [ ] Google OAuth app reviewed and not in "Testing" mode (production OAuth consent screen published)
+- [ ] Microsoft Graph API app registered for production (calendar + Teams scopes approved)
 - [ ] Zoom OAuth app published (not in development mode)
-- [ ] All environment variables set in production
+- [ ] All environment variables set in production (SMTP_*, S3_*, BETTER_AUTH_*, GOOGLE_*, MICROSOFT_*, ZOOM_*)
 - [ ] pg-boss job workers started on server boot
-- [ ] Error monitoring configured (Sentry or similar)
+- [ ] Confirm `console.error` output is captured by hosting platform logs
 - [ ] Create first platform admin account
 - [ ] Confirm all pages are mobile-responsive (test on iPhone SE and Galaxy S21)
 
@@ -1092,3 +1141,6 @@ Phase 19 →  QA & Launch Prep
 - **Server Actions over API Routes where possible** — use Next.js Server Actions for dashboard mutations; API Routes for public-facing booking endpoints (invitees are not logged in)
 - **Token refresh is silent** — calendar API token refresh must happen invisibly; never show an OAuth re-auth error to an invitee during booking
 - **Error states on every async action** — loading state + error state required for every booking form submit, calendar connect, and settings save
+- **Email always async via pg-boss** — never call `nodemailer.sendMail()` directly in an API route; always enqueue a pg-boss job so email failures don't block the user-facing response
+- **All file uploads go directly to S3-compatible storage via presigned URLs** — the Next.js server generates a presigned `PUT` URL and returns it to the browser; the browser uploads directly to the bucket without the file passing through the Next.js server
+- **Use `console.error` for errors, `console.log` for key events** — no logging library needed; hosting platforms (Vercel, Railway, etc.) capture stdout/stderr automatically

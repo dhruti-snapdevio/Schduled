@@ -51,14 +51,14 @@ Schedica is inspired by the best of the scheduling market — the simplicity of 
 
 | Technology | Purpose |
 |-----------|---------|
-| **Better Auth** | Full-stack authentication library — email/password, Google OAuth, Microsoft OAuth, magic links, sessions, 2FA (TOTP), refresh token rotation |
-| **Better Auth — Admin Plugin** | Adds an admin API layer: list/ban/impersonate users, manage sessions, view audit logs, revoke tokens — consumed by the Orbit Admin panel |
+| **Better Auth** | Full-stack authentication library — email/password, Google OAuth, magic links, sessions, 2FA (TOTP), refresh token rotation |
+| **Better Auth — Admin Plugin** | Adds an admin API layer: list/ban/impersonate users, manage sessions, view audit logs, revoke tokens — consumed by the custom admin panel |
 
-### Admin Dashboard
+### Admin Panel
 
 | Technology | Purpose |
 |-----------|---------|
-| **Orbit Admin** | Pre-built admin dashboard UI — user management, system metrics, booking oversight, platform configuration. Sits at `/admin` (protected by Better Auth admin role). |
+| **Custom Next.js Admin** | Hand-built admin pages at `/admin` using Next.js App Router + Shadcn/UI — user management, booking oversight, job queue monitor, platform settings. Protected by Better Auth admin role check. No third-party admin dependency. |
 
 ### UI & Styling
 
@@ -73,31 +73,59 @@ Schedica is inspired by the best of the scheduling market — the simplicity of 
 |---------|---------|
 | **Google Calendar API** | Read free/busy events from Google Calendar; write new bookings; auto-generate Google Meet links via `conferenceData` on event creation |
 | **Microsoft Graph API** | Read/write Outlook & Office 365 calendars; create Teams meetings via `/onlineMeetings` endpoint |
-| **Apple CalDAV / iCloud** | Read/write iCloud calendars using the CalDAV protocol with an app-specific password — no OAuth required |
+| **Apple CalDAV / iCloud** *(Phase 2)* | Read/write iCloud calendars using the CalDAV protocol with an app-specific password — no OAuth required; deferred post-MVP due to protocol complexity |
 | **Zoom API (OAuth 2.0)** | Create a unique Zoom meeting room per booking via the Zoom Meetings API |
 
-### Email & Messaging
+### Email
 
-| Service | Purpose |
+| Library | Purpose |
 |---------|---------|
-| **Resend** | Transactional email delivery — booking confirmations, reminders, password resets, cancellation notices |
-| **React Email** | Component-based email template rendering — type-safe, styled email templates compiled and sent via Resend |
+| **Nodemailer** | SMTP email delivery — connects to any SMTP server (self-hosted or provider); sends booking confirmations, reminders, password resets, cancellation notices |
+| **React Email** | Component-based email template rendering — type-safe, styled React components compiled to HTML and passed to Nodemailer for delivery |
+| **ical-generator** | Generates RFC 5545-compliant `.ics` calendar invite files — attached to confirmation emails via Nodemailer |
 
 ### File Storage
 
-| Service | Purpose |
+| Library | Purpose |
 |---------|---------|
-| **Vercel Blob** | Cloud storage for user-uploaded files — profile photos |
+| **@aws-sdk/client-s3** | S3-compatible storage SDK — stores user-uploaded files (profile photos, logos, banners). Works with any S3-compatible provider: AWS S3, Cloudflare R2, MinIO, Backblaze B2, DigitalOcean Spaces. |
+| **@aws-sdk/s3-request-presigner** | Generates presigned S3 URLs — allows browsers to upload files directly to the storage bucket without routing through the Next.js server |
 
 ### Key Libraries
 
 | Library | Purpose |
 |---------|---------|
 | **Zod** | Runtime validation for all API request bodies, form inputs, and environment variables |
-| **ical-generator** | Generates RFC 5545-compliant `.ics` calendar invite files — attached to confirmation emails |
+| **date-fns** | Date arithmetic — adding/subtracting durations, formatting dates |
 | **date-fns-tz** | Timezone-aware date arithmetic using IANA timezone names — DST-safe slot calculation and display |
-| **@upstash/ratelimit** | Rate limiting on auth endpoints and public booking creation — prevents spam and brute-force attacks |
-| **Sentry** | Error monitoring, performance tracing, and alerting — tracks exceptions and slow API calls in production |
+| **console.log / console.error** | Built-in Node.js logging — used for errors, warnings, and key events; no additional library needed |
+
+---
+
+## Feature → Tools Reference
+
+Which library or service each feature depends on. Use this as a quick lookup during implementation — each feature's `features/*.md` file has a full Tech Stack section with implementation details.
+
+| # | Feature | Tools / Libraries Needed |
+|---|---------|--------------------------|
+| 1 | **Landing Page** | Next.js 15 (Server Components), Tailwind CSS, Shadcn/UI, Next.js Metadata API, `next/image`, `next/font` |
+| 2 | **User Onboarding & Auth** | Better Auth (email/password, Google OAuth, magic link), Nodemailer (SMTP), React Email, Next.js App Router |
+| 3 | **User Profile & Settings** | Better Auth, S3-compatible storage + `@aws-sdk/client-s3` + `s3-request-presigner` (photo upload), pg-boss (GDPR export), Nodemailer, Drizzle ORM, Shadcn/UI |
+| 4 | **Event Type Builder** | Drizzle ORM, Next.js Server Actions, Next.js ISR (`revalidatePath`), Shadcn/UI |
+| 5 | **Availability Management** | Drizzle ORM, `date-fns-tz`, Next.js Server Actions, Shadcn/UI |
+| 6 | **Timezone Management** | `date-fns-tz`, Drizzle ORM, `ical-generator`, Browser `Intl.DateTimeFormat` API |
+| 7 | **Calendar Integrations** | `googleapis` (Google Calendar API), `@microsoft/microsoft-graph-client` (Outlook + Teams), `tsdav` *(Phase 2 — Apple CalDAV)*, Drizzle ORM, pg-boss (sync job) |
+| 8 | **Public Booking Page** | Next.js App Router (dynamic routes), Next.js ISR, Next.js Metadata API, Tailwind CSS, Shadcn/UI, Drizzle ORM, `date-fns-tz` |
+| 9 | **Booking Engine** | PostgreSQL advisory locks (`pg_advisory_xact_lock`), Drizzle ORM, Zod, pg-boss (post-booking jobs), Next.js API Route |
+| 10 | **Custom Questions** | Drizzle ORM, Zod (answer validation + HTML strip), Shadcn/UI, Next.js App Router |
+| 11 | **Video Conferencing** | Zoom API (OAuth 2.0), `googleapis` (Google Meet via Calendar API), `@microsoft/microsoft-graph-client` (Teams), Drizzle ORM, pg-boss |
+| 12 | **Booking Confirmation** | pg-boss (async after DB commit), Nodemailer (SMTP), React Email, `ical-generator` (ICS), `googleapis` (host calendar event), `@microsoft/microsoft-graph-client` (Outlook event) |
+| 13 | **Notifications & Reminders** | pg-boss (schedule 24h + 1h jobs), Nodemailer (SMTP), React Email (reminder templates), Drizzle ORM |
+| 14 | **Meetings Dashboard** | Drizzle ORM (bookings + joins), Better Auth (session check), pg-boss (cancel reminders on host cancel), Shadcn/UI, Next.js Server Components |
+| 15 | **Cancellation & Reschedule** | Drizzle ORM (token lookup + atomic status update), pg-boss (cancel/reschedule reminder jobs), Nodemailer + React Email (notification emails), Next.js App Router |
+| 16 | **Admin Panel** | Better Auth Admin Plugin (`listUsers`, `banUser`, `impersonateUser`, `revokeUserSessions`), Drizzle ORM (bookings + pgboss.job queries), Shadcn/UI, Nodemailer, pg-boss Node.js API (retry/cancel jobs) |
+
+> **Cross-feature tools used everywhere:** PostgreSQL 16+ (primary DB) · Drizzle ORM (all DB access) · Next.js 15 App Router (all pages/routes) · TypeScript (whole stack) · Tailwind CSS + Shadcn/UI (all UI) · Zod (all API validation) · Better Auth (all protected routes) · pg-boss (all async jobs)
 
 ---
 
@@ -142,20 +170,22 @@ The MVP focuses on delivering a complete solo + small team scheduling experience
 
 | # | Feature | Description |
 |---|---------|-------------|
-| 1 | User Onboarding | Sign up, sign in, email verification, password reset (Google and Microsoft OAuth supported); guided first-run wizard to connect calendar, set timezone, create first event type, and get booking link |
-| 2 | User Profile & Settings | Name, photo, timezone, connected calendars, notification preferences, 2FA, account security |
-| 3 | Event Type Builder | Create unlimited event types; each supports multiple duration options (15/30/60 min) for invitees to choose |
-| 4 | Availability Settings | Set weekly hours, buffer times, minimum notice, daily limits, date-specific overrides |
-| 5 | Timezone Management | Auto-detect invitee timezone, manual override, both timezones shown in every email and confirmation |
-| 6 | Calendar Sync | Real-time free/busy sync with Google, Outlook, and Apple Calendar — prevents double-booking |
-| 7 | Booking Page | Public-facing scheduling page with available time slots, host branding, and profile overview |
-| 8 | Booking Engine | Core booking processor — slot locking, conflict check, calendar write, async post-booking jobs |
-| 9 | Custom Questions | Add intake questions to booking form (text, dropdown, checkbox, phone, multi-select) |
-| 10 | Video Conferencing | Auto-generate unique Zoom / Google Meet / Teams links per booking |
-| 11 | Booking Confirmation | Confirmation screen + email with both timezones, calendar invite (.ics), and add-to-calendar buttons |
-| 12 | Notifications & Reminders | Automated 24-hour and 1-hour email reminders; instant host notification on new booking |
-| 13 | Meetings Dashboard | View all upcoming and past meetings; search, filter, private notes, and manage bookings |
-| 14 | Cancellation & Reschedule | Invitee-initiated cancellation and reschedule via secure email link; host can cancel from dashboard |
+| 1 | Landing Page | Public marketing page — hero, features, how it works, comparison table, FAQ, footer; `/privacy`, `/terms`, `/cookies` legal pages |
+| 2 | User Onboarding | Sign up, sign in, email verification, password reset (Google OAuth + magic link); guided first-run wizard to connect calendar, set timezone, create first event type, and get booking link |
+| 3 | User Profile & Settings | Name, photo, timezone, connected calendars, notification preferences, 2FA, account security |
+| 4 | Event Type Builder | Create unlimited event types; multiple duration options per link; invitees can add up to 10 additional guests per booking |
+| 5 | Availability Settings | Set weekly hours, buffer times, minimum notice, daily limits, date-specific overrides |
+| 6 | Timezone Management | Auto-detect invitee timezone, manual override, both timezones shown in every email and confirmation |
+| 7 | Calendar Sync | Real-time free/busy sync with Google Calendar and Outlook — prevents double-booking. Apple iCloud CalDAV — Phase 2. |
+| 8 | Booking Page | Public-facing scheduling page with available time slots, host branding, and profile overview |
+| 9 | Booking Engine | Core booking processor — slot locking, conflict check, calendar write, async post-booking jobs |
+| 10 | Custom Questions | Add intake questions to booking form (text, dropdown, checkbox, phone, multi-select) |
+| 11 | Video Conferencing | Auto-generate unique Zoom / Google Meet / Teams links per booking |
+| 12 | Booking Confirmation | Confirmation screen + email with both timezones, calendar invite (.ics), and add-to-calendar buttons |
+| 13 | Notifications & Reminders | Automated 24-hour and 1-hour email reminders; instant host notification on new booking |
+| 14 | Meetings Dashboard | View all upcoming and past meetings; search, filter, private notes, and manage bookings |
+| 15 | Cancellation & Reschedule | Invitee-initiated cancellation and reschedule via secure email link; host can cancel from dashboard |
+| 16 | Admin Panel | Platform admin dashboard — user management (ban, impersonate), booking oversight, job queue monitor, platform settings |
 
 ### Future Roadmap (Post-MVP)
 
@@ -227,7 +257,7 @@ schedica/
 │   │   │   ├── integrations/             # Connect Zoom, Google, Outlook, Apple Calendar
 │   │   │   └── settings/                 # Profile, timezone, notifications, security
 │   │   │
-│   │   ├── (admin)/                      # Orbit Admin panel — platform administration
+│   │   ├── (admin)/                      # Custom admin panel — platform administration
 │   │   │   └── admin/                    # Protected by Better Auth admin role
 │   │   │       ├── users/                # User list, ban, impersonate (via Better Auth admin plugin)
 │   │   │       ├── bookings/             # Platform-wide booking oversight
@@ -266,9 +296,25 @@ schedica/
 │   │   │   │   ├── event-types.ts        # event_types, availability_schedules
 │   │   │   │   ├── bookings.ts           # bookings, booking_answers, cancellations
 │   │   │   │   ├── calendars.ts          # connected_calendars, calendar_events_cache
-│   │   │   │   └── notifications.ts      # notification_preferences, workflow_templates
+│   │   │   │   ├── notifications.ts      # notification_preferences, workflow_templates
 │   │   │   ├── index.ts                  # Drizzle client + db connection (postgres.js)
 │   │   │   └── queries/                  # Reusable query helpers per domain
+│   │   │
+│   │   ├── email/
+│   │   │   ├── client.ts                 # Nodemailer SMTP transporter (singleton)
+│   │   │   ├── send.ts                   # send() wrapper — renders template + delivers via SMTP
+│   │   │   └── templates/                # React Email components (one file per email type)
+│   │   │       ├── booking-confirmation.tsx
+│   │   │       ├── booking-notification.tsx
+│   │   │       ├── reminder.tsx          # Shared template for 24h and 1h reminders
+│   │   │       ├── cancellation.tsx
+│   │   │       ├── reschedule.tsx
+│   │   │       ├── welcome.tsx
+│   │   │       └── verification.tsx      # Email verification code email
+│   │   │
+│   │   ├── storage/
+│   │   │   ├── client.ts                 # S3-compatible storage client (S3Client singleton)
+│   │   │   └── upload.ts                 # upload(), deleteFile(), getPresignedUrl() helpers
 │   │   │
 │   │   └── jobs/
 │   │       ├── client.ts                 # pg-boss instance (shared singleton)
@@ -289,10 +335,11 @@ schedica/
 │   ├── 0001_initial_schema.sql
 │   └── meta/                             # Drizzle migration metadata
 │
-├── features/                             # Feature documentation (17 files)
+├── features/                             # Feature documentation (16 files)
 │   │
 │   ├── — Platform —
-│   ├── billing.md                        # Plan tiers (Free/Standard/Pro), feature gates, upgrade flow, Stripe (Phase 3)
+│   ├── landing-page.md                   # Public marketing page — sections, SEO, CTAs, legal pages
+│   ├── admin-panel.md                    # Custom admin panel — user mgmt, bookings, job queue, settings
 │   │
 │   ├── — Account & Profile —
 │   ├── user-onboarding.md                # Sign-up, sign-in, email verification, password reset, OAuth, onboarding wizard
@@ -313,7 +360,7 @@ schedica/
 │   │
 │   ├── — Management & Communication —
 │   ├── meetings-dashboard.md             # Upcoming/past meetings, search, filters, detail view
-│   ├── notifications-reminders.md        # Transactional emails, reminder workflows, SMS
+│   ├── notifications-reminders.md        # Transactional emails, 24h+1h reminders (MVP); SMS reminders (Phase 2)
 │   └── booking-flow.md                   # Full booking flow, cancellation & reschedule policies
 │
 └── README.md

@@ -9,8 +9,8 @@ User Onboarding covers the complete authentication and first-run experience — 
 Schedica's onboarding has one goal: get the user to a shareable booking link as fast as possible. Every step that doesn't serve that goal is removed.
 
 The full authentication and onboarding sequence covers:
-1. Account creation (sign up — email/password, Google OAuth, Microsoft OAuth)
-2. Sign in (returning users — email/password, OAuth, magic link)
+1. Account creation (sign up — email/password, Google OAuth)
+2. Sign in (returning users — email/password, Google OAuth, magic link)
 3. Email verification (6-digit code for email+password sign-ups)
 4. Password reset (forgot password → secure email link → new password)
 5. Calendar connection
@@ -25,7 +25,7 @@ Target completion time for new user wizard (steps 5–8): **under 3 minutes** fo
 ## User Stories
 
 **New User (Sign Up)**
-- As a new user, I want to sign up with Google or Microsoft OAuth, so that I do not have to create and remember a new password. *(MVP)*
+- As a new user, I want to sign up with Google OAuth, so that I do not have to create and remember a new password. *(MVP)*
 - As a new user, I want to sign up with email and password if I prefer not to use OAuth, so that I have full control over my account credentials. *(MVP)*
 - As a new user, I want to receive an email verification code immediately after signing up, so that my email address is confirmed before I can start using the app. *(MVP)*
 - As a new user, I want my name and photo pre-filled from my Google or Microsoft account, so that I do not have to enter basic profile information manually. *(MVP)*
@@ -35,7 +35,7 @@ Target completion time for new user wizard (steps 5–8): **under 3 minutes** fo
 - As a new user, I want to skip optional setup steps and come back to them later, so that I can get to my booking link faster without being blocked by non-essential configuration. *(MVP)*
 
 **Returning User (Sign In)**
-- As a returning user, I want to sign in with the same Google or Microsoft account I signed up with, so that I never need a password. *(MVP)*
+- As a returning user, I want to sign in with the same Google account I signed up with, so that I never need a password. *(MVP)*
 - As a returning user, I want a "Remember me" option on sign-in, so that I stay logged in for 30 days on my own device without signing in every time. *(MVP)*
 - As a returning user, I want to receive a magic link by email if I prefer passwordless sign-in, so that I can access my account without remembering a password. *(MVP)*
 
@@ -53,16 +53,15 @@ Target completion time for new user wizard (steps 5–8): **under 3 minutes** fo
 | Method | Description |
 |--------|-------------|
 | Google OAuth | One-click signup with Google account; no password needed |
-| Microsoft OAuth | One-click signup with Microsoft / Office 365 account |
 | Email + Password | Traditional email and password registration |
 
-### Google / Microsoft OAuth Flow
-1. User clicks "Sign up with Google" or "Sign up with Microsoft"
-2. Redirected to provider's OAuth consent screen
+### Google OAuth Flow
+1. User clicks "Sign up with Google"
+2. Redirected to Google's OAuth consent screen
 3. User approves Schedica access
 4. Returned to Schedica — account created instantly
-5. Profile name and photo pre-filled from OAuth provider
-6. No email verification step required (email already verified by provider)
+5. Profile name and photo pre-filled from Google account
+6. No email verification step required (email already verified by Google)
 
 ### Email + Password Flow
 1. User enters name, email address, and password
@@ -79,7 +78,7 @@ Target completion time for new user wizard (steps 5–8): **under 3 minutes** fo
 ### Email Verification Code — Details
 - Code is 6 digits, valid for **15 minutes** from the time of sending
 - If code expires: "Your verification code has expired. Click here to resend."
-- Resend button available after 60 seconds (rate-limited to 3 resends per session)
+- Resend button available after 60 seconds (maximum 3 resends per session)
 - Max attempts before lockout: 5 wrong codes → account creation blocked for 10 minutes
 - Code is single-use: once entered correctly, it cannot be reused
 
@@ -262,7 +261,6 @@ Sign-in is separate from onboarding but lives on the same `/sign-in` page. Retur
 | Method | Description |
 |--------|-------------|
 | Google OAuth | "Sign in with Google" — one click, no password |
-| Microsoft OAuth | "Sign in with Microsoft" — one click, no password |
 | Email + Password | Enter registered email and password |
 | Magic Link (passwordless) | Enter email → receive a one-click sign-in link via email |
 
@@ -272,10 +270,10 @@ Sign-in is separate from onboarding but lives on the same `/sign-in` page. Retur
 3. On success: session created; user redirected to dashboard
 4. On failure: "Incorrect email or password" (no indication which is wrong — security best practice)
 
-### Google / Microsoft OAuth Sign-In Flow
-1. User clicks "Sign in with Google" or "Sign in with Microsoft"
-2. Redirected to provider's OAuth screen (provider may remember the user, making this one-click)
-3. On success: Schedica matches the OAuth email to an existing account
+### Google OAuth Sign-In Flow
+1. User clicks "Sign in with Google"
+2. Redirected to Google's OAuth screen (Google may remember the user, making this one-click)
+3. On success: Schedica matches the Google email to an existing account
 4. If no account found: "No account found with this Google account. Sign up instead." — link to sign-up
 
 ### Magic Link (Passwordless) Sign-In Flow
@@ -324,7 +322,7 @@ For email+password users who have forgotten their password.
 - On expiry: "This link has expired. Request a new password reset."
 
 ### Password Reset Limits
-- Maximum 3 reset requests per email per hour (rate-limited to prevent abuse)
+- Maximum 3 reset requests per email per hour to prevent abuse
 - If limit reached: "Too many reset requests. Please try again in 1 hour."
 
 ---
@@ -398,15 +396,6 @@ When a user has 2FA enabled (configured in [user-profile-settings.md](user-profi
 - User notified via email: "We noticed several failed sign-in attempts. Your account is temporarily locked."
 - Email includes: time of attempts, approximate IP/location, link to reset password if this wasn't them
 
-### Rate Limiting
-| Endpoint | Limit |
-|----------|-------|
-| Sign-in attempts | 10 per minute per IP |
-| Password reset requests | 3 per hour per email |
-| Magic link requests | 3 per hour per email |
-| Verification code resend | 3 per 30-minute window |
-| 2FA code attempts | 5 per login session |
-
 ### Suspicious Login Detection
 - If a login comes from an unrecognized device or location: email alert sent to the account owner
 - Email: "New sign-in detected — [Device, Browser, Location]. If this was you, no action needed."
@@ -415,7 +404,6 @@ When a user has 2FA enabled (configured in [user-profile-settings.md](user-profi
 ### OAuth Account Linking
 When a user tries to sign in with a social provider but the same email already exists in Schedica via a different method:
 - **Email account + tries Google OAuth with same email:** "An account exists with this email. Sign in with your email and password, then connect Google in Settings."
-- **Google OAuth account + tries Microsoft OAuth with same email:** "An account exists with this email via Google. Sign in with Google or use a different email."
 - Accounts are NOT auto-merged to prevent account takeover attacks
 
 ---
@@ -445,16 +433,15 @@ When a user tries to sign in with a social provider but the same email already e
 | **SavvyCal** | Google, Email | Short: profile → calendar → availability → link | ✅ Yes | ❌ No | ❌ No | ✅ Yes |
 | **Chili Piper** | SSO / Salesforce OAuth (B2B focused) | Guided setup for admin; not a self-serve consumer onboarding | ❌ No | ❌ No | ❌ No | N/A |
 | **HubSpot Meetings** | Via HubSpot account | Connect Google/Outlook calendar; set availability; link auto-created | ❌ No | ❌ No | ❌ No | ❌ No |
-| **Schedica** | Google OAuth, Microsoft OAuth, Email + Password *(all MVP)* | 5 steps: account → calendar → timezone → first event type → share link | ✅ **Yes — iCloud CalDAV in MVP** (key differentiator vs Calendly) | ✅ **Dedicated timezone confirmation step** with auto-detect | ✅ Post-onboarding checklist on first dashboard visit | ✅ Skip allowed with clear warning about double-booking risk |
+| **Schedica** | Google OAuth, Magic Link, Email + Password *(all MVP)* | 5 steps: account → calendar → timezone → first event type → share link | ✅ **Phase 2 — iCloud CalDAV** (CalDAV requires app-specific passwords, lacks standard OAuth, complex protocol — Post-MVP) | ✅ **Dedicated timezone confirmation step** with auto-detect | ✅ Post-onboarding checklist on first dashboard visit | ✅ Skip allowed with clear warning about double-booking risk |
 
 ---
 
 ## MVP Scope
 
 **In MVP — Onboarding:**
-- Google OAuth, Microsoft OAuth, and Email + Password signup
+- Google OAuth and Email + Password signup
 - Google Calendar and Outlook connection during onboarding
-- Apple Calendar / iCloud connection option
 - Timezone auto-detection and confirmation
 - First event type creation (simplified 4-field form)
 - Booking page preview with copyable link
@@ -463,7 +450,6 @@ When a user tries to sign in with a social provider but the same email already e
 **In MVP — Authentication:**
 - Email + Password sign-in with "Remember me"
 - Google OAuth sign-in
-- Microsoft OAuth sign-in
 - Magic link (passwordless) sign-in
 - Forgot password / reset password flow (email link, 60-minute expiry)
 - Email verification for new accounts (6-digit code, 15-minute expiry, resend)
@@ -471,9 +457,9 @@ When a user tries to sign in with a social provider but the same email already e
 - Session expiry with redirect to sign-in
 - Logout (current device)
 - OAuth account collision detection (no auto-merge)
-- Rate limiting on sign-in and password reset endpoints
 
 **Post-MVP:**
+- Apple Calendar / iCloud connection (CalDAV with app-specific password) *(Phase 2 — complex protocol, lacks OAuth)*
 - 2FA login challenge (TOTP authenticator app)
 - 2FA backup codes
 - SMS 2FA
@@ -490,10 +476,9 @@ When a user tries to sign in with a social provider but the same email already e
 
 ## Tech Stack
 
-- **Better Auth** — handles all sign-up methods (email/password, Google OAuth, Microsoft OAuth), email verification codes, session creation, and account lockout. The admin plugin exposes user management to Orbit Admin.
+- **Better Auth** — handles all sign-up methods (email/password, Google OAuth), magic link sign-in, email verification codes, session creation, and account lockout. The admin plugin exposes user management to custom Next.js admin pages.
 - **Next.js App Router** — onboarding is a 5-step wizard built as sequential pages. Middleware checks `onboardingDone` on each request and redirects incomplete users back to their current step.
 - **PostgreSQL + Drizzle ORM** — stores the user account, current `onboardingStep`, and `onboardingDone` flag. Drizzle schema extends Better Auth's built-in users table with Schedica-specific fields (username, timezone, onboarding progress).
 - **pg-boss** — schedules a welcome email job immediately after signup to be delivered asynchronously without blocking the onboarding response.
-- **Resend** — delivers the email verification code during sign-up and the welcome email after onboarding completes.
-- **React Email** — renders the verification code email, password reset email, and welcome email as styled React components compiled to HTML before sending via Resend.
-- **@upstash/ratelimit** — enforces rate limits on sign-in, password reset, and magic link endpoints to prevent brute-force and abuse.
+- **Nodemailer (SMTP)** — delivers the email verification code during sign-up and the welcome email after onboarding completes.
+- **React Email** — renders the verification code email, password reset email, and welcome email as styled React components compiled to HTML before sending via Nodemailer.

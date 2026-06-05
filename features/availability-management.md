@@ -258,7 +258,7 @@ Hosts can rank their preferred times without hard-blocking other times.
 
 ## Tech Stack
 
-- **PostgreSQL + Drizzle ORM** — three tables manage availability: `availability_schedules` (named schedules per user), `availability_windows` (recurring weekly hours per day of week), and `schedule_overrides` (one-time date blocks or hour changes). All times stored as `"HH:mm"` strings; the schedule's IANA timezone is stored alongside them.
+- **PostgreSQL + Drizzle ORM** — three tables manage availability: `availability_schedules` (named schedules per user), `availability_windows` (recurring weekly hours per day of week), and `availability_overrides` (one-time date blocks or hour changes). All times stored as `"HH:mm"` strings; the schedule's IANA timezone is stored alongside them.
 - **date-fns-tz** — used when computing available slots for a booking page request. Converts the host's weekly hour windows (defined in their local timezone) to UTC for comparison with calendar events, correctly handling DST transitions without any manual offset logic.
 - **Next.js Server Actions** — saving weekly schedules, adding date overrides, and assigning a schedule to an event type all run as server actions. No separate API endpoints needed for these CRUD operations.
 - **Shadcn/UI** — provides the weekly hours grid (day toggles + time range pickers), the date override calendar picker, and the schedule selector dropdown.

@@ -247,7 +247,7 @@ All booking pages are fully responsive:
 
 ---
 
-## Booking Page Language
+## Booking Page Language *(Post-MVP — Phase 2)*
 
 The booking page UI (button labels, date/time formatting, system text) can be displayed in different languages for international invitees.
 
@@ -334,5 +334,6 @@ To support multiple languages:
 - **Next.js App Router dynamic routes** — public booking pages use `[username]` and `[username]/[eventSlug]` dynamic segments. These are React Server Components, so the full page (host info, branding, event type details) is rendered on the server — fast initial load, no layout shift.
 - **Next.js ISR (on-demand revalidation)** — booking pages are cached at the CDN edge. When the host updates their branding, event type, or availability, `revalidatePath` is called server-side to instantly push a fresh version — no stale booking pages visible to invitees.
 - **Next.js Metadata API** — each booking page auto-generates SEO-optimised `<title>`, `<description>`, and Open Graph tags using the host's name and event type details.
+- **S3-compatible storage (@aws-sdk/client-s3 + @aws-sdk/s3-request-presigner)** — stores all host-uploaded assets: profile photo, organisation logo, and banner image. Works with any S3-compatible provider (AWS S3, Cloudflare R2, MinIO, Backblaze B2). Browsers upload directly to the bucket via a server-generated presigned URL; the S3 key is saved in `user_branding`. On booking page render, the server derives a public CDN URL from the key.
 - **PostgreSQL + Drizzle ORM** — branding settings (logo URL, banner URL, primary colour, confirmation message, remove-branding flag) are stored in a `user_branding` table. Loaded as part of the booking page server query.
 - **Tailwind CSS + Shadcn/UI** — booking page layout, colour theming (primary colour applied via CSS variable from the host's brand colour), and all interactive elements (date picker, slot grid, form inputs, confirmation screen).

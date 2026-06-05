@@ -152,7 +152,7 @@ If location type is Zoom, Google Meet, or Teams, generate a unique link.
 - Stored in `location_value` field
 
 **Google Meet:**
-- Included in the Google Calendar event creation (Step 8)
+- Included in the Google Calendar event creation (Step 7 — Write to Calendar)
 - `conferenceData.createRequest` parameter triggers Google Meet link generation
 - No separate API call required
 
@@ -220,9 +220,8 @@ Send confirmation emails to both host and invitee.
 - Sent within 5 seconds of booking
 
 **Email Delivery:**
-- Transactional email via Resend or SendGrid
-- Delivery confirmation tracked (open/bounce events)
-- If delivery fails: retry once; log failure; host notified in dashboard
+- Transactional email via Nodemailer (SMTP)
+- If delivery fails: retry twice via pg-boss; log failure with `console.error`; host notified in dashboard
 
 ---
 
@@ -254,8 +253,8 @@ The most critical reliability concern: two invitees trying to book the same slot
 
 Schedica uses **PostgreSQL advisory locks** — a pessimistic locking approach that prevents two concurrent booking requests from both succeeding for the same slot.
 
-1. When an invitee submits the booking form, the engine calls `SELECT pg_advisory_xact_lock(slotHash)` where `slotHash` is a deterministic integer derived from `eventTypeId + startTime`
-2. The lock is held for the duration of the database transaction — any second request for the same slot blocks until the first transaction completes
+1. When an invitee submits the booking form, the engine calls `SELECT pg_advisory_xact_lock(slotHash)` where `slotHash` is a deterministic integer derived from `hostUserId + startTime` — **not** `eventTypeId + startTime`. Using the host's user ID ensures that two concurrent bookings for the **same host at the same time** (even across different event types, e.g. "Intro Call" and "Support Call") are serialised correctly. Using only `eventTypeId` would allow both bookings to proceed simultaneously for the same host time slot.
+2. The lock is held for the duration of the database transaction — any second request for the same host + time blocks until the first transaction completes
 3. Inside the lock: perform the final availability check → if slot is free, insert booking record → commit
 4. Lock is released automatically when the transaction commits or rolls back (no manual release needed, no TTL to manage, no extra table required)
 5. If another session is waiting for the same lock: it runs its own check after the first commits — if the first succeeded, the slot is now taken and the second returns "slot unavailable"
@@ -287,33 +286,16 @@ All booking creation steps (lock acquisition → availability check → booking 
 | `rescheduled` | Original booking replaced by new one |
 | `completed` | Meeting time has passed (no cancellation) |
 | `no_show` | Meeting time passed, marked as no-show by host |
-| `pending_payment` | Awaiting payment confirmation (paid events) |
 
 ---
 
-## Rate Limiting on Public Booking Endpoints
+## Spam Booking Protection
 
-Booking pages are publicly accessible with no authentication required — making them a target for scraping, spam bookings, and slot-exhaustion attacks. Rate limiting must be applied at multiple layers.
+Booking pages are publicly accessible with no authentication required. Basic protections are applied to prevent spam bookings without adding friction for real users.
 
-### Limits Applied
-
-| Endpoint | Limit | Scope | Action on Breach |
-|----------|-------|-------|-----------------|
-| `GET /[username]/[eventSlug]` — slot query | 60 requests / minute | Per IP | Return 429, show "Too many requests. Please wait." |
-| `POST /api/bookings` — booking creation | 5 bookings / hour | Per IP | Return 429, "Too many bookings from this device. Try again later." |
-| `POST /api/bookings` — booking creation | 3 bookings / hour | Per invitee email | Return 429, "You have recently made several bookings. Please wait before booking again." |
-| `GET /api/slots` — available slot fetch | 30 requests / minute | Per IP | Return 429 silently; cache last response |
-
-### Implementation
-- Rate limiting via **@upstash/ratelimit** with a Redis-backed sliding window
-- IP extracted from `x-forwarded-for` header (Vercel sets this behind the proxy)
-- Email-based limits applied after form submission — email is extracted from request body before booking is processed
-- Rate limit headers returned: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
-
-### Spam Booking Protection
 - Email format validated with Zod before any DB write
 - Disposable email domain blocklist checked against known throwaway providers
-- CAPTCHA (hCaptcha or Cloudflare Turnstile) shown after 2 failed or suspicious submissions from the same IP — not shown by default to keep the flow frictionless for legitimate users
+- No CAPTCHA needed in MVP — CAPTCHA adds friction for genuine invitees
 
 ---
 
@@ -331,21 +313,21 @@ Booking pages are publicly accessible with no authentication required — making
 
 ## Reference Implementations
 
-| App | Race Condition Protection | Real-Time Conflict Check | Post-Booking Jobs Async | Slot-Taken Error Message | Payment + Booking Atomic |
-|-----|--------------------------|-------------------------|------------------------|--------------------------|--------------------------|
-| **Calendly** | ✅ Industry benchmark; no double-bookings reported | ✅ Re-checks at form submit | Partial | Generic "time no longer available" | N/A — payments via redirect |
-| **Cal.com** | ✅ Atomic booking via open-source engine | ✅ Yes | ✅ Queue-based | Generic message | ✅ Stripe PaymentElement |
-| **SavvyCal** | ✅ Yes | ✅ Yes | ✅ Yes | Generic message | ❌ No payments |
-| **Chili Piper** | ✅ Optimised for high-volume inbound leads | ✅ Near real-time | ✅ Yes | ✅ With alternative slot suggestion | N/A |
-| **HubSpot Meetings** | ✅ Yes | ✅ Yes | ✅ Yes | Generic message | ❌ No payments |
-| **Schedica** | ✅ PostgreSQL advisory lock — concurrent bookings for same slot cannot both succeed | ✅ Final check inside DB transaction before insert | ✅ All post-booking work (video link, calendar write, confirmation email, reminder scheduling) runs as pg-boss jobs after transaction commits — booking API responds instantly | ✅ Clear message + highlights alternative available slots on the same page | ✅ Phase 3 — payment and booking in single transaction (no orphaned charges) |
+| App | Race Condition Protection | Real-Time Conflict Check | Post-Booking Jobs Async | Slot-Taken Error Message |
+|-----|--------------------------|-------------------------|------------------------|--------------------------|
+| **Calendly** | ✅ Industry benchmark; no double-bookings reported | ✅ Re-checks at form submit | Partial | Generic "time no longer available" |
+| **Cal.com** | ✅ Atomic booking via open-source engine | ✅ Yes | ✅ Queue-based | Generic message |
+| **SavvyCal** | ✅ Yes | ✅ Yes | ✅ Yes | Generic message |
+| **Chili Piper** | ✅ Optimised for high-volume inbound leads | ✅ Near real-time | ✅ Yes | ✅ With alternative slot suggestion |
+| **HubSpot Meetings** | ✅ Yes | ✅ Yes | ✅ Yes | Generic message |
+| **Schedica** | ✅ PostgreSQL advisory lock — concurrent bookings for same slot cannot both succeed | ✅ Final check inside DB transaction before insert | ✅ All post-booking work (video link, calendar write, confirmation email, reminder scheduling) runs as pg-boss jobs after transaction commits — booking API responds instantly | ✅ Clear message + highlights alternative available slots on the same page |
 
 ---
 
 ## MVP Scope
 
 **In MVP:**
-- Full 10-step booking flow (conflict check → calendar write → email)
+- Full 9-step booking flow (conflict check → form → host assignment → booking record → video link → calendar write → email → response)
 - PostgreSQL advisory lock for race condition prevention (no extra table needed)
 - Google Calendar and Outlook write support
 - ICS file generation for invitees
@@ -356,8 +338,7 @@ Booking pages are publicly accessible with no authentication required — making
 - Retry logic for calendar write and email
 
 **Post-MVP:**
-- Apple Calendar write (CalDAV POST)
-- Microsoft Teams link generation
+- Apple Calendar write (CalDAV POST) *(Phase 2)*
 - Async queue for calendar writes (improve response time)
 - Booking engine webhook events (booking.created, etc.)
 - Detailed engine logs for debugging
@@ -367,7 +348,7 @@ Booking pages are publicly accessible with no authentication required — making
 
 ## Tech Stack
 
-- **PostgreSQL** — the booking engine depends on two PostgreSQL features for reliability: (1) **advisory locks** (`pg_advisory_xact_lock`) to prevent two concurrent bookings from claiming the same slot, and (2) **transactions** to ensure the booking record, answer records, and all related writes either all succeed or all roll back together.
+- **PostgreSQL** — the booking engine depends on two PostgreSQL features for reliability: (1) **advisory locks** (`pg_advisory_xact_lock(hostUserId + startTime)`) to prevent two concurrent bookings from claiming the same host time slot — the lock key must include the **host's user ID**, not the event type ID, so that bookings across different event types for the same host at the same time are correctly serialised; and (2) **transactions** to ensure the booking record, answer records, and all related writes either all succeed or all roll back together.
 - **Drizzle ORM** — the `bookings` table holds all booking data (UTC times, status, cancel token, reschedule token, custom answer references, video link). Drizzle's transaction API is used for the atomic booking creation flow.
 - **Next.js API Route** — `POST /api/bookings` is the single endpoint for the entire booking creation flow: Zod validation → conflict check → DB write → job dispatch.
 - **Zod** — validates the complete booking form payload (invitee name, email, selected slot, answers) before any database operation. Strips HTML from all text inputs to prevent XSS.

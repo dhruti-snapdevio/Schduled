@@ -169,13 +169,13 @@ General account configuration.
 - Requires: current password, new password, confirm new password
 - Password requirements: 8+ chars, 1 uppercase, 1 number
 
-### Two-Factor Authentication (2FA)
+### Two-Factor Authentication (2FA) *(Phase 2 — Post-MVP)*
 - Enable / disable 2FA
 - Methods: Authenticator app (TOTP — Google Authenticator, Authy) or SMS
 - Setup flow: scan QR code with authenticator app → enter 6-digit code to verify
 - Backup codes: download 8 one-time backup codes on setup
 
-### Login Sessions
+### Login Sessions *(Phase 2 — Post-MVP)*
 - List of active sessions: device type, browser, IP address, last active
 - "Sign out" individual sessions
 - "Sign out all other devices" button
@@ -251,7 +251,7 @@ Irreversible account actions, separated and clearly marked.
 
 **Constraints:**
 - Only the account owner can request their own export
-- Maximum one export request per 24-hour period (rate-limited)
+- Maximum one export request per 24-hour period
 - Invitee data included only where that invitee booked with this host — no cross-host data leakage
 - Tokens, passwords, and session data are never included in exports
 
@@ -298,8 +298,10 @@ Irreversible account actions, separated and clearly marked.
 
 ## Tech Stack
 
-- **Better Auth** — manages password changes, 2FA setup (TOTP via authenticator app), active session listing, and session revocation. The admin plugin lets Orbit Admin view, ban, or impersonate any user account.
+- **Better Auth** — manages password changes, 2FA setup (TOTP via authenticator app — Phase 2), active session listing and revocation (Phase 2). The admin plugin lets custom Next.js admin pages view, ban, or impersonate any user account.
 - **Next.js App Router** — all settings pages are protected server components. They read the current session via Better Auth and load the user's profile data before rendering — no loading spinner on page open.
-- **PostgreSQL + Drizzle ORM** — stores extended profile fields in a `user_profiles` table (display name, job title, company, bio, website, theme preference, date/time format) and notification preferences in a separate `notification_preferences` table.
+- **PostgreSQL + Drizzle ORM** — stores extended profile fields in a `user_profiles` table (display name, job title, company, bio, website, theme preference, date/time format) and notification preferences in a separate `notification_preferences` table. The `username_redirects` table records old usernames for 30-day redirect support.
+- **S3-compatible storage (@aws-sdk/client-s3 + @aws-sdk/s3-request-presigner)** — hosts uploaded profile photos. Works with any S3-compatible provider (AWS S3, Cloudflare R2, MinIO, Backblaze B2). The browser uploads directly to the bucket using a presigned URL (generated server-side), so the image never passes through the Next.js server. The stored S3 key is saved in the `user_profiles` table; a public URL is derived from the key.
 - **Shadcn/UI** — provides the settings form components: inputs, toggles, dropdowns, avatar upload cropper, and confirmation dialogs (for dangerous actions like account deletion).
-- **Orbit Admin** — the Better Auth admin plugin powers the admin-side user management panel where platform administrators can view any user's profile, sessions, and account status.
+- **pg-boss** — used for the GDPR data export job: on request, a job is enqueued that compiles the user's data into a ZIP file, uploads it to S3, and sends a download link via Nodemailer within 24 hours.
+- **Custom Admin Panel** — built with Next.js App Router and Shadcn/UI, powered by the Better Auth Admin Plugin. Platform administrators can view any user's profile, sessions, and account status through a custom-built admin interface.

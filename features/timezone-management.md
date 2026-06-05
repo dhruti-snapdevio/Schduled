@@ -92,20 +92,30 @@ Invitees can manually change the timezone shown on the booking page.
 
 ### How Conversion Works Internally
 
-All times are stored in UTC internally. Display is always a conversion from UTC to a target timezone.
+Availability windows are stored as `HH:mm` strings paired with the host's IANA timezone — **NOT as UTC ranges**. Individual generated slots are each converted to UTC at booking time.
 
 ```
-Host sets: Available 9am–5pm Mon–Fri (timezone: America/New_York, UTC-5)
-Stored as: Available 14:00–22:00 UTC Mon–Fri
+Host stores: startTime = "09:00", endTime = "17:00", timezone = "America/New_York"
+  (stored as HH:mm strings in the IANA timezone — NOT a UTC range)
 
-Invitee in Asia/Kolkata (UTC+5:30) opens booking page:
-Displayed as: 7:30pm–3:30am IST (next day for late slots)
+Slot generation for a given date:
+  1. Generate local slots: 09:00, 09:30, 10:00 ... 16:30 (in America/New_York)
+  2. Convert EACH slot individually to UTC using date-fns-tz.zonedTimeToUtc()
+     → On a non-DST day (EST, UTC-5): 09:00 EST → 14:00 UTC
+     → On a DST transition day (EDT, UTC-4): 09:00 EDT → 13:00 UTC
+  3. Filter out slots that overlap with calendar busy events (UTC comparison)
+  4. Return remaining UTC slots; convert to invitee timezone for display
+
+Invitee in Asia/Kolkata (UTC+5:30):
+  14:00 UTC → 7:30 PM IST (displayed on booking page)
 ```
 
-**Why UTC Storage:**
-- DST changes are handled correctly (stored time doesn't change; only display changes)
+> **Why NOT convert the window to a UTC range first:** On DST transition days, the local day is 23 or 25 hours long. A single-offset UTC range would generate slots that shift by 1 hour after the transition. Generating local slots first — then converting each slot individually — produces correct results for every day of the year.
+
+**Why HH:mm + IANA timezone storage:**
+- DST changes are handled correctly (each slot converted with the correct offset for its exact date)
 - Cross-timezone teams work without conversion bugs
-- Database queries are always in UTC (consistent ordering)
+- Database booking timestamps are always UTC (consistent ordering and comparisons)
 
 ### DST (Daylight Saving Time) Handling
 
