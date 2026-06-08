@@ -43,8 +43,8 @@ The personal identity that represents the host on all booking pages and emails.
 | Profile Photo | No | Circular avatar on booking page and emails |
 | Job Title / Role | No | Shown under name on booking page (e.g., "Senior Account Executive") |
 | Company / Organization | No | Company name shown on booking page |
-| Bio | No | Short description (up to 200 characters) shown on booking page |
-| Website URL | No | Linked from booking page |
+| Bio | No | Short description (up to 200 characters) shown on booking page *(Post-MVP — Phase 2)* |
+| Website URL | No | Linked from booking page *(Post-MVP — Phase 2)* |
 
 ### Profile Photo Upload
 - Accepted formats: JPG, PNG, WebP
@@ -268,7 +268,7 @@ Irreversible account actions, separated and clearly marked.
 | **SavvyCal** | ✅ Photo, name, company | ❌ No | ❌ No | ✅ Yes | ❌ No | ❌ No |
 | **HubSpot Meetings** | Via HubSpot profile — not standalone | ✅ Via HubSpot SSO | ✅ Via HubSpot security | ✅ Via HubSpot | ✅ Via HubSpot GDPR tools | ✅ Via HubSpot |
 | **Chili Piper** | At org level; individual profile limited | ✅ Via SSO | ✅ Via admin | ❌ No personal URL | ❌ No | ❌ No |
-| **Schedica** | ✅ Photo, display name, job title, company, bio, website | ✅ TOTP (Phase 2) + SMS (Phase 3) | ✅ Phase 2 — list all sessions, revoke any | ✅ Change username with 30-day redirect | ✅ Phase 2 — manual on request at launch | ✅ Light / Dark / System |
+| **Schedica** | ✅ Photo, display name, job title, company (MVP); bio + website Phase 2 | ✅ TOTP (Phase 2) + SMS (Phase 3) | ✅ Phase 2 — list all sessions, revoke any | ✅ Change username with 30-day redirect | ✅ Phase 2 — manual on request at launch | ✅ Light / Dark / System |
 
 ---
 

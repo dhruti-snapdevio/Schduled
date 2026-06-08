@@ -333,9 +333,11 @@ For email+password users who have forgotten their password.
 
 ---
 
-## Two-Factor Authentication (2FA) — Login Challenge
+## Two-Factor Authentication (2FA) — Login Challenge *(Post-MVP — Phase 2)*
 
 When a user has 2FA enabled (configured in [user-profile-settings.md](user-profile-settings.md)), the login flow adds a second step.
+
+> **Why Phase 2:** 2FA adds authentication complexity and support burden (locked-out users, backup code recovery) before product-market fit. Email/password + OAuth is secure enough at launch. Enable after user base is established.
 
 ### Login with 2FA — TOTP (Authenticator App)
 1. User enters email + password (or signs in via OAuth)

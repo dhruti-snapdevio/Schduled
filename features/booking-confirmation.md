@@ -291,10 +291,12 @@ Instead of Schedica's default confirmation screen, hosts can redirect invitees t
   - "Here's our meeting agenda template: [link]"
   - "Bring your last 3 months of data if you have it"
 
-### Custom Email Subject Line
+### Custom Email Subject Line *(Post-MVP — Phase 2)*
 - Replace default subject with custom text
 - Dynamic variables supported: `{invitee_name}`, `{date}`, `{time}`, `{event_type}`
 - Example: "Your {event_type} with us is confirmed for {date}!"
+
+> **Why Phase 2:** Custom subject lines require a template editor UI. For MVP, Schedica ships one well-crafted default subject line per email type. Hosts can add a custom message to the body. Subject line customisation ships in Phase 2.
 
 ### From Name and Reply-To
 - Emails appear "from" the host's name, not "Schedica"
@@ -328,8 +330,10 @@ Instead of Schedica's default confirmation screen, hosts can redirect invitees t
 - Outlook calendar event creation (host's calendar)
 - Reschedule and cancel links in confirmation email
 - Custom confirmation message (per event type)
-- Custom email subject line
 - From name and reply-to customization
+
+**Post-MVP (additions to above):**
+- Custom email subject line with dynamic variables *(Phase 2 — requires template editor UI)*
 - Invitee's form answers in both emails
 
 **Post-MVP:**

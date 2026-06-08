@@ -211,7 +211,7 @@ Likely candidates based on competitive research:
 | Question |
 |---------|
 | Is Schedica really free? |
-| Can I connect my Apple / iCloud calendar? |
+| Can I connect my Apple / iCloud calendar? *(answer: coming soon — Phase 2)* |
 | What happens if someone books a time I've already blocked? |
 | Does Schedica work for teams? |
 | How is Schedica different from Calendly? |
@@ -273,7 +273,7 @@ Static content — written once, no CMS needed for MVP.
 | Element | Detail |
 |---------|--------|
 | `<title>` | "Schedica — Smart Scheduling, Free & Open Source" |
-| `<meta description>` | "Share a booking link. Let anyone schedule time with you automatically. Syncs with Google, Outlook, and Apple Calendar. Open source." |
+| `<meta description>` | "Share a booking link. Let anyone schedule time with you automatically. Syncs with Google and Outlook. Open source." |
 | Open Graph `og:title` | Same as title |
 | Open Graph `og:description` | Same as meta description |
 | Open Graph `og:image` | 1200×630px product screenshot |
