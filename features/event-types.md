@@ -176,8 +176,8 @@ All event types share a common set of configuration options:
 | Location Type | Description |
 |---------------|-------------|
 | Zoom | Auto-generate unique Zoom link per booking |
-| Google Meet | Auto-generate Google Meet link |
-| Microsoft Teams | Auto-generate Teams meeting link |
+| Google Meet | Auto-generate Google Meet link — **requires Google Calendar to be connected** (Meet links are generated via Google Calendar API). If Google Calendar is not connected, this option is greyed out in the builder with tooltip: "Connect Google Calendar first to use Google Meet" |
+| Microsoft Teams | Auto-generate Teams meeting link — auto-available when Outlook is connected |
 | Webex | Auto-generate Webex meeting link *(Phase 2)* |
 | GoTo Meeting | Auto-generate GoTo Meeting link *(Phase 2)* |
 | Phone — Host calls Invitee | Collect invitee's phone number; host calls them at meeting time |

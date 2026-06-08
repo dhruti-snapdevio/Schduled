@@ -101,7 +101,7 @@ Shows all currently connected calendars with:
 
 ### Add New Calendar
 - "+ Connect Calendar" button
-- Opens provider selection: Google Calendar | Outlook | Apple Calendar | CalDAV
+- Opens provider selection: Google Calendar | Outlook | Apple Calendar *(Phase 2)* | CalDAV *(Phase 2)*
 - OAuth flow for Google/Outlook; app password for Apple
 - After connecting: select which calendars to check + which to write bookings to
 

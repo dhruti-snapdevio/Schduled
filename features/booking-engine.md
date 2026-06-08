@@ -117,6 +117,7 @@ The booking is written to the Schedica database.
 | location_value | Generated video link or address |
 | custom_answers | JSON map of question ID → answer |
 | status | confirmed / cancelled / rescheduled / completed |
+| reschedule_count | How many times this booking has been rescheduled (checked against event type's max reschedule limit) |
 | created_at | Booking creation timestamp (UTC) |
 | cancel_token | Unique token for cancel link in email |
 | reschedule_token | Unique token for reschedule link in email |
@@ -267,6 +268,21 @@ All booking creation steps (lock acquisition → availability check → booking 
 | `rescheduled` | Original booking replaced by new one |
 | `completed` | Meeting time has passed (no cancellation) |
 | `no_show` | Meeting time passed, marked as no-show by host |
+
+---
+
+## Calendar Disconnected — Booking Page Behaviour
+
+If a host's calendar integration is disconnected (token expired, access revoked, or manual disconnect):
+
+- All event types that use that calendar as the write target are **automatically disabled**
+- Invitees visiting the booking page see: "This calendar is currently unavailable. Please check back later."
+- No new bookings are accepted while the calendar is disconnected — prevents double-bookings from undetected conflicts
+- Host receives an alert email: "Your [Google Calendar / Outlook] has been disconnected — reconnect to resume accepting bookings"
+- A banner is shown in the host's dashboard: "⚠️ Calendar sync interrupted — booking pages paused"
+- Once the host reconnects the calendar, event types are automatically re-enabled and the booking page becomes live again
+
+> Booking pages **cannot** be manually re-enabled while the calendar is disconnected — the calendar connection is required for conflict detection.
 
 ---
 

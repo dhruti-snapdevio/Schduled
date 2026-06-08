@@ -239,10 +239,10 @@ In Profile & Settings → Integrations, each connected video platform shows:
 | ⚠️ Error | API quota or permission issue — check platform account |
 
 If a platform disconnects and a new booking comes in:
-- Booking still created successfully
-- Video link generation fails silently
-- Host receives: "⚠️ Could not generate Zoom link for this booking. Please add the meeting link manually."
-- Invitee confirmation email notes: "Video link will be sent separately"
+- Booking still created successfully — video link failure never blocks a booking
+- pg-boss retries video link generation 3× with exponential backoff (5s → 30s → 2min)
+- If all 3 retries fail: host receives alert email "Video link generation failed for [Invitee Name]'s booking — please add the meeting link manually"
+- Invitee confirmation email shows: "Your video link will be sent shortly" — no broken links visible to invitee
 
 ---
 

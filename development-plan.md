@@ -251,13 +251,13 @@ Phase 20 →  QA & Launch Prep
   - [ ] `video_connections` — id, userId, provider (zoom/teams), accountEmail, accessToken, refreshToken, tokenExpiresAt, providerUserId, createdAt
 
   **`bookings.ts` — Booking records:**
-  - [ ] `bookings` — id, eventTypeId, hostUserId, inviteeName, inviteeEmail, inviteePhone, inviteeTimezone, startTime, endTime, status (confirmed/cancelled/rescheduled/completed/no_show), locationValue, videoLinkHost, videoLinkInvitee, cancelToken, rescheduleToken, cancellationReason, cancelledAt, rescheduledFromId, createdAt, updatedAt
+  - [ ] `bookings` — id, eventTypeId, hostUserId, inviteeName, inviteeEmail, inviteePhone, inviteeTimezone, startTime, endTime, status (confirmed/cancelled/rescheduled/completed/no_show), locationValue, videoLinkHost, videoLinkInvitee, cancelToken, rescheduleToken, cancellationReason, cancelledAt, rescheduledFromId, rescheduleCount (int default 0 — tracks how many times this booking has been rescheduled, checked against cancellation_policies.maxReschedules), createdAt, updatedAt
   - [ ] `booking_answers` — id, bookingId, questionId, questionLabel, answer
   - [ ] `booking_guests` — id, bookingId, guestEmail, guestName
 
   **`notifications.ts` — Notifications & reminders:**
   - [ ] `notification_preferences` — id, userId, bookingConfirmationEmail, bookingNotificationEmail, reminderEmail24h, reminderEmail1h, cancellationEmail, rescheduleEmail, dailyDigestEmail, weeklySummaryEmail, fromName, replyToEmail, emailFormat (detailed/summary), updatedAt
-  - [ ] `workflow_jobs` — id, bookingId, jobType (reminder_24h/reminder_1h/followup/noshow_check), singletonKey, scheduledFor, status, createdAt
+  - [ ] `workflow_jobs` — id, bookingId, jobType (reminder_24h/reminder_1h/followup/noshow_check), singletonKey, scheduledFor, status, completedAt (timestamp — set when job completes or permanently fails), failureReason (text nullable — last error message if job failed, for admin panel visibility), createdAt
 
 - [ ] Run initial migration:
   ```bash
@@ -459,6 +459,7 @@ Phase 20 →  QA & Launch Prep
   - [ ] **What** tab: name, description, duration (preset + custom), color picker
   - [ ] **Where** tab: location type selector — Zoom, Google Meet, Teams, Phone, In-Person address, Custom link
     - [ ] When "Phone" is selected: show `phoneCallDirection` radio — "Host calls invitee" (invitee phone required in form) vs "Invitee calls host" (host phone number shown in confirmation)
+    - [ ] Google Meet option: greyed out with tooltip "Connect Google Calendar first to use Google Meet" if the host has not connected a Google Calendar account — Google Meet link generation requires Google Calendar OAuth (see Phase 13)
   - [ ] **When** tab: availability schedule selector, booking window, minimum notice, buffer before/after, daily limit
   - [ ] **Options** tab: URL slug, hide from profile, booking confirmation message, redirect URL after booking
   - [ ] Multi-duration option: toggle "Let invitees choose duration" → add multiple durations
@@ -528,7 +529,8 @@ Phase 20 →  QA & Launch Prep
 - [ ] Read free/busy data via `calendar.freebusy.query`
 - [ ] Write new bookings via `calendar.events.insert`
 - [ ] Token refresh logic (access token expires every 1 hour)
-- [ ] Disconnect Google Calendar → delete tokens from DB
+- [ ] Disconnect Google Calendar → delete tokens from DB; all event types using this calendar as write target are automatically disabled (booking pages show "This calendar is currently unavailable") until a calendar is reconnected
+- [ ] Token expiry detection — if token refresh fails (revoked access), mark calendar as `disconnected` in `connected_calendars` and disable associated booking pages; host receives alert email: "Your Google Calendar has been disconnected — reconnect to resume bookings"
 
 **Microsoft Outlook / Office 365:**
 - [ ] OAuth 2.0 flow via Microsoft Graph API
@@ -684,7 +686,7 @@ Phase 20 →  QA & Launch Prep
 
 **Error Handling:**
 - [ ] Slot already taken → return clear error + list alternative available slots
-- [ ] Video API failure → booking still confirmed, host notified to add link manually
+- [ ] Video API failure → booking still confirmed; pg-boss retries video link generation 3× with exponential backoff; if all 3 retries fail, host receives alert email "Video link generation failed for [Invitee Name]'s booking — please add the meeting link manually"; invitee confirmation email says "Your video link will be sent shortly"
 - [ ] Calendar write failure → retry via pg-boss (3 retries with exponential backoff)
 - [ ] Email failure → retry via pg-boss (3 retries)
 
@@ -783,7 +785,12 @@ Phase 20 →  QA & Launch Prep
   - [ ] Microsoft Teams: auto-available if Outlook is connected
 - [ ] Event type builder — location type selector shows connected platforms only
 
-**Done when:** Selecting Zoom in an event type creates a unique Zoom meeting per booking. Google Meet and Teams links are generated automatically from existing calendar connections.
+**Video Link Failure Handling:**
+- [ ] pg-boss retries failed video link generation 3× with exponential backoff (5s → 30s → 2min)
+- [ ] If all 3 retries fail: send host alert email "Video link generation failed for [Invitee Name]'s booking — please add the meeting link manually"; invitee confirmation email text reads "Your video link will be sent shortly" instead of showing a broken link
+- [ ] Booking is always confirmed regardless of video link failure — video link is non-blocking
+
+**Done when:** Selecting Zoom in an event type creates a unique Zoom meeting per booking. Google Meet and Teams links are generated automatically from existing calendar connections. All video link failures retry 3× and notify the host if permanently failed.
 
 ---
 
