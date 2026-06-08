@@ -81,7 +81,7 @@ Each card on the profile page shows:
   - Calendar invite descriptions
 - Recommended: 440×240px minimum, transparent PNG preferred
 
-### Banner / Cover Image
+### Banner / Cover Image *(Post-MVP — Phase 2)*
 - Optional banner image across the top of the booking page
 - Creates a more polished, brand-consistent experience
 - Recommended: 1200×300px, landscape
@@ -115,9 +115,11 @@ Each card on the profile page shows:
 - Meeting agenda or preparation instructions
 
 ### Calendar Display Options
-- **Month view** (default): Monthly calendar with available days highlighted
-- **Week view**: 7-day view showing all available slots
-- **Compact list view**: Text-based list of available times (accessible, fast to load)
+- **Month view** (default — MVP): Monthly calendar with available days highlighted; the standard invitee UX used by Calendly, Cal.com, and every major scheduling tool — ship this at launch
+- **Week view** *(Post-MVP — Phase 2)*: 7-day view showing all available slots
+- **Compact list view** *(Post-MVP — Phase 2)*: Text-based list of available times (accessibility alternative); add after month view is stable and tested
+
+> **Why only month view at launch:** Both alternatives require separate slot-display logic, separate mobile layouts, and a view-toggle UI. At MVP the invitee's job is simply to pick a time — month view handles that correctly. Add list view in Phase 2 once you have real invitee feedback on accessibility needs.
 
 ---
 
@@ -148,7 +150,7 @@ Shown to invitees immediately after successfully booking a meeting.
 - Supports Markdown: `**bold**`, `[link text](url)`, line breaks
 - Example: "Thanks for booking! Please review our intake form before the call: [link]"
 
-### Redirect to External URL
+### Redirect to External URL *(Post-MVP — Phase 2)*
 - Instead of showing Schedica's confirmation page, redirect invitees to a custom URL
 - Use cases:
   - Redirect to onboarding page
@@ -190,18 +192,18 @@ For agencies, enterprises, and tools built on Schedica.
 ### Remove Schedica Branding
 - "Powered by Schedica" badge not shown on booking pages or emails (open source — no attribution required)
 
-### Custom Domain
+### Custom Domain *(Post-MVP — Phase 4 — Enterprise)*
 - Host booking pages on your own domain
 - Example: `meetings.yourcompany.com/team` instead of `schedica.com/yourname`
 - DNS CNAME record setup required
 - SSL/TLS certificate provisioned automatically
 
-### Subdomain Routing
+### Subdomain Routing *(Post-MVP — Phase 3)*
 - Organization gets a branded subdomain: `yourcompany.schedica.com`
 - All team members' pages live under this subdomain
 - Available without full custom domain setup
 
-### Embed Without Attribution
+### Embed Without Attribution *(Post-MVP — Phase 3)*
 - Embedded booking widgets show no Schedica branding
 - Fully branded experience within your website
 

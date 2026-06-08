@@ -8,6 +8,11 @@ Timezone management ensures every host and invitee sees meeting times in their o
 
 Timezone is one of the most error-prone aspects of scheduling. Schedica handles timezone conversion at every step — so neither the host nor the invitee ever has to manually calculate "what time is that for me?"
 
+> **Strategic importance — read before touching this feature:**
+> Dual-timezone display in every email is Schedica's #1 competitive advantage. Calendly, Cal.com, and every other mainstream scheduling tool shows only one party's timezone per email. Schedica shows both. This eliminates the #1 cause of missed meetings ("we showed up at different times") and is a concrete, demonstrable differentiator that any user can verify in 30 seconds.
+>
+> This is a **strategic feature, not a cosmetic one.** Every change to email templates, booking confirmation UI, or availability display must preserve the dual-timezone output. Do not simplify, remove, or make it optional.
+
 There are two timezone contexts to manage:
 1. **Host timezone** — The timezone the host's availability is defined in
 2. **Invitee timezone** — The timezone the booking page displays times in (auto-detected from the invitee's browser/device)
@@ -111,6 +116,8 @@ Invitee in Asia/Kolkata (UTC+5:30):
 ```
 
 > **Why NOT convert the window to a UTC range first:** On DST transition days, the local day is 23 or 25 hours long. A single-offset UTC range would generate slots that shift by 1 hour after the transition. Generating local slots first — then converting each slot individually — produces correct results for every day of the year.
+>
+> **Do not deviate from this approach.** Any shortcut that converts the availability window to a single UTC offset will produce wrong slot times on DST transition days. The per-slot `zonedTimeToUtc()` call is the correct and required implementation.
 
 **Why HH:mm + IANA timezone storage:**
 - DST changes are handled correctly (each slot converted with the correct offset for its exact date)

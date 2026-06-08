@@ -22,7 +22,7 @@ This eliminates two major pain points:
 - As a host, I want each booking to receive its own unique video link, so that past meeting recordings and chats are not accessible in new meetings. *(MVP)*
 - As a host, I want the video link to appear in the calendar invite and confirmation email automatically, so that invitees always have the link without me sending it manually. *(MVP)*
 - As a host, I want to set a default video platform per event type, so that client calls use Zoom while internal meetings use Google Meet. *(MVP)*
-- As a host, I want to connect Microsoft Teams, so that meetings with enterprise clients are held in the platform they already use. *(MVP)*
+- As a host, I want to connect Microsoft Teams, so that meetings with enterprise clients are held in the platform they already use. *(Phase 2)*
 
 **Invitee**
 - As an invitee, I want to receive a unique join link in my confirmation email, so that I can join the meeting with one click. *(MVP)*
@@ -31,6 +31,11 @@ This eliminates two major pain points:
 ---
 
 ## Supported Platforms
+
+> **Build priority:**
+> - **P0 — Google Meet:** Free, no approval process, no separate OAuth. Link generated automatically as part of the Google Calendar event — any host with Google Calendar connected gets it instantly. Ship first.
+> - **P1 — Zoom:** Requires Zoom Marketplace approval (2–4 weeks). Submit on Day 1 of development. Use dev-mode app during development; switch to published app before launch.
+> - **Phase 2 — Microsoft Teams:** Requires Outlook calendar connected (full Microsoft Graph OAuth stack). Minority of solo freelancer users. Build after MVP is stable.
 
 ### Zoom
 
@@ -92,7 +97,7 @@ https://meet.google.com/abc-defg-hij
 
 ---
 
-### Microsoft Teams
+### Microsoft Teams *(Phase 2)*
 
 Auto-generates a Teams meeting link via the Microsoft Graph API.
 
@@ -265,27 +270,27 @@ Hosts can disable this notice or the recording feature per event type.
 | **SavvyCal** | Zoom, Google Meet, Teams | ✅ Yes | ❌ No | ❌ No |
 | **Chili Piper** | Zoom, Teams, Meet | ✅ Yes | ❌ No | ❌ No |
 | **HubSpot Meetings** | Zoom, Teams | ✅ Via calendar event creation | ❌ No | ❌ No |
-| **Schedica** | Zoom, Google Meet, Teams (MVP); Webex, GoTo (Phase 2) | ✅ Yes — unique room per booking; no shared permanent links | ✅ Yes — invitee selects if host has 2+ platforms connected | ❌ No — Phase 3 consideration |
+| **Schedica** | Google Meet (P0), Zoom (P1), Teams (Phase 2); Webex, GoTo (Phase 3) | ✅ Yes — unique room per booking; no shared permanent links | ✅ Yes — invitee selects if host has 2+ platforms connected | ❌ No — Phase 3 consideration |
 
 ---
 
 ## MVP Scope
 
-**In MVP:**
-- Zoom (unique link per booking via API)
-- Google Meet (via Google Calendar API)
-- Microsoft Teams (via Microsoft Graph API)
+**In MVP — P0 (Google Meet first):**
+- Google Meet (P0 — via Google Calendar API, no separate OAuth, free)
+- Zoom (P1 — unique link per booking; submit Marketplace approval on Day 1 of development)
 - Custom URL (permanent link for unsupported platforms)
-- Invitee's choice (if host has 2+ platforms connected)
+- Invitee's choice (if host has both Google Meet and Zoom connected)
 - Link in confirmation email, calendar invite, and reminder emails
 - "Join" button on Meetings Dashboard (active 15 min before)
-- Graceful failure handling (notify host if link generation fails)
+- Graceful failure handling (3× retry with exponential backoff; host alert if all fail)
 
 **Post-MVP:**
-- Webex
-- GoTo Meeting
-- Jitsi Meet (self-hosted option)
-- Auto-reconnect if token expires before booking
+- Microsoft Teams (Phase 2 — requires full Outlook/Microsoft Graph OAuth; minority of solo users)
+- Webex (Phase 3)
+- GoTo Meeting (Phase 3)
+- Jitsi Meet — self-hosted option (Phase 3)
+- Auto-reconnect if token expires before booking (Phase 2)
 
 
 ---
@@ -293,7 +298,7 @@ Hosts can disable this notice or the recording feature per event type.
 ## Tech Stack
 
 - **Zoom API (OAuth 2.0)** — creates a unique Zoom meeting room per booking via `POST /v2/users/me/meetings`. The host connects their Zoom account once in Settings; Schedica stores the OAuth token (encrypted) and uses it for every future booking.
-- **Microsoft Graph API** — creates Microsoft Teams meetings via `POST /v1.0/users/{userId}/onlineMeetings`. Reuses the same OAuth token already stored for the host's Outlook calendar connection — no separate Teams login needed.
+- **Microsoft Graph API** *(Phase 2)* — creates Microsoft Teams meetings via `POST /v1.0/users/{userId}/onlineMeetings`. Reuses the same OAuth token already stored for the host's Outlook calendar connection — no separate Teams login needed. Built in Phase 2 after Google Meet and Zoom are stable.
 - **Google Calendar API** — Google Meet links are generated automatically as part of Google Calendar event creation (no separate Meet API call). Available to any host with a Google Calendar connected.
 - **PostgreSQL + Drizzle ORM** — stores Zoom and Webex OAuth tokens (AES-256-GCM encrypted) in `video_connections`. Teams tokens are reused from `connected_calendars`. The generated video link is stored in the `bookings` table under `location_value`.
 - **pg-boss** — video link generation runs as an async background job after the booking is confirmed. This means the booking API responds instantly to the invitee while the Zoom/Teams API call happens in the background. If generation fails, pg-boss retries automatically and notifies the host.

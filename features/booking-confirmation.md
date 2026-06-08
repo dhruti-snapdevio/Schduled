@@ -226,25 +226,25 @@ This means even users who read the calendar event description (without relying o
 
 ## Confirmation for Different Booking Types
 
-### Group Event Confirmation
+### Group Event Confirmation *(Post-MVP — Phase 2)*
 - Each invitee receives individual confirmation (same template as 1:1)
 - All invitees share the same video conference link
 - Invitee's confirmation shows: "X other people have also booked this session"
 - Host notification shows all confirmed invitees as a list
 
-### Round-Robin Confirmation
+### Round-Robin Confirmation *(Post-MVP — Phase 2)*
 - Assigned host name shown in invitee's confirmation (if host reveal is enabled)
 - If host reveal is disabled: event type name shown without host name
 - Assigned host receives the host notification email
 
-### Collective (Multi-Host) Confirmation
+### Collective (Multi-Host) Confirmation *(Post-MVP — Phase 2)*
 - All required hosts receive the host notification email
 - Invitee's confirmation shows all host names: "You'll be meeting with Jane Smith and Mike Lee"
 - All hosts added as attendees on the calendar event
 
 ---
 
-## Confirmation Page for Redirect (Advanced)
+## Confirmation Page for Redirect *(Post-MVP — Phase 2)*
 
 Instead of Schedica's default confirmation screen, hosts can redirect invitees to a custom URL after booking.
 

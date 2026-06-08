@@ -168,13 +168,15 @@ Narrow the meeting list by specific criteria.
 
 ### Available Filters
 
-| Filter | Options |
-|--------|---------|
-| Status | All, Upcoming, Completed, Cancelled, No-Show |
-| Event Type | All, or select specific event type(s) |
-| Date Range | Today, Last 7 days, Last 30 days, Custom range |
-| Location | All, Zoom, Google Meet, Teams, Phone, In-Person |
-| Host (teams) | All team members, or specific member |
+| Filter | Options | Scope |
+|--------|---------|-------|
+| Status | All, Upcoming, Completed, Cancelled, No-Show | *(MVP)* |
+| Event Type | All, or select specific event type(s) | *(MVP)* |
+| Date Range | Today, Last 7 days, Last 30 days, Custom range | *(MVP)* |
+| Location | All, Zoom, Google Meet, Teams, Phone, In-Person | *(Post-MVP — Phase 2)* |
+| Host (teams) | All team members, or specific member | *(Post-MVP — Phase 2)* |
+
+> **Why Location and Host filters are Phase 2:** Solo users at launch have 1–2 location types and no team members to filter by. Adding these filter options at MVP is premature — they add UI weight with zero real-world filtering value for a solo user.
 
 ### Filter Behavior
 - Filters apply instantly (no submit button)
@@ -189,14 +191,16 @@ Narrow the meeting list by specific criteria.
 Control the order meetings are displayed.
 
 ### Sort Options
-- Date (newest first / oldest first) — default
-- Invitee name (A–Z / Z–A)
-- Event type name (A–Z)
-- Duration (shortest / longest)
+- Date (newest first / oldest first) — default *(MVP)*
+- Invitee name (A–Z / Z–A) *(Post-MVP — Phase 2)*
+- Event type name (A–Z) *(Post-MVP — Phase 2)*
+- Duration (shortest / longest) *(Post-MVP — Phase 2)*
+
+> **Why only date sort at launch:** Solo users with 10–50 meetings don't need A–Z sort. They know who they're meeting and find them by date or search. Advanced sort adds UI complexity (sort dropdown, state management) for near-zero MVP-scale value.
 
 ---
 
-## Bulk Actions (Teams / Admin)
+## Bulk Actions (Teams / Admin) *(Post-MVP — Phase 2)*
 
 For users with multiple team members' meetings visible.
 
@@ -206,18 +210,22 @@ For users with multiple team members' meetings visible.
 - Bulk cancel selected meetings
 - Bulk export selected meetings to CSV
 
+> **Why Phase 2:** Bulk actions are a teams/admin feature. Solo users at MVP scale (10–50 meetings) don't need to bulk cancel or export — they use the individual detail view. Adds significant UI complexity (selection state, confirmation dialogs, CSV generation) with zero solo-user value.
+
 ---
 
 ## Dashboard Stats Summary
 
 At the top of the dashboard, a quick-stats bar shows:
 
-| Stat | Description |
-|------|-------------|
-| Today's meetings | Count of meetings scheduled today |
-| This week | Count of meetings this calendar week |
-| Upcoming (total) | All future confirmed bookings |
-| Cancelled this month | Number of cancellations |
+| Stat | Description | Scope |
+|------|-------------|-------|
+| Today's meetings | Count of meetings scheduled today | *(MVP)* |
+| Upcoming (total) | All future confirmed bookings | *(MVP)* |
+| This week | Count of meetings this calendar week | *(Post-MVP — Phase 2)* |
+| Cancelled this month | Number of cancellations this calendar month | *(Post-MVP — Phase 2)* |
+
+> **Why two stats are Phase 2:** "Today's count" tells a solo host what they actually need: what's happening right now. "Upcoming total" shows pipeline. "This week" and "Cancelled this month" are useful metrics but add no decision-making value at MVP scale and complicate the stats bar.
 
 ---
 
@@ -261,7 +269,7 @@ The dashboard is also the anchor for in-app notifications.
 | **SavvyCal** | ✅ Yes | ✅ Yes | ✅ Basic filters | ❌ No | ❌ No | ❌ No |
 | **Chili Piper** | ✅ Pipeline-style lead view | ✅ Via CRM search | ✅ CRM + event type filters | ❌ No | ❌ No | ❌ No |
 | **HubSpot Meetings** | ✅ Via HubSpot activity feed | ✅ Via HubSpot CRM | ✅ Via HubSpot filters | ❌ No | ✅ Via HubSpot deal notes | ❌ No |
-| **Schedica** | ✅ Upcoming + past + cancelled tabs with date grouping | ✅ By name or email — partial match, results appear as you type | ✅ Status, event type, date range, location type | ✅ No-show status tracked; host marks manually in MVP; auto-detected in Phase 2 | ✅ Private internal notes per meeting — not visible to invitee | ✅ Join button appears 15 min before meeting — one click from the list |
+| **Schedica** | ✅ Upcoming + past + cancelled tabs with date grouping | ✅ By name or email — partial match, results appear as you type | ✅ Status, event type, date range (MVP); location type and host filters Phase 2 | ✅ No-show status tracked; host marks manually in MVP; auto-detected in Phase 2 | ✅ Private internal notes per meeting — not visible to invitee | ✅ Join button appears 15 min before meeting — one click from the list |
 
 ---
 
@@ -274,17 +282,19 @@ The dashboard is also the anchor for in-app notifications.
 - Cancelled meetings view
 - Cancel meeting action from dashboard
 - Basic search by invitee name/email
-- Filter by status (upcoming / past / cancelled)
-- Quick stats bar (today count, this week count)
+- Filter by status (upcoming / past / cancelled), event type, date range
+- Quick stats bar (today count + upcoming total only)
 - In-app notification bell
 - Post-meeting private notes (host-only)
 
 **Post-MVP:**
 - No-Show status auto-detection
 - Bulk actions (export, bulk cancel)
-- Sort options
+- Sort options beyond date (A–Z, duration)
+- Location type filter
+- Host filter (teams feature)
+- "This week" and "Cancelled this month" stats
 - Team-level dashboard (all members' meetings)
-- Advanced date range filters
 
 
 ---

@@ -128,9 +128,14 @@ A brief one-line explanation displayed during this step:
 > "Schedica checks your calendar so invitees only see times when you're actually free — no more double bookings."
 
 ### Skip Option
-- User can skip calendar connection and continue
-- Warning shown: "Without a connected calendar, Schedica cannot prevent double-bookings. You can connect your calendar anytime in Settings."
-- Booking pages will still work but availability won't reflect real calendar events
+- User can skip calendar connection via "I'll connect later" button
+- **Booking pages are deactivated immediately** when calendar is skipped — invitees visiting the booking URL see "This calendar is currently unavailable" until the host connects a calendar
+- This prevents the phantom availability problem: without a real calendar, Schedica cannot check for conflicts, so accepting bookings would risk double-bookings the host only discovers when checking their calendar
+- Warning shown with concrete example:
+  > "Without a connected calendar, you may get booked during a dentist appointment — and only find out when you check your calendar. Your booking pages will be paused until you connect."
+- Dashboard shows a persistent banner: "⚠️ Your booking pages are paused — connect a calendar to start accepting bookings"
+- "Connect Calendar" shortcut button in the banner takes the user directly to the calendar connection screen
+- Booking pages automatically re-activate the moment a calendar is connected
 
 ---
 
@@ -216,12 +221,11 @@ Checklist dismissible once all steps complete or manually dismissed.
 
 ---
 
-## Re-Onboarding (Returning Incomplete Users)
+## Re-Onboarding (Returning Incomplete Users) *(Post-MVP — Phase 2)*
 
-If a user signed up but didn't finish onboarding (e.g., closed the tab after Step 2):
-- On next login, shown a "Continue setup" banner on the dashboard
-- Banner shows which step was last completed
-- "Continue" button resumes from the incomplete step
+> **MVP behaviour:** Users who close mid-onboarding see a simple "Finish setting up your account" link on the dashboard. Clicking it takes them to the onboarding step they left off at — no separate flow needed.
+>
+> The full re-onboarding flow (step-aware resume, progress-aware banner, skip-step tracking) is Phase 2. A simple link is sufficient at launch and avoids building a complex state machine before knowing how many users actually drop off mid-onboarding.
 
 ---
 
@@ -376,17 +380,15 @@ When a user has 2FA enabled (configured in [user-profile-settings.md](user-profi
 | 2FA enabled/disabled | All existing sessions invalidated (security measure) |
 | Account deleted | All sessions invalidated immediately |
 
-### Refresh Token Rotation
-- Access token: short-lived (15 minutes)
-- Refresh token: long-lived (30 days with "remember me")
-- Every time the refresh token is used to get a new access token, the refresh token itself is rotated (new one issued, old one invalidated)
-- If a rotated (old) refresh token is seen: potential token theft detected → all sessions invalidated + security alert email sent to user
+### Refresh Token Rotation *(Post-MVP — Phase 2)*
+- Better Auth handles the basic session lifecycle above — that is sufficient for MVP
+- Full refresh token rotation (issuing a new refresh token on every use and detecting reuse as a theft signal) is security hardening, not a launch requirement
+- Add in Phase 2 once there are real users whose accounts need protecting
 
-### Active Sessions (Managed in Settings)
-- List of all active sessions in Profile & Settings → Security
-- Each session shows: device type, browser, approximate location, last active
-- User can individually sign out any session
-- "Sign out all other devices" button
+### Active Sessions (Managed in Settings) *(Post-MVP — Phase 2)*
+- Per-device session list (device type, browser, location, last active) is not required at launch
+- Better Auth's `session.revokeAll()` call on password change is sufficient for MVP — it invalidates all sessions when the user changes their password
+- Full session management UI (list all devices, revoke individual sessions, "sign out all other devices") ships in Phase 2
 
 ---
 
@@ -398,10 +400,10 @@ When a user has 2FA enabled (configured in [user-profile-settings.md](user-profi
 - User notified via email: "We noticed several failed sign-in attempts. Your account is temporarily locked."
 - Email includes: time of attempts, approximate IP/location, link to reset password if this wasn't them
 
-### Suspicious Login Detection
-- If a login comes from an unrecognized device or location: email alert sent to the account owner
-- Email: "New sign-in detected — [Device, Browser, Location]. If this was you, no action needed."
-- If it wasn't them: "Secure my account" link → forces password reset and signs out all sessions
+### Suspicious Login Detection *(Post-MVP — Phase 2)*
+- New-device / new-location detection requires storing device fingerprints and IP geolocation — meaningful engineering work that isn't required for a working product at launch
+- Add in Phase 2 after accumulating real user data to establish what "normal" looks like per account
+- MVP security relies on: rate limiting on login endpoint, account lockout after 5 failed attempts, and Better Auth's built-in protections
 
 ### OAuth Account Linking
 When a user tries to sign in with a social provider but the same email already exists in Schedica via a different method:

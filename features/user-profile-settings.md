@@ -231,11 +231,13 @@ Irreversible account actions, separated and clearly marked.
   - All event types deactivated immediately
   - Existing confirmed bookings: invitees receive cancellation emails
   - Account data deleted within 30 days
-  - Option to download data before deletion (GDPR-compliant export)
+  - Users who want a copy of their data before deletion can email support — manual export at MVP scale
 
-### Data Export (GDPR)
+### Data Export (GDPR) *(Post-MVP — Phase 2)*
 
-**What is exported:**
+> **MVP decision:** At launch scale (hundreds of users), manual data exports on support request are fully acceptable and legally compliant. The self-serve ZIP export feature (pg-boss job, S3 upload, secure expiring download link, export logic) is meaningful engineering work with near-zero user demand at MVP scale. Calendly itself offers no self-serve export. Build this in Phase 2 when user base justifies it.
+
+**What will be exported (Phase 2):**
 
 | Category | Data Included |
 |----------|--------------|
@@ -245,11 +247,11 @@ Irreversible account actions, separated and clearly marked.
 | Notifications | Notification preference settings |
 | Connected Calendars | Calendar provider names and account emails (tokens are NOT exported) |
 
-**Format:** ZIP file containing JSON files per category (machine-readable) plus a `README.txt` explaining the structure.
+**Format (Phase 2):** ZIP file containing JSON files per category (machine-readable) plus a `README.txt` explaining the structure.
 
-**Delivery:** Triggered asynchronously via pg-boss job. Email sent to the account's email address with a secure download link within **24 hours**. Download link expires after 7 days.
+**Delivery (Phase 2):** Triggered asynchronously via pg-boss job. Email sent to the account's email address with a secure download link within **24 hours**. Download link expires after 7 days.
 
-**Constraints:**
+**Constraints (Phase 2):**
 - Only the account owner can request their own export
 - Maximum one export request per 24-hour period
 - Invitee data included only where that invitee booked with this host — no cross-host data leakage
@@ -266,7 +268,7 @@ Irreversible account actions, separated and clearly marked.
 | **SavvyCal** | ✅ Photo, name, company | ❌ No | ❌ No | ✅ Yes | ❌ No | ❌ No |
 | **HubSpot Meetings** | Via HubSpot profile — not standalone | ✅ Via HubSpot SSO | ✅ Via HubSpot security | ✅ Via HubSpot | ✅ Via HubSpot GDPR tools | ✅ Via HubSpot |
 | **Chili Piper** | At org level; individual profile limited | ✅ Via SSO | ✅ Via admin | ❌ No personal URL | ❌ No | ❌ No |
-| **Schedica** | ✅ Photo, display name, job title, company, bio, website | ✅ TOTP (Phase 2) + SMS (Phase 3) | ✅ Phase 2 — list all sessions, revoke any | ✅ Change username with 30-day redirect | ✅ ZIP export within 24h — GDPR compliant | ✅ Light / Dark / System |
+| **Schedica** | ✅ Photo, display name, job title, company, bio, website | ✅ TOTP (Phase 2) + SMS (Phase 3) | ✅ Phase 2 — list all sessions, revoke any | ✅ Change username with 30-day redirect | ✅ Phase 2 — manual on request at launch | ✅ Light / Dark / System |
 
 ---
 
@@ -284,11 +286,12 @@ Irreversible account actions, separated and clearly marked.
 - Booking URL slug display and change
 - Theme: light/dark/system
 - Date and time format preferences
-- Account deletion with data export
+- Account deletion (users who need their data before deletion can email support — manual export at this scale)
 
 **Post-MVP:**
 - 2FA (TOTP and SMS)
 - Login sessions management
+- Self-serve GDPR data export (pg-boss job → ZIP → presigned S3 download link)
 - Bio and website URL
 - Language selection
 - Social links on profile
@@ -303,5 +306,5 @@ Irreversible account actions, separated and clearly marked.
 - **PostgreSQL + Drizzle ORM** — stores extended profile fields in a `user_profiles` table (display name, job title, company, bio, website, theme preference, date/time format) and notification preferences in a separate `notification_preferences` table. The `username_redirects` table records old usernames for 30-day redirect support.
 - **S3-compatible storage (@aws-sdk/client-s3 + @aws-sdk/s3-request-presigner)** — hosts uploaded profile photos. Works with any S3-compatible provider (AWS S3, Cloudflare R2, MinIO, Backblaze B2). The browser uploads directly to the bucket using a presigned URL (generated server-side), so the image never passes through the Next.js server. The stored S3 key is saved in the `user_profiles` table; a public URL is derived from the key.
 - **Shadcn/UI** — provides the settings form components: inputs, toggles, dropdowns, avatar upload cropper, and confirmation dialogs (for dangerous actions like account deletion).
-- **pg-boss** — used for the GDPR data export job: on request, a job is enqueued that compiles the user's data into a ZIP file, uploads it to S3, and sends a download link via Nodemailer within 24 hours.
+- **pg-boss** — used for the GDPR data export job *(Phase 2)*: on request, a job is enqueued that compiles the user's data into a ZIP file, uploads it to S3, and sends a download link via Nodemailer within 24 hours. At MVP, pg-boss is already used for notifications and reminders — the export job is added in Phase 2 without new infrastructure.
 - **Custom Admin Panel** — built with Next.js App Router and Shadcn/UI, powered by the Better Auth Admin Plugin. Platform administrators can view any user's profile, sessions, and account status through a custom-built admin interface.

@@ -70,7 +70,7 @@ These fields are always present on every booking form and cannot be removed:
 - Example: "What is the purpose of this call?" → Sales / Support / Partnership / Other
 - Can be used in routing form logic (see routing-forms.md)
 
-### Multiple Select (Checkboxes)
+### Multiple Select (Checkboxes) *(Post-MVP — Phase 2)*
 - Invitee picks one or more options
 - Best for: Topics of interest, features to discuss
 - Example: "Which features would you like to discuss?" → Pricing / Integrations / Security / Compliance
@@ -81,18 +81,18 @@ These fields are always present on every booking form and cannot be removed:
 - Example: "How did you hear about us?" → Google / LinkedIn / Referral / Webinar / Other
 - Can be used in routing form logic
 
-### Number
+### Number *(Post-MVP — Phase 2)*
 - Numeric input only
 - Best for: Team size, budget, number of users
 - Min/max validation optional
 - Example: "How many people are on your team?"
 
-### Date Picker
+### Date Picker *(Post-MVP — Phase 2)*
 - Calendar date selector
 - Best for: Project start dates, deadlines, preferred start dates
 - Example: "When are you hoping to launch?"
 
-### URL / Website
+### URL / Website *(Post-MVP — Phase 2)*
 - URL input with format validation (must start with http/https)
 - Best for: LinkedIn profile, company website, project URL
 - Example: "Please share your company website"
@@ -142,6 +142,8 @@ https://schedica.com/yourname/30-min-call?a1=Acme+Corp&a2=CEO
 ```
 - `a1` through `a20` correspond to custom question answer fields
 - Pre-filled values are editable by the invitee
+
+> **Security — XSS risk surface:** URL parameter values are user-controlled input arriving from outside the application. Every pre-filled value must be sanitized server-side before rendering (strip HTML tags and script content) and escaped on output. The existing text field validation (line in Validation table: "Stripped of HTML/script tags before saving") must apply to URL-parameter pre-fills as well — not just manually typed answers. Never render pre-filled URL values as raw HTML.
 
 ### Via JavaScript (Embed)
 ```javascript
@@ -233,8 +235,8 @@ Client-side and server-side validation:
 |--------------|-----------|
 | Email | Valid email format (RFC 5322) |
 | Phone Number | Valid international format |
-| URL | Must begin with http:// or https:// |
-| Number | Within configured min/max range; numeric only |
+| URL | Must begin with http:// or https:// *(Phase 2 type)* |
+| Number | Within configured min/max range; numeric only *(Phase 2 type)* |
 | Required fields | Cannot submit form with blank required field |
 | Text fields | Stripped of HTML/script tags before saving (XSS prevention) |
 
@@ -258,14 +260,14 @@ Client-side and server-side validation:
 | **SavvyCal** | ✅ Basic | Limited | Text, checkbox, dropdown | ❌ No | ❌ No | ❌ No |
 | **Chili Piper** | N/A (paid only) | Unlimited | Text, radio, dropdown | ✅ Yes | ✅ Core feature — routing is the main purpose | ✅ Salesforce native |
 | **HubSpot Meetings** | ✅ Yes | Limited | Maps to HubSpot contact properties | ✅ Via URL params | ❌ No | ✅ Auto-syncs to HubSpot contact |
-| **Schedica** | ✅ Unlimited (open source — no plan tiers) | 20 (all users) | Text, long text, phone, single/multi select, dropdown, number (MVP); date, URL (Phase 2) | ✅ Via URL params (MVP); JS embed (Phase 2) | ✅ Phase 2 — routing forms | ❌ No |
+| **Schedica** | ✅ Unlimited (open source — no plan tiers) | 20 (all users) | Text, long text, phone, single select, dropdown (MVP — 5 types); multiple select, number, date, URL (Phase 2) | ✅ Via URL params (MVP); JS embed (Phase 2) | ✅ Phase 2 — routing forms | ❌ No |
 
 ---
 
 ## MVP Scope
 
-**In MVP:**
-- Question types: Short Text, Long Text, Phone Number, Single Select, Multiple Select, Dropdown, Number
+**In MVP — 5 question types:**
+- Short Text, Long Text, Phone Number, Single Select, Dropdown
 - Up to 20 questions per event type (all users — no plan restrictions)
 - Required / optional toggle per question
 - Help text and placeholder text per question
@@ -276,10 +278,12 @@ Client-side and server-side validation:
 - Auto-remember answers for repeat invitees (server-side email-match lookup — no account or cookie required)
 
 **Post-MVP:**
-- Date picker question type (Phase 2)
-- URL / website question type (Phase 2)
-- Pre-fill via JavaScript embed (Phase 2)
-- Routing-compatible questions — routing forms (Phase 2)
+- Multiple Select (checkboxes) *(Phase 2)*
+- Number input (with min/max validation) *(Phase 2)*
+- Date Picker *(Phase 2)*
+- URL / website question type *(Phase 2)*
+- Pre-fill via JavaScript embed *(Phase 2)*
+- Routing-compatible questions — routing forms *(Phase 2)*
 
 
 ---

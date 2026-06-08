@@ -254,7 +254,7 @@ All booking creation steps (lock acquisition → availability check → booking 
 | Conflict check | Fail-safe: return unavailable if check errors |
 | Host assignment | Return error to invitee if no host available |
 | Calendar write | Retry 3× with backoff; notify host if all retries fail |
-| Video link generation | Retry 2×; booking created without link if fails |
+| Video link generation | Retry 3× with exponential backoff (5s → 30s → 2min); if all fail: host receives alert email, invitee email shows "Your video link will be sent shortly" — booking never blocked |
 | Email sending | Retry 2×; log failure; dashboard alert to host |
 
 ---

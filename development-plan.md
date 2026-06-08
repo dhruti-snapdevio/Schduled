@@ -275,41 +275,46 @@ Phase 20 →  QA & Launch Prep
 
 ## Phase 2 — Landing Page
 
-**Goal:** Full public-facing marketing page is live. Visitors can understand the product and sign up.
+**Goal:** Minimal public-facing marketing page is live. Visitors understand the product and can sign up. Target: 1 day to build.
 
 **Reference doc:** [features/landing-page.md](./features/landing-page.md)
+
+> **Scope decision:** Ship 4 content sections only. Social proof bar, features cards, comparison table, testimonials, and FAQ are Post-MVP — added after first real users, not before. Fake testimonials and generic "used by teams worldwide" copy reduce trust. See [features/landing-page.md](./features/landing-page.md) for full rationale.
 
 ### Tasks
 
 **Layout & Navigation:**
 - [ ] Public layout (separate from app layout — no sidebar, no auth)
-- [ ] Sticky nav bar with logo, nav links, Sign In + Get Started CTAs
+- [ ] Sticky nav bar with logo, Sign In + Get Started CTAs
 - [ ] Mobile hamburger menu
 - [ ] Smooth scroll to section on anchor link click
 
-**Sections (in order):**
-- [ ] Hero — headline, subheadline, primary CTA ("Get Started Free"), hero image
-- [ ] Social proof bar — e.g. "Used by freelancers and growing teams"
-- [ ] Features section — 6 cards (Smart Booking Links, Calendar Sync, Custom Questions, Reminders, Video Conferencing, Meetings Dashboard)
-- [ ] How It Works — 4 steps (Sign Up → Connect Calendar → Create Event Type → Share Link)
-- [ ] Comparison table — Schedica vs Calendly vs Cal.com
-- [ ] Testimonials — 3 static cards
-- [ ] General FAQ — accordion (6–8 questions)
-- [ ] Final CTA banner — "Start scheduling in minutes"
-- [ ] Footer — Product, Company, Legal, Social links
+**MVP Sections (in order) — build these:**
+- [ ] Hero — headline, subheadline, primary CTA ("Get Started Free"), product screenshot/animation
+- [ ] Key Differentiators — **3 sections only**: (1) Both timezones in every email, (2) Cancellation enforcement, (3) Fully free + open source — each with a 2-line explanation of the specific Calendly gap filled
+- [ ] How It Works — **3 steps** (not 4): Sign Up → Connect Calendar → Share Link
+- [ ] Final CTA banner — "Start scheduling in minutes. Free, open source, no credit card required."
+- [ ] Footer — Product, Open Source, Legal links
 
-**Additional pages:**
-- [ ] `/privacy` — Privacy Policy (required before launch)
+**Post-MVP sections — do NOT build at launch:**
+- Social proof bar — add after 100+ real users or company logos available
+- Features section (6 cards) — add post-launch based on which features visitors ask about
+- Comparison table (Schedica vs Calendly vs Cal.com) — add post-launch, goes stale quickly
+- Testimonials — add only real quotes; **never ship placeholder/fictional quotes**
+- FAQ accordion — write based on real support questions from first 50 users
+
+**Additional pages (required before launch):**
+- [ ] `/privacy` — Privacy Policy (required by Google OAuth, Zoom, and law)
 - [ ] `/terms` — Terms of Service (required before launch)
 - [ ] `/cookies` — Cookie Policy
 
 **SEO:**
 - [ ] `<title>` and `<meta description>` on all public pages
-- [ ] Open Graph tags (og:title, og:description, og:image)
+- [ ] Open Graph tags (og:title, og:description, og:image 1200×630)
 - [ ] `sitemap.xml`
 - [ ] `robots.txt`
 
-**Done when:** Landing page is fully built, all sections render, legal pages exist, and Sign In / Get Started buttons link to auth pages.
+**Done when:** 4-section landing page renders correctly on desktop and mobile, legal pages are live, and Sign In / Get Started buttons link correctly to auth pages.
 
 ---
 
@@ -374,7 +379,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] **Step 2 — Connect Calendar**
   - [ ] Connect Google Calendar button → OAuth flow
   - [ ] Connect Outlook / Office 365 button → OAuth flow
-  - [ ] "Skip for now" option (can connect later in Settings)
+  - [ ] "I'll connect later" skip button → **immediately deactivates all booking pages** (invitees see "This calendar is currently unavailable") + shows persistent dashboard banner "⚠️ Your booking pages are paused — connect a calendar to start accepting bookings" — booking pages auto-reactivate the moment a calendar is connected
   - [ ] Apple Calendar / iCloud connection — *(Phase 2 — CalDAV is complex, lacks OAuth; do not include in MVP onboarding)*
   - [ ] Show connected calendar with green checkmark after auth
 - [ ] **Step 3 — Set Timezone**
@@ -414,7 +419,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] Revoke all other sessions *(Phase 2)*
 - [ ] Update username / booking URL slug (with uniqueness check in real-time)
 - [ ] Delete account (with confirmation — type email to confirm)
-- [ ] Request GDPR data export (triggers pg-boss job → ZIP uploaded to S3-compatible storage → presigned download URL emailed via Nodemailer within 24h)
+- [ ] Request GDPR data export *(Phase 2 — at MVP scale, manual export on support request is acceptable; self-serve export adds pg-boss job + S3 + export logic; defer until user base justifies it)*
 
 **UI (`/settings/`):**
 - [ ] `/settings/profile` — name, display name, bio, photo, job title, company, website
@@ -426,10 +431,10 @@ Phase 20 →  QA & Launch Prep
 - [ ] `/settings/integrations` — connected calendars + video platforms (links to Phase 8 and Phase 13)
 - [ ] Username change input with real-time uniqueness check; on save: write old username to `username_redirects` with `expiresAt = NOW() + 30 days`
 - [ ] Middleware: resolve `GET /[username]/...` — if username not found in `users` table, check `username_redirects` for an unexpired record and return 308 redirect to new username URL
-- [ ] "Download my data" button → triggers GDPR export job, shows "You'll receive an email within 24 hours"
+- [ ] "Download my data" button *(Phase 2)* → triggers GDPR export job, shows "You'll receive an email within 24 hours"
 - [ ] Danger zone: Delete account with confirmation modal
 
-**Done when:** All profile fields update and persist correctly. Photo upload works. Username change creates a redirect. GDPR export request triggers a job and sends an email.
+**Done when:** All profile fields update and persist correctly. Photo upload works. Username change creates a redirect. Account deletion flow works. (GDPR self-serve export is Phase 2 — not a launch blocker.)
 
 ---
 
@@ -459,7 +464,7 @@ Phase 20 →  QA & Launch Prep
   - [ ] **What** tab: name, description, duration (preset + custom), color picker
   - [ ] **Where** tab: location type selector — Zoom, Google Meet, Teams, Phone, In-Person address, Custom link
     - [ ] When "Phone" is selected: show `phoneCallDirection` radio — "Host calls invitee" (invitee phone required in form) vs "Invitee calls host" (host phone number shown in confirmation)
-    - [ ] Google Meet option: greyed out with tooltip "Connect Google Calendar first to use Google Meet" if the host has not connected a Google Calendar account — Google Meet link generation requires Google Calendar OAuth (see Phase 13)
+    - [ ] Google Meet option: greyed out with tooltip "Google Meet generates links through your Google Calendar — connect it in Settings first." if the host has not connected a Google Calendar account — Google Meet link generation requires Google Calendar OAuth (see Phase 13)
   - [ ] **When** tab: availability schedule selector, booking window, minimum notice, buffer before/after, daily limit
   - [ ] **Options** tab: URL slug, hide from profile, booking confirmation message, redirect URL after booking
   - [ ] Multi-duration option: toggle "Let invitees choose duration" → add multiple durations
@@ -515,7 +520,7 @@ Phase 20 →  QA & Launch Prep
 
 ## Phase 8 — Calendar Integrations
 
-**Goal:** Hosts can connect Google, Outlook, and Apple calendars. Schedica reads free/busy data in real-time and writes new bookings.
+**Goal:** Hosts can connect Google Calendar (P0) and Outlook (P1) to read free/busy data in real-time and write new bookings. Google Calendar ships first — it is the launch blocker. Outlook follows in sprint 2 after Google integration is stable and tested.
 
 **Reference doc:** [features/calendar-integrations.md](./features/calendar-integrations.md)
 
@@ -532,13 +537,14 @@ Phase 20 →  QA & Launch Prep
 - [ ] Disconnect Google Calendar → delete tokens from DB; all event types using this calendar as write target are automatically disabled (booking pages show "This calendar is currently unavailable") until a calendar is reconnected
 - [ ] Token expiry detection — if token refresh fails (revoked access), mark calendar as `disconnected` in `connected_calendars` and disable associated booking pages; host receives alert email: "Your Google Calendar has been disconnected — reconnect to resume bookings"
 
-**Microsoft Outlook / Office 365:**
+**Microsoft Outlook / Office 365 *(P1 — build in sprint 2 after Google Calendar is stable)*:**
 - [ ] OAuth 2.0 flow via Microsoft Graph API
 - [ ] Callback handler — save tokens to `connected_calendars`
 - [ ] Read free/busy via `/me/calendarView`
 - [ ] Write bookings via `/me/events`
-- [ ] Token refresh logic
-- [ ] Disconnect Outlook
+- [ ] Token refresh logic (access token expires every 1 hour)
+- [ ] Token expiry detection — if token refresh fails (revoked access), mark calendar as `disconnected`; disable associated booking pages; host receives alert email: "Your Outlook has been disconnected — reconnect to resume bookings"
+- [ ] Disconnect Outlook → delete tokens from DB; booking pages automatically disabled until reconnected
 
 **Apple iCloud / CalDAV *(Phase 2 — Post-MVP)*:**
 > CalDAV lacks standard OAuth, requires app-specific passwords, and involves a complex protocol. Include in Phase 2 after Google + Outlook integrations are stable.
@@ -561,7 +567,7 @@ Phase 20 →  QA & Launch Prep
   - [ ] Each connected calendar shows: account email, calendars checked for conflicts, write-target calendar, "Disconnect" button
 - [ ] Per-calendar toggles: which calendars to include in conflict check
 
-**Done when:** Connecting Google Calendar allows Schedica to read free/busy data and write bookings. Token refresh works silently. Disconnect cleans up all stored tokens.
+**Done when (P0):** Google Calendar connects via OAuth, reads free/busy data, writes bookings, refreshes tokens silently, and sends an email alert immediately on token expiry. **Done when (P1):** Outlook integration mirrors Google's behaviour — same token management, same disconnect alert email.
 
 ---
 
@@ -710,14 +716,18 @@ Phase 20 →  QA & Launch Prep
 - [ ] Reorder questions (drag-and-drop position)
 - [ ] Save booking answers with the booking record
 
-**Question Types:**
+**Question Types — MVP (5 types):**
 - [ ] Short text (single-line, 255 char limit)
 - [ ] Long text / paragraph (multi-line, 2000 char limit)
 - [ ] Phone number (with country code selector, format validation)
 - [ ] Single select (radio buttons)
-- [ ] Multi select (checkboxes)
 - [ ] Dropdown (select from list)
-- [ ] Number input
+
+**Question Types — Phase 2 (add after MVP launch):**
+- [ ] Multi select (checkboxes) *(Phase 2)*
+- [ ] Number input (with min/max validation) *(Phase 2)*
+- [ ] Date picker *(Phase 2)*
+- [ ] URL / website input *(Phase 2)*
 
 **UI — Host (Event Type Builder → Questions tab):**
 - [ ] Questions list with drag-and-drop reorder
@@ -753,8 +763,9 @@ Phase 20 →  QA & Launch Prep
 
 ### Tasks
 
-> ⚠️ **Zoom Marketplace Approval — Do This First**
-> The Zoom API requires a published, approved OAuth app in the Zoom Marketplace before it works for all users. Submit the app for review early — approval takes **2–4 weeks** and requires a live privacy policy, terms of service, and a working demo. During development, use a **development-mode** Zoom OAuth app (works for up to 100 connected users, no approval needed). Switch to the published app before launch.
+> ⚠️ **Zoom Marketplace Approval — Submit on Day 1 of Development (Hard Dependency)**
+> The Zoom API requires a published, approved OAuth app in the Zoom Marketplace before it works for all users. **This is not a risk — it is a hard external deadline.** If you submit on launch day, Zoom will not work for anyone on day one. Submit for review on the first day of development. Approval takes **2–4 weeks** and requires a live privacy policy, terms of service, and a working demo URL. During development, use a **development-mode** Zoom OAuth app (works for up to 100 connected users, no approval needed). Switch to the published app before launch.
+> **Day 1 checklist:** Register as Zoom developer → Create OAuth app (dev mode) → Submit for Marketplace review → Track approval status weekly.
 
 **Zoom Integration:**
 - [ ] Register Zoom OAuth app in Zoom Marketplace (development mode first)
@@ -773,16 +784,17 @@ Phase 20 →  QA & Launch Prep
 - [ ] No separate OAuth needed — uses Google Calendar access already granted in Phase 8
 - [ ] Extract Meet link from calendar event `conferenceData.entryPoints`
 
-**Microsoft Teams Integration:**
-- [ ] Teams meeting created via Microsoft Graph API `POST /me/onlineMeetings`
-- [ ] No separate OAuth needed — uses Microsoft Graph access from Phase 8
-- [ ] Extract Teams join link from response
+**Microsoft Teams Integration *(Phase 2 — do not build at launch)*:**
+> Teams requires Outlook/Microsoft Graph OAuth already in place (Phase 8 P1). Even then, Teams users are a minority of solo freelancers. Build after MVP is stable.
+- [ ] Teams meeting created via Microsoft Graph API `POST /me/onlineMeetings` *(Phase 2)*
+- [ ] No separate OAuth needed — uses Microsoft Graph access from Phase 8 *(Phase 2)*
+- [ ] Extract Teams join link from response *(Phase 2)*
 
 **UI (`/settings/integrations/`):**
 - [ ] Video platforms section:
   - [ ] Zoom: "Connect Zoom Account" button → OAuth → connected state with account email
   - [ ] Google Meet: auto-available if Google Calendar is connected (no extra auth needed)
-  - [ ] Microsoft Teams: auto-available if Outlook is connected
+  - [ ] Microsoft Teams: auto-available if Outlook is connected *(Phase 2 — show greyed out at launch)*
 - [ ] Event type builder — location type selector shows connected platforms only
 
 **Video Link Failure Handling:**
@@ -790,7 +802,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] If all 3 retries fail: send host alert email "Video link generation failed for [Invitee Name]'s booking — please add the meeting link manually"; invitee confirmation email text reads "Your video link will be sent shortly" instead of showing a broken link
 - [ ] Booking is always confirmed regardless of video link failure — video link is non-blocking
 
-**Done when:** Selecting Zoom in an event type creates a unique Zoom meeting per booking. Google Meet and Teams links are generated automatically from existing calendar connections. All video link failures retry 3× and notify the host if permanently failed.
+**Done when (MVP):** Google Meet generates links automatically for any host with Google Calendar connected. Selecting Zoom creates a unique meeting per booking (Marketplace-approved app live). All video link failures retry 3× and notify the host if permanently failed. **Teams is Phase 2 — not a launch blocker.**
 
 ---
 
@@ -910,7 +922,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] Filter meetings by status, event type, date range
 - [ ] Add / update private notes on a booking
 - [ ] Cancel meeting from dashboard (host-initiated)
-- [ ] Stats: total meetings this month, upcoming count, cancellation rate
+- [ ] Stats: today's meeting count, upcoming total *(MVP — Phase 2: "this week" count, "cancelled this month", cancellation rate)*
 
 **UI (`/dashboard/`):**
 - [ ] **Today's Meetings** section at top — highlighted, with countdown to next meeting, one-click join button (active 15 min before start)
@@ -923,8 +935,8 @@ Phase 20 →  QA & Launch Prep
   - [ ] Private notes textarea (host-only, not visible to invitee)
   - [ ] Cancel meeting button
 - [ ] Search bar — filter by invitee name in real-time
-- [ ] Filter dropdown — by event type, status
-- [ ] Stats bar at top: Upcoming / This Month / Cancellation Rate
+- [ ] Filter dropdown — by event type, status, date range *(MVP — Phase 2: location type filter, host filter)*
+- [ ] Stats bar at top: Today's meetings count + Upcoming total *(MVP — Phase 2: "This week" count, "Cancelled this month", cancellation rate)*
 - [ ] Empty state for each tab ("No upcoming meetings — share your booking link to get started")
 
 **Done when:** Dashboard shows all meetings correctly. Today's meetings are highlighted. Search and filters work. Private notes save. Join button activates 15 minutes before meetings.
@@ -992,7 +1004,7 @@ Phase 20 →  QA & Launch Prep
 
 ## Phase 19 — Admin Panel
 
-**Goal:** Platform admins can manage users, view bookings, monitor job queues, and configure the platform via the custom Next.js admin panel (no third-party admin dependency).
+**Goal:** Platform admins can look up users by email and ban/unban accounts. Minimal viable admin — 2 screens, not 5.
 
 **Reference doc:** [features/admin-panel.md](./features/admin-panel.md)
 
@@ -1002,38 +1014,29 @@ Phase 20 →  QA & Launch Prep
 - [ ] `/admin` route group — check `is_platform_admin = true` via Better Auth Admin Plugin, else redirect to `/`
 - [ ] All `/api/admin/*` routes return 403 for non-platform-admins
 
-**Admin Panel Setup (custom — built with Next.js App Router + Shadcn/UI):**
-- [ ] Create `src/app/(admin)/admin/layout.tsx` — admin shell layout (sidebar nav + auth check)
-- [ ] Create `src/components/admin/` — shared admin UI components (data table, stats card, job row)
+**Admin Panel Setup:**
+- [ ] Create `src/app/(admin)/admin/layout.tsx` — admin shell layout (sidebar: Dashboard + Users only)
+- [ ] Create `src/components/admin/` — shared admin UI components (data table, stats card)
 - [ ] All admin pages are Next.js Server Components — data fetched server-side via Drizzle ORM directly
-- [ ] Better Auth Admin Plugin provides `auth.api.listUsers()`, `auth.api.banUser()`, `auth.api.impersonateUser()`, `auth.api.listSessions()` — call these from admin server actions
 
-**Dashboard:**
-- [ ] `/admin` — Metrics: total users, active bookings, bookings today, bookings this month
-- [ ] Sign-up trend chart (last 30 days)
+**Dashboard (`/admin`):**
+- [ ] 3 stats cards: total users, active bookings count, failed pg-boss jobs count
 
 **User Management:**
 - [ ] User list — paginated with search by email / name
-- [ ] User detail — profile, bookings count, connected calendars, active sessions
-- [ ] Ban / Unban user (Better Auth Admin Plugin)
-- [ ] Impersonate user (Better Auth Admin Plugin)
-- [ ] Revoke all sessions for a user
+- [ ] User detail — profile, active sessions, ban/unban status
+- [ ] Ban / Unban user (`auth.api.banUser()` / `auth.api.unbanUser()`)
+- [ ] Revoke all sessions for a user (`auth.api.revokeUserSessions()`)
 - [ ] Send password reset email to user
 
-**Booking Oversight:**
-- [ ] Platform-wide booking list — filter by date, status, event type
-- [ ] Booking detail view — host info, invitee info, timeline
+**Phase 2 (not in this sprint):**
+- [ ] Sign-up trend chart *(Phase 2)*
+- [ ] Impersonation — "log in as user" *(Phase 2)*
+- [ ] Booking oversight screen — platform-wide booking list + detail *(Phase 2)*
+- [ ] Job queue monitor UI — `/admin/jobs` with retry/cancel *(Phase 2)*
+- [ ] Platform settings screen + email template preview *(Phase 2)*
 
-**Job Queue Monitor:**
-- [ ] `/admin/jobs` — list of pg-boss jobs (pending, running, failed)
-- [ ] Filter by job type
-- [ ] Retry failed job button
-- [ ] View job error / stack trace
-
-**Platform Settings:**
-- [ ] Email template preview
-
-**Done when:** Platform admins can access `/admin`, manage users (ban, impersonate), view all bookings, and monitor / retry failed pg-boss jobs.
+**Done when:** Platform admins can access `/admin`, search users by email, ban/unban accounts, and revoke sessions. Job queue checked via direct DB access if needed.
 
 ---
 

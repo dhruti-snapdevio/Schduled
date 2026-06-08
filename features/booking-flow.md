@@ -49,16 +49,18 @@ The booking flow eliminates the email back-and-forth of "when are you free?" by 
 - Block specific dates or override hours for holidays
 
 ### Step 4 — Customize Booking Page
-- Upload profile photo and banner image
+- Upload profile photo
 - Add custom intake questions
-- Set confirmation page message or redirect URL
+- Set confirmation message
 - Configure cancellation and reschedule policies
+- Banner / cover image *(Phase 2)*
+- Redirect to external URL after booking *(Phase 2)*
 
 ### Step 5 — Share the Link
 - Copy direct booking link
 - Add to email signature, LinkedIn, website
-- Embed on website (inline, pop-up, or floating widget)
-- Share via QR code
+- Embed on website (inline, pop-up, or floating widget) *(Phase 2)*
+- Share via QR code *(Phase 2)*
 
 ---
 

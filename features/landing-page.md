@@ -13,6 +13,12 @@ The landing page is a public marketing page at `/`. It is entirely separate from
 2. Build trust (features, differentiators, comparison)
 3. Convert the visitor to a sign-up (multiple CTAs throughout)
 
+> **MVP Design Principle:** Launch with the minimum number of sections needed to convert a first-time visitor. A 10-section marketing page built before you have real users, real testimonials, and real social proof signals misplaced effort. Ship 4 sections on Day 1. Add more post-launch based on what resonates with real users.
+>
+> **MVP sections (build now):** Navigation + Hero + Key Differentiators + How It Works + Final CTA + Footer
+>
+> **Post-MVP sections (add after first 100 users):** Social Proof Bar, Features Cards, Comparison Table, Testimonials, FAQ
+
 ---
 
 ## User Stories
@@ -27,7 +33,9 @@ The landing page is a public marketing page at `/`. It is entirely separate from
 
 ## Page Sections (in order)
 
-### 1. Navigation Bar (Sticky)
+> Sections marked **[MVP]** ship at launch. Sections marked **[Post-MVP]** are added after first users.
+
+### 1. Navigation Bar (Sticky) — [MVP]
 
 | Element | Detail |
 |---------|--------|
@@ -42,7 +50,7 @@ The landing page is a public marketing page at `/`. It is entirely separate from
 
 ---
 
-### 2. Hero Section
+### 2. Hero Section — [MVP]
 
 The most important section — must immediately communicate the product value.
 
@@ -72,26 +80,31 @@ The most important section — must immediately communicate the product value.
 
 ---
 
-### 3. Social Proof Bar
+### 3. Social Proof Bar — [Post-MVP]
 
-A thin bar below the hero with a simple trust signal:
+> **Do not ship at launch.** A generic "used by freelancers worldwide" line with no real logos adds nothing. Ship this only after you have real company names or user counts to show.
+
+A thin bar below the hero with trust signal text + company logos.
 
 ```
-Used by freelancers, sales teams, coaches, and recruiters worldwide.
+Trusted by 500+ freelancers, coaches, and consultants worldwide.
+[Logo] [Logo] [Logo] [Logo] [Logo]
 ```
 
-Optional: logos of companies using it (when available post-launch).
+Add when: 100+ real users, or at least 3 company logos you have permission to use.
 
 ---
 
-### 4. Features Section
+### 4. Features Section — [Post-MVP]
 
-Six cards highlighting the core capabilities.
+> **Do not ship at launch.** Six feature cards repeat what the Key Differentiators section already says, and add frontend build time without adding conversion value for a pre-traction product.
+
+Six cards highlighting the core capabilities. Build after launch when you understand which features visitors respond to most.
 
 | Feature Card | Icon | Headline | One-line description |
 |-------------|------|----------|---------------------|
 | Smart Booking Links | 🔗 | Share one link | Invitees self-schedule based on your real-time availability |
-| Calendar Sync | 📅 | Never double-book | Syncs with Google and Outlook calendars automatically (Apple iCloud: Phase 2) |
+| Calendar Sync | 📅 | Never double-book | Syncs with Google and Outlook calendars automatically |
 | Both Timezones | 🌍 | No timezone confusion | Every email shows both your time and the invitee's time |
 | Custom Questions | 📝 | Know who you're meeting | Collect info before the call — no intake form separate from booking |
 | Automated Reminders | 🔔 | Fewer no-shows | 24hr and 1hr email reminders sent automatically |
@@ -101,42 +114,58 @@ Layout: 3-column grid on desktop, 1-column on mobile.
 
 ---
 
-### 5. How It Works
+### 5. How It Works — [MVP]
 
-Four simple steps — visual, numbered.
+Three simple steps — visual, numbered. Reduced from 4 to 3: "Create Event" and "Share Link" are merged into one step since they happen together in onboarding.
 
 ```
-Step 1                Step 2                Step 3                Step 4
-[ Sign Up ]    →    [ Connect Calendar ] →  [ Create Event ]  →  [ Share Link ]
-Create your          Sync Google            Set your              Send your
-free account         or Outlook             availability          booking URL
-                     Calendar               and duration          to anyone
+Step 1                    Step 2                       Step 3
+[ Sign Up ]        →    [ Connect Calendar ]    →    [ Share Your Link ]
+Create your free         Sync Google Calendar          Copy your booking URL
+account in 30            and set your available        and send it to anyone
+seconds                  hours                         — they self-schedule
 ```
 
-Each step has an icon, number badge, title, and one-line description.
+Each step has an icon, number badge, title, and one-line description. Keep copy short — this is a scan, not a read.
 
 ---
 
-### 6. Key Differentiators Section
+### 6. Key Differentiators Section — [MVP]
 
-Show what Schedica does that Calendly does not.
+The three strongest reasons to choose Schedica over Calendly — specific, verifiable, and demonstrable in 30 seconds. Show only the top 3 at launch; a long list dilutes the message.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  What makes Schedica different                                  │
 │                                                                 │
-│  ✅ Apple Calendar (Phase 2) — Calendly dropped it Aug 2024    │
-│  ✅ Both timezones in every email — Calendly shows only one    │
-│  ✅ Cancellation enforcement — Calendly only shows policy text  │
-│  ✅ Unlimited event types — no artificial limits               │
-│  ✅ Multi-duration booking — one link, invitee picks 15/30/60  │
-│  ✅ Fully open source — self-host it, it's yours               │
+│  🌍 Both timezones in every email                               │
+│     Every confirmation and reminder shows your invitee's time   │
+│     AND your time — Calendly only shows one timezone.           │
+│                                                                 │
+│  🛡️  Cancellation policy that actually works                    │
+│     Block cancellations within X hours of the meeting.          │
+│     Calendly only shows policy text — it never enforces it.     │
+│                                                                 │
+│  🆓 Fully free and open source                                  │
+│     Unlimited event types, unlimited reminders, no paywalls.   │
+│     Calendly charges $10/mo for reminders and limits free       │
+│     users to 1 event type.                                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+**Why only 3 differentiators at launch:**
+A visitor processes 3 bullet points. A visitor skims 6 and remembers none. Once you have user feedback on which differentiator drives the most signups, emphasize that one above the others.
+
+**Additional differentiators (add to section post-MVP):**
+- Apple Calendar support — Calendly dropped this Aug 2024 *(Phase 2)*
+- Multiple durations per booking link — one link, invitee picks 15/30/60 min
+- Unlimited event types on free tier — Calendly free = 1 event type only
+
 ---
 
-### 7. Comparison Table
+### 7. Comparison Table — [Post-MVP]
+
+> **Do not ship at launch.** Comparison tables require you to accurately represent competitors. Competitor features change and tables go stale. Ship after launch when you have users who ask "how is this different from Calendly?"
 
 Side-by-side comparison with Calendly and Cal.com.
 
@@ -153,30 +182,37 @@ Side-by-side comparison with Calendly and Cal.com.
 
 ---
 
-### 8. Testimonials (Static Placeholders at Launch)
+### 8. Testimonials — [Post-MVP]
 
-Three testimonial cards with name, role, and quote. Add real testimonials post-launch.
+> **Do not ship placeholder testimonials at launch.** Fake quotes from "Jane, Coach" and "Mark, Consultant" are immediately recognizable as fabricated and actively reduce trust. An empty section is better than a fictional one.
+>
+> **Add this section only after collecting real user quotes.** Ask first users directly via email: "Would you share a sentence about what you like about Schedica?" One real testimonial beats six fictional ones.
 
+Three testimonial cards with real name, role, company, and photo. Collect post-launch.
+
+Format:
 ```
-┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
-│ "Finally a scheduler │  │ "The dual timezone   │  │ "Apple Calendar sync │
-│  that enforces my    │  │  emails saved me so  │  │  is the only reason  │
-│  cancellation policy"│  │  much confusion"     │  │  I switched"         │
-│  — Jane, Coach       │  │  — Mark, Consultant  │  │  — Priya, Recruiter  │
-└──────────────────────┘  └──────────────────────┘  └──────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│  [Photo] Name, Role at Company                       │
+│  "Real quote from a real user who gave permission"   │
+└──────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### 9. General FAQ
+### 9. General FAQ — [Post-MVP]
 
-Accordion — 6 to 8 common questions about the product.
+> **Do not build at launch.** FAQs answer questions that visitors are confused about. You don't know what visitors are confused about until you have visitors. Collect questions from the first 50 users (support emails, in-app feedback) and write answers based on real confusion.
+
+Accordion — 6 to 8 questions based on real user questions.
+
+Likely candidates based on competitive research:
 
 | Question |
 |---------|
 | Is Schedica really free? |
-| Can I connect my Apple / iCloud calendar? (Coming in Phase 2) |
-| What happens when someone books a time I've already blocked? |
+| Can I connect my Apple / iCloud calendar? |
+| What happens if someone books a time I've already blocked? |
 | Does Schedica work for teams? |
 | How is Schedica different from Calendly? |
 | Can I self-host Schedica? |
@@ -185,9 +221,9 @@ Accordion — 6 to 8 common questions about the product.
 
 ---
 
-### 10. Final CTA Banner
+### 10. Final CTA Banner — [MVP]
 
-Full-width section at the bottom before the footer.
+Full-width section at the bottom before the footer. Repeat the primary CTA for visitors who scrolled the whole page.
 
 ```
 ┌────────────────────────────────────────────────────────────┐
@@ -202,7 +238,7 @@ Full-width section at the bottom before the footer.
 
 ---
 
-### 11. Footer
+### 11. Footer — [MVP]
 
 ```
 ┌────────────────────────────────────────────────────────────┐
@@ -267,20 +303,33 @@ All page metadata managed via Next.js `generateMetadata()` API.
 
 ## MVP Scope
 
-**In MVP:**
-- Full landing page with all 11 sections above
-- Mobile-responsive layout
-- `/privacy`, `/terms`, `/cookies` pages with placeholder content (update before launch)
+**In MVP — Ship at Launch (6 sections, target: 1 day to build):**
+- Sticky navigation bar (logo, Sign In, Get Started CTA)
+- Hero section (headline, subheadline, primary CTA, product screenshot/animation)
+- Key Differentiators — **top 3 only**: both timezones in emails, cancellation enforcement, fully free + open source
+- How It Works — **3 steps** (not 4): Sign Up → Connect Calendar → Share Link
+- Final CTA banner ("Start scheduling in minutes. Free. No credit card.")
+- Footer (Product, Open Source, Legal links)
+- `/privacy`, `/terms`, `/cookies` pages (required before launch — static content)
 - `sitemap.xml` and `robots.txt`
-- `<title>`, `<meta description>`, and Open Graph tags on all pages
-- Sticky nav with Sign In + Get Started CTAs
-- Comparison table (Schedica vs Calendly vs Cal.com)
+- `<title>`, `<meta description>`, and Open Graph tags
 
-**Post-MVP:**
-- Real testimonials (Phase 2 — after first users)
-- Blog / content pages (Phase 3)
-- Company logos in social proof bar (Phase 2 — after traction)
-- Localisation / multi-language landing page (Phase 4)
+**Do NOT ship at launch:**
+- Social Proof Bar — no real data yet; generic text adds nothing
+- Features Section (6 cards) — covered by differentiators; extra build time
+- Comparison Table — goes stale; add post-launch
+- Testimonials — **never ship placeholder/fake quotes**; collect real ones from first 50 users
+- FAQ — write based on real user questions, not guesses
+
+**Post-MVP — Add after first 100 users:**
+- Social Proof Bar with real user count or company logos *(Phase 2)*
+- Features Section (6 cards) *(Phase 2)*
+- Comparison Table (Schedica vs Calendly vs Cal.com) *(Phase 2)*
+- Real user testimonials (3 cards with photo, name, company) *(Phase 2)*
+- FAQ accordion (based on real support questions) *(Phase 2)*
+- Additional differentiators in the Key Differentiators section *(Phase 2)*
+- Blog / content pages *(Phase 3)*
+- Localisation / multi-language landing page *(Phase 4)*
 
 ---
 

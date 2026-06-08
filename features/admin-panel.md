@@ -8,10 +8,15 @@ The Admin Panel is a password-protected internal dashboard for platform administ
 
 The admin panel sits at `/admin` and is completely separate from the host dashboard (`/dashboard`). Only users with `role = platform_admin` (set via Better Auth Admin Plugin or directly in the database) can access it.
 
-**Three jobs it must do:**
-1. Let admins manage users (view, ban, impersonate, reset password)
-2. Let admins monitor platform health (bookings, background jobs, errors)
-3. Let admins configure the platform (email settings, system info)
+**What MVP must do:**
+1. Let admins look up any user by email and ban/unban their account
+2. Show a quick health check — user count, active bookings, failed job count
+
+**What is Phase 2 (not at launch):**
+- Impersonation ("log in as user")
+- Booking oversight screen
+- Job queue monitor UI
+- Platform settings + email template preview
 
 The admin panel is built entirely with **custom Next.js pages + Shadcn/UI** — no third-party admin dashboard dependency. All data is fetched server-side via Drizzle ORM and Better Auth Admin Plugin API calls.
 
@@ -20,14 +25,14 @@ The admin panel is built entirely with **custom Next.js pages + Shadcn/UI** — 
 ## User Stories
 
 **Platform Admin**
-- As an admin, I want to see a dashboard with key platform metrics at a glance, so that I know the platform is healthy. *(MVP)*
 - As an admin, I want to search and view any user's account, so that I can assist with support requests. *(MVP)*
 - As an admin, I want to ban a user account, so that I can handle abuse. *(MVP)*
-- As an admin, I want to impersonate a user, so that I can reproduce and debug their reported issue. *(MVP)*
-- As an admin, I want to view all bookings platform-wide, so that I can monitor activity and investigate issues. *(MVP)*
-- As an admin, I want to see all background jobs (pending, running, failed), so that I know if the job queue is healthy. *(MVP)*
-- As an admin, I want to retry a failed job, so that I can recover from transient failures without a code deployment. *(MVP)*
-- As an admin, I want to see a failed job's error and stack trace, so that I can diagnose what went wrong. *(MVP)*
+- As an admin, I want to unban a user account, so that I can restore access when an issue is resolved. *(MVP)*
+- As an admin, I want to see a dashboard with key platform metrics at a glance, so that I know the platform is healthy. *(MVP — minimal stats only; charts Phase 2)*
+- As an admin, I want to impersonate a user, so that I can reproduce and debug their reported issue. *(Post-MVP — Phase 2)*
+- As an admin, I want to view all bookings platform-wide, so that I can monitor activity and investigate issues. *(Post-MVP — Phase 2)*
+- As an admin, I want to see all background jobs (pending, running, failed) via the UI, so that I know if the job queue is healthy. *(Post-MVP — Phase 2; check pgboss.job table directly at MVP)*
+- As an admin, I want to retry a failed job from the UI, so that I can recover from transient failures without a code deployment. *(Post-MVP — Phase 2)*
 
 ---
 
@@ -68,22 +73,22 @@ auth.api.revokeUserSessions({ userId })// Kill all sessions
 
 ### 1. Admin Dashboard — `/admin`
 
-**Stats Cards (top row):**
+**Stats Cards (top row) — MVP:**
 
 | Stat | Source |
 |------|--------|
 | Total users | `COUNT(*) FROM users` |
-| New users today | `WHERE createdAt >= today` |
-| Bookings today | `WHERE startTime >= today` |
 | Active bookings | `WHERE status = confirmed AND startTime > now` |
-| Failed jobs | `SELECT count FROM pg_boss.job WHERE state = failed` |
+| Failed jobs count | `SELECT count FROM pg_boss.job WHERE state = failed` |
 
-**Sign-up Chart:**
+> **MVP admin dashboard is intentionally minimal.** Three numbers is all you need at launch to know if the platform is alive and the job queue is clean. No chart, no recent activity list — those come in Phase 2 when there is data worth visualising.
+
+**Sign-up Chart *(Post-MVP — Phase 2)*:**
 - Last 30 days, grouped by day
-- Bar chart built with Shadcn/UI + Recharts (or plain CSS bars for simplicity)
+- Bar chart built with Shadcn/UI + Recharts
 - Shows daily new user registrations
 
-**Recent Activity:**
+**Recent Activity *(Post-MVP — Phase 2)*:**
 - Last 10 bookings platform-wide (invitee name, host, time, status)
 - Last 5 failed jobs (job type, error summary, timestamp)
 
@@ -99,14 +104,15 @@ auth.api.revokeUserSessions({ userId })// Kill all sessions
 
 **User Detail — `/admin/users/[id]`:**
 
-| Section | Content |
-|---------|---------|
-| Profile | Name, email, username, timezone, created date |
-| Account | Status (active/banned), email verified, 2FA enabled |
-| Calendars | Connected calendars (provider, account email) |
-| Sessions | Active sessions (device, IP, last active) — with Revoke button per session |
-| Bookings | Total bookings as host, last booking date |
-| Actions | Ban / Unban, Impersonate, Revoke all sessions, Send password reset |
+| Section | Content | Scope |
+|---------|---------|-------|
+| Profile | Name, email, username, timezone, created date | *(MVP)* |
+| Account | Status (active/banned), email verified | *(MVP)* |
+| Sessions | Active sessions (device, IP, last active) — with Revoke button per session | *(MVP)* |
+| Bookings | Total bookings as host, last booking date | *(MVP — count only; full list Phase 2)* |
+| Calendars | Connected calendars (provider, account email) | *(MVP)* |
+| Actions | Ban / Unban, Revoke all sessions, Send password reset | *(MVP)* |
+| Impersonate | Open app as this user (red banner, stop-impersonating button) | *(Phase 2)* |
 
 **Actions:**
 
@@ -114,13 +120,13 @@ auth.api.revokeUserSessions({ userId })// Kill all sessions
 |--------|----------|
 | **Ban user** | Calls `auth.api.banUser()` — user cannot sign in; existing sessions killed |
 | **Unban user** | Calls `auth.api.unbanUser()` — restores access |
-| **Impersonate** | Calls `auth.api.impersonateUser()` — opens app as that user in current tab; red banner "You are impersonating [name]" shown; "Stop impersonating" button returns to admin |
+| **Impersonate** *(Phase 2)* | Calls `auth.api.impersonateUser()` — opens app as that user in current tab; red banner "You are impersonating [name]" shown; "Stop impersonating" button returns to admin |
 | **Revoke all sessions** | Calls `auth.api.revokeUserSessions()` — logs user out everywhere |
 | **Send password reset** | Triggers Nodemailer to send password reset email to user |
 
 ---
 
-### 3. Booking Oversight — `/admin/bookings`
+### 3. Booking Oversight — `/admin/bookings` *(Post-MVP — Phase 2)*
 
 **Booking List:**
 - All bookings platform-wide, paginated (25 per page)
@@ -135,9 +141,11 @@ auth.api.revokeUserSessions({ userId })// Kill all sessions
 
 ---
 
-### 4. Job Queue Monitor — `/admin/jobs`
+### 4. Job Queue Monitor — `/admin/jobs` *(Post-MVP — Phase 2)*
 
 Background jobs run via pg-boss. This screen surfaces the queue state directly.
+
+> **MVP approach:** Check `pgboss.job` table directly in the database when needed. A UI for this adds significant complexity before you have enough job volume to justify it.
 
 **Job List:**
 - Queries the `pgboss.job` table via Drizzle ORM
@@ -163,9 +171,11 @@ Background jobs run via pg-boss. This screen surfaces the queue state directly.
 
 ---
 
-### 5. Platform Settings — `/admin/settings`
+### 5. Platform Settings — `/admin/settings` *(Post-MVP — Phase 2)*
 
 Simple configuration screen for platform-level settings.
+
+> **MVP approach:** All platform configuration is via environment variables. A UI settings screen is convenient but not needed before launch — change the `.env` and redeploy.
 
 | Setting | Type | Default |
 |---------|------|---------|
@@ -196,18 +206,18 @@ All admin API routes require `is_platform_admin = true` — verified server-side
 | GET | `/api/admin/users/[id]` | Get user detail + stats |
 | POST | `/api/admin/users/[id]/ban` | Ban user |
 | POST | `/api/admin/users/[id]/unban` | Unban user |
-| POST | `/api/admin/users/[id]/impersonate` | Get impersonation session |
+| POST | `/api/admin/users/[id]/impersonate` | Get impersonation session *(Phase 2)* |
 | POST | `/api/admin/users/[id]/revoke-sessions` | Revoke all user sessions |
 | POST | `/api/admin/users/[id]/password-reset` | Send password reset email |
 
-### Bookings
+### Bookings *(Post-MVP — Phase 2)*
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/admin/bookings` | Paginated booking list (platform-wide) |
 | GET | `/api/admin/bookings/[id]` | Get booking detail |
 
-### Job Queue
+### Job Queue *(Post-MVP — Phase 2)*
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -220,24 +230,24 @@ All admin API routes require `is_platform_admin = true` — verified server-side
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/admin/stats` | Platform metrics (user count, booking count, failed jobs) |
+| GET | `/api/admin/stats` | Platform metrics (user count, active bookings, failed jobs count) |
 
 ---
 
 ## UI Screens
 
-| Screen | Route | Key Components |
-|--------|-------|----------------|
-| Admin Dashboard | `/admin` | Stats cards, sign-up chart, recent activity |
-| User List | `/admin/users` | Searchable data table with filters |
-| User Detail | `/admin/users/[id]` | Profile, sessions, actions panel |
-| Booking List | `/admin/bookings` | Data table with status + date filters |
-| Booking Detail | `/admin/bookings/[id]` | Full booking record view |
-| Job Queue | `/admin/jobs` | Job table with state filter + retry/cancel actions |
-| Job Detail | `/admin/jobs/[id]` | Error trace, payload, retry/cancel |
-| Platform Settings | `/admin/settings` | Config form + email preview |
+| Screen | Route | Key Components | Scope |
+|--------|-------|----------------|-------|
+| Admin Dashboard | `/admin` | Minimal stats cards (users, active bookings, failed jobs count) | *(MVP)* |
+| User List | `/admin/users` | Searchable data table with filters | *(MVP)* |
+| User Detail | `/admin/users/[id]` | Profile, sessions, ban/unban actions | *(MVP)* |
+| Booking List | `/admin/bookings` | Data table with status + date filters | *(Phase 2)* |
+| Booking Detail | `/admin/bookings/[id]` | Full booking record view | *(Phase 2)* |
+| Job Queue | `/admin/jobs` | Job table with state filter + retry/cancel actions | *(Phase 2)* |
+| Job Detail | `/admin/jobs/[id]` | Error trace, payload, retry/cancel | *(Phase 2)* |
+| Platform Settings | `/admin/settings` | Config form + email preview | *(Phase 2)* |
 
-**Admin Layout:** Shared sidebar navigation (Dashboard, Users, Bookings, Jobs, Settings) + top bar showing "Logged in as [admin name]".
+**Admin Layout (MVP):** Minimal sidebar — Dashboard + Users only. Bookings, Jobs, Settings tabs added in Phase 2. Top bar shows "Logged in as [admin name]".
 
 ---
 
@@ -260,26 +270,29 @@ Admin actions (ban, unban, revoke sessions) are performed via Better Auth Admin 
 ## MVP Scope
 
 **In MVP:**
-- Admin Dashboard with stats cards and recent activity
-- User list with search + ban/unban/impersonate/revoke actions
-- Booking list and detail view (read-only)
-- Job queue monitor with retry/cancel actions
-- Email template preview
-- Platform Settings (from name, from email, signup toggle)
+- Minimal admin dashboard — 3 stats: total users, active bookings, failed job count
+- User list with search by name/email + ban/unban
+- User detail view: profile, active sessions, revoke all sessions, send password reset
 
 **Post-MVP:**
-- Audit log — every admin action logged (who did what to whom, when)
-- Sign-up trend chart with more granular breakpoints (Phase 2)
-- Advanced booking search (by date range, host, event type combinations)
+- Impersonation ("log in as user") — complex security surface; not needed before scale
+- Job queue monitor UI with retry/cancel — check DB directly at MVP scale
+- Booking oversight screen — not needed before you have enough users to warrant oversight
+- Platform settings UI — use environment variables at MVP; UI when settings change frequently
+- Email template preview — useful but not a launch blocker
+- Sign-up trend charts
+- Audit log (who did what admin action, when)
 - Admin notifications (email alert when job queue depth exceeds threshold)
+
+> **Why:** A full admin panel (5 screens, 12+ endpoints) is months of work that delivers zero user value before you have users. What you actually need at launch: look up a user by email, ban them if needed, and check the job queue via direct DB query. That is 2 screens, 5 endpoints, and 2 days — not 2 weeks.
 
 ---
 
 ## Tech Stack
 
 - **Next.js App Router (Server Components)** — all admin pages are Server Components; data fetched directly via Drizzle ORM and Better Auth Admin Plugin on the server. No client-side data fetching for lists.
-- **Better Auth Admin Plugin** — provides `listUsers`, `banUser`, `unbanUser`, `impersonateUser`, `listUserSessions`, `revokeUserSessions` without custom SQL.
-- **Drizzle ORM** — queries `bookings`, `booking_answers`, and `pgboss.job` tables directly for booking oversight and job queue monitor.
+- **Better Auth Admin Plugin** — provides `listUsers`, `banUser`, `unbanUser`, `listUserSessions`, `revokeUserSessions` without custom SQL. `impersonateUser` available but used in Phase 2 only.
+- **Drizzle ORM** — queries `users` and `bookings` tables for user detail (bookings count). `pgboss.job` queried for the failed-jobs count on the dashboard stats card only; full job monitor UI is Phase 2.
 - **Shadcn/UI** — data tables, cards, badges, dialogs, and sidebar navigation components used throughout the admin panel.
 - **PostgreSQL (pg-boss schema)** — `pgboss.job` table is queried read-only for the job queue monitor; retry and cancel operations go through the pg-boss Node.js API (not raw SQL).
 - **Nodemailer (SMTP)** — used to send the "send password reset" action email from admin user detail screen.

@@ -205,9 +205,11 @@ When a meeting is booked, Schedica creates a calendar event with:
 - Booking shown as pending until calendar write confirmed
 
 ### Disconnect Handling
-- If a calendar disconnects (token expires, revoked), host is notified
-- Schedica disables booking pages until reconnected (to prevent double-booking)
-- Warning shown in dashboard: "Calendar sync interrupted"
+- **Immediate email alert fires the moment token refresh fails** — this is the primary notification, not the dashboard banner; a host may not check the dashboard for days but will see an email within minutes
+- Email: "Your [Google Calendar / Outlook] has been disconnected — reconnect to resume bookings" with a direct reconnect link
+- All booking pages automatically disabled until calendar is reconnected — invitees see "This calendar is currently unavailable"
+- Dashboard also shows a prominent banner: "⚠️ Calendar sync interrupted — your booking pages are paused" (secondary indicator)
+- On reconnect: booking pages re-enable automatically, no manual action required
 
 ---
 
@@ -265,13 +267,15 @@ For enterprise users scheduling physical meeting rooms:
 
 ## MVP Scope
 
-**In MVP:**
-- Google Calendar (OAuth 2.0)
-- Outlook / Office 365 (Microsoft Graph API)
-- Multi-calendar conflict detection (connect up to 2 calendars in MVP: Google + Outlook)
-- Calendar event creation on booking
-- Calendar event update on reschedule
-- Calendar event deletion on cancellation
+**In MVP — P0 (build first, launch blocker):**
+- Google Calendar (OAuth 2.0) — most freelancers and solopreneurs use Google; simpler OAuth, more consistent API; ship this first
+- Calendar event creation on booking, update on reschedule, deletion on cancellation
+- Multi-calendar conflict detection (connect up to 2 Google calendars)
+- Token expiry detection with immediate email alert
+
+**In MVP — P1 (sprint 2, after Google is stable):**
+- Outlook / Office 365 (Microsoft Graph API) — Microsoft Graph adds a second token system and different event format; build after Google is fully tested
+- Extends multi-calendar to Google + Outlook (up to 2 calendars across providers)
 
 **Post-MVP:**
 - Apple Calendar / iCloud (CalDAV with app-specific password) *(Phase 2 — lacks OAuth, complex protocol)*

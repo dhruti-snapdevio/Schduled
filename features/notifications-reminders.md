@@ -8,9 +8,9 @@ Notifications and reminders keep hosts and invitees informed before, during, and
 
 Schedica sends notifications through two channels:
 1. **Transactional emails** — Booking confirmations, cancellations, reschedules (triggered instantly) *(MVP)*
-2. **Workflow automations** — Timed email sequences before or after meetings *(MVP)*; SMS sequences *(Phase 2)*
+2. **Pre-meeting reminders** — Hardcoded 24-hour and 1-hour emails before every meeting *(MVP)*; configurable workflow builder (custom triggers, conditions, actions) and SMS sequences *(Phase 2)*
 
-Both types are customizable to match the host's brand and communication style.
+For MVP: every booking automatically gets 24h and 1h reminders — no configuration needed. The full workflow builder (where hosts create custom trigger → condition → action sequences) ships in Phase 2 after real users show what they actually need.
 
 ---
 
@@ -143,16 +143,22 @@ Sent when a host cancels a meeting.
 
 ## Workflow Automations
 
-Workflows are timed multi-step sequences that fire before or after meetings. **MVP:** email only. **Phase 2:** SMS added. They are the "set and forget" layer of communication.
+> **MVP:** Hardcoded 24h and 1h reminder emails only — no builder UI, no configurable triggers. 90% of users want exactly this and nothing more. The full configurable workflow builder ships in Phase 2.
 
-### What Is a Workflow?
+Workflows are timed multi-step sequences that fire before or after meetings. They are the "set and forget" layer of communication.
 
-A workflow is composed of:
+### What Is a Workflow? *(Phase 2 — Configurable Builder)*
+
+> The trigger → condition → action builder described below is a **Phase 2 feature**. For MVP, the 24-hour and 1-hour reminders are hardcoded — they fire for every booking automatically without any host configuration.
+
+A configurable workflow (Phase 2) is composed of:
 - **Trigger** — When should this run? (e.g., 24 hours before meeting)
 - **Condition** — Which event types does this apply to? (optional filter)
-- **Action** — What should happen? (send email *(MVP)*; send SMS *(Phase 2)*)
+- **Action** — What should happen? (send email; send SMS *(Phase 2)*)
 
-### Workflow Triggers
+### Workflow Triggers *(Phase 2 — Configurable Builder)*
+
+> This full trigger system requires the Phase 2 workflow builder UI. MVP fires only the two hardcoded triggers: 24h before and 1h before.
 
 | Trigger | Description |
 |---------|-------------|
@@ -223,12 +229,12 @@ After the host marks a meeting as no-show (or automatically after X hours if no 
 
 | Action | MVP / Post-MVP | Description |
 |--------|---------------|-------------|
-| Send email to invitee | ✅ MVP | Customizable email sent to the person who booked |
-| Send email to host | ✅ MVP | Notification to the meeting host |
-| Send email to other | ✅ MVP | Email sent to a CC'd third party (e.g., team member, manager) |
-| Send SMS to invitee | Post-MVP Phase 2 | Text message to the invitee's phone number |
-| Send SMS to host | Post-MVP Phase 2 | Text message to the host |
-| Send webhook | Post-MVP Phase 2 | HTTP POST to external URL with booking data |
+| Send email to invitee | ✅ MVP (hardcoded 24h + 1h only) | Reminder email sent to the person who booked |
+| Send email to host | ✅ MVP (transactional only) | Instant notification to the meeting host on lifecycle events |
+| Send email to other | Phase 2 (workflow builder) | Email sent to a CC'd third party (e.g., team member, manager) — requires configurable workflow |
+| Send SMS to invitee | Phase 2 | Text message to the invitee's phone number |
+| Send SMS to host | Phase 2 | Text message to the host |
+| Send webhook | Phase 2 | HTTP POST to external URL with booking data |
 
 ---
 
@@ -261,23 +267,25 @@ The most impactful use of workflows — reducing no-shows by reminding invitees 
 
 ---
 
-## Post-Meeting Follow-Ups
+## Post-Meeting Follow-Ups *(Post-MVP — Phase 2)*
+
+> **Not in MVP.** Post-meeting follow-ups require the configurable workflow builder to trigger "X minutes after meeting ends." For MVP, hardcoded reminders fire before the meeting only. Add follow-up workflows in Phase 2 once you have real users who ask for them.
 
 Automated messages sent after the meeting to nurture the relationship.
 
-### Thank You / Follow-Up Email
+### Thank You / Follow-Up Email *(Post-MVP — Phase 2)*
 - Sent 30 minutes after meeting ends (configurable)
 - "Thanks for meeting" message
 - Links to next steps (book another call, review proposal, etc.)
 - Feedback/rating request (1–5 stars or short survey)
 
-### No-Show Follow-Up
+### No-Show Follow-Up *(Post-MVP — Phase 2)*
 - Triggered when the meeting time has passed with no activity
 - "Looks like we missed each other" message
 - Offer to reschedule directly
 - Host can disable if not desired
 
-### Outcome-Based Follow-Up
+### Outcome-Based Follow-Up *(Post-MVP — Phase 2)*
 - Triggered by host marking a meeting outcome (e.g., "Qualified", "Not a fit")
 - Sends different email based on outcome
 
@@ -332,7 +340,11 @@ Invitee's local time:  Thursday, June 5 at 3:00 PM IST (Asia/Kolkata)
 
 ## Dynamic Variables in Emails *(and SMS — Phase 2)*
 
-All templates support dynamic variables that auto-fill with meeting data.
+> **MVP:** All default email templates use these variables internally — invitee name, both timezone times, video link, and form answers are all auto-populated in hardcoded templates. No UI is needed for this to work.
+>
+> **Phase 2:** The full template editor UI — where hosts write custom email bodies and subject lines using `{invitee_name}`, `{host_time}`, etc. — ships in Phase 2. For MVP, hosts can only add a plain-text custom message at the bottom of each email type. Do not build a variable editor for MVP.
+
+All default templates auto-fill with meeting data using these variables:
 
 ### Available Variables
 
@@ -373,7 +385,7 @@ Beyond email (and SMS in Phase 2), notifications appear in the Schedica dashboar
 - Opt-in via browser permission prompt
 - Works in Chrome, Firefox, Edge, Safari (iOS 16.4+)
 
-### Mobile Push Notifications
+### Mobile Push Notifications *(Post-MVP — Phase 3)*
 - Instant push notification via Schedica mobile app
 - Configurable: all bookings, cancellations only, or nothing
 
@@ -430,15 +442,20 @@ Both hosts and invitees can manage notification preferences.
 - Cancellation notification to host (with both timezones)
 - Reschedule confirmation to both parties (with both timezones)
 - Host cancellation notice to invitee
-- Pre-meeting reminder: 24-hour email (with both timezones)
-- Pre-meeting reminder: 1-hour email (with both timezones)
-- Dynamic variables: `{invitee_name}`, `{host_name}`, `{date}`, `{time}`, `{host_time}`, `{invitee_time}`, `{timezone}`, `{host_timezone}`, `{invitee_timezone}`, `{location}`, `{reschedule_link}`, `{cancel_link}`, `{answer_1}` – `{answer_10}`
-- Custom confirmation message and subject lines (per event type)
+- Pre-meeting reminder: 24-hour email (with both timezones) — **hardcoded, fires automatically for every booking**
+- Pre-meeting reminder: 1-hour email (with both timezones) — **hardcoded, fires automatically for every booking**
+- Default templates auto-populate: invitee name, both timezone times, video link, reschedule/cancel links, and form answers — all via internal variables, no editor UI needed
+- Custom message per event type (plain text appended to confirmation email body)
 - From name and reply-to customisation
 
 > **Comparison:** Calendly requires a paid plan for reminder workflows. Schedica includes 24hr and 1hr email reminders for all users — no plan required (open source).
 
 **Post-MVP:**
+- Configurable workflow builder UI — custom trigger → condition → action sequences (Phase 2)
+- Custom trigger timing (send at X hours/days before/after, not just hardcoded 24h/1h) (Phase 2)
+- Custom email template editor with dynamic variable syntax `{invitee_name}`, `{host_time}`, etc. (Phase 2)
+- Custom email subject lines with variable substitution (Phase 2)
+- Send email to third-party CC (via workflow builder) (Phase 2)
 - SMS reminders (Phase 2)
 - Post-meeting follow-up workflow emails (Phase 2)
 - No-show detection and automated follow-up email (Phase 2)

@@ -42,7 +42,7 @@ The most common meeting type. One host, one invitee.
 ### Configuration Options
 - Meeting name and description
 - Duration (preset: 15, 30, 45, 60 min; or custom)
-- Location type: Zoom, Google Meet, Teams, phone, in-person address, custom
+- Location type: Google Meet (P0), Zoom (P1), phone, in-person address, custom; Teams *(Phase 2)*
 - Availability window (how far ahead bookings open)
 - Minimum notice period
 - Buffer time before / after
@@ -176,8 +176,8 @@ All event types share a common set of configuration options:
 | Location Type | Description |
 |---------------|-------------|
 | Zoom | Auto-generate unique Zoom link per booking |
-| Google Meet | Auto-generate Google Meet link — **requires Google Calendar to be connected** (Meet links are generated via Google Calendar API). If Google Calendar is not connected, this option is greyed out in the builder with tooltip: "Connect Google Calendar first to use Google Meet" |
-| Microsoft Teams | Auto-generate Teams meeting link — auto-available when Outlook is connected |
+| Google Meet | Auto-generate Google Meet link — **requires Google Calendar to be connected** (Meet links are generated via Google Calendar API). If Google Calendar is not connected, this option is greyed out in the builder with tooltip: "Google Meet generates links through your Google Calendar — connect it in Settings first." |
+| Microsoft Teams | Auto-generate Teams meeting link — auto-available when Outlook is connected *(Phase 2 — greyed out at launch)* |
 | Webex | Auto-generate Webex meeting link *(Phase 2)* |
 | GoTo Meeting | Auto-generate GoTo Meeting link *(Phase 2)* |
 | Phone — Host calls Invitee | Collect invitee's phone number; host calls them at meeting time |
