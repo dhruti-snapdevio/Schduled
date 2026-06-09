@@ -274,7 +274,7 @@ Client-side and server-side validation:
 - Drag-and-drop reordering
 - Pre-fill via URL parameters
 - Answers in host notification email, meeting detail view, and calendar invite
-- Answer variables in reminder email templates (`{answer_1}` through `{answer_10}`)
+- Answer variables in reminder email templates (`{answer_1}` through `{answer_20}`)
 - Auto-remember answers for repeat invitees (server-side email-match lookup — no account or cookie required)
 
 **Post-MVP:**

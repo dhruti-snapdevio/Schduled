@@ -6,7 +6,7 @@ The Admin Panel is a password-protected internal dashboard for platform administ
 
 ## Overview
 
-The admin panel sits at `/admin` and is completely separate from the host dashboard (`/dashboard`). Only users with `role = platform_admin` (set via Better Auth Admin Plugin or directly in the database) can access it.
+The admin panel sits at `/admin` and is completely separate from the host dashboard (`/dashboard`). Only users with `role = 'admin'` (set via Better Auth Admin Plugin or directly in the database) can access it.
 
 **What MVP must do:**
 1. Let admins look up any user by email and ban/unban their account
@@ -53,8 +53,8 @@ Only users with `role = 'admin'` can access the admin panel. This field is set i
 ```
 src/middleware.ts → checks session on every /admin/* request
 → if no session: redirect to /sign-in
-→ if session but not platform_admin: redirect to /dashboard
-→ if platform_admin: allow
+→ if session but role !== 'admin': redirect to /dashboard
+→ if role === 'admin': allow
 ```
 
 Every `/api/admin/*` route also verifies the admin role server-side and returns `403 Forbidden` for non-admins — the middleware check is defense-in-depth only.
@@ -120,27 +120,41 @@ A searchable, filterable table of every significant mutation that happened on th
 
 **Logged Actions (MVP):**
 
-| Action | Trigger |
-|--------|---------|
-| `user.signup` | New account created |
-| `user.signin` | Successful sign-in |
-| `user.signout` | Session terminated |
-| `user.ban` | Admin banned a user |
-| `user.unban` | Admin unbanned a user |
-| `user.impersonate_start` | Admin started impersonating a user |
-| `user.impersonate_stop` | Admin stopped impersonating |
-| `user.password_reset` | Password reset completed |
-| `user.revoke_sessions` | All sessions revoked |
-| `booking.created` | New booking confirmed |
-| `booking.cancelled_by_invitee` | Invitee cancelled |
-| `booking.cancelled_by_host` | Host cancelled |
-| `booking.rescheduled` | Booking rescheduled |
-| `event_type.created` | Host created event type |
-| `event_type.updated` | Host updated event type |
-| `event_type.deleted` | Host deleted event type |
-| `calendar.connected` | Calendar OAuth connected |
-| `calendar.disconnected` | Calendar disconnected |
-| `platform_settings.updated` | Admin changed platform settings |
+| Action | Trigger | source |
+|--------|---------|--------|
+| `user.signup` | New account created | `'web'` |
+| `user.signin` | Successful sign-in | `'web'` |
+| `user.signout` | Session terminated | `'web'` |
+| `user.ban` | Admin banned a user | `'web'` |
+| `user.unban` | Admin unbanned a user | `'web'` |
+| `user.impersonate_start` | Admin started impersonating a user | `'web'` |
+| `user.impersonate_stop` | Admin stopped impersonating | `'web'` |
+| `user.password_reset` | Password reset completed | `'web'` |
+| `user.revoke_sessions` | All sessions revoked | `'web'` |
+| `user.profile_updated` | Host changed name, display name, job title, or company | `'web'` |
+| `user.timezone_changed` | Host updated timezone | `'web'` |
+| `user.username_changed` | Host changed booking URL slug | `'web'` |
+| `user.photo_updated` | Host uploaded or removed profile photo | `'web'` |
+| `user.password_changed` | Host changed password from settings | `'web'` |
+| `user.email_change_requested` | Host submitted new email; verification pending | `'web'` |
+| `user.account_deleted` | Account deletion confirmed | `'web'` |
+| `user.branding_updated` | Host changed logo, color, or confirmation message | `'web'` |
+| `booking.created` | New booking confirmed | `'api'` |
+| `booking.cancelled_by_invitee` | Invitee cancelled via email link | `'api'` |
+| `booking.cancelled_by_host` | Host cancelled from dashboard | `'web'` |
+| `booking.rescheduled` | Booking rescheduled | `'api'` |
+| `event_type.created` | Host created event type | `'web'` |
+| `event_type.updated` | Host saved changes to event type | `'web'` |
+| `event_type.deleted` | Host deleted event type | `'web'` |
+| `event_type.activated` | Host toggled event type to Active | `'web'` |
+| `event_type.deactivated` | Host toggled event type to Inactive | `'web'` |
+| `availability.schedule_updated` | Host saved weekly hours or schedule name | `'web'` |
+| `availability.override_added` | Host blocked a date or overrode hours | `'web'` |
+| `availability.override_removed` | Host removed a date override | `'web'` |
+| `availability.schedule_assigned` | Host assigned a different schedule to an event type | `'web'` |
+| `calendar.connected` | Calendar OAuth connected | `'web'` |
+| `calendar.disconnected` | Calendar disconnected (manual or token failure) | `'web'` / `'worker'` |
+| `platform_settings.updated` | Admin changed platform settings | `'web'` |
 
 **Audit Log Detail:**
 - Click any row to see full JSON payload of the change
@@ -218,9 +232,12 @@ Background jobs run via pg-boss. This screen surfaces the queue state in a minim
 | `BOOKING_RESCHEDULE_REMINDERS` | On booking rescheduled | — |
 | `VIDEO_LINK_GENERATE` | On booking confirmed | — |
 | `VIDEO_LINK_RETRY` | On `VIDEO_LINK_GENERATE` failure | — |
-| `CALENDAR_SYNC` | Cron — every 5 min | — |
-| `CALENDAR_TOKEN_REFRESH` | Before calendar API call with expired token | — |
-| `CALENDAR_DISCONNECT_ALERT` | On token refresh permanent failure | — |
+| `CALENDAR_SYNC` | Cron — every 5 min per connected calendar | — |
+| `CALENDAR_TOKEN_REFRESH` | Before any calendar API call when token is expired | — |
+| `CALENDAR_DISCONNECT_ALERT` | When CALENDAR_TOKEN_REFRESH exhausts all retries | — |
+| `CALENDAR_WRITE` | After booking confirmed — writes event to host's calendar | — |
+| `CALENDAR_UPDATE` | After booking rescheduled — updates calendar event | — |
+| `CALENDAR_CANCEL` | After booking cancelled — removes calendar event | — |
 | `DISPOSABLE_EMAILS_REFRESH` | Cron — daily | ✓ |
 
 ---
@@ -335,7 +352,7 @@ export async function updatePlatformSettingsAction(data: SettingsFormInput) {
 
 ## API Endpoints
 
-All admin API routes require `is_platform_admin = true` — verified server-side on every request.
+All admin API routes verify `role = 'admin'` server-side on every request (the middleware check is defense-in-depth only — route handlers do their own auth check and return `403 Forbidden` for non-admins).
 
 ### Users
 
@@ -425,14 +442,35 @@ Admin actions (ban, unban, revoke sessions) are performed via Better Auth Admin 
 
 ```typescript
 export const auditActionEnum = pgEnum('audit_action', [
+  // Auth / account lifecycle
   'user.signup', 'user.signin', 'user.signout',
   'user.ban', 'user.unban',
   'user.impersonate_start', 'user.impersonate_stop',
   'user.password_reset', 'user.revoke_sessions',
+  // Profile mutations (from user-profile-settings.md)
+  'user.profile_updated',       // name, display name, job title, company
+  'user.timezone_changed',      // host timezone setting
+  'user.username_changed',      // booking URL slug
+  'user.photo_updated',         // profile photo upload / remove
+  'user.password_changed',      // password change from settings
+  'user.email_change_requested',// new email submitted; verification pending
+  'user.account_deleted',       // account deletion confirmed
+  // Branding (from booking-page-customization.md)
+  'user.branding_updated',      // logo, color, confirmation message, or any branding field
+  // Bookings
   'booking.created', 'booking.cancelled_by_invitee', 'booking.cancelled_by_host',
   'booking.rescheduled',
+  // Event types (from event-types.md)
   'event_type.created', 'event_type.updated', 'event_type.deleted',
+  'event_type.activated', 'event_type.deactivated',
+  // Availability (from availability-management.md)
+  'availability.schedule_updated',  // weekly hours or schedule name
+  'availability.override_added',    // date blocked or hours overridden
+  'availability.override_removed',  // date override removed
+  'availability.schedule_assigned', // different schedule assigned to event type
+  // Calendar
   'calendar.connected', 'calendar.disconnected',
+  // Admin platform
   'platform_settings.updated',
 ])
 
@@ -496,7 +534,9 @@ The admin panel itself does not enqueue jobs, but the **Send Password Reset** ac
 
 | Job Name | Trigger | Payload |
 |----------|---------|---------|
-| `EMAIL_SEND` | Admin clicks "Send password reset" | `{ to, subject, template: 'password-reset', data: { resetUrl } }` |
+| `EMAIL_SEND` | Admin clicks "Send password reset" | `{ emailOutboxId }` — insert row into `email_outbox` first, then enqueue |
+
+> **All handlers use `workMonitored()`** — the password reset email handler is registered with `workMonitored('EMAIL_SEND', handler)` not raw `boss.work()`. See `jobs-queues.md` — "Dead-Letter Queue Monitoring".
 
 ---
 

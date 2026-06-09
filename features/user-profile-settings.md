@@ -312,19 +312,19 @@ Irreversible account actions, separated and clearly marked.
 
 Every significant profile mutation writes an immutable audit record inside the same DB transaction as the change.
 
-| Action | When | Data Logged |
-|--------|------|-------------|
-| `user.profile_updated` | Name, display name, job title, company, bio, or website changed | fieldName, oldValue, newValue |
-| `user.timezone_changed` | Timezone updated | oldTimezone, newTimezone |
-| `user.username_changed` | Booking URL slug changed | oldUsername, newUsername, redirectCreated: true |
-| `user.photo_updated` | Profile photo uploaded or removed | S3 key |
-| `user.password_changed` | Password change submitted | (no sensitive data — just the event) |
-| `user.email_change_requested` | New email submitted; verification pending | newEmail (masked) |
-| `user.account_deleted` | Account deletion confirmed | userId, email, deletedAt |
-| `calendar.connected` | Calendar OAuth completed | provider, accountEmail |
-| `calendar.disconnected` | Calendar disconnect clicked | provider, accountEmail |
+| Action | When | source | Data Logged |
+|--------|------|--------|-------------|
+| `user.profile_updated` | Name, display name, job title, company, bio, or website changed | `'web'` | fieldName, oldValue, newValue |
+| `user.timezone_changed` | Timezone updated | `'web'` | oldTimezone, newTimezone |
+| `user.username_changed` | Booking URL slug changed | `'web'` | oldUsername, newUsername, redirectCreated: true |
+| `user.photo_updated` | Profile photo uploaded or removed | `'web'` | S3 key |
+| `user.password_changed` | Password change submitted | `'web'` | (no sensitive data — just the event) |
+| `user.email_change_requested` | New email submitted; verification pending | `'web'` | newEmail (masked) |
+| `user.account_deleted` | Account deletion confirmed | `'web'` | userId, email, deletedAt |
+| `calendar.connected` | Calendar OAuth completed | `'web'` | provider, accountEmail |
+| `calendar.disconnected` | Calendar disconnect clicked | `'web'` | provider, accountEmail |
 
-All audit records include: `actorId` (the host's own user ID), `actorIp` (request IP), `source: 'web'` (all profile mutations come from Server Actions), `createdAt`. See `database-schema.md` for `auditSourceEnum`.
+All audit records include: `actorId` (the host's own user ID), `actorIp` (request IP), `source: 'web'` (all profile mutations come from Server Actions — none are unauthenticated API calls or background jobs), `createdAt`. See `database-schema.md` for `auditSourceEnum`.
 
 ---
 

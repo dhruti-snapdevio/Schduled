@@ -504,12 +504,14 @@ When a user tries to sign in with a social provider but the same email already e
 
 Every sign-up, sign-in, sign-out, and password reset event is written to the `audit_logs` table automatically. This enables the admin panel audit log viewer to show the full account lifecycle per user.
 
-| Event | Audit Action |
-|-------|-------------|
-| New account created | `user.signup` |
-| Successful sign-in | `user.signin` |
-| Sign-out | `user.signout` |
-| Password reset completed | `user.password_reset` |
+| Event | Audit Action | source |
+|-------|-------------|--------|
+| New account created | `user.signup` | `'web'` |
+| Successful sign-in | `user.signin` | `'web'` |
+| Sign-out | `user.signout` | `'web'` |
+| Password reset completed | `user.password_reset` | `'web'` |
+
+All audit records include `actorUserId`, `actorIp`, `source: 'web'` (all auth events are Server Actions or Next.js API routes with a logged-in session context). See `database-schema.md` for `auditSourceEnum`.
 
 ---
 
@@ -540,6 +542,7 @@ import db from '@/lib/db'
 import * as schema from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { users } from '@/lib/db/schema'
+import { env } from '@/lib/env'  // ALWAYS import env vars from here — never process.env.X directly
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -554,8 +557,8 @@ export const auth = betterAuth({
 
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: env.GOOGLE_CLIENT_ID,       // ← env.ts validates this at startup; crash if missing
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
       // Always re-fetch the user's name and photo from Google on every login.
       // Without this, a user who changes their Google profile photo would see
       // their old photo in Schedica until they re-register.

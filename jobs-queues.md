@@ -102,10 +102,13 @@ export const EMAIL_SEND_CONFIG = {
   retryLimit: 3,
   retryDelay: 30,          // seconds
   retryBackoff: true,      // exponential: 30s → 60s → 120s
-  concurrency: 5,          // 5 emails processed in parallel
+  teamSize: 5,             // fetch up to 5 jobs per poll cycle
+  teamConcurrency: 5,      // 5 emails processed in parallel (pg-boss option name)
 }
 
 // Handler pattern
+import { env } from '@/lib/env'  // never access process.env.X directly
+
 export async function handleEmailSend(job: { data: EmailSendPayload }) {
   const outbox = await DbEmail.getById(job.data.emailOutboxId)
   if (!outbox || outbox.status === 'sent') return  // idempotent
@@ -116,7 +119,7 @@ export async function handleEmailSend(job: { data: EmailSendPayload }) {
     await transporter.sendMail({
       to: outbox.toEmail,
       subject: outbox.subject,
-      from: `${outbox.fromName} <${process.env.SMTP_FROM_EMAIL}>`,
+      from: `${outbox.fromName} <${env.SMTP_FROM_EMAIL}>`,
       replyTo: outbox.replyToEmail,
       html,
     })
@@ -433,9 +436,10 @@ Daily cron. Syncs the disposable email domain blocklist from a public upstream s
 ```typescript
 // src/lib/worker/boss.ts
 import PgBoss from 'pg-boss'
+import { env } from '@/lib/env'  // never use process.env.X directly
 
 const boss = new PgBoss({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: env.DATABASE_URL,
   schema: 'pgboss',          // keeps pg-boss tables in a separate schema
   retentionDays: 30,         // keep completed jobs for 30 days
   deleteAfterDays: 7,        // delete completed jobs after 7 days

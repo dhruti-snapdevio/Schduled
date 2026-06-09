@@ -119,8 +119,8 @@ The booking is written to the Schedica database.
 | status | confirmed / cancelled / rescheduled / completed |
 | reschedule_count | How many times this booking has been rescheduled (checked against event type's max reschedule limit) |
 | created_at | Booking creation timestamp (UTC) |
-| cancel_token | Unique token for cancel link in email |
-| reschedule_token | Unique token for reschedule link in email |
+| cancel_token | Unique token for cancel link in email — generated with `crypto.randomUUID()` at booking INSERT time |
+| reschedule_token | Unique token for reschedule link in email — generated with `crypto.randomUUID()` at booking INSERT time |
 
 ---
 
@@ -389,11 +389,11 @@ All post-booking work runs as pg-boss jobs after the DB transaction commits. The
 
 | Job Name | Trigger | Payload | pg-boss config |
 |----------|---------|---------|---------------|
-| `EMAIL_SEND` | On booking confirmed (×2: invitee + host) | `{ emailOutboxId }` | retryLimit: 3, retryDelay: 30s |
-| `VIDEO_LINK_GENERATE` | On booking confirmed (if video location) | `{ bookingId, provider }` | retryLimit: 3, retryDelay: exponential (5s→30s→120s) |
-| `CALENDAR_WRITE` | On booking confirmed | `{ bookingId, calendarId }` | retryLimit: 3, retryDelay: 15s |
-| `BOOKING_REMINDER_24H` | On booking confirmed — fires 24h before start | `{ bookingId }` | singletonKey: `{bookingId}_reminder_24h` |
-| `BOOKING_REMINDER_1H` | On booking confirmed — fires 1h before start | `{ bookingId }` | singletonKey: `{bookingId}_reminder_1h` |
+| `EMAIL_SEND` | On booking confirmed (×2: invitee + host) | `{ emailOutboxId }` | retryLimit: 3, retryDelay: 30s, **localConcurrency: 5** |
+| `VIDEO_LINK_GENERATE` | On booking confirmed (if video location) | `{ bookingId, provider }` | retryLimit: 3, retryDelay: exponential (5s→30s→120s), **localConcurrency: 3** |
+| `CALENDAR_WRITE` | On booking confirmed | `{ bookingId, calendarId }` | retryLimit: 3, retryDelay: 15s, **localConcurrency: 1** — must be 1 to avoid concurrent writes to the same calendar |
+| `BOOKING_REMINDER_24H` | On booking confirmed — fires 24h before start | `{ bookingId }` | singletonKey: `{bookingId}_reminder_24h`; retryLimit: 2 |
+| `BOOKING_REMINDER_1H` | On booking confirmed — fires 1h before start | `{ bookingId }` | singletonKey: `{bookingId}_reminder_1h`; retryLimit: 2 |
 
 ### Job Dispatch Order (inside DB transaction)
 

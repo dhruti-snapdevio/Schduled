@@ -157,7 +157,7 @@ Browser                   Next.js                  PostgreSQL           pg-boss 
 src/middleware.ts
 - Every request checks session via auth.api.getSession()
 - /admin/* → redirect to /sign-in if no session
-- /admin/* → redirect to /dashboard if session but not platform_admin
+- /admin/* → redirect to /dashboard if session but session.user.role !== 'admin'
 - /dashboard/* → redirect to /sign-in if no session
 - Incomplete onboarding → redirect to /onboarding/[step]
 ```
@@ -546,22 +546,41 @@ All environment variables are validated at startup via a Zod schema in `src/lib/
 import { z } from 'zod'
 
 const envSchema = z.object({
-  DATABASE_URL:            z.string().url(),
-  BETTER_AUTH_SECRET:      z.string().min(32),
-  GOOGLE_CLIENT_ID:        z.string(),
-  GOOGLE_CLIENT_SECRET:    z.string(),
-  ZOOM_CLIENT_ID:          z.string().optional(),
-  ZOOM_CLIENT_SECRET:      z.string().optional(),
-  AWS_ACCESS_KEY_ID:       z.string(),
-  AWS_SECRET_ACCESS_KEY:   z.string(),
-  AWS_BUCKET_NAME:         z.string(),
-  AWS_REGION:              z.string(),
-  SMTP_HOST:               z.string(),
-  SMTP_PORT:               z.coerce.number().default(587),
-  SMTP_USER:               z.string(),
-  SMTP_PASS:               z.string(),
-  ENCRYPT_KEY:             z.string().length(64), // 32 bytes hex
-  NODE_ENV:                z.enum(['development', 'production', 'test']).default('development'),
+  // Core
+  DATABASE_URL:              z.string().url(),
+  BETTER_AUTH_SECRET:        z.string().min(32),
+  BETTER_AUTH_URL:           z.string().url(),
+  NEXT_PUBLIC_APP_URL:       z.string().url(),
+  // Google OAuth + Calendar + Meet
+  GOOGLE_CLIENT_ID:          z.string(),
+  GOOGLE_CLIENT_SECRET:      z.string(),
+  // Microsoft Graph — Outlook calendar + Teams meetings
+  MICROSOFT_CLIENT_ID:       z.string(),
+  MICROSOFT_CLIENT_SECRET:   z.string(),
+  // Zoom
+  ZOOM_CLIENT_ID:            z.string(),
+  ZOOM_CLIENT_SECRET:        z.string(),
+  ZOOM_REDIRECT_URI:         z.string().url(),
+  // S3-compatible storage (profile photos, logos, banners)
+  S3_ACCESS_KEY_ID:          z.string(),
+  S3_SECRET_ACCESS_KEY:      z.string(),
+  S3_BUCKET_NAME:            z.string(),
+  S3_REGION:                 z.string(),
+  S3_ENDPOINT:               z.string().optional(),  // blank for AWS S3; set for R2/MinIO/B2
+  // SMTP transactional email
+  SMTP_HOST:                 z.string(),
+  SMTP_PORT:                 z.coerce.number().default(587),
+  SMTP_SECURE:               z.coerce.boolean().default(false),
+  SMTP_USER:                 z.string(),
+  SMTP_PASS:                 z.string(),
+  SMTP_FROM_EMAIL:           z.string().email(),
+  SMTP_FROM_NAME:            z.string(),
+  // Encryption key for OAuth tokens stored at rest (AES-256-GCM)
+  // Generate: openssl rand -hex 32  (produces exactly 64 hex chars = 32 bytes)
+  // Keep separate from BETTER_AUTH_SECRET — rotating auth secret must not rotate encryption key
+  ENCRYPT_KEY:               z.string().length(64),
+  // Runtime
+  NODE_ENV:                  z.enum(['development', 'production', 'test']).default('development'),
 })
 
 export const env = envSchema.parse(process.env)

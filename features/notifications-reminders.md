@@ -583,6 +583,20 @@ await boss.cancel('BOOKING_REMINDER_1H',  `${bookingId}_reminder_1h`)
 
 ---
 
+## Audit Logging
+
+Email delivery events are tracked in the `email_outbox` and `email_events` tables (not `audit_logs`) — see `database-schema.md`. The email outbox row records status (`pending → sent / failed`), and `email_events` records delivery events (sent, bounced, etc.). This is readable from the admin panel per-user email history.
+
+Host notification **preference changes** (toggling "new booking on/off", "cancellation on/off", etc.) are low-risk preference mutations and are **not** in `auditActionEnum` by design. A developer searching for a `notifications.preferences_updated` audit action will not find one — this is an explicit decision, not an oversight. If audit coverage of preferences is required, add a new enum value and log it in the notification preferences Server Action.
+
+| What is tracked | Where |
+|----------------|-------|
+| Every outbound email (sent, failed, bounced) | `email_outbox` + `email_events` tables |
+| Email history per user | Admin panel → User Detail → Email History (reads `email_outbox`) |
+| Notification preference changes | **Not audited** — explicit decision; add if compliance requires it |
+
+---
+
 ## Tech Stack
 
 - **pg-boss** — the primary engine for all timed notifications. At the moment a booking is confirmed, pg-boss schedules future jobs with exact fire times: `EMAIL_SEND` (immediate ×2), `BOOKING_REMINDER_24H`, `BOOKING_REMINDER_1H`. Each uses a `singletonKey` so it can be individually cancelled on booking change. **`singletonKey` format: `{bookingId}_{jobType}`** — this ensures each job type per booking is unique and individually cancellable.
