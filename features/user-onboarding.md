@@ -75,6 +75,25 @@ Target completion time for new user wizard (steps 5–8): **under 3 minutes** fo
 - At least 1 number or special character
 - Strength indicator shown in real-time
 
+### Email Validation on Signup
+
+Before creating an account with an email address, Schedica performs two server-side checks (same pattern as Krova):
+
+**1. Disposable Domain Check**
+- The email's domain is looked up in the `disposable_email_domains` table (seeded with ~50,000 known throwaway providers: mailinator.com, guerrillamail.com, 10minutemail.com, etc.)
+- If the domain is disposable: signup is blocked immediately
+- Error shown: "Please use a permanent email address — temporary email services are not allowed."
+- Existing accounts with disposable emails are NOT blocked (only new signups)
+- The blocklist is refreshed daily via the `DISPOSABLE_EMAILS_REFRESH` pg-boss cron job
+
+**2. MX Record Check**
+- After the disposable domain check passes, a DNS MX record lookup is performed for the email's domain
+- If no MX record exists (domain cannot receive email): signup is blocked
+- Error shown: "That email domain doesn't appear to be able to receive email. Please double-check your address."
+- This catches typos like `@gmial.com` or `@hotmial.com` before the user fills out the entire onboarding wizard only to get stuck at verification
+
+> Both checks happen server-side on the sign-up form submission — never on the client. OAuth sign-ups skip the MX check (Google/Microsoft have already verified the email).
+
 ### Email Verification Code — Details
 - Code is 6 digits, valid for **15 minutes** from the time of sending
 - If code expires: "Your verification code has expired. Click here to resend."
@@ -285,10 +304,11 @@ Sign-in is separate from onboarding but lives on the same `/sign-in` page. Retur
 ### Magic Link (Passwordless) Sign-In Flow
 1. User clicks "Email me a sign-in link"
 2. Enters their registered email address
-3. Schedica sends an email with a secure one-click link (valid for 10 minutes, single-use)
-4. User clicks the link → instantly signed in; link immediately invalidated
-5. If link is expired: "This sign-in link has expired. Request a new one." → re-enter email
-6. Use case: User forgot their password; user prefers not to manage passwords; shared/public device where typing a password is inconvenient
+3. **Server checks if the user is banned before sending** — if banned and ban has not expired, the request is silently accepted (no error shown, no email sent). This prevents a banned user from discovering they are banned by probing the magic link endpoint.
+4. Schedica sends an email with a secure one-click link (valid for 10 minutes, single-use)
+5. User clicks the link → instantly signed in; link immediately invalidated
+6. If link is expired: "This sign-in link has expired. Request a new one." → re-enter email
+7. Use case: User forgot their password; user prefers not to manage passwords; shared/public device where typing a password is inconvenient
 
 ### Remember Me
 - Checkbox on the sign-in form: "Remember me on this device"
@@ -480,11 +500,112 @@ When a user tries to sign in with a social provider but the same email already e
 
 ---
 
+## Audit Logging
+
+Every sign-up, sign-in, sign-out, and password reset event is written to the `audit_logs` table automatically. This enables the admin panel audit log viewer to show the full account lifecycle per user.
+
+| Event | Audit Action |
+|-------|-------------|
+| New account created | `user.signup` |
+| Successful sign-in | `user.signin` |
+| Sign-out | `user.signout` |
+| Password reset completed | `user.password_reset` |
+
+---
+
 ## Tech Stack
 
-- **Better Auth** — handles all sign-up methods (email/password, Google OAuth), magic link sign-in, email verification codes, session creation, and account lockout. The admin plugin exposes user management to custom Next.js admin pages.
+- **Better Auth** — handles all sign-up methods (email/password, Google OAuth), magic link sign-in, email verification codes, session creation, and account lockout. The admin plugin exposes user management to custom Next.js admin pages. See **Better Auth Configuration** section below for required config options.
 - **Next.js App Router** — onboarding is a 5-step wizard built as sequential pages. Middleware checks `onboardingDone` on each request and redirects incomplete users back to their current step.
 - **PostgreSQL + Drizzle ORM** — stores the user account, current `onboardingStep`, and `onboardingDone` flag. Drizzle schema extends Better Auth's built-in users table with Schedica-specific fields (username, timezone, onboarding progress).
-- **pg-boss** — schedules a welcome email job immediately after signup to be delivered asynchronously without blocking the onboarding response.
-- **Nodemailer (SMTP)** — delivers the email verification code during sign-up and the welcome email after onboarding completes.
+- **`disposable_email_domains` table** — seeded blocklist of ~50,000 throwaway email provider domains. Checked on every email+password signup before account creation. Refreshed daily via `DISPOSABLE_EMAILS_REFRESH` pg-boss cron.
+- **DNS MX check** — Node.js `dns.resolveMx()` verifies the signup email domain can receive mail before creating the account. Catches domain typos. Skipped for OAuth sign-ups.
+- **pg-boss** — schedules the welcome email (`EMAIL_SEND` job) immediately after signup so delivery is async and retried on SMTP failure without blocking the onboarding response. Also schedules `DISPOSABLE_EMAILS_REFRESH` cron daily.
+- **`audit_logs` table** — every sign-up, sign-in, and password reset event writes an immutable row. Visible in the admin panel audit log.
+- **Nodemailer (SMTP)** — delivers the email verification code during sign-up and the welcome email after onboarding completes (via `EMAIL_SEND` job).
 - **React Email** — renders the verification code email, password reset email, and welcome email as styled React components compiled to HTML before sending via Nodemailer.
+
+---
+
+## Better Auth Configuration
+
+These options must be set in `src/lib/auth.ts`. They are not optional — each one closes a specific security or data gap.
+
+```typescript
+// src/lib/auth.ts
+import { betterAuth } from 'better-auth'
+import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { magicLink, admin } from 'better-auth/plugins'
+import db from '@/lib/db'
+import * as schema from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
+import { users } from '@/lib/db/schema'
+
+export const auth = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: 'pg',
+    schema: {
+      user: schema.users,
+      session: schema.sessions,
+      account: schema.accounts,
+      verification: schema.verifications,
+    },
+  }),
+
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Always re-fetch the user's name and photo from Google on every login.
+      // Without this, a user who changes their Google profile photo would see
+      // their old photo in Schedica until they re-register.
+      overrideUserInfoOnSignIn: true,
+    },
+  },
+
+  session: {
+    cookieCache: {
+      enabled: true,
+      // Cache the session for 60 seconds to reduce DB reads on every request.
+      // Side effect: when an admin bans a user, the banned state propagates
+      // within at most 60 seconds — the banned user's next request after
+      // the cache expires will be rejected.
+      maxAge: 60,
+    },
+  },
+
+  plugins: [
+    magicLink({
+      sendMagicLink: async ({ email, url }) => {
+        // Silently suppress magic links to banned users.
+        // Do NOT return an error — that would reveal to the user that they are banned.
+        const user = await db.query.users.findFirst({
+          where: eq(users.email, email),
+        })
+        if (user?.banned) {
+          const notExpired = !user.banExpires || user.banExpires > new Date()
+          if (notExpired) return  // swallow silently
+        }
+
+        // User is not banned — enqueue the magic link email
+        await enqueueEmail({
+          to: email,
+          subject: 'Sign in to Schedica',
+          template: 'magic-link',
+          templateData: { url },
+        })
+      },
+    }),
+
+    admin(),
+  ],
+})
+```
+
+### Why Each Option Matters
+
+| Option | What it does | What breaks without it |
+|--------|-------------|------------------------|
+| `overrideUserInfoOnSignIn: true` | Re-fetches Google name + photo on every sign-in | User's Schedica profile photo never updates when they change their Google photo |
+| `session.cookieCache.maxAge: 60` | Caches session in the cookie for 60s, avoiding a DB query on every request | Every page load hits the DB for a session lookup; also: bans never propagate without this bound |
+| Magic link ban check | Suppresses link delivery to banned users | Banned users can still receive magic links and sign in without error |

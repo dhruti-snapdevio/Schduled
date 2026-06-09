@@ -31,9 +31,11 @@ Install these tools on your development machine before anything else.
 | **Git** | Any recent | `git --version` | Pre-installed on most systems |
 | **VS Code** | Any | — | [code.visualstudio.com](https://code.visualstudio.com) |
 
+> **No PostgreSQL install? Use `embedded-postgres`.**
+> If you prefer not to install PostgreSQL on your machine, the `embedded-postgres` dev dependency boots a real PostgreSQL instance inside the Node.js process automatically. See [Section 7.1 — Option B](#option-b-embedded-postgres-zero-install) for setup. Both options produce a real PostgreSQL 16 database — pick whichever is simpler for your machine.
+
 **Recommended VS Code Extensions:**
-- ESLint
-- Prettier
+- Biome (replaces ESLint + Prettier — install the `biomejs.biome` extension)
 - Tailwind CSS IntelliSense
 - Drizzle ORM IntelliSense
 - PostgreSQL (for DB browsing)
@@ -255,25 +257,117 @@ npm install \
   pg-boss \
   nodemailer \
   @react-email/components react-email \
+  @react-email/render \
   date-fns date-fns-tz \
   ical-generator \
   zod \
+  @hookform/resolvers react-hook-form \
   @aws-sdk/client-s3 @aws-sdk/s3-request-presigner \
   googleapis \
   @microsoft/microsoft-graph-client \
-  tsdav
+  @paralleldrive/cuid2 \
+  sonner \
+  next-themes \
+  clsx tailwind-merge \
+  class-variance-authority \
+  lucide-react \
+  geist
 ```
 
 **Development dependencies:**
 ```bash
 npm install -D \
   drizzle-kit \
+  @biomejs/biome \
+  concurrently \
+  tsx \
   @types/nodemailer \
   @microsoft/microsoft-graph-types \
-  @types/pg
+  @types/pg \
+  embedded-postgres   # optional — only if using Option B (no local PostgreSQL install)
 ```
 
-### 4.3 Shadcn/UI Setup
+> **Note:** `tsdav` (Apple CalDAV) is Phase 2 — do not install at MVP. Add it when implementing iCloud Calendar integration.
+
+**Add `package.json` scripts:**
+```json
+{
+  "scripts": {
+    "dev": "concurrently \"next dev\" \"tsx watch src/lib/worker/index.ts\"",
+    "worker": "tsx src/lib/worker/index.ts",
+    "build": "next build",
+    "start": "next start",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "lint": "biome lint .",
+    "format": "biome format --write ."
+  }
+}
+```
+
+**Add `biome.jsonc` to project root:**
+```jsonc
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "organizeImports": { "enabled": true },
+  "linter": {
+    "enabled": true,
+    "rules": { "recommended": true }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2
+  },
+  "javascript": {
+    "formatter": { "quoteStyle": "single", "trailingCommas": "all" }
+  }
+}
+```
+
+### 4.3 Husky Pre-Commit Hook
+
+Husky runs Biome automatically before every `git commit`. This catches formatting and lint errors before they reach the repository — no CI surprise failures because someone forgot to run `pnpm format`.
+
+**1. Install and initialise husky:**
+
+```bash
+npm install -D husky
+npx husky init
+```
+
+This creates a `.husky/` directory with a sample `pre-commit` file.
+
+**2. Replace `.husky/pre-commit` with the Biome check:**
+
+```bash
+# .husky/pre-commit
+pnpm biome check --write .
+git add -A   # re-stage any files Biome auto-fixed
+```
+
+Or write it in one command:
+
+```bash
+echo 'pnpm biome check --write .\ngit add -A' > .husky/pre-commit
+```
+
+**3. Verify it works:**
+
+```bash
+git add .
+git commit -m "test: verify husky hook"
+# Should see Biome run and auto-fix before the commit completes
+```
+
+> **What `--write` does:** Biome auto-fixes safe issues (formatting, import order) instead of just reporting them. The `git add -A` after it re-stages the fixed files so the commit includes the formatted versions — not the original dirty versions.
+
+> **Skip the hook when needed** (e.g. a WIP commit): `git commit --no-verify -m "wip"` — use sparingly.
+
+---
+
+### 4.5 Shadcn/UI Setup
 
 ```bash
 npx shadcn@latest init
@@ -302,31 +396,46 @@ npx shadcn@latest add \
   command
 ```
 
-### 4.4 Full Package Reference Table
+### 4.6 Full Package Reference Table
 
 | Package | Version | Purpose |
 |---------|---------|---------|
 | `next` | 15.x | Framework — App Router, Server Components, Server Actions, ISR |
-| `react` / `react-dom` | 18.x | Included with Next.js |
+| `react` / `react-dom` | 19.x | Included with Next.js 15 |
 | `typescript` | 5.x | Type safety across full stack |
 | `tailwindcss` | 3.x | Utility-first CSS |
 | `drizzle-orm` | latest | TypeScript ORM — schema-as-code, type-safe queries |
 | `drizzle-kit` | latest | Dev tool — migration generation and Drizzle Studio |
 | `postgres` | latest | PostgreSQL client driver (used by Drizzle) |
-| `better-auth` | latest | Auth — email/password, Google OAuth, magic link, sessions |
+| `better-auth` | latest | Auth — email/password, Google OAuth, magic link, sessions, admin plugin |
 | `pg-boss` | latest | PostgreSQL-backed job queue — no Redis required |
 | `nodemailer` | latest | SMTP email delivery |
 | `@react-email/components` | latest | Email template component library |
-| `react-email` | latest | Email template dev server + renderer |
+| `@react-email/render` | latest | Render React Email templates to HTML string |
+| `react-email` | latest | Email template dev server |
 | `date-fns` | latest | Date arithmetic (add, subtract, format) |
 | `date-fns-tz` | latest | Timezone-aware date arithmetic using IANA names — DST-safe |
 | `ical-generator` | latest | RFC 5545-compliant `.ics` calendar invite file generator |
 | `zod` | latest | Runtime validation for API inputs, forms, env vars |
+| `react-hook-form` | latest | Performant forms with minimal re-renders |
+| `@hookform/resolvers` | latest | Zod resolver for react-hook-form |
 | `@aws-sdk/client-s3` | latest | S3-compatible storage client (AWS, R2, MinIO, B2) |
 | `@aws-sdk/s3-request-presigner` | latest | Generate presigned upload/download URLs |
 | `googleapis` | latest | Google Calendar API + Google Meet link generation |
 | `@microsoft/microsoft-graph-client` | latest | Microsoft Graph — Outlook calendar + Teams meetings |
-| `tsdav` | latest | CalDAV client — Apple iCloud calendar *(Phase 2 only)* |
+| `@paralleldrive/cuid2` | latest | Collision-resistant, URL-safe, sortable IDs for all app tables |
+| `sonner` | latest | Toast notifications |
+| `next-themes` | latest | Light/dark/system theme switching |
+| `clsx` | latest | Conditional className utility |
+| `tailwind-merge` | latest | Merge Tailwind classes without conflicts |
+| `class-variance-authority` | latest | Type-safe component variants (used by Shadcn/UI) |
+| `lucide-react` | latest | Icon library |
+| `geist` | latest | Vercel's Geist font (sans + mono) |
+| **Dev only** | | |
+| `@biomejs/biome` | latest | Linter + formatter — replaces ESLint + Prettier; 10-50× faster |
+| `concurrently` | latest | Run Next.js server and pg-boss worker in parallel in dev |
+| `tsx` | latest | Run TypeScript files directly (for the worker process) |
+| `tsdav` | latest | CalDAV client — Apple iCloud calendar *(Phase 2 only — do not install at MVP)* |
 
 ---
 
@@ -609,7 +718,9 @@ schedica/
 
 ## 7. Database Setup
 
-### 7.1 Create the PostgreSQL Database
+Choose **Option A** (you already have PostgreSQL installed) or **Option B** (zero-install, embedded).
+
+### Option A — Local PostgreSQL Install
 
 ```bash
 # Connect to PostgreSQL
@@ -626,6 +737,89 @@ Your `DATABASE_URL`:
 ```
 postgresql://schedica_user:your_password@localhost:5432/schedica_dev
 ```
+
+---
+
+### Option B — embedded-postgres (Zero-Install)
+
+No PostgreSQL installation needed. `embedded-postgres` downloads and runs a real PostgreSQL 16 binary inside your Node.js process. **Development only — never use in production.**
+
+**1. Install the package** (dev dependency):
+```bash
+npm install -D embedded-postgres
+```
+
+**2. Create `src/lib/db/embedded.ts`** — auto-starts PostgreSQL when `DATABASE_URL` is not set:
+
+```typescript
+// src/lib/db/embedded.ts
+// Only runs in development when DATABASE_URL is not set.
+// Import this at the top of src/lib/worker/boss.ts and src/lib/db/index.ts.
+import EmbeddedPostgres from 'embedded-postgres'
+
+const DB_PORT = 54321
+const DB_NAME = 'schedica_dev'
+const DB_USER = 'schedica'
+const DB_PASS = 'schedica_dev_password'
+
+export const EMBEDDED_DB_URL =
+  `postgresql://${DB_USER}:${DB_PASS}@localhost:${DB_PORT}/${DB_NAME}`
+
+let pg: EmbeddedPostgres | null = null
+
+export async function startEmbeddedPostgres() {
+  if (process.env.DATABASE_URL) return  // real DB configured — skip
+  if (pg) return                         // already started
+
+  pg = new EmbeddedPostgres({
+    databaseDir: './.postgres-data',  // data stored in project root
+    user: DB_USER,
+    password: DB_PASS,
+    port: DB_PORT,
+    persistent: true,                 // data survives restarts
+  })
+
+  await pg.initialise()
+  await pg.start()
+
+  // Create the database if first run
+  const client = pg.getPgClient()
+  await client.connect()
+  await client.query(`CREATE DATABASE ${DB_NAME}`).catch(() => {})  // ignore "already exists"
+  await client.end()
+
+  // Inject the connection string so the rest of the app picks it up
+  process.env.DATABASE_URL = EMBEDDED_DB_URL
+  console.log(`[embedded-postgres] started on port ${DB_PORT}`)
+}
+```
+
+**3. Call `startEmbeddedPostgres()` before anything else** — add to the top of the worker entry point and the Next.js instrumentation file:
+
+```typescript
+// src/instrumentation.ts  (Next.js calls this before the server starts)
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { startEmbeddedPostgres } = await import('./lib/db/embedded')
+    await startEmbeddedPostgres()
+  }
+}
+
+// src/lib/worker/index.ts — add at the very top, before boss import
+import { startEmbeddedPostgres } from '../db/embedded'
+await startEmbeddedPostgres()
+```
+
+**4. `.env.local`** — leave `DATABASE_URL` blank; embedded-postgres fills it in at runtime:
+```bash
+# DATABASE_URL=  ← leave commented out; embedded-postgres sets it automatically
+BETTER_AUTH_SECRET=<generate with openssl rand -base64 32>
+BETTER_AUTH_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+# ... rest of env vars unchanged
+```
+
+> **Switching back to a real PostgreSQL:** Set `DATABASE_URL` in `.env.local` and `embedded-postgres` will skip starting entirely. The rest of the codebase is unaffected.
 
 ### 7.2 Key Configuration — drizzle.config.ts
 
@@ -668,7 +862,7 @@ Complete every item below before starting Phase 0 of [development-plan.md](./dev
 
 ### Machine Setup
 - [ ] Node.js 20+ installed (`node -v`)
-- [ ] PostgreSQL 16+ installed and running (`pg_isready`)
+- [ ] **Option A:** PostgreSQL 16+ installed and running (`pg_isready`) — OR — **Option B:** `embedded-postgres` dev dependency installed and `src/lib/db/embedded.ts` created
 - [ ] Git configured (`git config --global user.email`)
 
 ### Credentials Collected
@@ -688,12 +882,17 @@ Complete every item below before starting Phase 0 of [development-plan.md](./dev
 - [ ] Next.js 15 project created with TypeScript + Tailwind + App Router + src dir
 - [ ] All npm packages installed (see [Section 4](#4-complete-package-list))
 - [ ] Shadcn/UI initialized + all components added
+- [ ] `biome.jsonc` added to project root
+- [ ] `husky` installed and initialised (`npx husky init`)
+- [ ] `.husky/pre-commit` set to run `pnpm biome check --write . && git add -A`
+- [ ] `package.json` scripts updated (dev = Next.js + worker via concurrently, worker, db:generate, db:migrate, lint, format)
 - [ ] `.env.local` file created and all values filled in
 - [ ] `.env.example` file created with blank values (safe to commit)
 - [ ] `.env.local` confirmed in `.gitignore`
 - [ ] PostgreSQL database created
 - [ ] `drizzle.config.ts` configured with `schemaFilter: ["public"]`
-- [ ] `npm run dev` runs without errors on `http://localhost:3000`
+- [ ] `pnpm dev` (or `npm run dev`) runs without errors on `http://localhost:3000`
+- [ ] Worker process starts: `npm run worker` shows "pg-boss started" with no errors
 - [ ] Git repository initialized with first commit
 
 ### Verify External Services Work

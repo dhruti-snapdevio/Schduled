@@ -70,9 +70,9 @@ Before showing the form page, re-verify availability.
 Invitee submits name, email, and custom question answers.
 
 **Engine Actions:**
-- Validate required fields (name, email format)
+- Validate required fields — call `validateName(inviteeName)` and `validateEmail(inviteeEmail)` from `src/lib/validators.ts` before Zod. Both return `null` on invalid input; return `{ error: 'Invalid name' }` immediately if either is `null`.
+- Sanitize all text inputs — call `stripHtml(answer)` from `src/lib/validators.ts` on every custom question text answer to strip HTML tags before saving (prevents stored XSS).
 - Validate required custom question answers
-- Sanitize all input (strip HTML, prevent injection)
 - Normalize phone number format (if collected)
 - Check email against blocked domains (if host configured any)
 
@@ -243,7 +243,45 @@ Schedica uses **PostgreSQL advisory locks** — a pessimistic locking approach t
 5. If another session is waiting for the same lock: it runs its own check after the first commits — if the first succeeded, the slot is now taken and the second returns "slot unavailable"
 
 ### Database Transaction
-All booking creation steps (lock acquisition → availability check → booking insert → job enqueue) run in a single database transaction. If any step fails, the entire transaction rolls back — no orphaned records, no double-bookings.
+All booking creation steps (lock acquisition → idempotency check → availability check → booking insert → email outbox insert → job enqueue → audit log) run in a single database transaction. If any step fails, the entire transaction rolls back — no orphaned records, no double-bookings.
+
+### Idempotency Key (POST Safety)
+
+The booking form submission includes a client-generated idempotency key (UUID, generated on form load). Before taking any action, the engine checks the `idempotency_keys` table:
+
+```typescript
+const existingKey = await db.query.idempotencyKeys.findFirst({
+  where: and(
+    eq(idempotencyKeys.id, idempotencyKey),
+    eq(idempotencyKeys.requestPath, '/api/bookings'),
+    gt(idempotencyKeys.expiresAt, new Date()),
+  ),
+})
+if (existingKey) {
+  // Return the stored response — do NOT create a duplicate booking
+  return Response.json(existingKey.responseBody)
+}
+```
+
+If no existing key: proceed with booking creation and store the response in `idempotency_keys` (TTL: 24h). This prevents duplicate bookings caused by network retries, double-clicks, or browser back-button resubmissions.
+
+### Audit Log
+
+On successful booking creation, an entry is written to `audit_logs`:
+```typescript
+await DbAudit.log({
+  actorUserId: undefined,        // invitees are not logged-in users
+  actorEmail: invitee.email,
+  action: 'booking.created',
+  source: 'api',                 // POST /api/bookings — unauthenticated API route
+  targetType: 'booking',
+  targetId: booking.id,
+  ipAddress: req.headers.get('x-forwarded-for'),
+  after: { bookingId: booking.id, hostId: booking.hostUserId, startTime: booking.startTime },
+})
+```
+
+The `source` field must always be set. Use `'api'` for booking creation (unauthenticated API route), `'web'` for Server Actions, `'worker'` for jobs fired by the worker process. See `database-schema.md` for `auditSourceEnum`.
 
 ---
 
@@ -290,6 +328,8 @@ If a host's calendar integration is disconnected (token expired, access revoked,
 
 Booking pages are publicly accessible with no authentication required. Basic protections are applied to prevent spam bookings without adding friction for real users.
 
+- **Rate limiting** — `POST /api/bookings` is rate-limited at **10 requests / 60 seconds per IP** using the fixed-window counter in `src/lib/rate-limit.ts`. Returns `429 Too Many Requests` with a `Retry-After` header when exceeded. Prevents automated booking spam.
+- **`GET /api/slots` is also rate-limited** — slot availability fetches are limited at the same rate to prevent calendar-scraping.
 - Email format validated with Zod before any DB write
 - Disposable email domain blocklist checked against known throwaway providers
 - No CAPTCHA needed in MVP — CAPTCHA adds friction for genuine invitees
@@ -343,10 +383,51 @@ Booking pages are publicly accessible with no authentication required. Basic pro
 
 ---
 
+## Background Jobs
+
+All post-booking work runs as pg-boss jobs after the DB transaction commits. The booking API returns immediately without waiting for any external API.
+
+| Job Name | Trigger | Payload | pg-boss config |
+|----------|---------|---------|---------------|
+| `EMAIL_SEND` | On booking confirmed (×2: invitee + host) | `{ emailOutboxId }` | retryLimit: 3, retryDelay: 30s |
+| `VIDEO_LINK_GENERATE` | On booking confirmed (if video location) | `{ bookingId, provider }` | retryLimit: 3, retryDelay: exponential (5s→30s→120s) |
+| `CALENDAR_WRITE` | On booking confirmed | `{ bookingId, calendarId }` | retryLimit: 3, retryDelay: 15s |
+| `BOOKING_REMINDER_24H` | On booking confirmed — fires 24h before start | `{ bookingId }` | singletonKey: `{bookingId}_reminder_24h` |
+| `BOOKING_REMINDER_1H` | On booking confirmed — fires 1h before start | `{ bookingId }` | singletonKey: `{bookingId}_reminder_1h` |
+
+### Job Dispatch Order (inside DB transaction)
+
+```typescript
+await db.transaction(async (tx) => {
+  // 1. Advisory lock
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(${slotHash})`)
+  // 2. Idempotency check
+  // 3. Final availability check
+  // 4. Insert booking + answers + guests
+  // 5. Insert email_outbox rows (confirmation invitee + host notification)
+  // 6. Insert audit_logs row (booking.created, source: 'api')
+  // 7. Insert idempotency_keys row
+})
+// After transaction commits:
+// 8. boss.send('EMAIL_SEND', { emailOutboxId: outboxInvitee.id })
+// 9. boss.send('EMAIL_SEND', { emailOutboxId: outboxHost.id })
+// 10. boss.send('VIDEO_LINK_GENERATE', { bookingId, provider })  // if video location
+// 11. boss.send('CALENDAR_WRITE', { bookingId, calendarId })
+// 12. boss.sendAfter('BOOKING_REMINDER_24H', payload, {}, reminderTime24h)
+// 13. boss.sendAfter('BOOKING_REMINDER_1H', payload, {}, reminderTime1h)
+```
+
+> **All handlers use `workMonitored()`** — every `boss.work('JOB_NAME', handler)` in the worker is wrapped with `workMonitored('JOB_NAME', handler)`. See `jobs-queues.md` — "Dead-Letter Queue Monitoring" for the pattern.
+
+---
+
 ## Tech Stack
 
-- **PostgreSQL** — the booking engine depends on two PostgreSQL features for reliability: (1) **advisory locks** (`pg_advisory_xact_lock(hostUserId + startTime)`) to prevent two concurrent bookings from claiming the same host time slot — the lock key must include the **host's user ID**, not the event type ID, so that bookings across different event types for the same host at the same time are correctly serialised; and (2) **transactions** to ensure the booking record, answer records, and all related writes either all succeed or all roll back together.
+- **PostgreSQL** — the booking engine depends on two PostgreSQL features for reliability: (1) **advisory locks** (`pg_advisory_xact_lock(hostUserId + startTime)`) to prevent two concurrent bookings from claiming the same host time slot — the lock key must include the **host's user ID**, not the event type ID, so that bookings across different event types for the same host at the same time are correctly serialised; and (2) **transactions** to ensure all booking record writes, email outbox rows, audit log, and idempotency key either all succeed or all roll back together.
+- **`idempotency_keys` table** — client-generated UUID sent with every booking POST. Prevents duplicate bookings from network retries, double-clicks, or browser back-button resubmissions. TTL: 24h.
+- **`email_outbox` table** — two rows inserted inside the booking transaction (one for invitee confirmation, one for host notification). `EMAIL_SEND` jobs sent after commit — never blocking the booking response.
+- **`audit_logs` table** — `booking.created` row written inside the transaction. Contains invitee email, host ID, start time, and booking ID.
 - **Drizzle ORM** — the `bookings` table holds all booking data (UTC times, status, cancel token, reschedule token, custom answer references, video link). Drizzle's transaction API is used for the atomic booking creation flow.
 - **Next.js API Route** — `POST /api/bookings` is the single endpoint for the entire booking creation flow: Zod validation → conflict check → DB write → job dispatch.
 - **Zod** — validates the complete booking form payload (invitee name, email, selected slot, answers) before any database operation. Strips HTML from all text inputs to prevent XSS.
-- **pg-boss** — after the database transaction commits, four jobs are enqueued: video link generation, calendar event write, confirmation email to both parties, and reminder scheduling. Separating these from the transaction means the booking is confirmed instantly even if a downstream API (Zoom, Google) is slow.
+- **pg-boss** — after the database transaction commits, jobs are enqueued: `EMAIL_SEND` (×2), `VIDEO_LINK_GENERATE`, `CALENDAR_WRITE`, `BOOKING_REMINDER_24H`, `BOOKING_REMINDER_1H`. All use `singletonKey` format `{bookingId}_{jobType}` so each job can be individually cancelled on reschedule or cancellation.

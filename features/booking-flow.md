@@ -278,10 +278,66 @@ For events requiring multiple hosts to be present:
 
 ---
 
+## Background Jobs
+
+Every booking lifecycle event triggers pg-boss jobs. All are keyed with `singletonKey: {bookingId}_{jobType}` so they can be individually cancelled.
+
+| Event | Jobs Enqueued |
+|-------|--------------|
+| Booking confirmed | `EMAIL_SEND` (×2), `VIDEO_LINK_GENERATE`, `CALENDAR_WRITE`, `BOOKING_REMINDER_24H`, `BOOKING_REMINDER_1H` |
+| Booking cancelled (by invitee) | `EMAIL_SEND` (×2: cancellation emails), `BOOKING_CANCEL_REMINDERS`, `CALENDAR_CANCEL` |
+| Booking cancelled (by host) | `EMAIL_SEND` (×1: host-cancellation to invitee), `BOOKING_CANCEL_REMINDERS`, `CALENDAR_CANCEL` |
+| Booking rescheduled | `EMAIL_SEND` (×2: reschedule emails), `BOOKING_RESCHEDULE_REMINDERS`, `CALENDAR_UPDATE` |
+
+### BOOKING_CANCEL_REMINDERS job
+
+Cancels the pending 24h and 1h reminder jobs so they don't fire for a meeting that no longer exists:
+
+```typescript
+// Handler
+await boss.cancel('BOOKING_REMINDER_24H', `${bookingId}_reminder_24h`)
+await boss.cancel('BOOKING_REMINDER_1H',  `${bookingId}_reminder_1h`)
+```
+
+### BOOKING_RESCHEDULE_REMINDERS job
+
+Cancels old reminder jobs and schedules new ones at the rescheduled meeting time:
+
+```typescript
+// Cancel old
+await boss.cancel('BOOKING_REMINDER_24H', `${oldBookingId}_reminder_24h`)
+await boss.cancel('BOOKING_REMINDER_1H',  `${oldBookingId}_reminder_1h`)
+// Schedule new
+await boss.sendAfter('BOOKING_REMINDER_24H', { bookingId: newBookingId }, {
+  singletonKey: `${newBookingId}_reminder_24h`,
+}, newStart24hBefore)
+await boss.sendAfter('BOOKING_REMINDER_1H', { bookingId: newBookingId }, {
+  singletonKey: `${newBookingId}_reminder_1h`,
+}, newStart1hBefore)
+```
+
+> **All handlers use `workMonitored()`** — every `boss.work('JOB_NAME', handler)` call in the worker is wrapped with `workMonitored('JOB_NAME', handler)` instead. This fires the dead-letter callback when a job exhausts all retries. See `jobs-queues.md` — "Dead-Letter Queue Monitoring" section.
+
+## Audit Logging
+
+Every cancellation and reschedule writes an entry to `audit_logs`:
+
+| Event | Audit Action | source |
+|-------|-------------|--------|
+| Invitee cancels | `booking.cancelled_by_invitee` | `'api'` (invitee hits `/api/bookings/[id]/cancel`) |
+| Host cancels from dashboard | `booking.cancelled_by_host` | `'web'` (Server Action) |
+| Invitee reschedules | `booking.rescheduled` | `'api'` |
+
+Every `audit_logs` insert must include `source: 'web' | 'api' | 'worker' | 'system'`. Set `source: 'api'` for invitee cancel/reschedule (unauthenticated API routes) and `source: 'web'` for host-initiated Server Actions. See `database-schema.md` for the full `auditSourceEnum`.
+
+---
+
 ## Tech Stack
 
 - **Next.js App Router** — the full booking flow spans three pages: the public booking calendar (`/[username]/[eventSlug]`), the booking form (step 2 on the same page), and the confirmation screen (`/[username]/[eventSlug]/confirmed`). Cancel and reschedule flows are token-based pages that work without any invitee login.
-- **PostgreSQL** — cancel and reschedule operations use database transactions to ensure atomic state changes (no partial updates). Advisory locks prevent two concurrent reschedule requests from creating conflicting bookings for the same new slot.
-- **Drizzle ORM** — stores a unique `cancelToken` and `rescheduleToken` on every booking record. These tokens are embedded in confirmation email links, allowing invitees to cancel or reschedule without an account. Token lookup is the only authentication needed for these flows.
-- **pg-boss** — orchestrates all async work triggered by the booking flow. On new booking: enqueues video link generation, calendar write, confirmation email, and reminder scheduling. On cancellation or reschedule: cancels pending reminder jobs and enqueues cancellation/reschedule notification emails.
+- **PostgreSQL** — cancel and reschedule operations use database transactions to ensure atomic state changes (no partial updates). Advisory locks prevent two concurrent reschedule requests from creating conflicting bookings for the same new slot. All cancel/reschedule writes include audit log row within the same transaction.
+- **Drizzle ORM** — stores a unique `cancelToken` and `rescheduleToken` on every booking record. Both tokens are generated with `crypto.randomUUID()` at booking INSERT time and embedded in confirmation email links, allowing invitees to cancel or reschedule without a Schedica account. Token lookup is the only authentication for these flows.
+- **`GET /api/slots` — rate limited** — the endpoint that returns available time slots for a booking page is rate-limited at 10 requests / 60 seconds per IP (same `rateLimiter` middleware from `src/lib/rate-limit.ts` used by `POST /api/bookings`). Prevents slot-scraping abuse.
+- **pg-boss** — orchestrates all async work triggered by the booking flow. On new booking: enqueues `EMAIL_SEND` (×2), `VIDEO_LINK_GENERATE`, `CALENDAR_WRITE`, `BOOKING_REMINDER_24H`, `BOOKING_REMINDER_1H`. On cancellation: enqueues `EMAIL_SEND` (×2), `BOOKING_CANCEL_REMINDERS`, `CALENDAR_CANCEL`. On reschedule: enqueues `EMAIL_SEND` (×2), `BOOKING_RESCHEDULE_REMINDERS`, `CALENDAR_UPDATE`.
+- **`audit_logs` table** — every cancel/reschedule writes `booking.cancelled_by_invitee`, `booking.cancelled_by_host`, or `booking.rescheduled` inside the DB transaction.
 - **Better Auth** — protects host-side dashboard routes. The public booking and cancel/reschedule flows are intentionally unauthenticated — invitees use secure single-use tokens instead of requiring a Schedica account.

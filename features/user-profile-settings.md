@@ -299,12 +299,43 @@ Irreversible account actions, separated and clearly marked.
 
 ---
 
+## Background Jobs
+
+| Job Name | Trigger | What It Does | Phase |
+|----------|---------|-------------|-------|
+| `DATA_EXPORT` | Host requests GDPR export | Compiles user data into ZIP, uploads to S3, sends download link email | Phase 2 |
+| `EMAIL_SEND` | Profile photo uploaded, password changed, email changed | Sends confirmation email via email_outbox pattern | MVP |
+
+---
+
+## Audit Logging
+
+Every significant profile mutation writes an immutable audit record inside the same DB transaction as the change.
+
+| Action | When | Data Logged |
+|--------|------|-------------|
+| `user.profile_updated` | Name, display name, job title, company, bio, or website changed | fieldName, oldValue, newValue |
+| `user.timezone_changed` | Timezone updated | oldTimezone, newTimezone |
+| `user.username_changed` | Booking URL slug changed | oldUsername, newUsername, redirectCreated: true |
+| `user.photo_updated` | Profile photo uploaded or removed | S3 key |
+| `user.password_changed` | Password change submitted | (no sensitive data — just the event) |
+| `user.email_change_requested` | New email submitted; verification pending | newEmail (masked) |
+| `user.account_deleted` | Account deletion confirmed | userId, email, deletedAt |
+| `calendar.connected` | Calendar OAuth completed | provider, accountEmail |
+| `calendar.disconnected` | Calendar disconnect clicked | provider, accountEmail |
+
+All audit records include: `actorId` (the host's own user ID), `actorIp` (request IP), `source: 'web'` (all profile mutations come from Server Actions), `createdAt`. See `database-schema.md` for `auditSourceEnum`.
+
+---
+
 ## Tech Stack
 
 - **Better Auth** — manages password changes, 2FA setup (TOTP via authenticator app — Phase 2), active session listing and revocation (Phase 2). The admin plugin lets custom Next.js admin pages view, ban, or impersonate any user account.
 - **Next.js App Router** — all settings pages are protected server components. They read the current session via Better Auth and load the user's profile data before rendering — no loading spinner on page open.
 - **PostgreSQL + Drizzle ORM** — stores extended profile fields in a `user_profiles` table (display name, job title, company, bio, website, theme preference, date/time format) and notification preferences in a separate `notification_preferences` table. The `username_redirects` table records old usernames for 30-day redirect support.
+- **audit_logs** — every profile mutation (name, timezone, username, photo, password) writes an audit record inside the same DB transaction as the change. Visible to admins in the audit log viewer.
 - **S3-compatible storage (@aws-sdk/client-s3 + @aws-sdk/s3-request-presigner)** — hosts uploaded profile photos. Works with any S3-compatible provider (AWS S3, Cloudflare R2, MinIO, Backblaze B2). The browser uploads directly to the bucket using a presigned URL (generated server-side), so the image never passes through the Next.js server. The stored S3 key is saved in the `user_profiles` table; a public URL is derived from the key.
 - **Shadcn/UI** — provides the settings form components: inputs, toggles, dropdowns, avatar upload cropper, and confirmation dialogs (for dangerous actions like account deletion).
-- **pg-boss** — used for the GDPR data export job *(Phase 2)*: on request, a job is enqueued that compiles the user's data into a ZIP file, uploads it to S3, and sends a download link via Nodemailer within 24 hours. At MVP, pg-boss is already used for notifications and reminders — the export job is added in Phase 2 without new infrastructure.
+- **pg-boss** — used for the GDPR data export job *(Phase 2)*: on request, a job is enqueued that compiles the user's data into a ZIP file, uploads it to S3, and sends a download link via Nodemailer within 24 hours. At MVP, pg-boss is already used for notifications and reminders — the export job is added in Phase 2 without new infrastructure. All job handlers registered with `workMonitored()` — see `jobs-queues.md`.
+- **`src/lib/validators.ts`** — profile update Server Actions must run inputs through the centralized validators before Zod: `validateName(fullName)` (returns null if empty/too long/contains control chars), `validateUrl(websiteUrl)` (returns null if not a valid http/https URL). Return `{ error: 'Invalid name' }` immediately if either returns null — do not pass bad input to Zod.
 - **Custom Admin Panel** — built with Next.js App Router and Shadcn/UI, powered by the Better Auth Admin Plugin. Platform administrators can view any user's profile, sessions, and account status through a custom-built admin interface.
