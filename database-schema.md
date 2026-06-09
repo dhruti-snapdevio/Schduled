@@ -121,20 +121,9 @@ export const videoProviderEnum = pgEnum('video_provider', [
 
 // ── Jobs & Notifications ─────────────────────────────────────────────────────
 
-export const jobTypeEnum = pgEnum('job_type', [
-  'send_confirmation_invitee',
-  'send_confirmation_host',
-  'create_calendar_event',
-  'generate_video_link',
-  'send_reminder_24h',
-  'send_reminder_1h',
-  'send_cancellation_invitee',
-  'send_cancellation_host',
-  'send_reschedule_invitee',
-  'send_reschedule_host',
-  'noshow_check',     // Phase 2
-  'gdpr_data_export', // Phase 2
-])
+// jobType is stored as text — it holds the actual pg-boss job name (e.g. 'BOOKING_REMINDER_24H').
+// A Drizzle/Postgres enum would require a migration every time a job is added or renamed;
+// plain text keeps workflow_jobs in sync with the job-types.ts constants without schema churn.
 
 export const jobStatusEnum = pgEnum('job_status', [
   'pending',
@@ -186,7 +175,10 @@ export const auditActionEnum = pgEnum('audit_action', [
   'user.username_changed',
   'user.photo_updated',
   'user.password_changed',
+  'user.email_change_requested',  // new email submitted; verification pending
   'user.account_deleted',
+  // Branding
+  'user.branding_updated',        // logo, color, confirmation message, or any branding field
   // Bookings
   'booking.created',
   'booking.cancelled_by_invitee',
@@ -196,6 +188,13 @@ export const auditActionEnum = pgEnum('audit_action', [
   'event_type.created',
   'event_type.updated',
   'event_type.deleted',
+  'event_type.activated',
+  'event_type.deactivated',
+  // Availability
+  'availability.schedule_updated',   // weekly hours or schedule name changed
+  'availability.override_added',     // date blocked or hours overridden for a specific date
+  'availability.override_removed',   // date override removed
+  'availability.schedule_assigned',  // different named schedule assigned to an event type
   // Calendars
   'calendar.connected',
   'calendar.disconnected',
@@ -579,7 +578,7 @@ export const bookings = pgTable('bookings', {
 
   status: bookingStatusEnum('status').notNull().default('confirmed'),
 
-  // Cancellation & reschedule tokens — random cuid2, single-use, in confirmation emails
+  // Cancellation & reschedule tokens — crypto.randomUUID(), single-use, in confirmation emails
   cancelToken:         text('cancel_token').notNull().unique(),
   rescheduleToken:     text('reschedule_token').notNull().unique(),
   cancellationReason:  text('cancellation_reason'),
@@ -631,7 +630,7 @@ Per-user email notification preferences and the pg-boss job tracker.
 import { pgTable, text, boolean, integer, timestamp, index } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 import { bookings } from './bookings'
-import { jobTypeEnum, jobStatusEnum } from './enums'
+import { jobStatusEnum } from './enums'
 
 // One row per user — which email notifications they want to receive
 export const notificationPreferences = pgTable('notification_preferences', {
@@ -655,8 +654,8 @@ export const notificationPreferences = pgTable('notification_preferences', {
 export const workflowJobs = pgTable('workflow_jobs', {
   id:            text('id').primaryKey(),
   bookingId:     text('booking_id').notNull().references(() => bookings.id, { onDelete: 'cascade' }),
-  jobType:       jobTypeEnum('job_type').notNull(),
-  singletonKey:  text('singleton_key').notNull(), // "{bookingId}_{jobType}"
+  jobType:       text('job_type').notNull(),        // pg-boss job name: 'BOOKING_REMINDER_24H', 'EMAIL_SEND', etc.
+  singletonKey:  text('singleton_key').notNull(),  // "{bookingId}_{jobType}"
   scheduledFor:  timestamp('scheduled_for', { withTimezone: true }), // null = immediate; set for reminder jobs
   status:        jobStatusEnum('status').notNull().default('pending'),
   completedAt:   timestamp('completed_at', { withTimezone: true }),
@@ -1013,6 +1012,7 @@ Drizzle client — imports the combined schema.
 ```typescript
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
+import { env } from '@/lib/env'  // never use process.env.X directly
 import * as schema from './schema'
 
 // Global singleton — prevents multiple Drizzle instances in Next.js dev HMR
@@ -1020,13 +1020,13 @@ declare global {
   var dbGlobal: ReturnType<typeof drizzle> | undefined
 }
 
-const client = postgres(process.env.DATABASE_URL!, {
+const client = postgres(env.DATABASE_URL, {
   max: 20, // connection pool size
 })
 
 const db = global.dbGlobal ?? drizzle(client, { schema })
 
-if (process.env.NODE_ENV !== 'production') {
+if (env.NODE_ENV !== 'production') {
   global.dbGlobal = db
 }
 

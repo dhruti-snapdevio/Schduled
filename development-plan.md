@@ -110,7 +110,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] Set up `src/lib/storage/s3.ts` — `S3Client` singleton using `S3_*` env vars; set `endpoint` when using non-AWS provider
 - [ ] Set up `src/lib/storage/presign.ts` — `getPresignedUploadUrl(key)`, `deleteFile(key)`, `getPublicUrl(key)`
 - [ ] Set up `src/lib/worker/boss.ts` — pg-boss client singleton
-- [ ] Set up `src/lib/encrypt.ts` — AES-256-GCM `encrypt(text)` / `decrypt(ciphertext)` using `ENCRYPTION_KEY` env var (for OAuth token storage at rest)
+- [ ] Set up `src/lib/encrypt.ts` — AES-256-GCM `encryptValue(text)` / `decryptValue(ciphertext)` using `ENCRYPT_KEY` env var (for OAuth token storage at rest)
 - [ ] Initialize git repository and make initial commit
 
 **Done when:** `npm run dev` runs both the Next.js server and the pg-boss worker without errors.
@@ -159,7 +159,7 @@ Phase 20 →  QA & Launch Prep
 
   **`notifications.ts` — Notifications & reminders:**
   - [ ] `notification_preferences` — id, userId, bookingConfirmationEmail, bookingNotificationEmail, reminderEmail24h, reminderEmail1h, cancellationEmail, rescheduleEmail, dailyDigestEmail, weeklySummaryEmail, fromName, replyToEmail, emailFormat (detailed/summary), updatedAt
-  - [ ] `workflow_jobs` — id, bookingId, jobType (reminder_24h/reminder_1h/followup/noshow_check), singletonKey, scheduledFor, status, completedAt (timestamp — set when job completes or permanently fails), failureReason (text nullable — last error message if job failed, for admin panel visibility), createdAt
+  - [ ] `workflow_jobs` — id, bookingId, jobType text (stores the pg-boss job name directly, e.g. `'BOOKING_REMINDER_24H'` — plain `text`, no Drizzle enum so adding jobs never needs a schema migration), singletonKey, scheduledFor, status, retryCount int default 0, completedAt (timestamp — set when job completes or permanently fails), failureReason (text nullable — last error message if job failed, for admin panel visibility), createdAt
 
 - [ ] Run initial migration:
   ```bash
@@ -457,7 +457,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] Disconnect Apple Calendar
 
 **Free/Busy Caching:**
-- [ ] `sync-calendar` pg-boss job — runs every 10 minutes per connected calendar
+- [ ] `CALENDAR_SYNC` pg-boss cron job — runs every 5 minutes (`*/5 * * * *`), refreshes `calendar_events_cache` for all connected calendars
 - [ ] Cache free/busy windows in `calendar_events_cache`
 - [ ] Booking engine reads from cache first, falls back to live API call
 
@@ -570,18 +570,18 @@ Phase 20 →  QA & Launch Prep
 - [ ] Re-verify slot availability inside a DB transaction (final check)
 - [ ] Insert booking record into `bookings` table
 - [ ] Release advisory lock
-- [ ] Enqueue post-booking pg-boss jobs (inside same transaction):
-  - [ ] `generate-video-link` — create Zoom / Google Meet link
-  - [ ] `write-calendar-event` — add event to host's connected calendar
-  - [ ] `send-confirmation` — send confirmation emails to host + invitee
-  - [ ] `schedule-reminders` — schedule 24h and 1h reminder jobs
+- [ ] Enqueue post-booking pg-boss jobs (after transaction commits — all jobs use canonical names from jobs-queues.md):
+  - [ ] `VIDEO_LINK_GENERATE` — create Zoom or Teams meeting link (Google Meet generated inside CALENDAR_WRITE)
+  - [ ] `CALENDAR_WRITE` — create event on host's Google/Outlook calendar
+  - [ ] `EMAIL_SEND` ×2 — confirmation email to invitee + notification email to host
+  - [ ] `BOOKING_REMINDER_24H` / `BOOKING_REMINDER_1H` — scheduled for 24h and 1h before startTime
 - [ ] Return booking confirmation data to client
 
 **pg-boss Workers:**
-- [ ] `generate-video-link` worker — calls Zoom or Google Meet API, updates booking record with video URLs
-- [ ] `write-calendar-event` worker — creates calendar event on host's calendar with .ics invite
-- [ ] `send-confirmation` worker — renders React Email template and sends via Nodemailer (SMTP)
-- [ ] `schedule-reminders` worker — schedules two future pg-boss jobs (24h and 1h before start)
+- [ ] `VIDEO_LINK_GENERATE` handler — calls Zoom API (`POST /v2/users/me/meetings`) or reads Meet link from CALENDAR_WRITE result; updates `bookings.videoLinkHost` / `videoLinkInvitee`; `localConcurrency: 3`
+- [ ] `CALENDAR_WRITE` handler — creates calendar event on host's calendar with invitee as attendee; stores `externalEventId` on booking; `localConcurrency: 1` (must serialize)
+- [ ] `EMAIL_SEND` handler — fetches `email_outbox` row, renders React Email template, sends via Nodemailer SMTP, updates status; `localConcurrency: 5`
+- [ ] `BOOKING_REMINDER_24H` / `BOOKING_REMINDER_1H` handlers — look up booking, render reminder template, insert `email_outbox` row, enqueue `EMAIL_SEND`; `localConcurrency: 5`
 
 **Booking Status Flow:**
 - [ ] `confirmed` — successfully booked
@@ -673,7 +673,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] Register Zoom OAuth app in Zoom Marketplace (development mode first)
 - [ ] OAuth 2.0 connection: `GET /api/video/zoom/connect` → redirect to Zoom OAuth
 - [ ] Callback: `GET /api/video/zoom/callback` → exchange code, save tokens
-- [ ] `generate-video-link` worker: call `POST /v2/users/me/meetings` via Zoom API
+- [ ] `VIDEO_LINK_GENERATE` handler (`src/lib/worker/handlers/video-link-generate.ts`): call `POST /v2/users/me/meetings` via Zoom API
   - [ ] Unique meeting ID + passcode per booking
   - [ ] Meeting title = event type name + invitee name
   - [ ] Duration = booking duration
@@ -765,28 +765,29 @@ Phase 20 →  QA & Launch Prep
 ### Tasks
 
 **pg-boss Job Scheduling:**
-- [ ] On booking created — schedule four future jobs:
-  - [ ] `reminder_24h` — fires 24 hours before `startTime`
-  - [ ] `reminder_1h` — fires 1 hour before `startTime`
-  - [ ] `followup` — fires 30 minutes after `endTime` *(Phase 2)*
-  - [ ] `noshow_check` — fires 15 minutes after `startTime` *(Phase 2)*
-- [ ] Each job uses `singletonKey` = `{bookingId}_{jobType}` — ensures one job per booking per type
+- [ ] On booking created — schedule future jobs via `boss.send(jobName, payload, { startAfter, singletonKey })`:
+  - [ ] `BOOKING_REMINDER_24H` — fires 24 hours before `startTime`; singletonKey `{bookingId}_reminder_24h`
+  - [ ] `BOOKING_REMINDER_1H` — fires 1 hour before `startTime`; singletonKey `{bookingId}_reminder_1h`
+  - [ ] `followup` *(Phase 2)* — fires 30 minutes after `endTime`
+  - [ ] `noshow_check` *(Phase 2)* — fires 15 minutes after `startTime`
+- [ ] Each MVP job uses `singletonKey` = `{bookingId}_{suffix}` — ensures one job per booking per type
 - [ ] On booking cancelled — cancel all pending reminder jobs by `singletonKey`
 - [ ] On booking rescheduled — cancel old jobs, schedule new jobs with updated times
 
 **pg-boss Workers:**
-- [ ] `send-reminder.ts`:
+- [ ] `BOOKING_REMINDER_24H` and `BOOKING_REMINDER_1H` handlers (`src/lib/worker/handlers/booking-reminder-24h.ts`, `booking-reminder-1h.ts`):
   - [ ] Fetch booking + host + invitee details
-  - [ ] Confirm booking is still `confirmed` (skip if cancelled/rescheduled)
-  - [ ] Send reminder email to invitee via Nodemailer (render React Email template → send via SMTP)
-  - [ ] Invitee time + host time in email (both timezones)
-  - [ ] Video join link prominently displayed
-  - [ ] Reschedule and cancel links in footer
-- [ ] Transactional email workers (fire immediately, not scheduled):
-  - [ ] `send-booking-confirmation` — to invitee (triggered on booking creation — Phase 14)
-  - [ ] `send-host-notification` — to host (triggered on booking creation — Phase 14)
-  - [ ] `send-cancellation-notification` — to both parties (Phase 17)
-  - [ ] `send-reschedule-notification` — to both parties (Phase 17)
+  - [ ] Guard: if booking.status !== 'confirmed' → return (idempotent — cancelled bookings must not send reminders)
+  - [ ] Render reminder React Email template with both timezones (invitee time + host time)
+  - [ ] Insert `email_outbox` row, enqueue `EMAIL_SEND` job
+  - [ ] Video join link prominently displayed; reschedule and cancel links in footer
+- [ ] All transactional emails go through `EMAIL_SEND` job (never call nodemailer directly in API routes):
+  - [ ] Booking confirmation to invitee + host notification — enqueued in booking creation transaction (Phase 14)
+  - [ ] Cancellation emails to both parties — enqueued on cancel (Phase 17)
+  - [ ] Reschedule emails to both parties — enqueued on reschedule (Phase 17)
+- [ ] Cleanup cron jobs registered in `src/lib/worker/index.ts`:
+  - [ ] `EMAIL_OUTBOX_REAP` — cron daily 03:00 UTC — delete email_outbox rows >90 days with status=sent/failed
+  - [ ] `EMAIL_EVENTS_PRUNE` — cron daily 03:30 UTC — delete email_events rows >30 days
 
 **Email Templates (React Email → Nodemailer SMTP):**
 - [ ] Booking confirmation — invitee
@@ -913,7 +914,7 @@ Phase 20 →  QA & Launch Prep
 ### Tasks
 
 **Access Control:**
-- [ ] `/admin` route group — check `is_platform_admin = true` via Better Auth Admin Plugin, else redirect to `/`
+- [ ] `/admin` route group — check `session.user.role === 'admin'` via Better Auth Admin Plugin, else redirect to `/`
 - [ ] All `/api/admin/*` routes return 403 for non-platform-admins
 
 **Admin Panel Setup:**

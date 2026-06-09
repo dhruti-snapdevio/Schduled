@@ -292,6 +292,26 @@ When a team has members across multiple timezones (common in remote teams):
 
 ---
 
+## Background Jobs
+
+No background jobs are directly triggered by timezone reads or display. The timezone conversion logic runs synchronously in the slot generation path.
+
+The one indirect job dependency: slot generation reads `calendar_events_cache`, which is kept current by the `CALENDAR_SYNC` pg-boss cron job (every 5 minutes per connected calendar). Timezone conversion is applied during slot generation — not inside the job itself. See `calendar-integrations.md` for the `CALENDAR_SYNC` job details.
+
+---
+
+## Audit Logging
+
+Timezone changes are not a separate audit action — they are logged as part of the host's profile save:
+
+| Action | When | source | Data Logged |
+|--------|------|--------|-------------|
+| `user.timezone_changed` | Host updates timezone in Profile & Settings | `'web'` | oldTimezone (IANA string), newTimezone (IANA string) |
+
+This audit record is written inside the same DB transaction as the profile update by the user-profile-settings Server Action. See `user-profile-settings.md` for the full audit record definition and `database-schema.md` for `auditSourceEnum`.
+
+---
+
 ## Tech Stack
 
 - **date-fns-tz** — the core library for all timezone conversions. Converts host availability windows (defined in their local IANA timezone) to UTC for storage, and converts UTC booking times back to any display timezone. Uses IANA timezone names (e.g., `"Asia/Kolkata"`) rather than raw UTC offsets, so DST transitions are handled automatically without any manual logic.

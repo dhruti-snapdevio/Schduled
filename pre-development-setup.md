@@ -293,7 +293,7 @@ npm install -D \
 ```json
 {
   "scripts": {
-    "dev": "concurrently \"next dev\" \"tsx watch src/lib/worker/index.ts\"",
+    "dev": "concurrently \"next dev\" \"tsx src/lib/worker/index.ts\"",
     "worker": "tsx src/lib/worker/index.ts",
     "build": "next build",
     "start": "next start",
@@ -510,11 +510,23 @@ S3_BUCKET_NAME=schedica-uploads-dev
 #   MinIO local:   http://localhost:9000
 #   Backblaze B2:  https://s3.<region>.backblazeb2.com
 S3_ENDPOINT=
+
+# ─────────────────────────────────────────────────────────────
+# ENCRYPTION KEY — OAuth tokens stored at rest (AES-256-GCM)
+# Generate with: openssl rand -hex 32  (produces exactly 64 hex chars = 32 bytes)
+# Keep separate from BETTER_AUTH_SECRET — rotating one must not break the other
+# ─────────────────────────────────────────────────────────────
+ENCRYPT_KEY=
 ```
 
 **How to generate `BETTER_AUTH_SECRET`:**
 ```bash
 openssl rand -base64 32
+```
+
+**How to generate `ENCRYPT_KEY`:**
+```bash
+openssl rand -hex 32
 ```
 
 **Add `.env.local` to `.gitignore`** (Next.js does this automatically, but double-check):
@@ -652,15 +664,17 @@ schedica/
 │       │   └── client.ts                 ← Better Auth client (used in Client Components)
 │       │
 │       ├── db/
-│       │   ├── schema/                   ← Drizzle schema — one file per domain
+│       │   ├── schema/                   ← Drizzle schema — one file per domain (schemaFilter: ['public'])
 │       │   │   ├── users.ts              ← users, sessions, accounts, verifications, user_profiles, user_branding, username_redirects
 │       │   │   ├── event-types.ts        ← event_types, event_type_durations, cancellation_policies, availability_schedules, availability_windows, availability_overrides, event_type_questions
 │       │   │   ├── bookings.ts           ← bookings, booking_answers, booking_guests
 │       │   │   ├── calendars.ts          ← connected_calendars, calendar_events_cache
 │       │   │   ├── video.ts              ← video_connections
-│       │   │   ├── notifications.ts      ← notification_preferences, workflow_jobs
+│       │   │   ├── notifications.ts      ← notification_preferences, email_outbox, email_events
+│       │   │   ├── platform.ts           ← audit_logs, platform_settings, idempotency_keys, disposable_email_domains
 │       │   │   └── index.ts              ← exports all schema tables for Drizzle
 │       │   ├── index.ts                  ← Drizzle client + db connection
+│       │   ├── audit.ts                  ← DbAudit.log(), auditBatch(), extractRequestContext()
 │       │   └── queries/                  ← Reusable typed query helpers
 │       │       ├── bookings.ts
 │       │       ├── event-types.ts
@@ -669,34 +683,61 @@ schedica/
 │       ├── email/
 │       │   ├── client.ts                 ← Nodemailer SMTP transporter singleton
 │       │   ├── send.ts                   ← send() wrapper — render template → sendMail()
-│       │   └── templates/                ← React Email components
-│       │       ├── booking-confirmation.tsx
-│       │       ├── booking-notification.tsx
-│       │       ├── reminder.tsx
-│       │       ├── cancellation.tsx
-│       │       ├── reschedule.tsx
-│       │       ├── welcome.tsx
-│       │       └── verification.tsx
+│       │   └── templates/                ← React Email components (14 templates)
+│       │       ├── booking-confirmation.tsx        ← Invitee booking confirmed
+│       │       ├── booking-notification-host.tsx   ← Host new booking alert
+│       │       ├── reminder-24h.tsx                ← 24-hour reminder to invitee
+│       │       ├── reminder-1h.tsx                 ← 1-hour reminder to invitee
+│       │       ├── cancellation-invitee.tsx        ← Invitee: booking cancelled
+│       │       ├── cancellation-host.tsx           ← Host: booking cancelled by invitee
+│       │       ├── reschedule-invitee.tsx          ← Invitee: booking rescheduled
+│       │       ├── reschedule-host.tsx             ← Host: booking rescheduled by invitee
+│       │       ├── host-cancellation-invitee.tsx   ← Invitee: host cancelled their meeting
+│       │       ├── email-verification.tsx          ← Account email verification code
+│       │       ├── password-reset.tsx              ← Password reset link
+│       │       ├── welcome.tsx                     ← Welcome email after signup
+│       │       ├── calendar-disconnect-alert.tsx   ← Host: calendar OAuth token expired
+│       │       └── video-link-failed-host.tsx      ← Host: Zoom/Teams link generation failed
 │       │
 │       ├── storage/
 │       │   ├── client.ts                 ← S3Client singleton
 │       │   └── upload.ts                 ← getPresignedUploadUrl(), deleteFile(), getPublicUrl()
 │       │
-│       ├── jobs/
-│       │   ├── client.ts                 ← pg-boss instance singleton
-│       │   ├── workers/
-│       │   │   ├── send-reminder.ts      ← 24h / 1h reminder email jobs
-│       │   │   ├── send-confirmation.ts  ← Booking confirmation email job
-│       │   │   ├── send-followup.ts      ← Post-meeting follow-up job
-│       │   │   ├── sync-calendar.ts      ← Calendar free/busy sync job
-│       │   │   ├── generate-video.ts     ← Zoom / Teams link generation job
-│       │   │   └── gdpr-export.ts        ← Data export ZIP + S3 upload job
-│       │   └── scheduler.ts              ← Job registration + cron definitions
+│       ├── worker/                       ← pg-boss worker process (run via: pnpm worker)
+│       │   ├── boss.ts                   ← pg-boss client init + connection
+│       │   ├── index.ts                  ← Entry point: registers all handlers + cron schedules
+│       │   ├── job-types.ts             ← TypeScript payload types for all 16 jobs
+│       │   ├── work-monitored.ts        ← workMonitored() — DLQ wrapper around boss.work()
+│       │   └── handlers/                ← One file per job type
+│       │       ├── email-send.ts                    ← EMAIL_SEND
+│       │       ├── email-outbox-reap.ts             ← EMAIL_OUTBOX_REAP (cron)
+│       │       ├── email-events-prune.ts            ← EMAIL_EVENTS_PRUNE (cron)
+│       │       ├── booking-reminder-24h.ts          ← BOOKING_REMINDER_24H
+│       │       ├── booking-reminder-1h.ts           ← BOOKING_REMINDER_1H
+│       │       ├── booking-cancel-reminders.ts      ← BOOKING_CANCEL_REMINDERS
+│       │       ├── booking-reschedule-reminders.ts  ← BOOKING_RESCHEDULE_REMINDERS
+│       │       ├── video-link-generate.ts           ← VIDEO_LINK_GENERATE
+│       │       ├── video-link-retry.ts              ← VIDEO_LINK_RETRY
+│       │       ├── calendar-write.ts                ← CALENDAR_WRITE
+│       │       ├── calendar-update.ts               ← CALENDAR_UPDATE
+│       │       ├── calendar-cancel.ts               ← CALENDAR_CANCEL
+│       │       ├── calendar-sync.ts                 ← CALENDAR_SYNC (cron, every 5 min)
+│       │       ├── calendar-token-refresh.ts        ← CALENDAR_TOKEN_REFRESH
+│       │       ├── calendar-disconnect-alert.ts     ← CALENDAR_DISCONNECT_ALERT
+│       │       └── disposable-emails-refresh.ts     ← DISPOSABLE_EMAILS_REFRESH (cron)
 │       │
-│       └── types/
-│           ├── booking.ts
-│           ├── event-type.ts
-│           └── calendar.ts
+│       ├── types/
+│       │   ├── booking.ts
+│       │   ├── event-type.ts
+│       │   └── calendar.ts
+│       │
+│       ├── env.ts                        ← Zod-validated env vars — import env.X, never process.env.X
+│       ├── validators.ts                 ← validateName(), validateEmail(), validateUrl(), stripHtml()
+│       ├── encrypt.ts                    ← encryptValue() / decryptValue() — AES-256-GCM with ENCRYPT_KEY
+│       ├── secret.ts                     ← Secret<T> wrapper — prevents tokens appearing in logs
+│       ├── rate-limit.ts                 ← applyRateLimit() — in-memory fixed-window counter per IP
+│       └── platform-settings/
+│           └── index.ts                  ← DbSettings.get() — platform_settings with 60s in-memory cache
 │
 ├── drizzle/                              ← Auto-generated migration files
 │   └── meta/
@@ -877,6 +918,7 @@ Complete every item below before starting Phase 0 of [development-plan.md](./dev
 - [ ] S3 CORS policy applied to bucket (allows PUT from localhost:3000)
 - [ ] SMTP credentials ready (Mailhog running, or Gmail app password generated)
 - [ ] `BETTER_AUTH_SECRET` generated (`openssl rand -base64 32`)
+- [ ] `ENCRYPT_KEY` generated (`openssl rand -hex 32`) — 64-char hex, stored separately from BETTER_AUTH_SECRET
 
 ### Project Init
 - [ ] Next.js 15 project created with TypeScript + Tailwind + App Router + src dir
@@ -1013,5 +1055,6 @@ Complete every item below before starting Phase 0 of [development-plan.md](./dev
 > | 20 | `BETTER_AUTH_SECRET` | Generated locally | Session signing — `openssl rand -base64 32` |
 > | 21 | `BETTER_AUTH_URL` | App URL | Auth callbacks — `http://localhost:3000` in dev |
 > | 22 | `NEXT_PUBLIC_APP_URL` | App URL | Public-facing links in emails and booking pages |
+> | 23 | `ENCRYPT_KEY` | Generated locally | OAuth token encryption at rest — `openssl rand -hex 32` |
 >
-> **Total: 6 services · 22 environment variables**
+> **Total: 6 services · 23 environment variables**

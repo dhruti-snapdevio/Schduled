@@ -486,28 +486,49 @@ schedica/
 │   │   ├── email/
 │   │   │   ├── client.ts                 # Nodemailer SMTP transporter (singleton)
 │   │   │   ├── send.ts                   # send() wrapper — renders template + delivers via SMTP
-│   │   │   └── templates/                # React Email components (one file per email type)
+│   │   │   ├── renderer.ts               # renderEmailTemplate(template, data) → HTML string
+│   │   │   └── components/               # React Email components (one file per email type)
 │   │   │       ├── booking-confirmation.tsx
-│   │   │       ├── booking-notification.tsx
-│   │   │       ├── reminder.tsx          # Shared template for 24h and 1h reminders
-│   │   │       ├── cancellation.tsx
-│   │   │       ├── reschedule.tsx
+│   │   │       ├── booking-notification-host.tsx
+│   │   │       ├── reminder-24h.tsx
+│   │   │       ├── reminder-1h.tsx
+│   │   │       ├── cancellation-invitee.tsx
+│   │   │       ├── cancellation-host.tsx
+│   │   │       ├── host-cancellation-invitee.tsx
+│   │   │       ├── reschedule-invitee.tsx
+│   │   │       ├── reschedule-host.tsx
+│   │   │       ├── email-verification.tsx
+│   │   │       ├── password-reset.tsx
 │   │   │       ├── welcome.tsx
-│   │   │       └── verification.tsx      # Email verification code email
+│   │   │       ├── calendar-disconnect-alert.tsx
+│   │   │       └── video-link-failed-host.tsx
 │   │   │
 │   │   ├── storage/
 │   │   │   ├── client.ts                 # S3-compatible storage client (S3Client singleton)
 │   │   │   └── upload.ts                 # upload(), deleteFile(), getPresignedUrl() helpers
 │   │   │
-│   │   └── jobs/
-│   │       ├── client.ts                 # pg-boss instance (shared singleton)
-│   │       ├── workers/                  # Job handler functions (one file per job type)
-│   │       │   ├── send-reminder.ts      # 24h / 1h pre-meeting reminder emails
-│   │       │   ├── send-followup.ts      # Post-meeting follow-up emails
-│   │       │   ├── sync-calendar.ts      # Periodic calendar free/busy sync
-│   │       │   ├── generate-video.ts     # Async Zoom / Teams link generation
-│   │       │   └── deliver-webhook.ts    # Outbound webhook delivery with retries
-│   │       └── scheduler.ts             # Job registration and cron schedule definitions
+│   │   └── worker/
+│   │       ├── boss.ts                   # pg-boss singleton (shared by app + worker process)
+│   │       ├── index.ts                  # Worker entry point — registers all handlers + crons
+│   │       ├── job-types.ts              # Canonical SCREAMING_SNAKE_CASE job name constants
+│   │       ├── work-monitored.ts         # workMonitored() wrapper — dead-letter on final failure
+│   │       └── handlers/                 # One file per pg-boss job type
+│   │           ├── email-send.ts
+│   │           ├── email-outbox-reap.ts
+│   │           ├── email-events-prune.ts
+│   │           ├── booking-reminder-24h.ts
+│   │           ├── booking-reminder-1h.ts
+│   │           ├── booking-cancel-reminders.ts
+│   │           ├── booking-reschedule-reminders.ts
+│   │           ├── video-link-generate.ts
+│   │           ├── video-link-retry.ts
+│   │           ├── calendar-write.ts
+│   │           ├── calendar-update.ts
+│   │           ├── calendar-cancel.ts
+│   │           ├── calendar-sync.ts
+│   │           ├── calendar-token-refresh.ts
+│   │           ├── calendar-disconnect-alert.ts
+│   │           └── disposable-emails-refresh.ts
 │   │
 │   └── types/
 │       ├── booking.ts                    # Booking, Invitee, BookingStatus types

@@ -383,8 +383,8 @@ Complete documentation of every package, library, service, and tool used in Sche
 |---|---|
 | **Purpose** | Encrypt sensitive data at rest — OAuth tokens in `connected_calendars`, Zoom tokens in `video_connections` |
 | **Used in** | Calendar Integrations, Video Conferencing |
-| **Key** | Derived from `BETTER_AUTH_SECRET` (already required, so no extra env var) |
-| **Implementation** | `src/lib/encrypt.ts` — `encrypt(plaintext, key)` / `decrypt(ciphertext, key)` using Node.js `crypto.createCipheriv('aes-256-gcm', ...)` |
+| **Env var** | `ENCRYPT_KEY` — 64-char hex string (32 bytes). Generate: `openssl rand -hex 32`. Kept separate from `BETTER_AUTH_SECRET` so rotating the auth secret never silently breaks token decryption. |
+| **Implementation** | `src/lib/encrypt.ts` — `encryptValue(plaintext)` / `decryptValue(ciphertext)` using `crypto.createCipheriv('aes-256-gcm', keyBuffer, iv)`. Key derived via PBKDF2 from `env.ENCRYPT_KEY`. |
 
 ### `Secret<T>` class (`src/lib/secret.ts`)
 
