@@ -15,20 +15,23 @@ At the start of each phase, reference the relevant feature doc from the `feature
 | Layer | Choice |
 |-------|--------|
 | Framework | Next.js 15 (App Router) |
-| Language | TypeScript |
+| Language | TypeScript 5 |
 | Database | PostgreSQL 16+ |
 | ORM | Drizzle ORM |
 | Auth | Better Auth (with Admin Plugin) |
-| Job Queue | pg-boss (PostgreSQL-backed) |
+| Job Queue | pg-boss (PostgreSQL-backed — no Redis) |
 | Styling | Tailwind CSS |
-| UI Components | shadcn/ui (Radix UI primitives) |
+| UI Components | Shadcn/UI (Radix UI primitives) |
+| Forms | react-hook-form + Zod (@hookform/resolvers) |
 | Email Delivery | Nodemailer (SMTP) |
-| Email Templates | React Email |
-| File Storage | S3-compatible storage (@aws-sdk/client-s3) |
-| Logging | console.log / console.error (built-in) |
+| Email Templates | React Email (@react-email/components) |
+| File Storage | S3-compatible (@aws-sdk/client-s3 + s3-request-presigner) |
+| ID Generation | @paralleldrive/cuid2 |
+| Linter / Formatter | Biome (replaces ESLint + Prettier) |
 | Admin Panel | Custom Next.js pages (Shadcn/UI + Better Auth Admin Plugin) |
 | Calendar Libs | date-fns-tz, ical-generator |
 | Validation | Zod |
+| Full reference | [tools-packages.md](./tools-packages.md) |
 
 ---
 
@@ -62,156 +65,55 @@ Phase 20 →  QA & Launch Prep
 
 ## Phase 0 — Project Setup
 
-**Goal:** Working Next.js 15 project with all tools configured, connected to the database, and deployable.
+**Goal:** Working Next.js 15 project with all tools configured, connected to the database, and ready for Phase 1.
+
+> **Before starting Phase 0:** Complete every step in [pre-development-setup.md](./pre-development-setup.md) — external accounts (Google, Azure, Zoom, S3, SMTP), credentials, package installation, environment variables, and database creation. Phase 0 assumes all of that is already in place.
 
 ### Tasks
 
-- [ ] Init Next.js 15 project with TypeScript and App Router
+- [ ] Create the Next.js 15 project
   ```bash
-  npx create-next-app@latest schedica --typescript --tailwind --app --src-dir
+  npx create-next-app@latest schedica --typescript --tailwind --app --src-dir --import-alias "@/*"
+  cd schedica
   ```
-- [ ] Install and configure Tailwind CSS
-- [ ] Install and configure shadcn/ui
+- [ ] Install all packages from [pre-development-setup.md § 4](./pre-development-setup.md#4-complete-package-list) — production + dev dependencies in one step
+- [ ] Initialize Shadcn/UI and add all components
   ```bash
   npx shadcn@latest init
   ```
-- [ ] Set up folder structure:
+- [ ] Add `biome.jsonc` to project root (config in [pre-development-setup.md § 4](./pre-development-setup.md#4-complete-package-list))
+- [ ] Update `package.json` scripts:
+  ```json
+  "dev": "concurrently \"next dev\" \"tsx watch src/lib/worker/index.ts\"",
+  "worker": "tsx src/lib/worker/index.ts",
+  "db:generate": "drizzle-kit generate",
+  "db:migrate": "drizzle-kit migrate",
+  "db:studio": "drizzle-kit studio"
   ```
-  src/
-  ├── app/
-  │   ├── (auth)/               ← sign-in, sign-up, forgot/reset password, verify-email
-  │   ├── (dashboard)/          ← host dashboard (protected)
-  │   ├── (admin)/              ← custom admin panel (Next.js pages, protected by Better Auth admin role)
-  │   ├── onboarding/           ← first-run wizard
-  │   ├── [username]/           ← public booking pages (no auth)
-  │   │   └── [eventSlug]/
-  │   └── api/                  ← API routes
-  ├── components/
-  │   ├── booking/              ← booking page, slot picker, confirmation
-  │   ├── dashboard/            ← meetings list, event type cards
-  │   ├── admin/                ← admin panel components (user table, job queue, stats)
-  │   ├── onboarding/           ← wizard step components
-  │   └── ui/                   ← shadcn components
-  ├── lib/
-  │   ├── auth/                 ← Better Auth config + client
-  │   ├── db/
-  │   │   ├── schema/           ← Drizzle schema (one file per domain)
-  │   │   ├── index.ts          ← Drizzle client + connection
-  │   │   └── queries/          ← reusable query helpers
-  │   ├── email/
-  │   │   ├── client.ts         ← Nodemailer SMTP transporter (singleton)
-  │   │   ├── send.ts           ← send() wrapper — renders template + delivers via SMTP
-  │   │   └── templates/        ← React Email components (one per email type)
-  │   │       ├── booking-confirmation.tsx
-  │   │       ├── booking-notification.tsx
-  │   │       ├── reminder.tsx
-  │   │       ├── cancellation.tsx
-  │   │       ├── reschedule.tsx
-  │   │       ├── welcome.tsx
-  │   │       └── verification.tsx
-  │   ├── storage/
-  │   │   ├── client.ts         ← S3Client singleton (@aws-sdk/client-s3) — points to any S3-compatible endpoint
-  │   │   └── upload.ts         ← upload(), deleteFile(), getPresignedUrl() helpers
-  │   └── jobs/
-  │       ├── client.ts         ← pg-boss singleton
-  │       ├── workers/          ← job handler functions
-  │       └── scheduler.ts      ← job registration + cron definitions
-  └── types/                    ← shared TypeScript types
-  ```
-- [ ] Install Drizzle ORM and set up PostgreSQL connection
-  ```bash
-  npm install drizzle-orm postgres
-  npm install -D drizzle-kit
-  ```
-- [ ] Install Better Auth
-  ```bash
-  npm install better-auth
-  ```
-- [ ] Install pg-boss for background jobs
-  ```bash
-  npm install pg-boss
-  ```
-- [ ] Install Nodemailer for SMTP email
-  ```bash
-  npm install nodemailer
-  npm install -D @types/nodemailer
-  ```
-- [ ] Install React Email for email templates
-  ```bash
-  npm install @react-email/components react-email
-  ```
-- [ ] Install date and calendar libraries
-  ```bash
-  npm install date-fns date-fns-tz ical-generator zod
-  ```
-- [ ] Install CalDAV library for Apple Calendar / iCloud integration
-  ```bash
-  npm install tsdav
-  ```
-- [ ] Install S3-compatible storage SDK (works with AWS S3, Cloudflare R2, MinIO, Backblaze B2, DigitalOcean Spaces)
-  ```bash
-  npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
-  ```
-- [ ] Install Google API and Microsoft Graph clients
-  ```bash
-  npm install googleapis @microsoft/microsoft-graph-client
-  npm install -D @microsoft/microsoft-graph-types
-  ```
-- [ ] Set up `src/lib/email/client.ts` — Nodemailer transporter using env vars; use Mailhog (`smtp://localhost:1025`) for local dev
-- [ ] Set up `src/lib/email/send.ts` — `send({ to, subject, template, props })` wrapper that renders React Email component to HTML then calls `transporter.sendMail()`
-- [ ] Set up `src/lib/storage/client.ts` — `S3Client` singleton using `S3_*` env vars; set `endpoint` when using non-AWS provider (Cloudflare R2, MinIO, etc.)
-- [ ] Set up `src/lib/storage/upload.ts` — `getPresignedUploadUrl(key)`, `deleteFile(key)`, `getPublicUrl(key)` helpers
-- [ ] Configure `drizzle.config.ts` — **must include `schemaFilter: ["public"]`** to restrict Drizzle Kit to the `public` schema only. pg-boss automatically creates its own tables in a `pgboss` schema on startup; without this filter, `npx drizzle-kit generate` will detect those untracked tables and attempt to generate migrations that drop or alter them.
+- [ ] Create `.env.local` from the template in [pre-development-setup.md § 5](./pre-development-setup.md#5-environment-variables--full-template) and fill in all values
+- [ ] Create folder structure as defined in [project-structure.md](./project-structure.md)
+- [ ] Configure `drizzle.config.ts` — **`schemaFilter: ["public"]` is required**: pg-boss creates its own `pgboss` schema on startup; without this filter, `drizzle-kit generate` detects those tables and tries to drop them
   ```typescript
   // drizzle.config.ts
   export default defineConfig({
-    schema: "./src/lib/db/schema/*",
-    out: "./drizzle",
-    dialect: "postgresql",
+    schema: './src/lib/db/schema/*',
+    out: './drizzle',
+    dialect: 'postgresql',
     dbCredentials: { url: process.env.DATABASE_URL! },
-    schemaFilter: ["public"],   // ← required: ignore pgboss schema
+    schemaFilter: ['public'],
   })
   ```
-- [ ] Configure `.env` file:
-  ```
-  DATABASE_URL=
-  BETTER_AUTH_SECRET=
-  BETTER_AUTH_URL=
-  NEXT_PUBLIC_APP_URL=
+- [ ] Set up `src/lib/env.ts` — Zod-validated env vars (never use `process.env` directly in code)
+- [ ] Set up `src/lib/db/index.ts` — Drizzle client singleton
+- [ ] Set up `src/lib/email/client.ts` — Nodemailer transporter using `SMTP_*` env vars; use Mailhog (`smtp://localhost:1025`) for local dev
+- [ ] Set up `src/lib/email/renderer.ts` — `renderEmailTemplate(template, data)` → HTML string using `@react-email/render`
+- [ ] Set up `src/lib/storage/s3.ts` — `S3Client` singleton using `S3_*` env vars; set `endpoint` when using non-AWS provider
+- [ ] Set up `src/lib/storage/presign.ts` — `getPresignedUploadUrl(key)`, `deleteFile(key)`, `getPublicUrl(key)`
+- [ ] Set up `src/lib/worker/boss.ts` — pg-boss client singleton
+- [ ] Set up `src/lib/encrypt.ts` — AES-256-GCM `encrypt(text)` / `decrypt(ciphertext)` using `ENCRYPTION_KEY` env var (for OAuth token storage at rest)
+- [ ] Initialize git repository and make initial commit
 
-  GOOGLE_CLIENT_ID=
-  GOOGLE_CLIENT_SECRET=
-
-  # Microsoft Graph API — Outlook calendar sync + Teams meeting creation (NOT for user sign-in)
-  MICROSOFT_CLIENT_ID=
-  MICROSOFT_CLIENT_SECRET=
-
-  ZOOM_CLIENT_ID=
-  ZOOM_CLIENT_SECRET=
-  ZOOM_REDIRECT_URI=
-
-  # SMTP — use any SMTP server (Gmail SMTP, Postfix, Mailhog for dev, etc.)
-  SMTP_HOST=
-  SMTP_PORT=587
-  SMTP_SECURE=false
-  SMTP_USER=
-  SMTP_PASS=
-  SMTP_FROM_EMAIL=
-  SMTP_FROM_NAME=Schedica
-
-  # S3-compatible storage — profile photos, logos, banners
-  # Works with AWS S3, Cloudflare R2, MinIO, Backblaze B2, DigitalOcean Spaces
-  S3_ACCESS_KEY_ID=
-  S3_SECRET_ACCESS_KEY=
-  S3_REGION=
-  S3_BUCKET_NAME=
-  S3_ENDPOINT=          # omit for AWS S3; set for Cloudflare R2 / MinIO / other providers
-  ```
-- [ ] Set up ESLint + Prettier config
-- [ ] Set up git repository and initial commit
-- [ ] Confirm dev server runs: `npm run dev`
-
-**Done when:** `npm run dev` runs without errors and the default Next.js page loads.
+**Done when:** `npm run dev` runs both the Next.js server and the pg-boss worker without errors.
 
 ---
 

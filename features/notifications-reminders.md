@@ -469,8 +469,143 @@ Both hosts and invitees can manage notification preferences.
 
 ---
 
+## Email Queue Architecture
+
+All emails are sent **asynchronously via pg-boss** — never inline in an API route or Server Action. This matches Krova's email outbox pattern.
+
+### Flow: Booking Confirmed → Emails Sent
+
+```
+1. Booking engine creates booking record (PostgreSQL transaction)
+2. Inside same transaction:
+   a. Insert rows into email_outbox (confirmation to invitee + notification to host)
+   b. Enqueue EMAIL_SEND jobs in pg-boss (one per outbox row)
+   c. Schedule BOOKING_REMINDER_24H job (fires 24h before meeting)
+   d. Schedule BOOKING_REMINDER_1H job (fires 1h before meeting)
+3. Transaction commits
+4. pg-boss EMAIL_SEND worker picks up jobs → renders React Email → sends via Nodemailer
+5. On success: update email_outbox.status = 'sent'; insert email_events row (delivered)
+6. On failure: pg-boss retries up to 3× with exponential backoff;
+              after 3 failures: update email_outbox.status = 'failed'
+```
+
+### Email Outbox Table
+
+Every email starts as a row in `email_outbox` before being sent. This gives:
+- Retry on SMTP failure (pg-boss retries the `EMAIL_SEND` job)
+- Per-user email history visible in the admin panel
+- Delivery tracking via `email_events` rows
+
+```typescript
+// Enqueueing an email (inside booking transaction)
+const [outboxRow] = await DbEmail.enqueue({
+  toEmail: invitee.email,
+  toName: invitee.name,
+  subject: '[Confirmed] 30-Min Call with Jane on Thursday June 5',
+  template: 'booking-confirmation',
+  templateData: { booking, host, invitee, timezones },
+  fromName: host.profile.displayName ?? 'Schedica',
+  replyToEmail: host.email,
+  bookingId: booking.id,
+})
+await boss.send('EMAIL_SEND', { emailOutboxId: outboxRow.id })
+```
+
+**`idempotencyKey` — Deduplication on SMTP**
+
+Every `email_outbox` row is inserted with a random UUID `idempotencyKey` (generated at INSERT time via `crypto.randomUUID()`). This key is passed to the SMTP provider (Nodemailer / Resend) as a deduplication key with a 24-hour TTL.
+
+If the `EMAIL_SEND` worker crashes after SMTP accepts the message but before it can write `status = 'sent'`, pg-boss retries the job. On the retry, the same `emailOutboxId` → same `idempotencyKey` → SMTP deduplicates and does not re-deliver the email. Without this, a crash-then-retry cycle causes duplicate emails in the user's inbox.
+
+```typescript
+// DbEmail.enqueue() — called from within a booking transaction
+async function enqueue(data: NewEmail) {
+  return db.insert(emailOutbox).values({
+    ...data,
+    idempotencyKey: crypto.randomUUID(),  // generated here, never reused
+    status: 'pending',
+  }).returning()
+}
+
+// EMAIL_SEND worker — passes key to SMTP
+async function sendEmail(outboxId: string) {
+  const row = await db.query.emailOutbox.findFirst({ where: eq(emailOutbox.id, outboxId) })
+  await transporter.sendMail({
+    ...buildMessage(row),
+    headers: { 'X-Idempotency-Key': row.idempotencyKey },  // Resend / custom SMTP header
+  })
+  await db.update(emailOutbox).set({ status: 'sent', sentAt: new Date() }).where(eq(emailOutbox.id, outboxId))
+}
+```
+
+---
+
+## Background Jobs
+
+### Complete Job Map for Notifications
+
+| Job Name | Trigger | Payload | pg-boss config |
+|----------|---------|---------|---------------|
+| `EMAIL_SEND` | Inline — any time an email is enqueued | `{ emailOutboxId }` | retryLimit: 3, retryDelay: 30s, **localConcurrency: 5** |
+| `EMAIL_OUTBOX_REAP` | Cron — daily at 03:00 UTC | `{}` | Deletes `email_outbox` rows older than 90 days with status=sent/failed |
+| `EMAIL_EVENTS_PRUNE` | Cron — daily at 03:30 UTC | `{}` | Deletes `email_events` rows older than 30 days |
+| `BOOKING_REMINDER_24H` | On booking confirmed — fires exactly 24h before start | `{ bookingId }` | singletonKey: `{bookingId}_reminder_24h`; retryLimit: 2 |
+| `BOOKING_REMINDER_1H` | On booking confirmed — fires exactly 1h before start | `{ bookingId }` | singletonKey: `{bookingId}_reminder_1h`; retryLimit: 2 |
+| `BOOKING_CANCEL_REMINDERS` | On booking cancelled | `{ bookingId }` | Cancels both reminder jobs by singletonKey |
+| `BOOKING_RESCHEDULE_REMINDERS` | On booking rescheduled | `{ oldBookingId, newBookingId }` | Cancels old reminder jobs; schedules new ones for new time |
+
+> **All handlers use `workMonitored()`** — register handlers with `workMonitored('EMAIL_SEND', handler)` not raw `boss.work()`. When `EMAIL_SEND` exhausts all retries, the DLQ callback fires — log the failure and update `email_outbox.status = 'failed'`. See `jobs-queues.md` — "Dead-Letter Queue Monitoring".
+
+### singletonKey Pattern
+
+Every booking-scoped job uses a `singletonKey` so each job can be individually cancelled when the booking changes:
+
+```
+{bookingId}_reminder_24h     — 24h reminder for this booking
+{bookingId}_reminder_1h      — 1h reminder for this booking
+{bookingId}_video_link       — video link generation
+{bookingId}_calendar_write   — calendar event write
+```
+
+On booking cancellation, `BOOKING_CANCEL_REMINDERS` runs:
+```typescript
+await boss.cancel('BOOKING_REMINDER_24H', `${bookingId}_reminder_24h`)
+await boss.cancel('BOOKING_REMINDER_1H',  `${bookingId}_reminder_1h`)
+```
+
+### Cron Schedule
+
+| Cron Job | Schedule | Purpose |
+|----------|----------|---------|
+| `EMAIL_OUTBOX_REAP` | Daily 03:00 UTC | Delete old sent/failed email rows (90-day retention) |
+| `EMAIL_EVENTS_PRUNE` | Daily 03:30 UTC | Delete old delivery events (30-day retention) |
+| `DISPOSABLE_EMAILS_REFRESH` | Daily 04:00 UTC | Sync disposable email domain blocklist from upstream source |
+
+---
+
 ## Tech Stack
 
-- **pg-boss** — the primary engine for all timed notifications. At the moment a booking is confirmed, pg-boss schedules four future jobs with exact fire times: 24-hour reminder, 1-hour reminder, post-meeting follow-up (30 min after end), and no-show check (15 min after start). Each job uses a `singletonKey` tied to the booking ID, so it can be individually cancelled if the booking is cancelled or rescheduled — preventing reminders for meetings that no longer exist. **`singletonKey` format: `{bookingId}_{jobType}`** (e.g. `abc123_reminder_24h`, `abc123_reminder_1h`, `abc123_followup`, `abc123_noshow_check`) — this ensures each job type per booking is unique and individually cancellable.
-- **Nodemailer (SMTP)** — delivers all transactional and reminder emails: booking confirmations, cancellation notices, reschedule confirmations, 24-hour reminders, 1-hour reminders, and post-meeting follow-ups. Each email uses the host's name as the sender and routes replies to the host's actual email address.
-- **PostgreSQL + Drizzle ORM** — stores notification preferences per user in `notification_preferences` (which reminder types are enabled, daily digest on/off, etc.). pg-boss uses the same PostgreSQL database to store scheduled jobs, so no separate job-queue database is needed.
+- **pg-boss** — the primary engine for all timed notifications. At the moment a booking is confirmed, pg-boss schedules future jobs with exact fire times: `EMAIL_SEND` (immediate ×2), `BOOKING_REMINDER_24H`, `BOOKING_REMINDER_1H`. Each uses a `singletonKey` so it can be individually cancelled on booking change. **`singletonKey` format: `{bookingId}_{jobType}`** — this ensures each job type per booking is unique and individually cancellable.
+- **`email_outbox` table** — every outbound email starts as a row here. The `EMAIL_SEND` pg-boss job reads the row, renders the React Email template, sends via Nodemailer, and updates the row status. This decouples email rendering from booking creation and enables retry without re-running booking logic.
+- **`email_events` table** — delivery tracking: each successful send, bounce, or failure appends a row. Visible in the admin panel user detail email history section.
+- **Nodemailer (SMTP)** — delivers all transactional and reminder emails. Each email uses the host's `displayName` as the sender and routes replies to the host's actual email address. The `fromName` is read from `platform_settings.emailSenderName` as default, overridden per-host.
+- **`@react-email/components` (React Email)** — renders all email templates as React components compiled to HTML before passing to Nodemailer. Install: `pnpm add @react-email/components react-email`. Template files live in `src/lib/email/templates/`:
+
+  | File | Sent When |
+  |------|-----------|
+  | `booking-confirmation.tsx` | Invitee books — sent to invitee |
+  | `booking-notification-host.tsx` | Invitee books — sent to host |
+  | `cancellation-invitee.tsx` | Booking cancelled — sent to invitee |
+  | `cancellation-host.tsx` | Invitee cancels — sent to host |
+  | `reschedule-invitee.tsx` | Booking rescheduled — sent to invitee |
+  | `reschedule-host.tsx` | Invitee reschedules — sent to host |
+  | `host-cancellation-invitee.tsx` | Host cancels — sent to invitee |
+  | `reminder-24h.tsx` | 24h before meeting — sent to invitee |
+  | `reminder-1h.tsx` | 1h before meeting — sent to invitee |
+  | `magic-link.tsx` | Sign-in magic link — sent to user |
+  | `calendar-disconnect-alert.tsx` | Calendar token expires — sent to host |
+  | `video-link-failed.tsx` | VIDEO_LINK_GENERATE exhausts retries — sent to host |
+  | `password-reset.tsx` | Password reset requested — sent to user |
+
+  The `EMAIL_SEND` worker reads the `template` field from the `email_outbox` row, imports the matching file, renders it with `renderAsync()`, and passes the resulting HTML to Nodemailer.
+- **PostgreSQL + Drizzle ORM** — `notification_preferences` stores per-user preferences. `workflow_jobs` tracks pg-boss job state per booking. `email_outbox` + `email_events` track delivery status. pg-boss uses the same PostgreSQL database — no separate queue infrastructure needed.

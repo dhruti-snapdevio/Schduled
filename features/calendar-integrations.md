@@ -288,10 +288,55 @@ For enterprise users scheduling physical meeting rooms:
 
 ---
 
+## Background Jobs
+
+| Job Name | Trigger | Payload | pg-boss config |
+|----------|---------|---------|---------------|
+| `CALENDAR_SYNC` | Cron — every 5 minutes | `{ connectedCalendarId }` | singletonKey: `calendar_sync_{connectedCalendarId}`; prevents duplicate syncs for the same calendar |
+| `CALENDAR_TOKEN_REFRESH` | Before any calendar API call when `tokenExpiresAt < now()` | `{ connectedCalendarId }` | retryLimit: 3; on 3rd failure → enqueue `CALENDAR_DISCONNECT_ALERT` |
+| `CALENDAR_DISCONNECT_ALERT` | When `CALENDAR_TOKEN_REFRESH` fails permanently (all retries exhausted) | `{ connectedCalendarId, userId }` | Marks calendar `status='disconnected'`; enqueues `EMAIL_SEND` with disconnect alert template |
+| `CALENDAR_WRITE` | After booking confirmed | `{ bookingId, calendarId }` | retryLimit: 3; retryDelay: 15s |
+| `CALENDAR_UPDATE` | After booking rescheduled | `{ bookingId, calendarId, externalEventId }` | retryLimit: 3 |
+| `CALENDAR_CANCEL` | After booking cancelled | `{ bookingId, calendarId, externalEventId }` | retryLimit: 2 |
+
+### CALENDAR_SYNC cron (every 5 min)
+
+The 5-minute sync job polls the calendar provider for events within the next 60 days and upserts them into `calendar_events_cache`. Push notifications (Google Calendar push channels, Outlook subscriptions) replace polling in Phase 2.
+
+```typescript
+// singletonKey prevents two CALENDAR_SYNC jobs for same calendar running at once
+await boss.send('CALENDAR_SYNC', { connectedCalendarId }, {
+  singletonKey: `calendar_sync_${connectedCalendarId}`,
+})
+```
+
+### Disconnect → Alert Flow
+
+When a token refresh fails permanently, the entire disconnect flow is:
+1. `CALENDAR_TOKEN_REFRESH` exhausts 3 retries
+2. Handler calls `DbCalendars.markDisconnected(connectedCalendarId)`
+3. Handler enqueues `EMAIL_SEND` with template `calendar-disconnect-alert`:
+   - Subject: "Your [Google Calendar / Outlook] has been disconnected"
+   - Body: reconnect link + list of affected booking pages now paused
+4. Booking pages with this calendar as write target are automatically disabled (checked at slot-generation time via `status = 'disconnected'`)
+5. Audit log entry: `calendar.disconnected`
+
+## Audit Logging
+
+| Event | Audit Action | source |
+|-------|-------------|--------|
+| Calendar connected (OAuth success) | `calendar.connected` | `'web'` (Server Action after OAuth callback) |
+| Calendar disconnected (manual) | `calendar.disconnected` | `'web'` (Server Action) |
+| Calendar disconnected (token failure) | `calendar.disconnected` | `'worker'` (fired by `CALENDAR_DISCONNECT_ALERT` job) |
+
+Every `audit_logs` insert must include `source: 'web' | 'api' | 'worker' | 'system'`. The `source` distinguishes user-initiated disconnects from automatic token expiry disconnects — useful for support triage. See `database-schema.md` for `auditSourceEnum`.
+
+---
+
 ## Tech Stack
 
-- **Google Calendar API (OAuth 2.0)** — reads free/busy events from all calendars on the host's Google account and writes new bookings as calendar events. Google Meet links are generated automatically as part of this event creation — no separate Zoom-style API call needed.
-- **Microsoft Graph API (OAuth 2.0)** — connects Outlook and Office 365 calendars for free/busy sync and booking writes. The same OAuth token is also used to create Teams meeting links.
-- **Apple CalDAV (iCloud)** — connects iCloud calendars using the CalDAV protocol. The host provides their iCloud email and an app-specific password (generated at appleid.apple.com). No OAuth flow required.
-- **PostgreSQL + Drizzle ORM** — stores OAuth access and refresh tokens in `connected_calendars` (encrypted at rest using AES-256-GCM) and caches free/busy events in `calendar_events_cache` to avoid querying provider APIs on every slot request.
-- **pg-boss** — runs a recurring sync job every 5 minutes per connected calendar to refresh the free/busy cache. Uses `singletonKey` so only one sync job per calendar runs at a time, preventing duplicate API calls.
+- **Google Calendar API (OAuth 2.0)** — reads free/busy events from all calendars on the host's Google account and writes new bookings as calendar events. Google Meet links are generated automatically as part of event creation (no separate Meet API call).
+- **Microsoft Graph API (OAuth 2.0)** — connects Outlook and Office 365 calendars for free/busy sync and booking writes. The same OAuth token is also used to create Teams meeting links (Phase 2).
+- **Apple CalDAV (iCloud) + `tsdav`** *(Phase 2)* — connects iCloud calendars using the CalDAV protocol with app-specific password (no OAuth). Uses the [`tsdav`](https://www.npmjs.com/package/tsdav) npm package — the TypeScript CalDAV client. Install: `pnpm add tsdav`. Also used for generic CalDAV servers (Nextcloud, Fastmail).
+- **PostgreSQL + Drizzle ORM** — stores OAuth access and refresh tokens in `connected_calendars` (AES-256-GCM encrypted) and caches free/busy events in `calendar_events_cache` to avoid querying provider APIs on every slot request. Connect/disconnect events are written to `audit_logs`.
+- **pg-boss** — `CALENDAR_SYNC` cron runs every 5 min per connected calendar to refresh `calendar_events_cache`. `CALENDAR_TOKEN_REFRESH` handles token renewal before API calls. `CALENDAR_DISCONNECT_ALERT` fires when refresh fails permanently and triggers the disconnect email + booking page disable flow. `CALENDAR_WRITE`, `CALENDAR_UPDATE`, `CALENDAR_CANCEL` handle post-booking calendar mutations asynchronously. All handlers registered with `workMonitored()` — see `jobs-queues.md` for the dead-letter queue pattern.

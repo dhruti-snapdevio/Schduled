@@ -238,7 +238,7 @@ Client-side and server-side validation:
 | URL | Must begin with http:// or https:// *(Phase 2 type)* |
 | Number | Within configured min/max range; numeric only *(Phase 2 type)* |
 | Required fields | Cannot submit form with blank required field |
-| Text fields | Stripped of HTML/script tags before saving (XSS prevention) |
+| Text fields | Passed through `stripHtml()` from `src/lib/validators.ts` before saving (removes all HTML tags — prevents stored XSS) |
 
 ---
 
@@ -288,9 +288,28 @@ Client-side and server-side validation:
 
 ---
 
+## Background Jobs
+
+No background jobs are directly triggered by question create, edit, or delete operations. No `revalidatePath` is needed separately — calling `revalidatePath` when saving the parent event type (which always happens via the event type editor) covers booking page cache invalidation.
+
+---
+
+## Audit Logging
+
+Question schema changes are logged as part of the parent event type audit entry.
+
+| Action | When | source | Data Logged |
+|--------|------|--------|-------------|
+| `event_type.updated` | Host adds, edits, removes, or reorders questions | `'web'` | eventTypeId, `questions` field with full before/after question array snapshot |
+
+There is no separate `event_type.questions_updated` action — question mutations are part of the event type update and share the same audit row. This keeps the audit log concise and queryable by event type ID. See `database-schema.md` for `auditSourceEnum`.
+
+---
+
 ## Tech Stack
 
 - **PostgreSQL + Drizzle ORM** — two tables handle questions: `event_type_questions` stores the question definition (type, label, options list, required flag, sort order) per event type; `booking_answers` stores each invitee's answers linked to their booking record. All answers stored as text; multi-select answers stored as a JSON array string.
-- **Zod** — validates the entire booking form payload on the server before any database operation: required fields present, email format correct, phone number valid, number within configured min/max range, and all text inputs stripped of HTML to prevent XSS.
-- **Next.js App Router** — questions are loaded as part of the event type server query when the booking page renders. Pre-fill via URL parameters (`?a1=value`) is parsed server-side during page render and passed to the form as default values.
+- **Zod** — validates the entire booking form payload on the server before any database operation: required fields present, email format correct, phone number valid, number within configured min/max range.
+- **`src/lib/validators.ts` — `stripHtml()`** — every text answer (short text and long text question types) is passed through `stripHtml(answer)` before saving to `booking_answers`. This strips `<script>`, `<img onerror>`, and all other HTML tags to prevent stored XSS. This applies to **both** manually typed answers and pre-filled URL parameter values (`?a1=...`) — URL parameters are user-controlled input and must be sanitized before rendering or storing.
+- **Next.js App Router** — questions are loaded as part of the event type server query when the booking page renders. Pre-fill via URL parameters (`?a1=value`) is parsed server-side during page render and passed to the form as default values. Values are sanitized with `stripHtml()` before being injected into form state.
 - **Shadcn/UI** — provides the drag-and-drop question reorder list in the event type editor, and the form input components (text inputs, radio groups, checkboxes, dropdown selects) on the booking page.

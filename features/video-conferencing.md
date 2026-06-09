@@ -295,10 +295,61 @@ Hosts can disable this notice or the recording feature per event type.
 
 ---
 
+## Background Jobs
+
+| Job Name | Trigger | Payload | pg-boss config |
+|----------|---------|---------|---------------|
+| `VIDEO_LINK_GENERATE` | After booking confirmed (if location = zoom or teams) | `{ bookingId, provider: 'zoom' \| 'teams' }` | retryLimit: 3, retryDelay: exponential (5s → 30s → 120s); singletonKey: `{bookingId}_video_link`; **localConcurrency: 3** |
+| `VIDEO_LINK_RETRY` | Spawned by `VIDEO_LINK_GENERATE` handler on retryable error | `{ bookingId, provider, attempt }` | Manual retry job (separate from pg-boss auto-retry) for cases like rate limiting |
+
+> **All handlers use `workMonitored()`** — register handlers with `workMonitored('VIDEO_LINK_GENERATE', handler)` not raw `boss.work()`. The DLQ callback fires when all 3 retries are exhausted — use it to send the "video link failed" alert email. See `jobs-queues.md` — "Dead-Letter Queue Monitoring".
+
+### Retry Pattern (from Krova's handler pattern)
+
+```typescript
+// VIDEO_LINK_GENERATE handler
+export async function handler(job: { data: { bookingId: string; provider: 'zoom' | 'teams' } }) {
+  const { bookingId, provider } = job.data
+  try {
+    const link = await createVideoMeeting(provider, bookingId)
+    await DbBookings.updateVideoLink(bookingId, link)
+    // Update email_outbox rows so confirmation emails include the link
+    await DbEmail.updateVideoLinkInOutbox(bookingId, link)
+  } catch (err) {
+    // pg-boss auto-retries up to 3 times with exponential backoff (5s → 30s → 120s)
+    // After all retries exhausted:
+    //   - booking NOT blocked (already confirmed)
+    //   - host receives EMAIL_SEND alert: "Video link generation failed — add link manually"
+    //   - invitee confirmation email updated: "Your video link will be sent shortly"
+    throw err
+  }
+}
+```
+
+### Google Meet — No Background Job Needed
+
+Google Meet links are generated **inline** during `CALENDAR_WRITE` — the `conferenceData.createRequest` parameter in the Google Calendar API call causes Meet to auto-generate a link. No separate `VIDEO_LINK_GENERATE` job needed for Google Meet hosts.
+
+```typescript
+// Inside CALENDAR_WRITE job handler (Google only)
+const event = await googleCalendar.events.insert({
+  calendarId: 'primary',
+  conferenceDataVersion: 1,
+  requestBody: {
+    summary: ...,
+    conferenceData: { createRequest: { requestId: bookingId } },  // ← triggers Meet link
+  },
+})
+const meetLink = event.conferenceData.entryPoints[0].uri
+await DbBookings.updateVideoLink(bookingId, meetLink)
+```
+
+---
+
 ## Tech Stack
 
-- **Zoom API (OAuth 2.0)** — creates a unique Zoom meeting room per booking via `POST /v2/users/me/meetings`. The host connects their Zoom account once in Settings; Schedica stores the OAuth token (encrypted) and uses it for every future booking.
+- **Zoom API (OAuth 2.0)** — creates a unique Zoom meeting room per booking via `POST /v2/users/me/meetings`. The host connects their Zoom account once in Settings; Schedica stores the OAuth token (AES-256-GCM encrypted) and uses it for every future booking via `VIDEO_LINK_GENERATE` pg-boss job.
 - **Microsoft Graph API** *(Phase 2)* — creates Microsoft Teams meetings via `POST /v1.0/users/{userId}/onlineMeetings`. Reuses the same OAuth token already stored for the host's Outlook calendar connection — no separate Teams login needed. Built in Phase 2 after Google Meet and Zoom are stable.
-- **Google Calendar API** — Google Meet links are generated automatically as part of Google Calendar event creation (no separate Meet API call). Available to any host with a Google Calendar connected.
-- **PostgreSQL + Drizzle ORM** — stores Zoom and Webex OAuth tokens (AES-256-GCM encrypted) in `video_connections`. Teams tokens are reused from `connected_calendars`. The generated video link is stored in the `bookings` table under `location_value`.
-- **pg-boss** — video link generation runs as an async background job after the booking is confirmed. This means the booking API responds instantly to the invitee while the Zoom/Teams API call happens in the background. If generation fails, pg-boss retries automatically and notifies the host.
+- **Google Calendar API** — Google Meet links are generated automatically as part of `CALENDAR_WRITE` job's Google Calendar event creation (no separate `VIDEO_LINK_GENERATE` job needed for Meet hosts).
+- **PostgreSQL + Drizzle ORM** — stores Zoom and Webex OAuth tokens (AES-256-GCM encrypted) in `video_connections`. Teams tokens are reused from `connected_calendars`. The generated video link is stored in `bookings.locationValue`.
+- **pg-boss** — `VIDEO_LINK_GENERATE` runs asynchronously after booking confirmation so the booking API responds instantly. Retries automatically 3× with exponential backoff (5s → 30s → 120s). On permanent failure: host receives alert email via `EMAIL_SEND` job; invitee confirmation email shows "Your video link will be sent shortly". Uses `singletonKey: {bookingId}_video_link` to prevent duplicate link generation.

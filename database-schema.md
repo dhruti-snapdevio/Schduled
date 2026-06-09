@@ -1,9 +1,6 @@
-# Schedica — Database Schema & Query Files
+# Schedica — Database Schema
 
-Same pattern as shoptimity-remix:
-- **One schema file** — `src/lib/db/schema.ts` — all Drizzle table definitions
-- **One db client** — `src/lib/db/index.ts` — Drizzle client (equivalent to `db.server.ts`)
-- **Separate feature db files** — `src/lib/db/users.ts`, `src/lib/db/bookings.ts`, etc. — typed query functions per feature
+Following the Krova pattern: **one schema file per domain**, all files in `src/lib/db/schema/`, re-exported from a single `index.ts`. All enums live in a shared `enums.ts`. All Drizzle relations live in `relations.ts` to avoid circular imports.
 
 ---
 
@@ -11,39 +8,44 @@ Same pattern as shoptimity-remix:
 
 ```
 src/lib/db/
-  schema.ts            ← ALL table definitions in one file (22 tables)
-  index.ts             ← Drizzle client setup
-  users.ts             ← DbUsers.get / create / update / delete
-  event-types.ts       ← DbEventTypes.get / create / update / delete
-  availability.ts      ← DbAvailability.get / upsert / deleteOverride
-  bookings.ts          ← DbBookings.create / get / cancel / list
-  calendars.ts         ← DbCalendars.connect / getTokens / markDisconnected
-  video.ts             ← DbVideo.connect / getTokens / disconnect
-  notifications.ts     ← DbNotifications.getPrefs / upsertPrefs / logJob
+├── schema/
+│   ├── enums.ts           ← ALL pgEnum definitions (shared — imported by every domain file)
+│   ├── auth.ts            ← users, sessions, accounts, verifications
+│   ├── profile.ts         ← user_profiles, user_branding, username_redirects
+│   ├── event-types.ts     ← event_types, event_type_durations, cancellation_policies, event_type_questions
+│   ├── availability.ts    ← availability_schedules, availability_windows, availability_overrides
+│   ├── calendars.ts       ← connected_calendars, calendar_events_cache
+│   ├── video.ts           ← video_connections
+│   ├── bookings.ts        ← bookings, booking_answers, booking_guests
+│   ├── notifications.ts   ← notification_preferences, workflow_jobs
+│   ├── audit.ts           ← audit_logs
+│   ├── email.ts           ← email_outbox, email_events
+│   ├── platform.ts        ← platform_settings, disposable_email_domains, idempotency_keys
+│   ├── relations.ts       ← ALL Drizzle relations (avoids circular imports)
+│   └── index.ts           ← re-exports everything
+├── index.ts               ← Drizzle client (imports schema from schema/index.ts)
+├── users.ts               ← DbUsers query helpers
+├── event-types.ts         ← DbEventTypes query helpers
+├── availability.ts        ← DbAvailability query helpers
+├── bookings.ts            ← DbBookings query helpers
+├── calendars.ts           ← DbCalendars query helpers
+├── video.ts               ← DbVideo query helpers
+├── notifications.ts       ← DbNotifications query helpers
+├── audit.ts               ← DbAudit query helpers
+├── email.ts               ← DbEmail query helpers
+└── settings.ts            ← DbSettings query helpers
 ```
 
 ---
 
-## `src/lib/db/schema.ts`
+## `src/lib/db/schema/enums.ts`
 
-All Drizzle table definitions in one file.
+All PostgreSQL enums in one place. Import from here in every domain schema file.
 
 ```typescript
-import {
-  pgTable,
-  pgEnum,
-  text,
-  boolean,
-  integer,
-  timestamp,
-  jsonb,
-  index,
-} from 'drizzle-orm/pg-core'
-import { relations } from 'drizzle-orm'
+import { pgEnum } from 'drizzle-orm/pg-core'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ENUMS
-// ─────────────────────────────────────────────────────────────────────────────
+// ── User & Auth ──────────────────────────────────────────────────────────────
 
 export const themeEnum = pgEnum('theme', ['light', 'dark', 'system'])
 
@@ -55,29 +57,29 @@ export const dateFormatEnum = pgEnum('date_format', [
 
 export const timeFormatEnum = pgEnum('time_format', ['12h', '24h'])
 
+// ── Scheduling ───────────────────────────────────────────────────────────────
+
 export const locationTypeEnum = pgEnum('location_type', [
   'zoom',
   'google_meet',
-  'teams',              // Phase 2
-  'phone_host_calls',   // host calls the invitee
-  'phone_invitee_calls',// invitee calls the host
+  'teams',               // Phase 2
+  'phone_host_calls',    // host calls the invitee
+  'phone_invitee_calls', // invitee calls the host
   'in_person',
   'custom',
   'invitees_choice',
 ])
 
 export const questionTypeEnum = pgEnum('question_type', [
-  // MVP — 5 types
   'short_text',
   'long_text',
   'phone',
   'single_select',
   'dropdown',
-  // Phase 2 — 4 types
-  'multiple_select',
-  'number',
-  'date',
-  'url',
+  'multiple_select', // Phase 2
+  'number',          // Phase 2
+  'date',            // Phase 2
+  'url',             // Phase 2
 ])
 
 export const dayOfWeekEnum = pgEnum('day_of_week', [
@@ -98,22 +100,26 @@ export const bookingStatusEnum = pgEnum('booking_status', [
   'no_show',     // Phase 2 auto-detect; manual marking at MVP
 ])
 
+// ── Calendars & Video ────────────────────────────────────────────────────────
+
 export const calendarProviderEnum = pgEnum('calendar_provider', [
   'google',
   'outlook',
-  'apple',   // Phase 2 — CalDAV / iCloud
-  'caldav',  // Phase 2 — generic CalDAV
+  'apple',  // Phase 2 — CalDAV / iCloud
+  'caldav', // Phase 2 — generic CalDAV
 ])
 
 export const calendarStatusEnum = pgEnum('calendar_status', [
   'connected',
-  'disconnected', // token refresh failed; booking pages disabled; host email alert sent
+  'disconnected', // token refresh failed; booking pages disabled; host alert email sent
 ])
 
 export const videoProviderEnum = pgEnum('video_provider', [
   'zoom',
   'teams', // Phase 2
 ])
+
+// ── Jobs & Notifications ─────────────────────────────────────────────────────
 
 export const jobTypeEnum = pgEnum('job_type', [
   'send_confirmation_invitee',
@@ -138,408 +144,800 @@ export const jobStatusEnum = pgEnum('job_status', [
   'cancelled',
 ])
 
-// ─────────────────────────────────────────────────────────────────────────────
-// USERS — Auth base tables (managed by Better Auth) + Schedica extensions
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Email ────────────────────────────────────────────────────────────────────
 
+export const emailOutboxStatusEnum = pgEnum('email_outbox_status', [
+  'pending',  // queued, not yet attempted
+  'sending',  // worker has claimed this row and is attempting delivery
+  'sent',     // accepted by SMTP server
+  'failed',   // all retries exhausted
+])
+
+export const emailEventTypeEnum = pgEnum('email_event_type', [
+  'delivered', // SMTP confirmed delivery
+  'bounced',   // hard bounce
+  'failed',    // SMTP permanent failure
+])
+
+// ── Audit ────────────────────────────────────────────────────────────────────
+
+export const auditSourceEnum = pgEnum('audit_source', [
+  'web',    // triggered from dashboard / booking page UI
+  'api',    // triggered from /api route
+  'worker', // triggered from pg-boss job handler
+  'system', // internal automation (cron, seeder)
+])
+
+export const auditActionEnum = pgEnum('audit_action', [
+  // Auth
+  'user.signup',
+  'user.signin',
+  'user.signout',
+  'user.password_reset',
+  // Admin actions on users
+  'user.ban',
+  'user.unban',
+  'user.impersonate_start',
+  'user.impersonate_stop',
+  'user.revoke_sessions',
+  // Profile
+  'user.profile_updated',
+  'user.timezone_changed',
+  'user.username_changed',
+  'user.photo_updated',
+  'user.password_changed',
+  'user.account_deleted',
+  // Bookings
+  'booking.created',
+  'booking.cancelled_by_invitee',
+  'booking.cancelled_by_host',
+  'booking.rescheduled',
+  // Event types
+  'event_type.created',
+  'event_type.updated',
+  'event_type.deleted',
+  // Calendars
+  'calendar.connected',
+  'calendar.disconnected',
+  // Platform
+  'platform_settings.updated',
+])
+```
+
+---
+
+## `src/lib/db/schema/auth.ts`
+
+Better Auth tables. Better Auth manages these columns and expects exact names.
+**Important:** Use `role: text` (not `isPlatformAdmin: boolean`) — Better Auth's admin plugin reads the `role` field to identify admins.
+
+```typescript
+import { pgTable, text, boolean, timestamp } from 'drizzle-orm/pg-core'
+import { index } from 'drizzle-orm/pg-core'
+
+// Better Auth base user table.
+// Do NOT rename columns — Better Auth expects these exact names.
+// Custom Schedica fields (username, timezone, etc.) are additive extras.
 export const users = pgTable('users', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
+  // Better Auth required fields
+  id:            text('id').primaryKey(),
+  name:          text('name').notNull(),
+  email:         text('email').notNull().unique(),
   emailVerified: boolean('email_verified').notNull().default(false),
-  image: text('image'),                        // profile photo S3 key
-  username: text('username').unique(),          // booking URL: schedica.com/username
-  timezone: text('timezone').default('UTC'),   // IANA timezone
+  image:         text('image'),                         // profile photo URL (S3 public URL)
+  createdAt:     timestamp('created_at').notNull().defaultNow(),
+  updatedAt:     timestamp('updated_at').notNull().defaultNow(),
+
+  // Better Auth admin plugin — MUST be text 'role', not isPlatformAdmin boolean
+  // Set to 'admin' for platform administrators
+  role: text('role'),
+
+  // Better Auth ban fields
+  banned:     boolean('banned').notNull().default(false),
+  banReason:  text('ban_reason'),
+  banExpires: timestamp('ban_expires'),
+
+  // Schedica custom fields
+  username:       text('username').unique(),          // booking URL: schedica.com/username
+  timezone:       text('timezone').default('UTC'),    // IANA timezone
   onboardingStep: integer('onboarding_step').default(0), // 0–5; 5 = complete
   onboardingDone: boolean('onboarding_done').notNull().default(false),
-  isPlatformAdmin: boolean('is_platform_admin').notNull().default(false),
-  banned: boolean('banned').notNull().default(false),
-  banReason: text('ban_reason'),
-  banExpires: timestamp('ban_expires'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-})
+}, (t) => [
+  index('users_email_idx').on(t.email),
+  index('users_username_idx').on(t.username),
+])
 
+// Better Auth session table — exact column names required
 export const sessions = pgTable('sessions', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  token: text('token').notNull().unique(),
-  expiresAt: timestamp('expires_at').notNull(),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  id:             text('id').primaryKey(),
+  userId:         text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  token:          text('token').notNull().unique(),
+  expiresAt:      timestamp('expires_at').notNull(),
+  ipAddress:      text('ip_address'),
+  userAgent:      text('user_agent'),
+  impersonatedBy: text('impersonated_by'),             // admin user ID if this is an impersonation session
+  createdAt:      timestamp('created_at').notNull().defaultNow(),
+  updatedAt:      timestamp('updated_at').notNull().defaultNow(),
 })
 
+// Better Auth OAuth account table
 export const accounts = pgTable('accounts', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  provider: text('provider').notNull(),         // "google" | "microsoft" | "credential"
-  providerAccountId: text('provider_account_id').notNull(),
-  accessToken: text('access_token'),
-  refreshToken: text('refresh_token'),
-  accessTokenExpiresAt: timestamp('access_token_expires_at'),
+  id:                    text('id').primaryKey(),
+  userId:                text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  accountId:             text('account_id').notNull(),
+  providerId:            text('provider_id').notNull(), // 'google' | 'credential' | 'magic-link'
+  accessToken:           text('access_token'),
+  refreshToken:          text('refresh_token'),
+  accessTokenExpiresAt:  timestamp('access_token_expires_at'),
   refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
-  scope: text('scope'),
-  idToken: text('id_token'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  scope:                 text('scope'),
+  idToken:               text('id_token'),
+  createdAt:             timestamp('created_at').notNull().defaultNow(),
+  updatedAt:             timestamp('updated_at').notNull().defaultNow(),
 })
 
+// Better Auth email/magic-link verification table
 export const verifications = pgTable('verifications', {
-  id: text('id').primaryKey(),
+  id:         text('id').primaryKey(),
   identifier: text('identifier').notNull(), // email being verified
-  value: text('value').notNull(),           // 6-digit code or magic link token
-  expiresAt: timestamp('expires_at').notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  value:      text('value').notNull(),      // verification token or code
+  expiresAt:  timestamp('expires_at').notNull(),
+  createdAt:  timestamp('created_at').defaultNow(),
+  updatedAt:  timestamp('updated_at').defaultNow(),
 })
+```
 
+---
+
+## `src/lib/db/schema/profile.ts`
+
+Extended user profile data. Separate from the auth table so Better Auth schema doesn't need to know about Schedica-specific fields.
+
+```typescript
+import { pgTable, text, timestamp, index } from 'drizzle-orm/pg-core'
+import { users } from './auth'
+import { themeEnum, dateFormatEnum, timeFormatEnum } from './enums'
+
+// Extended profile fields — one row per user (1:1)
 export const userProfiles = pgTable('user_profiles', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
-  displayName: text('display_name'),
-  jobTitle: text('job_title'),
-  company: text('company'),
-  bio: text('bio'),           // Phase 2 — up to 200 chars
-  websiteUrl: text('website_url'), // Phase 2
-  theme: themeEnum('theme').default('system'),
-  dateFormat: dateFormatEnum('date_format').default('MM/DD/YYYY'),
-  timeFormat: timeFormatEnum('time_format').default('12h'),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  id:          text('id').primaryKey(),
+  userId:      text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  displayName: text('display_name'),           // shorter name shown on booking page
+  jobTitle:    text('job_title'),
+  company:     text('company'),
+  bio:         text('bio'),                    // Phase 2 — up to 200 chars
+  websiteUrl:  text('website_url'),            // Phase 2
+  theme:       themeEnum('theme').default('system'),
+  dateFormat:  dateFormatEnum('date_format').default('MM/DD/YYYY'),
+  timeFormat:  timeFormatEnum('time_format').default('12h'),
+  updatedAt:   timestamp('updated_at').notNull().defaultNow(),
 })
 
+// Booking page branding — one row per user (1:1)
 export const userBranding = pgTable('user_branding', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
-  brandPrimaryColor: text('brand_primary_color').default('#0070f3'),
-  brandTextColor: text('brand_text_color').default('#ffffff'),
-  logoUrl: text('logo_url'),                  // S3 key for org logo
-  welcomeMessage: text('welcome_message'),
-  confirmationMessage: text('confirmation_message'), // shown after booking + in email
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  id:                  text('id').primaryKey(),
+  userId:              text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  brandPrimaryColor:   text('brand_primary_color').default('#0070f3'),
+  brandTextColor:      text('brand_text_color').default('#ffffff'),
+  logoUrl:             text('logo_url'),              // S3 key
+  welcomeMessage:      text('welcome_message'),
+  confirmationMessage: text('confirmation_message'),  // shown after booking + in email
+  updatedAt:           timestamp('updated_at').notNull().defaultNow(),
 })
 
-// When a user changes their username, old URL redirects to new URL for 30 days.
-// Without this, any old booking link in an email signature would 404 immediately.
+// When user changes their username, old URL redirects to new URL for 30 days.
+// Without this, any old booking link in an email or signature would 404 immediately.
 export const usernameRedirects = pgTable('username_redirects', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id:          text('id').primaryKey(),
+  userId:      text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   oldUsername: text('old_username').notNull(),
   newUsername: text('new_username').notNull(),
-  expiresAt: timestamp('expires_at').notNull(), // 30 days from change
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-})
+  expiresAt:   timestamp('expires_at').notNull(), // 30 days from change
+  createdAt:   timestamp('created_at').notNull().defaultNow(),
+}, (t) => [
+  index('username_redirects_old_idx').on(t.oldUsername),
+])
+```
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EVENT TYPES — Meeting templates + availability + questions + policies
-// ─────────────────────────────────────────────────────────────────────────────
+---
+
+## `src/lib/db/schema/event-types.ts`
+
+Meeting type templates: all settings, durations, questions, and cancellation policies.
+
+```typescript
+import { pgTable, text, boolean, integer, jsonb, timestamp, index } from 'drizzle-orm/pg-core'
+import { users } from './auth'
+import { locationTypeEnum, questionTypeEnum, bookingWindowTypeEnum } from './enums'
 
 export const eventTypes = pgTable('event_types', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  availabilityScheduleId: text('availability_schedule_id'), // FK to availability_schedules
-  name: text('name').notNull(),
-  slug: text('slug').notNull(),              // unique per user; forms booking URL path
-  description: text('description'),
-  locationType: locationTypeEnum('location_type').notNull().default('zoom'),
-  locationValue: text('location_value'),     // video URL, address, phone number, etc.
-  color: text('color').default('#0070f3'),
-  isActive: boolean('is_active').notNull().default(true),
-  isHidden: boolean('is_hidden').notNull().default(false), // bookable via direct link only
-  position: integer('position').default(0),  // drag-and-drop order on profile page
-  minimumNotice: integer('minimum_notice').default(60),    // minutes
-  bookingWindow: integer('booking_window').default(60),    // days ahead
-  bookingWindowType: bookingWindowTypeEnum('booking_window_type').default('rolling'),
-  bufferBefore: integer('buffer_before').default(0),       // minutes
-  bufferAfter: integer('buffer_after').default(0),         // minutes
-  maxBookingsPerDay: integer('max_bookings_per_day'),       // null = no limit
-  startTimeIncrement: integer('start_time_increment').default(30), // slot interval (min)
-  requiresApproval: boolean('requires_approval').notNull().default(false),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-}, (table) => ({
-  userSlugIdx: index('event_types_user_slug_idx').on(table.userId, table.slug),
-  userActiveIdx: index('event_types_user_active_idx').on(table.userId, table.isActive),
-}))
+  id:                   text('id').primaryKey(),
+  userId:               text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  availabilityScheduleId: text('availability_schedule_id'), // FK set in availability.ts; lazy ref
+  name:                 text('name').notNull(),
+  slug:                 text('slug').notNull(),              // unique per user; forms booking URL path
+  description:          text('description'),
+  locationType:         locationTypeEnum('location_type').notNull().default('zoom'),
+  locationValue:        text('location_value'),              // video URL, address, phone number, etc.
+  color:                text('color').default('#0070f3'),
+  isActive:             boolean('is_active').notNull().default(true),
+  isHidden:             boolean('is_hidden').notNull().default(false), // bookable via direct link only
+  position:             integer('position').default(0),      // drag-and-drop order on profile page
+  minimumNotice:        integer('minimum_notice').default(60),     // minutes before a slot can be booked
+  bookingWindow:        integer('booking_window').default(60),     // days ahead available
+  bookingWindowType:    bookingWindowTypeEnum('booking_window_type').default('rolling'),
+  bufferBefore:         integer('buffer_before').default(0),       // minutes
+  bufferAfter:          integer('buffer_after').default(0),        // minutes
+  maxBookingsPerDay:    integer('max_bookings_per_day'),            // null = no limit
+  startTimeIncrement:   integer('start_time_increment').default(30), // slot interval (min)
+  requiresApproval:     boolean('requires_approval').notNull().default(false),
+  createdAt:            timestamp('created_at').notNull().defaultNow(),
+  updatedAt:            timestamp('updated_at').notNull().defaultNow(),
+}, (t) => [
+  index('event_types_user_slug_idx').on(t.userId, t.slug),
+  index('event_types_user_active_idx').on(t.userId, t.isActive),
+])
 
 // Multiple durations per event type — e.g. "30 min / 60 min" on the same link
 export const eventTypeDurations = pgTable('event_type_durations', {
-  id: text('id').primaryKey(),
+  id:          text('id').primaryKey(),
   eventTypeId: text('event_type_id').notNull().references(() => eventTypes.id, { onDelete: 'cascade' }),
-  duration: integer('duration').notNull(),   // minutes
-  isDefault: boolean('is_default').notNull().default(false),
+  duration:    integer('duration').notNull(), // minutes
+  isDefault:   boolean('is_default').notNull().default(false),
 })
 
+// Cancellation & reschedule rules per event type (1:1)
 export const cancellationPolicies = pgTable('cancellation_policies', {
-  id: text('id').primaryKey(),
-  eventTypeId: text('event_type_id').notNull().unique().references(() => eventTypes.id, { onDelete: 'cascade' }),
-  allowCancellation: boolean('allow_cancellation').notNull().default(true),
-  cutoffHours: integer('cutoff_hours').default(0),        // 0 = always allowed
-  allowRescheduling: boolean('allow_rescheduling').notNull().default(true),
-  rescheduleCutoffHours: integer('reschedule_cutoff_hours').default(0),
-  maxReschedules: integer('max_reschedules'),              // null = unlimited
-  requireCancellationReason: boolean('require_cancellation_reason').notNull().default(false),
-  cancellationReasonOptions: jsonb('cancellation_reason_options'), // string[] | null
-  showPolicyText: boolean('show_policy_text').notNull().default(true),
-  policyText: text('policy_text'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
+  id:                          text('id').primaryKey(),
+  eventTypeId:                 text('event_type_id').notNull().unique().references(() => eventTypes.id, { onDelete: 'cascade' }),
+  allowCancellation:           boolean('allow_cancellation').notNull().default(true),
+  cutoffHours:                 integer('cutoff_hours').default(0),           // 0 = always allowed
+  allowRescheduling:           boolean('allow_rescheduling').notNull().default(true),
+  rescheduleCutoffHours:       integer('reschedule_cutoff_hours').default(0),
+  maxReschedules:              integer('max_reschedules'),                    // null = unlimited
+  requireCancellationReason:   boolean('require_cancellation_reason').notNull().default(false),
+  cancellationReasonOptions:   jsonb('cancellation_reason_options').$type<string[]>(), // typed JSONB
+  showPolicyText:              boolean('show_policy_text').notNull().default(true),
+  policyText:                  text('policy_text'),
+  createdAt:                   timestamp('created_at').notNull().defaultNow(),
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AVAILABILITY — Weekly schedule + date overrides
-// ─────────────────────────────────────────────────────────────────────────────
+// Intake form questions shown to invitees at booking time
+export const eventTypeQuestions = pgTable('event_type_questions', {
+  id:          text('id').primaryKey(),
+  eventTypeId: text('event_type_id').notNull().references(() => eventTypes.id, { onDelete: 'cascade' }),
+  label:       text('label').notNull(),
+  type:        questionTypeEnum('type').notNull(),
+  isRequired:  boolean('is_required').notNull().default(false),
+  options:     jsonb('options').$type<string[]>(),  // typed JSONB — for single_select, dropdown, multiple_select
+  placeholder: text('placeholder'),
+  position:    integer('position').notNull().default(0),
+  isActive:    boolean('is_active').notNull().default(true),
+})
+```
+
+---
+
+## `src/lib/db/schema/availability.ts`
+
+Weekly schedule, time windows, and date-specific overrides.
+
+```typescript
+import { pgTable, text, boolean, timestamp, index } from 'drizzle-orm/pg-core'
+import { users } from './auth'
+import { dayOfWeekEnum } from './enums'
 
 // One global schedule per user at MVP. Multiple named schedules → Phase 2.
 export const availabilitySchedules = pgTable('availability_schedules', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  name: text('name').notNull().default('Working Hours'),
+  id:        text('id').primaryKey(),
+  userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name:      text('name').notNull().default('Working Hours'),
   isDefault: boolean('is_default').notNull().default(true),
-  timezone: text('timezone').notNull(), // IANA — stored separately from user timezone
+  // Stored separately from user timezone — schedule can differ (e.g. user travels but schedule stays)
+  timezone:  text('timezone').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
-// Each row = one time block. Multiple rows per day = split schedule (e.g. 9–12, 14–17).
-// Times stored as "HH:mm" strings in the schedule's timezone. DST handled at query time.
+// Each row = one time block on a given day.
+// Multiple rows per day = split schedule (e.g. Mon 9–12, Mon 14–17).
+// Times stored as "HH:mm" strings in the SCHEDULE's timezone — NOT UTC.
+// Converted to UTC at slot generation time, per-slot, to handle DST correctly.
 export const availabilityWindows = pgTable('availability_windows', {
-  id: text('id').primaryKey(),
+  id:         text('id').primaryKey(),
   scheduleId: text('schedule_id').notNull().references(() => availabilitySchedules.id, { onDelete: 'cascade' }),
-  dayOfWeek: dayOfWeekEnum('day_of_week').notNull(),
-  startTime: text('start_time').notNull(), // "09:00"
-  endTime: text('end_time').notNull(),     // "17:00"
+  dayOfWeek:  dayOfWeekEnum('day_of_week').notNull(),
+  startTime:  text('start_time').notNull(), // "09:00"
+  endTime:    text('end_time').notNull(),   // "17:00"
 })
 
-// Date-specific: block a day or change hours for one specific date
+// Date-specific: block a day entirely or define custom hours for one specific date
 export const availabilityOverrides = pgTable('availability_overrides', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  date: text('date').notNull(),            // "YYYY-MM-DD"
+  id:        text('id').primaryKey(),
+  userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  date:      text('date').notNull(),              // "YYYY-MM-DD"
   isBlocked: boolean('is_blocked').notNull().default(true),
-  startTime: text('start_time'),           // if not blocked: custom start time for this day
-  endTime: text('end_time'),               // if not blocked: custom end time for this day
-  reason: text('reason'),
+  startTime: text('start_time'),                  // if not blocked: custom start time "HH:mm"
+  endTime:   text('end_time'),                    // if not blocked: custom end time "HH:mm"
+  reason:    text('reason'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-}, (table) => ({
-  userDateIdx: index('availability_overrides_user_date_idx').on(table.userId, table.date),
-}))
+}, (t) => [
+  index('availability_overrides_user_date_idx').on(t.userId, t.date),
+])
+```
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CUSTOM QUESTIONS — Intake form questions per event type
-// ─────────────────────────────────────────────────────────────────────────────
+---
 
-export const eventTypeQuestions = pgTable('event_type_questions', {
-  id: text('id').primaryKey(),
-  eventTypeId: text('event_type_id').notNull().references(() => eventTypes.id, { onDelete: 'cascade' }),
-  label: text('label').notNull(),
-  type: questionTypeEnum('type').notNull(),
-  isRequired: boolean('is_required').notNull().default(false),
-  options: jsonb('options'),               // string[] for single_select, dropdown, multiple_select
-  placeholder: text('placeholder'),
-  position: integer('position').notNull().default(0),
-  isActive: boolean('is_active').notNull().default(true),
-})
+## `src/lib/db/schema/calendars.ts`
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CALENDARS — Connected calendar accounts + event cache
-// ─────────────────────────────────────────────────────────────────────────────
+Connected calendar OAuth tokens and the 5-minute free/busy event cache.
 
+```typescript
+import { pgTable, text, boolean, timestamp, index } from 'drizzle-orm/pg-core'
+import { users } from './auth'
+import { calendarProviderEnum, calendarStatusEnum } from './enums'
+
+// OAuth tokens for connected calendars.
+// accessToken and refreshToken are stored AES-256-GCM encrypted (see src/lib/encrypt.ts).
 export const connectedCalendars = pgTable('connected_calendars', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  provider: calendarProviderEnum('provider').notNull(),
-  accountEmail: text('account_email').notNull(),
-  accessToken: text('access_token'),
-  refreshToken: text('refresh_token'),
-  tokenExpiresAt: timestamp('token_expires_at'),
-  status: calendarStatusEnum('status').notNull().default('connected'),
-  disconnectedAt: timestamp('disconnected_at'), // set when token refresh fails
-  calendarId: text('calendar_id'),
-  calendarName: text('calendar_name'),
-  isPrimary: boolean('is_primary').notNull().default(false),
-  isConflictCheck: boolean('is_conflict_check').notNull().default(true),
-  isWriteTarget: boolean('is_write_target').notNull().default(false),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-}, (table) => ({
-  userProviderIdx: index('connected_calendars_user_provider_idx').on(table.userId, table.provider),
-}))
+  id:               text('id').primaryKey(),
+  userId:           text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  provider:         calendarProviderEnum('provider').notNull(),
+  accountEmail:     text('account_email').notNull(),
+  accessToken:      text('access_token'),           // AES-256-GCM encrypted
+  refreshToken:     text('refresh_token'),          // AES-256-GCM encrypted
+  tokenExpiresAt:   timestamp('token_expires_at'),
+  status:           calendarStatusEnum('status').notNull().default('connected'),
+  disconnectedAt:   timestamp('disconnected_at'),   // set when token refresh fails permanently
+  calendarId:       text('calendar_id'),            // provider-specific calendar ID
+  calendarName:     text('calendar_name'),
+  isPrimary:        boolean('is_primary').notNull().default(false),
+  isConflictCheck:  boolean('is_conflict_check').notNull().default(true),  // block slots from this calendar
+  isWriteTarget:    boolean('is_write_target').notNull().default(false),   // write new bookings here
+  createdAt:        timestamp('created_at').notNull().defaultNow(),
+}, (t) => [
+  index('connected_calendars_user_provider_idx').on(t.userId, t.provider),
+  index('connected_calendars_status_idx').on(t.status),
+])
 
 // 5-minute TTL cache of external calendar events for free/busy lookups.
-// Refreshed by a pg-boss sync job on a schedule.
+// CALENDAR_SYNC cron (every 5 min) refreshes this via Google/Outlook API.
+// Booking pages read from cache — no live API call at page load time.
+// Final conflict check re-reads live data inside the booking DB transaction.
 export const calendarEventsCache = pgTable('calendar_events_cache', {
-  id: text('id').primaryKey(),
+  id:                  text('id').primaryKey(),
   connectedCalendarId: text('connected_calendar_id').notNull().references(() => connectedCalendars.id, { onDelete: 'cascade' }),
-  externalEventId: text('external_event_id').notNull(),
-  startTime: timestamp('start_time').notNull(), // UTC
-  endTime: timestamp('end_time').notNull(),      // UTC
-  isBusy: boolean('is_busy').notNull().default(true),
-  syncedAt: timestamp('synced_at').notNull().defaultNow(),
-}, (table) => ({
-  calTimeIdx: index('calendar_events_cache_cal_time_idx').on(
-    table.connectedCalendarId, table.startTime, table.endTime
-  ),
-}))
+  externalEventId:     text('external_event_id').notNull(),
+  startTime:           timestamp('start_time').notNull(), // UTC
+  endTime:             timestamp('end_time').notNull(),   // UTC
+  isBusy:              boolean('is_busy').notNull().default(true),
+  syncedAt:            timestamp('synced_at').notNull().defaultNow(),
+}, (t) => [
+  index('calendar_events_cache_cal_time_idx').on(t.connectedCalendarId, t.startTime, t.endTime),
+])
+```
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VIDEO — Video conferencing OAuth tokens
-// ─────────────────────────────────────────────────────────────────────────────
+---
 
-// Google Meet does NOT need a row here — it uses the Google Calendar token
-// already stored in connected_calendars. Only Zoom (P1) and Teams (Phase 2) need this.
+## `src/lib/db/schema/video.ts`
+
+Zoom (and Phase 2: Teams) OAuth tokens.
+
+```typescript
+import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { users } from './auth'
+import { videoProviderEnum } from './enums'
+
+// Google Meet does NOT need a row here — its token is in connected_calendars.
+// Only Zoom (MVP) and Teams (Phase 2) use this table.
+// accessToken and refreshToken are stored AES-256-GCM encrypted.
 export const videoConnections = pgTable('video_connections', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  provider: videoProviderEnum('provider').notNull(),
-  accountEmail: text('account_email'),
-  accessToken: text('access_token').notNull(),
-  refreshToken: text('refresh_token'),
+  id:             text('id').primaryKey(),
+  userId:         text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  provider:       videoProviderEnum('provider').notNull(),
+  accountEmail:   text('account_email'),
+  accessToken:    text('access_token').notNull(),    // AES-256-GCM encrypted
+  refreshToken:   text('refresh_token'),             // AES-256-GCM encrypted
   tokenExpiresAt: timestamp('token_expires_at'),
-  providerUserId: text('provider_user_id'), // Zoom user ID, Teams object ID
-  createdAt: timestamp('created_at').notNull().defaultNow(),
+  providerUserId: text('provider_user_id'),          // Zoom user ID, Teams object ID
+  createdAt:      timestamp('created_at').notNull().defaultNow(),
 })
+```
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BOOKINGS — Booking records, answers, guests
-// ─────────────────────────────────────────────────────────────────────────────
+---
+
+## `src/lib/db/schema/bookings.ts`
+
+All booking records, invitee answers, and additional guests.
+
+```typescript
+import { pgTable, text, boolean, integer, timestamp, index } from 'drizzle-orm/pg-core'
+import { users } from './auth'
+import { eventTypes } from './event-types'
+import { eventTypeQuestions } from './event-types'
+import { bookingStatusEnum } from './enums'
 
 export const bookings = pgTable('bookings', {
-  id: text('id').primaryKey(),
+  id:          text('id').primaryKey(),
   eventTypeId: text('event_type_id').notNull().references(() => eventTypes.id),
-  hostUserId: text('host_user_id').notNull().references(() => users.id),
+  hostUserId:  text('host_user_id').notNull().references(() => users.id),
 
-  // Invitee details (denormalized — invitees have no Schedica account)
-  inviteeName: text('invitee_name').notNull(),
-  inviteeEmail: text('invitee_email').notNull(),
-  inviteePhone: text('invitee_phone'),           // collected when locationType = phone
-  inviteeTimezone: text('invitee_timezone').notNull(), // IANA — for dual-timezone display
+  // Invitee details — denormalized. Invitees have no Schedica account.
+  inviteeName:     text('invitee_name').notNull(),
+  inviteeEmail:    text('invitee_email').notNull(),
+  inviteePhone:    text('invitee_phone'),              // collected when locationType = phone
+  inviteeTimezone: text('invitee_timezone').notNull(), // IANA — for dual-timezone emails
 
   // Meeting time — always stored as UTC
-  startTime: timestamp('start_time').notNull(),
-  endTime: timestamp('end_time').notNull(),
-  duration: integer('duration').notNull(),        // minutes; denormalized for easy display
+  startTime: timestamp('start_time', { withTimezone: true }).notNull(),
+  endTime:   timestamp('end_time', { withTimezone: true }).notNull(),
+  duration:  integer('duration').notNull(), // minutes — denormalized for display
 
-  // Location
-  locationValue: text('location_value'),          // final video URL, address, or phone
-  videoLinkHost: text('video_link_host'),         // host's moderator/start link (Zoom start URL)
-  videoLinkInvitee: text('video_link_invitee'),   // invitee's join link
+  // Location — final resolved value
+  locationValue:    text('location_value'),     // video join URL, address, or phone number
+  videoLinkHost:    text('video_link_host'),    // host's moderator/start URL (Zoom start URL)
+  videoLinkInvitee: text('video_link_invitee'), // invitee's join URL
 
   status: bookingStatusEnum('status').notNull().default('confirmed'),
 
-  // Cancellation & reschedule
-  cancelToken: text('cancel_token').notNull().unique(),
-  rescheduleToken: text('reschedule_token').notNull().unique(),
-  cancellationReason: text('cancellation_reason'),
-  cancelledBy: text('cancelled_by'),              // "host" | "invitee"
-  cancelledAt: timestamp('cancelled_at'),
-  rescheduledFromId: text('rescheduled_from_id'), // previous booking ID when rescheduled
-  rescheduleCount: integer('reschedule_count').notNull().default(0),
+  // Cancellation & reschedule tokens — random cuid2, single-use, in confirmation emails
+  cancelToken:         text('cancel_token').notNull().unique(),
+  rescheduleToken:     text('reschedule_token').notNull().unique(),
+  cancellationReason:  text('cancellation_reason'),
+  cancelledBy:         text('cancelled_by'),          // 'host' | 'invitee'
+  cancelledAt:         timestamp('cancelled_at', { withTimezone: true }),
+  rescheduledFromId:   text('rescheduled_from_id'),   // previous booking ID when rescheduled
+  rescheduleCount:     integer('reschedule_count').notNull().default(0), // checked against cancellation_policies.maxReschedules
 
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-}, (table) => ({
-  hostStartTimeIdx: index('bookings_host_start_time_idx').on(table.hostUserId, table.startTime),
-  hostStatusIdx: index('bookings_host_status_idx').on(table.hostUserId, table.status),
-  inviteeEmailIdx: index('bookings_invitee_email_idx').on(table.inviteeEmail),
-  cancelTokenIdx: index('bookings_cancel_token_idx').on(table.cancelToken),
-  rescheduleTokenIdx: index('bookings_reschedule_token_idx').on(table.rescheduleToken),
-}))
+  // Host private notes (Phase 2 — visible only in dashboard)
+  hostNotes: text('host_notes'),
+
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('bookings_host_start_time_idx').on(t.hostUserId, t.startTime),
+  index('bookings_host_status_idx').on(t.hostUserId, t.status),
+  index('bookings_invitee_email_idx').on(t.inviteeEmail),
+  index('bookings_cancel_token_idx').on(t.cancelToken),
+  index('bookings_reschedule_token_idx').on(t.rescheduleToken),
+])
 
 // Invitee's answers to intake form questions.
-// questionLabel is denormalized so answers remain readable even if the question
-// label is later changed or the question is deleted.
+// questionLabel is denormalized — answers remain readable if the question label is later edited.
 export const bookingAnswers = pgTable('booking_answers', {
-  id: text('id').primaryKey(),
-  bookingId: text('booking_id').notNull().references(() => bookings.id, { onDelete: 'cascade' }),
-  questionId: text('question_id').references(() => eventTypeQuestions.id, { onDelete: 'set null' }),
-  questionLabel: text('question_label').notNull(), // label at time of booking
-  answer: text('answer').notNull(),
+  id:            text('id').primaryKey(),
+  bookingId:     text('booking_id').notNull().references(() => bookings.id, { onDelete: 'cascade' }),
+  questionId:    text('question_id').references(() => eventTypeQuestions.id, { onDelete: 'set null' }),
+  questionLabel: text('question_label').notNull(), // label at time of booking — immutable snapshot
+  answer:        text('answer').notNull(),
 })
 
-// Additional attendees added by the invitee (up to 10).
+// Additional attendees added by the invitee (up to 10 per booking).
 // Each guest receives all confirmation, reminder, and follow-up emails.
 export const bookingGuests = pgTable('booking_guests', {
-  id: text('id').primaryKey(),
-  bookingId: text('booking_id').notNull().references(() => bookings.id, { onDelete: 'cascade' }),
-  guestEmail: text('guest_email').notNull(),
-  guestName: text('guest_name'),
+  id:          text('id').primaryKey(),
+  bookingId:   text('booking_id').notNull().references(() => bookings.id, { onDelete: 'cascade' }),
+  guestEmail:  text('guest_email').notNull(),
+  guestName:   text('guest_name'),
 })
+```
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NOTIFICATIONS — Email preferences + pg-boss job tracker
-// ─────────────────────────────────────────────────────────────────────────────
+---
 
+## `src/lib/db/schema/notifications.ts`
+
+Per-user email notification preferences and the pg-boss job tracker.
+
+```typescript
+import { pgTable, text, boolean, integer, timestamp, index } from 'drizzle-orm/pg-core'
+import { users } from './auth'
+import { bookings } from './bookings'
+import { jobTypeEnum, jobStatusEnum } from './enums'
+
+// One row per user — which email notifications they want to receive
 export const notificationPreferences = pgTable('notification_preferences', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  id:                       text('id').primaryKey(),
+  userId:                   text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
   bookingConfirmationEmail: boolean('booking_confirmation_email').notNull().default(true),
   bookingNotificationEmail: boolean('booking_notification_email').notNull().default(true),
-  reminderEmail24h: boolean('reminder_email_24h').notNull().default(true),
-  reminderEmail1h: boolean('reminder_email_1h').notNull().default(true),
-  cancellationEmail: boolean('cancellation_email').notNull().default(true),
-  rescheduleEmail: boolean('reschedule_email').notNull().default(true),
-  fromName: text('from_name'),        // shown as sender name; default: user's full name
-  replyToEmail: text('reply_to_email'), // default: user's account email
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  reminderEmail24h:         boolean('reminder_email_24h').notNull().default(true),
+  reminderEmail1h:          boolean('reminder_email_1h').notNull().default(true),
+  cancellationEmail:        boolean('cancellation_email').notNull().default(true),
+  rescheduleEmail:          boolean('reschedule_email').notNull().default(true),
+  fromName:                 text('from_name'),       // sender name override; default: user's full name
+  replyToEmail:             text('reply_to_email'),  // reply-to override; default: user's email
+  updatedAt:                timestamp('updated_at').notNull().defaultNow(),
 })
 
 // Tracks pg-boss background jobs per booking.
 // singletonKey format: "{bookingId}_{jobType}"
-// This lets pg-boss cancel one specific job type for one specific booking
+// Allows cancelling one specific job type for one specific booking (e.g. reminder_24h only)
 // without touching other bookings' jobs.
 export const workflowJobs = pgTable('workflow_jobs', {
-  id: text('id').primaryKey(),
-  bookingId: text('booking_id').notNull().references(() => bookings.id, { onDelete: 'cascade' }),
-  jobType: jobTypeEnum('job_type').notNull(),
-  singletonKey: text('singleton_key').notNull(), // "{bookingId}_{jobType}"
-  scheduledFor: timestamp('scheduled_for'),       // null = immediate; set for reminder jobs
-  status: jobStatusEnum('status').notNull().default('pending'),
-  completedAt: timestamp('completed_at'),
+  id:            text('id').primaryKey(),
+  bookingId:     text('booking_id').notNull().references(() => bookings.id, { onDelete: 'cascade' }),
+  jobType:       jobTypeEnum('job_type').notNull(),
+  singletonKey:  text('singleton_key').notNull(), // "{bookingId}_{jobType}"
+  scheduledFor:  timestamp('scheduled_for', { withTimezone: true }), // null = immediate; set for reminder jobs
+  status:        jobStatusEnum('status').notNull().default('pending'),
+  completedAt:   timestamp('completed_at', { withTimezone: true }),
   failureReason: text('failure_reason'),
-  retryCount: integer('retry_count').notNull().default(0),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-}, (table) => ({
-  bookingIdx: index('workflow_jobs_booking_idx').on(table.bookingId),
-  singletonKeyIdx: index('workflow_jobs_singleton_key_idx').on(table.singletonKey),
-  statusIdx: index('workflow_jobs_status_idx').on(table.status),
-}))
+  retryCount:    integer('retry_count').notNull().default(0),
+  createdAt:     timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('workflow_jobs_booking_idx').on(t.bookingId),
+  index('workflow_jobs_singleton_key_idx').on(t.singletonKey),
+  index('workflow_jobs_status_idx').on(t.status),
+])
+```
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RELATIONS
-// ─────────────────────────────────────────────────────────────────────────────
+---
+
+## `src/lib/db/schema/audit.ts`
+
+Immutable record of every significant platform mutation.
+
+```typescript
+import { pgTable, text, jsonb, timestamp, index } from 'drizzle-orm/pg-core'
+import { users } from './auth'
+import { auditActionEnum, auditSourceEnum } from './enums'
+
+export const auditLogs = pgTable('audit_logs', {
+  id: text('id').primaryKey(),
+
+  // Actor — who performed the action
+  // actorUserId is nullable: set null if user is deleted (record survives user deletion)
+  actorUserId: text('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+  // actorEmail is DENORMALIZED — written at log time. Never join to users table.
+  // Reason: user may be deleted; actorEmail must remain readable in the audit log forever.
+  actorEmail:  text('actor_email'),
+
+  action:     auditActionEnum('action').notNull(),
+  targetType: text('target_type'),  // 'user' | 'booking' | 'event_type' | 'platform'
+  targetId:   text('target_id'),    // ID of the affected entity
+
+  // Request context
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+
+  // source tells you where the mutation came from
+  source: auditSourceEnum('source').notNull().default('web'),
+
+  // State snapshots — typed JSONB
+  before: jsonb('before').$type<Record<string, unknown>>(), // state before mutation
+  after:  jsonb('after').$type<Record<string, unknown>>(),  // state after mutation
+
+  // Audit logs are IMMUTABLE — no updatedAt column. Never UPDATE or DELETE audit rows.
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('audit_logs_actor_idx').on(t.actorUserId),
+  index('audit_logs_action_idx').on(t.action),
+  index('audit_logs_target_idx').on(t.targetType, t.targetId),
+  index('audit_logs_created_at_idx').on(t.createdAt),
+])
+```
+
+---
+
+## `src/lib/db/schema/email.ts`
+
+Async email queue (outbox pattern) and per-email delivery event tracking.
+
+```typescript
+import { pgTable, text, integer, jsonb, timestamp, index } from 'drizzle-orm/pg-core'
+import { users } from './auth'
+import { bookings } from './bookings'
+import { emailOutboxStatusEnum, emailEventTypeEnum } from './enums'
+
+export const emailOutbox = pgTable('email_outbox', {
+  id: text('id').primaryKey(),
+
+  // idempotencyKey: random UUID generated at INSERT time.
+  // Passed to SMTP provider as a deduplication key.
+  // If the worker crashes and retries, the provider's 24h dedup window prevents double-send.
+  idempotencyKey: text('idempotency_key').notNull().unique(),
+
+  toEmail:      text('to_email').notNull(),
+  toName:       text('to_name'),
+  subject:      text('subject').notNull(),
+  template:     text('template').notNull(),                        // React Email template name
+  templateData: jsonb('template_data').$type<Record<string, unknown>>().notNull(),
+  fromName:     text('from_name').notNull().default('Schedica'),
+  replyToEmail: text('reply_to_email'),
+
+  // State machine: pending → sending → sent | failed
+  // The row state (not pg-boss retry count) is the source of truth for delivery status.
+  status: emailOutboxStatusEnum('status').notNull().default('pending'),
+
+  attempts:      integer('attempts').notNull().default(0),
+  lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }),
+  sentAt:        timestamp('sent_at', { withTimezone: true }),
+  errorMessage:  text('error_message'),          // last error from SMTP provider
+
+  // Optional links back to source entity (set null on delete — email history is preserved)
+  bookingId: text('booking_id').references(() => bookings.id, { onDelete: 'set null' }),
+  userId:    text('user_id').references(() => users.id, { onDelete: 'set null' }),
+
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('email_outbox_status_idx').on(t.status),
+  index('email_outbox_status_claimed_idx').on(t.status, t.lastAttemptAt), // for stuck-row reaper
+  index('email_outbox_user_idx').on(t.userId),
+  index('email_outbox_created_at_idx').on(t.createdAt),
+])
+
+// SMTP delivery event tracking per email.
+// Written by the EMAIL_SEND job handler after each delivery attempt.
+export const emailEvents = pgTable('email_events', {
+  id:             text('id').primaryKey(),
+  emailOutboxId:  text('email_outbox_id').references(() => emailOutbox.id, { onDelete: 'cascade' }),
+  eventType:      emailEventTypeEnum('event_type').notNull(),
+  occurredAt:     timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+  metadata:       jsonb('metadata').$type<Record<string, unknown>>(), // bounce reason, SMTP response, etc.
+})
+```
+
+---
+
+## `src/lib/db/schema/platform.ts`
+
+Platform-wide settings, disposable email blocklist, and POST idempotency keys.
+
+```typescript
+import { pgTable, text, boolean, integer, jsonb, timestamp, index } from 'drizzle-orm/pg-core'
+import { users } from './auth'
+
+// Singleton row — always id = 1. Admin-tunable at runtime without a deploy.
+// Never INSERT a second row. Use DbSettings.get() and DbSettings.update().
+export const platformSettings = pgTable('platform_settings', {
+  id:                           integer('id').primaryKey().default(1),
+  allowNewSignups:              boolean('allow_new_signups').notNull().default(true),
+  emailSenderName:              text('email_sender_name').notNull().default('Schedica'),
+  maxBookingsPerInviteePerDay:  integer('max_bookings_per_invitee_per_day').notNull().default(10),
+  maintenanceMessage:           text('maintenance_message'), // null = no banner shown
+  updatedAt:                    timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedByUserId:              text('updated_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+})
+
+// Blocklist of known disposable/throwaway email providers.
+// Checked at signup via the sendMagicLink callback before creating a user row.
+// Refreshed weekly by the DISPOSABLE_EMAILS_REFRESH pg-boss cron job.
+export const disposableEmailDomains = pgTable('disposable_email_domains', {
+  domain:  text('domain').primaryKey(), // e.g. 'mailinator.com'
+  addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+// Prevents duplicate booking POST submissions from network retries.
+// Client generates a UUID idempotency key before POST /api/bookings.
+// If the key exists: return the stored response immediately (no re-processing).
+// TTL: 24 hours. Pruned by IDEMPOTENCY_KEYS_PRUNE cron (or inline on read).
+export const idempotencyKeys = pgTable('idempotency_keys', {
+  id:           text('id').primaryKey(),         // = the client-generated UUID key
+  requestPath:  text('request_path').notNull(),  // e.g. '/api/bookings'
+  responseBody: jsonb('response_body').$type<Record<string, unknown>>(), // stored response
+  createdAt:    timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt:    timestamp('expires_at', { withTimezone: true }).notNull(), // 24h TTL
+}, (t) => [
+  index('idempotency_keys_expires_at_idx').on(t.expiresAt),
+])
+```
+
+---
+
+## `src/lib/db/schema/relations.ts`
+
+All Drizzle `relations()` definitions in one file. This avoids circular import issues that arise when two schema files both reference each other's tables.
+
+```typescript
+import { relations } from 'drizzle-orm'
+import { users, sessions, accounts }                                from './auth'
+import { userProfiles, userBranding, usernameRedirects }            from './profile'
+import { eventTypes, eventTypeDurations, cancellationPolicies,
+         eventTypeQuestions }                                       from './event-types'
+import { availabilitySchedules, availabilityWindows,
+         availabilityOverrides }                                    from './availability'
+import { connectedCalendars, calendarEventsCache }                  from './calendars'
+import { videoConnections }                                         from './video'
+import { bookings, bookingAnswers, bookingGuests }                  from './bookings'
+import { notificationPreferences, workflowJobs }                   from './notifications'
+import { auditLogs }                                               from './audit'
+import { emailOutbox, emailEvents }                                 from './email'
+
+// ── Users ─────────────────────────────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ one, many }) => ({
-  profile: one(userProfiles, { fields: [users.id], references: [userProfiles.userId] }),
-  branding: one(userBranding, { fields: [users.id], references: [userBranding.userId] }),
-  sessions: many(sessions),
-  accounts: many(accounts),
-  usernameRedirects: many(usernameRedirects),
-  eventTypes: many(eventTypes),
-  availabilitySchedules: many(availabilitySchedules),
-  connectedCalendars: many(connectedCalendars),
-  videoConnections: many(videoConnections),
+  profile:                 one(userProfiles, { fields: [users.id], references: [userProfiles.userId] }),
+  branding:                one(userBranding, { fields: [users.id], references: [userBranding.userId] }),
+  sessions:                many(sessions),
+  accounts:                many(accounts),
+  usernameRedirects:       many(usernameRedirects),
+  eventTypes:              many(eventTypes),
+  availabilitySchedules:   many(availabilitySchedules),
+  availabilityOverrides:   many(availabilityOverrides),
+  connectedCalendars:      many(connectedCalendars),
+  videoConnections:        many(videoConnections),
   notificationPreferences: one(notificationPreferences, { fields: [users.id], references: [notificationPreferences.userId] }),
+  hostedBookings:          many(bookings),
+  auditLogs:               many(auditLogs),
 }))
 
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, { fields: [sessions.userId], references: [users.id] }),
+}))
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, { fields: [accounts.userId], references: [users.id] }),
+}))
+
+// ── Profiles ──────────────────────────────────────────────────────────────────
+
+export const userProfilesRelations = relations(userProfiles, ({ one }) => ({
+  user: one(users, { fields: [userProfiles.userId], references: [users.id] }),
+}))
+
+export const userBrandingRelations = relations(userBranding, ({ one }) => ({
+  user: one(users, { fields: [userBranding.userId], references: [users.id] }),
+}))
+
+// ── Event Types ───────────────────────────────────────────────────────────────
+
 export const eventTypesRelations = relations(eventTypes, ({ one, many }) => ({
-  user: one(users, { fields: [eventTypes.userId], references: [users.id] }),
-  durations: many(eventTypeDurations),
+  user:               one(users, { fields: [eventTypes.userId], references: [users.id] }),
+  durations:          many(eventTypeDurations),
   cancellationPolicy: one(cancellationPolicies, { fields: [eventTypes.id], references: [cancellationPolicies.eventTypeId] }),
-  questions: many(eventTypeQuestions),
-  availabilitySchedule: one(availabilitySchedules, { fields: [eventTypes.availabilityScheduleId], references: [availabilitySchedules.id] }),
+  questions:          many(eventTypeQuestions),
+  availabilitySchedule: one(availabilitySchedules, {
+    fields: [eventTypes.availabilityScheduleId],
+    references: [availabilitySchedules.id],
+  }),
   bookings: many(bookings),
 }))
 
+export const eventTypeDurationsRelations = relations(eventTypeDurations, ({ one }) => ({
+  eventType: one(eventTypes, { fields: [eventTypeDurations.eventTypeId], references: [eventTypes.id] }),
+}))
+
+export const eventTypeQuestionsRelations = relations(eventTypeQuestions, ({ one }) => ({
+  eventType: one(eventTypes, { fields: [eventTypeQuestions.eventTypeId], references: [eventTypes.id] }),
+}))
+
+// ── Availability ──────────────────────────────────────────────────────────────
+
 export const availabilitySchedulesRelations = relations(availabilitySchedules, ({ one, many }) => ({
-  user: one(users, { fields: [availabilitySchedules.userId], references: [users.id] }),
+  user:    one(users, { fields: [availabilitySchedules.userId], references: [users.id] }),
   windows: many(availabilityWindows),
 }))
 
+export const availabilityWindowsRelations = relations(availabilityWindows, ({ one }) => ({
+  schedule: one(availabilitySchedules, { fields: [availabilityWindows.scheduleId], references: [availabilitySchedules.id] }),
+}))
+
+// ── Calendars ─────────────────────────────────────────────────────────────────
+
+export const connectedCalendarsRelations = relations(connectedCalendars, ({ one, many }) => ({
+  user:         one(users, { fields: [connectedCalendars.userId], references: [users.id] }),
+  cachedEvents: many(calendarEventsCache),
+}))
+
+export const calendarEventsCacheRelations = relations(calendarEventsCache, ({ one }) => ({
+  calendar: one(connectedCalendars, { fields: [calendarEventsCache.connectedCalendarId], references: [connectedCalendars.id] }),
+}))
+
+// ── Video ─────────────────────────────────────────────────────────────────────
+
+export const videoConnectionsRelations = relations(videoConnections, ({ one }) => ({
+  user: one(users, { fields: [videoConnections.userId], references: [users.id] }),
+}))
+
+// ── Bookings ──────────────────────────────────────────────────────────────────
+
 export const bookingsRelations = relations(bookings, ({ one, many }) => ({
   eventType: one(eventTypes, { fields: [bookings.eventTypeId], references: [eventTypes.id] }),
-  host: one(users, { fields: [bookings.hostUserId], references: [users.id] }),
-  answers: many(bookingAnswers),
-  guests: many(bookingGuests),
-  jobs: many(workflowJobs),
+  host:      one(users, { fields: [bookings.hostUserId], references: [users.id] }),
+  answers:   many(bookingAnswers),
+  guests:    many(bookingGuests),
+  jobs:      many(workflowJobs),
+  emails:    many(emailOutbox),
+  // Self-referential: the booking this one was rescheduled from
   rescheduledFrom: one(bookings, {
     fields: [bookings.rescheduledFromId],
     references: [bookings.id],
@@ -547,28 +945,84 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
   }),
 }))
 
-export const connectedCalendarsRelations = relations(connectedCalendars, ({ one, many }) => ({
-  user: one(users, { fields: [connectedCalendars.userId], references: [users.id] }),
-  cachedEvents: many(calendarEventsCache),
+export const bookingAnswersRelations = relations(bookingAnswers, ({ one }) => ({
+  booking:  one(bookings, { fields: [bookingAnswers.bookingId], references: [bookings.id] }),
+  question: one(eventTypeQuestions, { fields: [bookingAnswers.questionId], references: [eventTypeQuestions.id] }),
 }))
+
+export const bookingGuestsRelations = relations(bookingGuests, ({ one }) => ({
+  booking: one(bookings, { fields: [bookingGuests.bookingId], references: [bookings.id] }),
+}))
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
+  user: one(users, { fields: [notificationPreferences.userId], references: [users.id] }),
+}))
+
+export const workflowJobsRelations = relations(workflowJobs, ({ one }) => ({
+  booking: one(bookings, { fields: [workflowJobs.bookingId], references: [bookings.id] }),
+}))
+
+// ── Email ─────────────────────────────────────────────────────────────────────
+
+export const emailOutboxRelations = relations(emailOutbox, ({ one, many }) => ({
+  booking: one(bookings, { fields: [emailOutbox.bookingId], references: [bookings.id] }),
+  user:    one(users, { fields: [emailOutbox.userId], references: [users.id] }),
+  events:  many(emailEvents),
+}))
+
+export const emailEventsRelations = relations(emailEvents, ({ one }) => ({
+  outbox: one(emailOutbox, { fields: [emailEvents.emailOutboxId], references: [emailOutbox.id] }),
+}))
+```
+
+---
+
+## `src/lib/db/schema/index.ts`
+
+Re-exports every table, enum, and relation. Import from `@/lib/db/schema` everywhere in the codebase.
+
+```typescript
+// Enums
+export * from './enums'
+
+// Tables
+export * from './auth'
+export * from './profile'
+export * from './event-types'
+export * from './availability'
+export * from './calendars'
+export * from './video'
+export * from './bookings'
+export * from './notifications'
+export * from './audit'
+export * from './email'
+export * from './platform'
+
+// Relations (must come after all table exports to avoid circular refs)
+export * from './relations'
 ```
 
 ---
 
 ## `src/lib/db/index.ts`
 
-Drizzle client — equivalent to `db.server.ts` in shoptimity-remix.
+Drizzle client — imports the combined schema.
 
 ```typescript
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema'
 
+// Global singleton — prevents multiple Drizzle instances in Next.js dev HMR
 declare global {
   var dbGlobal: ReturnType<typeof drizzle> | undefined
 }
 
-const client = postgres(process.env.DATABASE_URL!)
+const client = postgres(process.env.DATABASE_URL!, {
+  max: 20, // connection pool size
+})
 
 const db = global.dbGlobal ?? drizzle(client, { schema })
 
@@ -582,639 +1036,25 @@ export type DB = typeof db
 
 ---
 
-## `src/lib/db/users.ts`
-
-```typescript
-import db from './index'
-import { users, userProfiles, userBranding, usernameRedirects } from './schema'
-import { eq, and, gt } from 'drizzle-orm'
-
-export const DbUsers = {
-  getById: async (id: string) => {
-    return db.query.users.findFirst({
-      where: eq(users.id, id),
-      with: { profile: true, branding: true },
-    })
-  },
-
-  getByUsername: async (username: string) => {
-    return db.query.users.findFirst({
-      where: eq(users.username, username),
-      with: { profile: true, branding: true },
-    })
-  },
-
-  getByEmail: async (email: string) => {
-    return db.query.users.findFirst({
-      where: eq(users.email, email),
-    })
-  },
-
-  updateProfile: async (userId: string, data: {
-    displayName?: string
-    jobTitle?: string
-    company?: string
-    theme?: 'light' | 'dark' | 'system'
-    dateFormat?: 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD'
-    timeFormat?: '12h' | '24h'
-  }) => {
-    return db
-      .insert(userProfiles)
-      .values({ id: crypto.randomUUID(), userId, ...data })
-      .onConflictDoUpdate({ target: userProfiles.userId, set: { ...data, updatedAt: new Date() } })
-  },
-
-  updateBranding: async (userId: string, data: {
-    brandPrimaryColor?: string
-    logoUrl?: string
-    welcomeMessage?: string
-    confirmationMessage?: string
-  }) => {
-    return db
-      .insert(userBranding)
-      .values({ id: crypto.randomUUID(), userId, ...data })
-      .onConflictDoUpdate({ target: userBranding.userId, set: { ...data, updatedAt: new Date() } })
-  },
-
-  changeUsername: async (userId: string, newUsername: string, oldUsername: string) => {
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-    return db.transaction(async (tx) => {
-      await tx.update(users).set({ username: newUsername, updatedAt: new Date() }).where(eq(users.id, userId))
-      await tx.insert(usernameRedirects).values({
-        id: crypto.randomUUID(), userId, oldUsername, newUsername, expiresAt,
-      })
-    })
-  },
-
-  resolveUsernameRedirect: async (oldUsername: string) => {
-    return db.query.usernameRedirects.findFirst({
-      where: and(
-        eq(usernameRedirects.oldUsername, oldUsername),
-        gt(usernameRedirects.expiresAt, new Date()),
-      ),
-    })
-  },
-
-  ban: async (userId: string, reason: string) => {
-    return db.update(users).set({ banned: true, banReason: reason, updatedAt: new Date() }).where(eq(users.id, userId))
-  },
-
-  unban: async (userId: string) => {
-    return db.update(users).set({ banned: false, banReason: null, updatedAt: new Date() }).where(eq(users.id, userId))
-  },
-
-  delete: async (userId: string) => {
-    return db.delete(users).where(eq(users.id, userId))
-  },
-}
-```
-
----
-
-## `src/lib/db/event-types.ts`
-
-```typescript
-import db from './index'
-import { eventTypes, eventTypeDurations, cancellationPolicies, eventTypeQuestions } from './schema'
-import { eq, and } from 'drizzle-orm'
-
-type EventTypeCreateInput = {
-  userId: string
-  name: string
-  slug: string
-  description?: string
-  locationType: typeof eventTypes.$inferInsert['locationType']
-  locationValue?: string
-  color?: string
-  minimumNotice?: number
-  bookingWindow?: number
-  bufferBefore?: number
-  bufferAfter?: number
-  maxBookingsPerDay?: number
-  startTimeIncrement?: number
-  durations: { duration: number; isDefault: boolean }[]
-}
-
-export const DbEventTypes = {
-  getById: async (id: string) => {
-    return db.query.eventTypes.findFirst({
-      where: eq(eventTypes.id, id),
-      with: { durations: true, cancellationPolicy: true, questions: true },
-    })
-  },
-
-  getBySlug: async (userId: string, slug: string) => {
-    return db.query.eventTypes.findFirst({
-      where: and(eq(eventTypes.userId, userId), eq(eventTypes.slug, slug)),
-      with: { durations: true, cancellationPolicy: true, questions: true },
-    })
-  },
-
-  listByUser: async (userId: string, includeHidden = false) => {
-    return db.query.eventTypes.findMany({
-      where: and(
-        eq(eventTypes.userId, userId),
-        eq(eventTypes.isActive, true),
-      ),
-      with: { durations: true },
-      orderBy: (et, { asc }) => [asc(et.position)],
-    })
-  },
-
-  create: async (data: EventTypeCreateInput) => {
-    const { durations, ...eventData } = data
-    return db.transaction(async (tx) => {
-      const [eventType] = await tx.insert(eventTypes).values({
-        id: crypto.randomUUID(), ...eventData,
-      }).returning()
-      if (durations.length) {
-        await tx.insert(eventTypeDurations).values(
-          durations.map((d) => ({ id: crypto.randomUUID(), eventTypeId: eventType.id, ...d }))
-        )
-      }
-      return eventType
-    })
-  },
-
-  update: async (id: string, data: Partial<EventTypeCreateInput>) => {
-    const { durations, ...eventData } = data
-    return db.transaction(async (tx) => {
-      const [updated] = await tx.update(eventTypes)
-        .set({ ...eventData, updatedAt: new Date() })
-        .where(eq(eventTypes.id, id))
-        .returning()
-      if (durations) {
-        await tx.delete(eventTypeDurations).where(eq(eventTypeDurations.eventTypeId, id))
-        await tx.insert(eventTypeDurations).values(
-          durations.map((d) => ({ id: crypto.randomUUID(), eventTypeId: id, ...d }))
-        )
-      }
-      return updated
-    })
-  },
-
-  toggleActive: async (id: string, isActive: boolean) => {
-    return db.update(eventTypes).set({ isActive, updatedAt: new Date() }).where(eq(eventTypes.id, id))
-  },
-
-  updatePosition: async (updates: { id: string; position: number }[]) => {
-    return db.transaction(async (tx) => {
-      for (const { id, position } of updates) {
-        await tx.update(eventTypes).set({ position }).where(eq(eventTypes.id, id))
-      }
-    })
-  },
-
-  delete: async (id: string) => {
-    return db.delete(eventTypes).where(eq(eventTypes.id, id))
-  },
-
-  upsertCancellationPolicy: async (eventTypeId: string, data: {
-    allowCancellation?: boolean
-    cutoffHours?: number
-    allowRescheduling?: boolean
-    rescheduleCutoffHours?: number
-    maxReschedules?: number | null
-    requireCancellationReason?: boolean
-    cancellationReasonOptions?: string[] | null
-    policyText?: string
-  }) => {
-    return db
-      .insert(cancellationPolicies)
-      .values({ id: crypto.randomUUID(), eventTypeId, ...data })
-      .onConflictDoUpdate({ target: cancellationPolicies.eventTypeId, set: data })
-  },
-
-  upsertQuestions: async (eventTypeId: string, questions: {
-    id?: string
-    label: string
-    type: typeof eventTypeQuestions.$inferInsert['type']
-    isRequired: boolean
-    options?: string[] | null
-    placeholder?: string
-    position: number
-  }[]) => {
-    return db.transaction(async (tx) => {
-      await tx.delete(eventTypeQuestions).where(eq(eventTypeQuestions.eventTypeId, eventTypeId))
-      if (questions.length) {
-        await tx.insert(eventTypeQuestions).values(
-          questions.map((q) => ({ id: crypto.randomUUID(), eventTypeId, ...q }))
-        )
-      }
-    })
-  },
-}
-```
-
----
-
-## `src/lib/db/availability.ts`
-
-```typescript
-import db from './index'
-import { availabilitySchedules, availabilityWindows, availabilityOverrides } from './schema'
-import { eq, and, gte, lte } from 'drizzle-orm'
-
-export const DbAvailability = {
-  getScheduleByUser: async (userId: string) => {
-    return db.query.availabilitySchedules.findFirst({
-      where: and(eq(availabilitySchedules.userId, userId), eq(availabilitySchedules.isDefault, true)),
-      with: { windows: true },
-    })
-  },
-
-  upsertSchedule: async (userId: string, data: {
-    name?: string
-    timezone: string
-    windows: { dayOfWeek: typeof availabilityWindows.$inferInsert['dayOfWeek']; startTime: string; endTime: string }[]
-  }) => {
-    return db.transaction(async (tx) => {
-      // Get or create the default schedule
-      let schedule = await tx.query.availabilitySchedules.findFirst({
-        where: and(eq(availabilitySchedules.userId, userId), eq(availabilitySchedules.isDefault, true)),
-      })
-      if (!schedule) {
-        const [created] = await tx.insert(availabilitySchedules).values({
-          id: crypto.randomUUID(), userId, timezone: data.timezone, name: data.name ?? 'Working Hours',
-        }).returning()
-        schedule = created
-      } else {
-        await tx.update(availabilitySchedules)
-          .set({ timezone: data.timezone })
-          .where(eq(availabilitySchedules.id, schedule.id))
-      }
-      // Replace all windows
-      await tx.delete(availabilityWindows).where(eq(availabilityWindows.scheduleId, schedule.id))
-      if (data.windows.length) {
-        await tx.insert(availabilityWindows).values(
-          data.windows.map((w) => ({ id: crypto.randomUUID(), scheduleId: schedule.id, ...w }))
-        )
-      }
-      return schedule
-    })
-  },
-
-  getOverrides: async (userId: string, fromDate: string, toDate: string) => {
-    return db.query.availabilityOverrides.findMany({
-      where: and(
-        eq(availabilityOverrides.userId, userId),
-        gte(availabilityOverrides.date, fromDate),
-        lte(availabilityOverrides.date, toDate),
-      ),
-    })
-  },
-
-  upsertOverride: async (userId: string, date: string, data: {
-    isBlocked: boolean
-    startTime?: string | null
-    endTime?: string | null
-    reason?: string
-  }) => {
-    const existing = await db.query.availabilityOverrides.findFirst({
-      where: and(eq(availabilityOverrides.userId, userId), eq(availabilityOverrides.date, date)),
-    })
-    if (existing) {
-      return db.update(availabilityOverrides).set(data).where(eq(availabilityOverrides.id, existing.id))
-    }
-    return db.insert(availabilityOverrides).values({ id: crypto.randomUUID(), userId, date, ...data })
-  },
-
-  deleteOverride: async (userId: string, date: string) => {
-    return db.delete(availabilityOverrides).where(
-      and(eq(availabilityOverrides.userId, userId), eq(availabilityOverrides.date, date))
-    )
-  },
-}
-```
-
----
-
-## `src/lib/db/bookings.ts`
-
-```typescript
-import db from './index'
-import { bookings, bookingAnswers, bookingGuests } from './schema'
-import { eq, and, gte, lte, desc, asc } from 'drizzle-orm'
-
-type BookingCreateInput = {
-  eventTypeId: string
-  hostUserId: string
-  inviteeName: string
-  inviteeEmail: string
-  inviteePhone?: string
-  inviteeTimezone: string
-  startTime: Date
-  endTime: Date
-  duration: number
-  locationValue?: string
-  cancelToken: string
-  rescheduleToken: string
-  answers?: { questionId?: string; questionLabel: string; answer: string }[]
-  guests?: { guestEmail: string; guestName?: string }[]
-}
-
-export const DbBookings = {
-  create: async (data: BookingCreateInput) => {
-    const { answers = [], guests = [], ...bookingData } = data
-    return db.transaction(async (tx) => {
-      const [booking] = await tx.insert(bookings).values({
-        id: crypto.randomUUID(), ...bookingData,
-      }).returning()
-      if (answers.length) {
-        await tx.insert(bookingAnswers).values(
-          answers.map((a) => ({ id: crypto.randomUUID(), bookingId: booking.id, ...a }))
-        )
-      }
-      if (guests.length) {
-        await tx.insert(bookingGuests).values(
-          guests.map((g) => ({ id: crypto.randomUUID(), bookingId: booking.id, ...g }))
-        )
-      }
-      return booking
-    })
-  },
-
-  getById: async (id: string) => {
-    return db.query.bookings.findFirst({
-      where: eq(bookings.id, id),
-      with: { answers: true, guests: true, eventType: true },
-    })
-  },
-
-  getByCancelToken: async (token: string) => {
-    return db.query.bookings.findFirst({
-      where: eq(bookings.cancelToken, token),
-      with: { answers: true, eventType: true },
-    })
-  },
-
-  getByRescheduleToken: async (token: string) => {
-    return db.query.bookings.findFirst({
-      where: eq(bookings.rescheduleToken, token),
-      with: { answers: true, eventType: true },
-    })
-  },
-
-  listUpcoming: async (hostUserId: string, limit = 25, offset = 0) => {
-    return db.query.bookings.findMany({
-      where: and(eq(bookings.hostUserId, hostUserId), eq(bookings.status, 'confirmed'), gte(bookings.startTime, new Date())),
-      orderBy: asc(bookings.startTime),
-      limit,
-      offset,
-      with: { answers: true, guests: true },
-    })
-  },
-
-  listPast: async (hostUserId: string, limit = 25, offset = 0) => {
-    return db.query.bookings.findMany({
-      where: and(eq(bookings.hostUserId, hostUserId), lte(bookings.startTime, new Date())),
-      orderBy: desc(bookings.startTime),
-      limit,
-      offset,
-      with: { answers: true },
-    })
-  },
-
-  cancel: async (id: string, data: { cancelledBy: 'host' | 'invitee'; cancellationReason?: string }) => {
-    return db.update(bookings).set({
-      status: 'cancelled',
-      cancelledBy: data.cancelledBy,
-      cancellationReason: data.cancellationReason,
-      cancelledAt: new Date(),
-      updatedAt: new Date(),
-    }).where(eq(bookings.id, id))
-  },
-
-  updateVideoLink: async (id: string, videoLinkHost: string, videoLinkInvitee: string) => {
-    return db.update(bookings).set({ videoLinkHost, videoLinkInvitee, updatedAt: new Date() }).where(eq(bookings.id, id))
-  },
-
-  incrementRescheduleCount: async (id: string) => {
-    const booking = await db.query.bookings.findFirst({ where: eq(bookings.id, id) })
-    if (!booking) throw new Error('Booking not found')
-    return db.update(bookings).set({ rescheduleCount: booking.rescheduleCount + 1, updatedAt: new Date() }).where(eq(bookings.id, id))
-  },
-}
-```
-
----
-
-## `src/lib/db/calendars.ts`
-
-```typescript
-import db from './index'
-import { connectedCalendars, calendarEventsCache } from './schema'
-import { eq, and, gte, lte } from 'drizzle-orm'
-
-export const DbCalendars = {
-  getByUser: async (userId: string) => {
-    return db.query.connectedCalendars.findMany({
-      where: and(eq(connectedCalendars.userId, userId), eq(connectedCalendars.status, 'connected')),
-    })
-  },
-
-  getConflictCheckCalendars: async (userId: string) => {
-    return db.query.connectedCalendars.findMany({
-      where: and(
-        eq(connectedCalendars.userId, userId),
-        eq(connectedCalendars.isConflictCheck, true),
-        eq(connectedCalendars.status, 'connected'),
-      ),
-    })
-  },
-
-  connect: async (userId: string, data: {
-    provider: typeof connectedCalendars.$inferInsert['provider']
-    accountEmail: string
-    accessToken: string
-    refreshToken?: string
-    tokenExpiresAt?: Date
-    calendarId?: string
-    calendarName?: string
-    isWriteTarget?: boolean
-  }) => {
-    return db.insert(connectedCalendars).values({
-      id: crypto.randomUUID(), userId, ...data,
-    }).onConflictDoUpdate({
-      target: [connectedCalendars.userId, connectedCalendars.provider],
-      set: { ...data, status: 'connected', disconnectedAt: null },
-    })
-  },
-
-  updateTokens: async (id: string, accessToken: string, tokenExpiresAt: Date) => {
-    return db.update(connectedCalendars).set({ accessToken, tokenExpiresAt }).where(eq(connectedCalendars.id, id))
-  },
-
-  markDisconnected: async (id: string) => {
-    // Called immediately when token refresh fails.
-    // Booking pages are disabled and host alert email is sent by the caller.
-    return db.update(connectedCalendars).set({
-      status: 'disconnected',
-      disconnectedAt: new Date(),
-    }).where(eq(connectedCalendars.id, id))
-  },
-
-  reconnect: async (id: string, accessToken: string, refreshToken: string, tokenExpiresAt: Date) => {
-    return db.update(connectedCalendars).set({
-      accessToken, refreshToken, tokenExpiresAt,
-      status: 'connected', disconnectedAt: null,
-    }).where(eq(connectedCalendars.id, id))
-  },
-
-  disconnect: async (id: string) => {
-    return db.delete(connectedCalendars).where(eq(connectedCalendars.id, id))
-  },
-
-  getCachedBusySlots: async (calendarId: string, from: Date, to: Date) => {
-    return db.query.calendarEventsCache.findMany({
-      where: and(
-        eq(calendarEventsCache.connectedCalendarId, calendarId),
-        eq(calendarEventsCache.isBusy, true),
-        gte(calendarEventsCache.startTime, from),
-        lte(calendarEventsCache.endTime, to),
-      ),
-    })
-  },
-
-  upsertCachedEvent: async (data: {
-    connectedCalendarId: string
-    externalEventId: string
-    startTime: Date
-    endTime: Date
-    isBusy: boolean
-  }) => {
-    return db.insert(calendarEventsCache).values({ id: crypto.randomUUID(), ...data })
-      .onConflictDoUpdate({
-        target: [calendarEventsCache.connectedCalendarId, calendarEventsCache.externalEventId],
-        set: { startTime: data.startTime, endTime: data.endTime, isBusy: data.isBusy, syncedAt: new Date() },
-      })
-  },
-}
-```
-
----
-
-## `src/lib/db/video.ts`
-
-```typescript
-import db from './index'
-import { videoConnections } from './schema'
-import { eq, and } from 'drizzle-orm'
-
-export const DbVideo = {
-  getByUser: async (userId: string, provider: typeof videoConnections.$inferInsert['provider']) => {
-    return db.query.videoConnections.findFirst({
-      where: and(eq(videoConnections.userId, userId), eq(videoConnections.provider, provider)),
-    })
-  },
-
-  connect: async (userId: string, data: {
-    provider: typeof videoConnections.$inferInsert['provider']
-    accountEmail?: string
-    accessToken: string
-    refreshToken?: string
-    tokenExpiresAt?: Date
-    providerUserId?: string
-  }) => {
-    return db.insert(videoConnections).values({ id: crypto.randomUUID(), userId, ...data })
-      .onConflictDoUpdate({
-        target: [videoConnections.userId, videoConnections.provider],
-        set: { ...data },
-      })
-  },
-
-  updateTokens: async (id: string, accessToken: string, tokenExpiresAt: Date) => {
-    return db.update(videoConnections).set({ accessToken, tokenExpiresAt }).where(eq(videoConnections.id, id))
-  },
-
-  disconnect: async (userId: string, provider: typeof videoConnections.$inferInsert['provider']) => {
-    return db.delete(videoConnections).where(
-      and(eq(videoConnections.userId, userId), eq(videoConnections.provider, provider))
-    )
-  },
-}
-```
-
----
-
-## `src/lib/db/notifications.ts`
-
-```typescript
-import db from './index'
-import { notificationPreferences, workflowJobs } from './schema'
-import { eq, and } from 'drizzle-orm'
-
-export const DbNotifications = {
-  getPrefs: async (userId: string) => {
-    return db.query.notificationPreferences.findFirst({
-      where: eq(notificationPreferences.userId, userId),
-    })
-  },
-
-  upsertPrefs: async (userId: string, data: {
-    bookingConfirmationEmail?: boolean
-    bookingNotificationEmail?: boolean
-    reminderEmail24h?: boolean
-    reminderEmail1h?: boolean
-    cancellationEmail?: boolean
-    rescheduleEmail?: boolean
-    fromName?: string
-    replyToEmail?: string
-  }) => {
-    return db
-      .insert(notificationPreferences)
-      .values({ id: crypto.randomUUID(), userId, ...data })
-      .onConflictDoUpdate({ target: notificationPreferences.userId, set: { ...data, updatedAt: new Date() } })
-  },
-
-  logJob: async (data: {
-    bookingId: string
-    jobType: typeof workflowJobs.$inferInsert['jobType']
-    singletonKey: string
-    scheduledFor?: Date
-  }) => {
-    return db.insert(workflowJobs).values({ id: crypto.randomUUID(), ...data })
-  },
-
-  markJobComplete: async (singletonKey: string) => {
-    return db.update(workflowJobs).set({ status: 'completed', completedAt: new Date() })
-      .where(eq(workflowJobs.singletonKey, singletonKey))
-  },
-
-  markJobFailed: async (singletonKey: string, failureReason: string, retryCount: number) => {
-    return db.update(workflowJobs).set({
-      status: retryCount >= 3 ? 'failed' : 'pending',
-      failureReason,
-      retryCount,
-      completedAt: retryCount >= 3 ? new Date() : null,
-    }).where(eq(workflowJobs.singletonKey, singletonKey))
-  },
-
-  getFailedJobs: async () => {
-    return db.query.workflowJobs.findMany({
-      where: eq(workflowJobs.status, 'failed'),
-      with: { booking: true },
-      orderBy: (j, { desc }) => [desc(j.createdAt)],
-    })
-  },
-}
-```
-
----
-
 ## `drizzle.config.ts`
+
+Updated to point at the schema index file (or wildcard). `schemaFilter: ['public']` is required.
 
 ```typescript
 import { defineConfig } from 'drizzle-kit'
 
 export default defineConfig({
-  schema: './src/lib/db/schema.ts',  // single schema file
+  // Point at the index file — Drizzle resolves all re-exported tables
+  schema: './src/lib/db/schema/index.ts',
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
     url: process.env.DATABASE_URL!,
   },
-  schemaFilter: ['public'], // required — excludes pgboss schema tables
+  // REQUIRED: prevents Drizzle Kit from touching pg-boss's pgboss.* schema tables.
+  // pg-boss creates its own schema on startup. Without this filter, drizzle-kit generate
+  // detects those untracked tables and generates DROP statements — breaking the job queue.
+  schemaFilter: ['public'],
 })
 ```
 
@@ -1222,30 +1062,93 @@ export default defineConfig({
 
 ## How to Use in Server Actions / API Routes
 
+Import path changes from the old single-file schema — now import from the schema index:
+
 ```typescript
-// Example: creating a booking in a Server Action
+// Before (old — single file):
+import { users, bookings } from '@/lib/db/schema'
+
+// After (new — same import, different file resolution):
+import { users, bookings } from '@/lib/db/schema'  // ← resolves to schema/index.ts — no change needed!
+
+// Query helpers — unchanged:
 import { DbBookings } from '@/lib/db/bookings'
-import { DbNotifications } from '@/lib/db/notifications'
+import { DbAudit } from '@/lib/db/audit'
 
 const booking = await DbBookings.create({ ... })
-await DbNotifications.logJob({
-  bookingId: booking.id,
-  jobType: 'send_confirmation_invitee',
-  singletonKey: `${booking.id}_send_confirmation_invitee`,
-})
+await DbAudit.log({ action: 'booking.created', ... })
 ```
+
+The `index.ts` re-export means all existing import paths stay the same.
 
 ---
 
-## Table Summary
+## Important Schema Notes
 
-| Table | Exported from |
-|-------|--------------|
-| `users`, `sessions`, `accounts`, `verifications` | schema.ts → DbUsers |
-| `user_profiles`, `user_branding`, `username_redirects` | schema.ts → DbUsers |
-| `event_types`, `event_type_durations`, `cancellation_policies`, `event_type_questions` | schema.ts → DbEventTypes |
-| `availability_schedules`, `availability_windows`, `availability_overrides` | schema.ts → DbAvailability |
-| `connected_calendars`, `calendar_events_cache` | schema.ts → DbCalendars |
-| `video_connections` | schema.ts → DbVideo |
-| `bookings`, `booking_answers`, `booking_guests` | schema.ts → DbBookings |
-| `notification_preferences`, `workflow_jobs` | schema.ts → DbNotifications |
+### 1. Better Auth — `role: text` not `isPlatformAdmin: boolean`
+
+The Better Auth admin plugin reads a `role` field (string) to grant admin access. The value must be `'admin'`.
+
+```typescript
+// Set a user as admin:
+await db.update(users).set({ role: 'admin' }).where(eq(users.id, userId))
+
+// Check in middleware / server components:
+if (session.user.role !== 'admin') redirect('/dashboard')
+```
+
+**Do NOT use `isPlatformAdmin: boolean`** — Better Auth will not recognize it.
+
+### 2. AES-256-GCM Encrypted Fields
+
+These columns store encrypted values. Always call `encrypt(value)` before INSERT and `decrypt(value)` after SELECT:
+
+| Table | Column | What's encrypted |
+|-------|--------|-----------------|
+| `connected_calendars` | `accessToken` | Google / Outlook OAuth access token |
+| `connected_calendars` | `refreshToken` | Google / Outlook OAuth refresh token |
+| `video_connections` | `accessToken` | Zoom access token |
+| `video_connections` | `refreshToken` | Zoom refresh token |
+
+### 3. Typed JSONB Columns — `.$type<T>()`
+
+All JSONB columns use `.$type<T>()` for TypeScript safety:
+
+| Table | Column | Type |
+|-------|--------|------|
+| `cancellation_policies` | `cancellationReasonOptions` | `string[]` |
+| `event_type_questions` | `options` | `string[]` |
+| `email_outbox` | `templateData` | `Record<string, unknown>` |
+| `email_events` | `metadata` | `Record<string, unknown>` |
+| `audit_logs` | `before` / `after` | `Record<string, unknown>` |
+| `idempotency_keys` | `responseBody` | `Record<string, unknown>` |
+
+### 4. Audit Logs — Never Join to `users`
+
+`actorEmail` is denormalized. Write it at log time. Never `JOIN audit_logs` to `users` — the user may have been deleted, but the audit record must survive.
+
+### 5. Times — UTC in DB, Timezone at Display
+
+- All `timestamp` columns store UTC
+- `startTime` / `endTime` in `bookings`: `{ withTimezone: true }` — use `timestamptz` in PostgreSQL
+- `availabilityWindows.startTime` / `endTime`: stored as `"HH:mm"` strings in the SCHEDULE's timezone, not UTC. Convert per-slot at query time to handle DST.
+
+---
+
+## Table Summary — 29 Tables
+
+| Domain | Tables | Schema File | Query Helper |
+|--------|--------|-------------|-------------|
+| **Auth** | `users`, `sessions`, `accounts`, `verifications` | `auth.ts` | `DbUsers` |
+| **Profile** | `user_profiles`, `user_branding`, `username_redirects` | `profile.ts` | `DbUsers` |
+| **Event Types** | `event_types`, `event_type_durations`, `cancellation_policies`, `event_type_questions` | `event-types.ts` | `DbEventTypes` |
+| **Availability** | `availability_schedules`, `availability_windows`, `availability_overrides` | `availability.ts` | `DbAvailability` |
+| **Calendars** | `connected_calendars`, `calendar_events_cache` | `calendars.ts` | `DbCalendars` |
+| **Video** | `video_connections` | `video.ts` | `DbVideo` |
+| **Bookings** | `bookings`, `booking_answers`, `booking_guests` | `bookings.ts` | `DbBookings` |
+| **Notifications** | `notification_preferences`, `workflow_jobs` | `notifications.ts` | `DbNotifications` |
+| **Audit** | `audit_logs` | `audit.ts` | `DbAudit` |
+| **Email** | `email_outbox`, `email_events` | `email.ts` | `DbEmail` |
+| **Platform** | `platform_settings`, `disposable_email_domains`, `idempotency_keys` | `platform.ts` | `DbSettings` |
+
+**Total: 29 tables** across 11 domain schema files + 1 enums file + 1 relations file + 1 index.

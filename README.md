@@ -43,9 +43,11 @@ Schedica is inspired by the best of the scheduling market — the simplicity of 
 
 | Technology | Purpose |
 |-----------|---------|
-| **pg-boss** | PostgreSQL-backed job queue — schedules and processes async tasks such as sending reminder emails, syncing calendar events, delivering webhooks, and processing no-show follow-ups. Uses the same Postgres database (no Redis required). |
+| **pg-boss** | PostgreSQL-backed job queue — schedules and processes async tasks: send reminder emails, sync calendar events, generate video links, and run cron jobs. Uses the same PostgreSQL database — no Redis required. |
 
-> **Why pg-boss over Redis/BullMQ:** pg-boss stores jobs inside PostgreSQL, keeping the infrastructure simple — one fewer service to provision, monitor, and scale. It supports scheduled jobs (cron), retries with exponential backoff, job priorities, and exactly-once delivery.
+> **Two-process architecture:** Schedica runs as two separate processes sharing one PostgreSQL database. The **Next.js server** handles web traffic; the **pg-boss worker** (`pnpm worker`) processes background jobs. In development, `concurrently` starts both. In production, run both as separate pm2/systemd/Docker processes.
+
+> **Why pg-boss over Redis/BullMQ:** pg-boss stores jobs inside PostgreSQL, keeping the infrastructure simple — one fewer service to provision, monitor, and scale. It supports scheduled jobs (cron), retries with exponential backoff, job priorities, and exactly-once delivery. See [jobs-queues.md](./jobs-queues.md) for all 16 job types and the complete feature-to-job mapping.
 
 ### Authentication
 
@@ -96,9 +98,12 @@ Schedica is inspired by the best of the scheduling market — the simplicity of 
 | Library | Purpose |
 |---------|---------|
 | **Zod** | Runtime validation for all API request bodies, form inputs, and environment variables |
+| **react-hook-form + @hookform/resolvers** | Performant forms; resolvers integrate Zod validation directly |
 | **date-fns** | Date arithmetic — adding/subtracting durations, formatting dates |
 | **date-fns-tz** | Timezone-aware date arithmetic using IANA timezone names — DST-safe slot calculation and display |
-| **console.log / console.error** | Built-in Node.js logging — used for errors, warnings, and key events; no additional library needed |
+| **@paralleldrive/cuid2** | Collision-resistant, URL-safe, timestamp-sortable IDs used as primary keys for all app tables |
+| **Biome** | Linter + formatter — replaces ESLint + Prettier; 10-50× faster with zero config conflicts |
+| **concurrently + tsx** | Dev tooling — `concurrently` runs Next.js server and the pg-boss worker in parallel; `tsx` executes the TypeScript worker directly |
 
 ---
 
@@ -212,6 +217,171 @@ The MVP focuses on delivering a complete solo + small team scheduling experience
 
 ---
 
+## Phase 2 Technical Planning
+
+When Phase 2 features are started, these implementation patterns are already designed — based on Krova's production-proven approach. Build these exactly as specified to avoid rework.
+
+---
+
+### Outbound Webhooks
+
+Hosts configure webhook endpoints on their account. Schedica POSTs a signed payload to each endpoint whenever a booking event occurs.
+
+**New database tables:**
+
+```typescript
+// src/lib/db/schema/webhooks.ts  (add in Phase 2)
+
+export const outboundWebhooks = pgTable('outbound_webhooks', {
+  id:          text('id').primaryKey(),
+  hostUserId:  text('host_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  url:         text('url').notNull(),               // validated — SSRF-checked before saving
+  secret:      text('secret').notNull(),            // random 32-byte hex; used for HMAC signature
+  events:      jsonb('events').$type<string[]>().notNull(), // ['booking.created', 'booking.cancelled']
+  isActive:    boolean('is_active').notNull().default(true),
+  createdAt:   timestamp('created_at').notNull().defaultNow(),
+})
+
+export const webhookDeliveries = pgTable('webhook_deliveries', {
+  id:            text('id').primaryKey(),
+  webhookId:     text('webhook_id').notNull().references(() => outboundWebhooks.id, { onDelete: 'cascade' }),
+  event:         text('event').notNull(),           // 'booking.created'
+  payload:       jsonb('payload').$type<Record<string, unknown>>().notNull(),
+  status:        text('status').notNull().default('pending'), // pending | delivered | failed
+  httpStatus:    integer('http_status'),            // 200, 404, 500, etc.
+  attempts:      integer('attempts').notNull().default(0),
+  lastAttemptAt: timestamp('last_attempt_at'),
+  createdAt:     timestamp('created_at').notNull().defaultNow(),
+})
+```
+
+**Events to emit:**
+
+| Event | When |
+|-------|------|
+| `booking.created` | Booking confirmed |
+| `booking.cancelled` | Booking cancelled (by host or invitee) |
+| `booking.rescheduled` | Booking rescheduled to new time |
+
+**SSRF protection — validate URL before saving:**
+
+```typescript
+// src/lib/webhook-ssrf.ts
+const PRIVATE_RANGES = [
+  /^127\./, /^10\./, /^192\.168\./, /^172\.(1[6-9]|2\d|3[01])\./,
+  /^::1$/, /^fc[0-9a-f]{2}:/i,
+]
+const BLOCKED_HOSTS = ['localhost', 'metadata.google.internal']
+
+export function validateWebhookUrl(url: string): { ok: boolean; error?: string } {
+  try {
+    const parsed = new URL(url)
+    if (!['http:', 'https:'].includes(parsed.protocol))
+      return { ok: false, error: 'Only http/https allowed' }
+    if (BLOCKED_HOSTS.includes(parsed.hostname))
+      return { ok: false, error: 'URL points to blocked host' }
+    if (PRIVATE_RANGES.some(r => r.test(parsed.hostname)))
+      return { ok: false, error: 'URL points to private IP range' }
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'Invalid URL' }
+  }
+}
+```
+
+**HMAC-SHA256 signature — added to every delivery:**
+
+```typescript
+// X-Schedica-Signature: sha256=<hmac>
+// Receiver verifies: HMAC(webhookSecret, rawBody) === signature header value
+
+import { createHmac } from 'crypto'
+
+export function signWebhookPayload(secret: string, payload: string): string {
+  return 'sha256=' + createHmac('sha256', secret).update(payload).digest('hex')
+}
+```
+
+**Delivery job — pg-boss handles retry with backoff:**
+
+```typescript
+// Job: WEBHOOK_DELIVER
+// retryLimit: 5, retryDelay: 30  (30s → 60s → 120s → 240s → 480s)
+// On permanent failure: mark delivery status = 'failed', log to webhook_deliveries
+```
+
+---
+
+### Real-Time Dashboard Updates (Pusher / SSE)
+
+When an invitee books while the host has the dashboard open, push the new booking without a page refresh.
+
+**Recommended approach — Server-Sent Events (simpler than Pusher, no external service):**
+
+```typescript
+// app/api/stream/bookings/route.ts
+export async function GET(request: Request) {
+  const session = await requireSession(request)
+  const stream = new ReadableStream({
+    start(controller) {
+      // Poll bookings table every 5s and push new rows
+      // Or: pg LISTEN/NOTIFY for zero-poll push
+    }
+  })
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+    },
+  })
+}
+```
+
+**Alternative — Pusher** (if SSE proves limiting at scale):
+- `pusher` npm package — private channels with `POST /api/pusher/auth` session validation
+- Hosted service — no self-hosting; simpler client SDK
+
+> **Decision for Phase 2:** Start with SSE (no external service, simpler). Upgrade to Pusher only if SSE proves insufficient at scale.
+
+---
+
+### Public API Keys (for `/api/v1/*`)
+
+Hosts generate API keys to access Schedica data programmatically (list bookings, check availability, etc.).
+
+**Storage pattern — never store raw keys:**
+
+```typescript
+// outbound_api_keys table
+export const apiKeys = pgTable('api_keys', {
+  id:          text('id').primaryKey(),
+  hostUserId:  text('host_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name:        text('name').notNull(),              // "My Integration"
+  prefix:      text('prefix').notNull(),            // "sk_live_abc123" — shown to user for identification
+  hashedKey:   text('hashed_key').notNull().unique(), // SHA-256 hash of full key — what's stored
+  lastUsedAt:  timestamp('last_used_at'),
+  createdAt:   timestamp('created_at').notNull().defaultNow(),
+  expiresAt:   timestamp('expires_at'),             // null = never expires
+})
+```
+
+**Key generation and verification:**
+
+```typescript
+import { createHash, randomBytes } from 'crypto'
+
+// Generate:
+const rawKey = 'sk_live_' + randomBytes(32).toString('hex')   // shown once to user
+const hashedKey = createHash('sha256').update(rawKey).digest('hex')  // stored in DB
+
+// Verify on API request:
+const incomingHash = createHash('sha256').update(bearerToken).digest('hex')
+const keyRow = await db.query.apiKeys.findFirst({ where: eq(apiKeys.hashedKey, incomingHash) })
+if (!keyRow) return jsonResponse(401, { error: 'Invalid API key' })
+```
+
+---
+
 ## Competitive Landscape
 
 | Product | Strength | Gap Schedica Fills |
@@ -227,6 +397,21 @@ The MVP focuses on delivering a complete solo + small team scheduling experience
 **Schedica's positioning:** A polished, open source scheduling platform with SavvyCal-quality UX, Calendly-level features, and Chili Piper-inspired lead routing — free for everyone to use and self-host.
 
 
+
+## Documentation
+
+| Document | What it covers |
+|----------|---------------|
+| [architecture.md](./architecture.md) | System architecture — two-process design, request flows, auth, email, calendar sync, security decisions |
+| [project-structure.md](./project-structure.md) | Complete folder structure with explanations — where each file lives and why |
+| [database-schema.md](./database-schema.md) | All 29 database tables, Drizzle schema definitions, enums, query helpers |
+| [jobs-queues.md](./jobs-queues.md) | All 16 background jobs — feature-to-job mapping, payloads, cron schedules, worker architecture |
+| [tools-packages.md](./tools-packages.md) | Every npm package — purpose, which feature uses it, env vars, setup notes |
+| [development-plan.md](./development-plan.md) | 20-phase build plan from project setup to launch |
+| [pre-development-setup.md](./pre-development-setup.md) | Credentials, packages, env vars, DB setup — complete before writing any code |
+| [features/](./features/) | 16 detailed feature specification files |
+
+---
 
 ## Project Structure (Planned)
 

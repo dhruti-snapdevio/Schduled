@@ -256,9 +256,37 @@ Hosts can rank their preferred times without hard-blocking other times.
 
 ---
 
+## Background Jobs
+
+No background jobs are directly triggered by availability saves. However, there is a critical runtime dependency to understand:
+
+**Slot calculation reads from `calendar_events_cache`** — when an invitee opens a booking page, the slot generator queries `calendar_events_cache` (not the live calendar API) to determine busy times. This cache is populated by the `CALENDAR_SYNC` cron job which runs every 5 minutes per connected calendar (see `jobs-queues.md` and `calendar-integrations.md`).
+
+**Implication:** A host who just connected their calendar may see all slots appear available for up to 5 minutes — until `CALENDAR_SYNC` first populates the cache. This is expected behavior. There is no job to force-trigger this; the first sync will run within 5 minutes automatically.
+
+After saving availability rules, call `revalidatePath('/[username]/[eventSlug]')` in the Server Action to bust the ISR cache so invitees see the updated schedule immediately.
+
+---
+
+## Audit Logging
+
+Every availability mutation writes a record to `audit_logs` inside the same DB transaction as the change.
+
+| Action | When | source | Data Logged |
+|--------|------|--------|-------------|
+| `availability.schedule_updated` | Host saves weekly hours or changes schedule name | `'web'` | scheduleId, changedDays with before/after windows |
+| `availability.override_added` | Host blocks a date or overrides hours for a specific date | `'web'` | scheduleId, date, overrideType (blocked \| custom_hours), new hours |
+| `availability.override_removed` | Host removes a date override | `'web'` | scheduleId, date |
+| `availability.schedule_assigned` | Host assigns a different schedule to an event type | `'web'` | eventTypeId, oldScheduleId, newScheduleId |
+
+All records include `actorUserId`, `actorIp`, `source: 'web'`. See `database-schema.md` for `auditSourceEnum`.
+
+---
+
 ## Tech Stack
 
 - **PostgreSQL + Drizzle ORM** — three tables manage availability: `availability_schedules` (named schedules per user), `availability_windows` (recurring weekly hours per day of week), and `availability_overrides` (one-time date blocks or hour changes). All times stored as `"HH:mm"` strings; the schedule's IANA timezone is stored alongside them.
+- **`calendar_events_cache` dependency** — slot generation queries this table (not the live calendar API) for busy/free data. The `CALENDAR_SYNC` pg-boss cron job (every 5 min) keeps it current. An empty cache (newly connected calendar) means all slots appear free until the first sync completes.
 - **date-fns-tz** — used when computing available slots for a booking page request. Converts the host's weekly hour windows (defined in their local timezone) to UTC for comparison with calendar events, correctly handling DST transitions without any manual offset logic.
 - **Next.js Server Actions** — saving weekly schedules, adding date overrides, and assigning a schedule to an event type all run as server actions. No separate API endpoints needed for these CRUD operations.
 - **Shadcn/UI** — provides the weekly hours grid (day toggles + time range pickers), the date override calendar picker, and the schedule selector dropdown.

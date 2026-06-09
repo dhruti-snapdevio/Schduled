@@ -299,10 +299,63 @@ The dashboard is also the anchor for in-app notifications.
 
 ---
 
+## Background Jobs
+
+When a host cancels a booking from the dashboard, two jobs are dispatched to clean up scheduled reminders and notify the invitee.
+
+| Job Name | Trigger | What It Does | pg-boss Config |
+|----------|---------|-------------|----------------|
+| `BOOKING_CANCEL_REMINDERS` | Host cancels booking from dashboard | Cancels the 24h and 1h reminder jobs for this booking by singletonKey so reminders don't fire for a cancelled meeting | `retryLimit: 3, retryDelay: 10` |
+| `EMAIL_SEND` | Host cancels booking from dashboard | Sends cancellation notification email to invitee via email_outbox pattern | `retryLimit: 5, retryDelay: 30` |
+
+**BOOKING_CANCEL_REMINDERS handler (fired after host cancel):**
+
+```typescript
+// src/lib/worker/handlers/booking-cancel-reminders.ts
+// Use workMonitored() not boss.work() — enables dead-letter queue callback
+workMonitored('BOOKING_CANCEL_REMINDERS', async (job) => {
+  const { bookingId } = job.data
+  await boss.cancel('BOOKING_REMINDER_24H', `${bookingId}_reminder_24h`)
+  await boss.cancel('BOOKING_REMINDER_1H',  `${bookingId}_reminder_1h`)
+})
+```
+
+> **All handlers use `workMonitored()`** — import from `src/lib/worker/work-monitored.ts`. See `jobs-queues.md` — "Dead-Letter Queue Monitoring" for the full pattern.
+
+**Job dispatch from host cancel Server Action:**
+
+```typescript
+// app/actions/bookings.ts
+export async function cancelBookingAsHost(bookingId: string, reason?: string) {
+  // Inside DB transaction:
+  // 1. UPDATE bookings SET status='cancelled', cancelledBy='host', cancelledAt=NOW()
+  // 2. INSERT email_outbox (host-cancellation-invitee template)
+  // 3. INSERT audit_logs (action: 'booking.cancelled_by_host')
+  // After commit:
+  await boss.send('BOOKING_CANCEL_REMINDERS', { bookingId })
+  await boss.send('EMAIL_SEND', { emailOutboxId })
+}
+```
+
+---
+
+## Audit Logging
+
+Every host cancel from the dashboard writes an immutable audit record.
+
+| Action | When | Actor | source | Data Logged |
+|--------|------|-------|--------|-------------|
+| `booking.cancelled_by_host` | Host clicks Cancel in dashboard | Host user ID | `'web'` | bookingId, invitee email, cancellation reason, original start time |
+
+The `source: 'web'` value indicates this was a Server Action triggered by the authenticated host. See `database-schema.md` for `auditSourceEnum`.
+
+---
+
 ## Tech Stack
 
 - **Next.js App Router server components** — the dashboard page fetches all booking data directly on the server at render time using Drizzle queries. No client-side data fetching for the initial page load — the full meeting list renders immediately.
 - **Better Auth** — all dashboard routes are protected. The server component reads the current session using `auth.api.getSession()` and redirects unauthenticated users to the sign-in page. Custom Next.js admin pages can access all users' meeting data via the admin role.
-- **PostgreSQL + Drizzle ORM** — all dashboard queries (upcoming list, past list, cancelled list, search, filter, stats) run directly against the `bookings` table with joins to `event_types` and `booking_answers`. Pagination, status filtering, and date range filtering are handled at the database level for efficiency.
-- **pg-boss** — when a host cancels a meeting from the dashboard, the corresponding pg-boss reminder jobs for that booking are cancelled immediately to prevent sending reminders for a meeting that no longer exists.
+- **PostgreSQL + Drizzle ORM** — all dashboard queries (upcoming list, past list, cancelled list, search, filter, stats) run directly against the `bookings` table with joins to `event_types` and `booking_answers`. Pagination, status filtering, and date range filtering are handled at the database level for efficiency. The **Timeline / Activity Log** in the meeting detail view is powered by reading `audit_logs` rows where `targetId = bookingId` — this gives the full history of booking events (created, rescheduled, cancelled) in chronological order.
+- **pg-boss** — when a host cancels a meeting from the dashboard, `BOOKING_CANCEL_REMINDERS` is dispatched to cancel any pending reminder jobs for that booking, and `EMAIL_SEND` is dispatched to notify the invitee. Both are enqueued after the DB transaction commits so the booking record is guaranteed to exist.
+- **audit_logs** — every host cancellation from the dashboard writes a `booking.cancelled_by_host` record inside the same DB transaction as the status update.
 - **Shadcn/UI** — provides the meeting list cards, filter chips, search input, status badges, date grouping layout, and the meeting detail drawer/modal.

@@ -337,9 +337,40 @@ Two distinct phone call variants exist:
 
 ---
 
+## Background Jobs
+
+No background jobs are directly triggered by event type create, update, or delete operations. However, two things must happen synchronously inside the Server Action after every save:
+
+```typescript
+// After DB write commits — invalidate cached booking pages
+revalidatePath('/[username]/[eventSlug]')  // the event type's own booking page
+revalidatePath('/[username]')              // the host's profile overview page (event card list)
+```
+
+Both paths must be invalidated whenever: name, slug, duration, location, color, active/inactive status, or any scheduling rule changes. If you skip `revalidatePath`, invitees see stale booking pages for up to the ISR revalidation window.
+
+---
+
+## Audit Logging
+
+Every event type mutation writes an immutable record to `audit_logs` inside the same DB transaction as the change.
+
+| Action | When | source | Data Logged |
+|--------|------|--------|-------------|
+| `event_type.created` | Host creates a new event type | `'web'` | eventTypeId, name, slug, durationType, locationType |
+| `event_type.updated` | Host saves changes to an event type | `'web'` | eventTypeId, changedFields with before/after values |
+| `event_type.deleted` | Host deletes an event type | `'web'` | eventTypeId, name, slug |
+| `event_type.activated` | Host toggles event type to Active | `'web'` | eventTypeId |
+| `event_type.deactivated` | Host toggles event type to Inactive | `'web'` | eventTypeId |
+
+All records include `actorUserId` (the host), `actorIp` (from request headers), `source: 'web'` (all event type operations are Server Actions). Visible in the admin audit log viewer. See `database-schema.md` for `auditSourceEnum`.
+
+---
+
 ## Tech Stack
 
 - **PostgreSQL + Drizzle ORM** — the `event_types` table stores every configuration option: name, slug, duration, location type, buffer times, booking window, minimum notice, daily limit, cancellation policy, availability schedule assignment, and display color. One row per event type per user.
 - **Next.js App Router** — the event type builder lives under `app/(dashboard)/event-types/`. Create, edit, and duplicate operations run as Next.js Server Actions, keeping all DB writes on the server side.
-- **Next.js ISR (on-demand revalidation)** — public booking pages for each event type are server-rendered and cached. When the host saves any change, `revalidatePath` instantly invalidates the cached page so invitees always see up-to-date information.
+- **Next.js ISR (on-demand revalidation)** — public booking pages for each event type are server-rendered and cached. When the host saves any change, the Server Action calls `revalidatePath('/[username]/[eventSlug]')` and `revalidatePath('/[username]')` to immediately push a fresh version — no stale pages visible to invitees.
+- **`src/lib/validators.ts`** — event type Server Actions run name and slug through the centralized validators before Zod: `validateName(eventTypeName)` (max 64 chars, no control characters) and `validateUsername(slug)` (3–30 chars, lowercase alphanumeric and hyphens only). Return `{ error }` immediately if either returns null.
 - **Shadcn/UI** — provides the drag-and-drop reorder list, color picker, toggle switches, and multi-tab settings layout used in the event type editor.

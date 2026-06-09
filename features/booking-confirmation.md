@@ -346,10 +346,25 @@ Instead of Schedica's default confirmation screen, hosts can redirect invitees t
 
 ---
 
+## Background Jobs
+
+All confirmation work runs as pg-boss jobs after the booking DB transaction commits. The booking API returns `{ ok: true, booking }` to the browser immediately — none of these jobs block the response.
+
+| Job Name | Trigger | Payload | pg-boss Config |
+|----------|---------|---------|----------------|
+| `EMAIL_SEND` | After booking confirmed (invitee) | `{ emailOutboxId }` | retryLimit: 3, retryDelay: 30s, localConcurrency: 5 |
+| `EMAIL_SEND` | After booking confirmed (host notification) | `{ emailOutboxId }` | retryLimit: 3, retryDelay: 30s, localConcurrency: 5 |
+| `CALENDAR_WRITE` | After booking confirmed | `{ bookingId, calendarId }` | retryLimit: 3, retryDelay: 15s, localConcurrency: 1 |
+| `VIDEO_LINK_GENERATE` | After booking confirmed (if location = zoom or teams) | `{ bookingId, provider }` | retryLimit: 3, retryDelay: exponential (5s→30s→120s), localConcurrency: 3 |
+
+> **All handlers use `workMonitored()`** — every handler is registered with `workMonitored('JOB_NAME', handler)` not raw `boss.work()`. See `jobs-queues.md` — "Dead-Letter Queue Monitoring" for the DLQ pattern.
+
+---
+
 ## Tech Stack
 
 - **pg-boss** — confirmation emails are sent as async background jobs after the booking API returns. The invitee sees the confirmation screen immediately; email delivery happens within seconds in the background. This prevents email provider latency from affecting booking response time.
 - **Nodemailer (SMTP)** — delivers both the invitee confirmation email (with ICS attachment) and the host notification email. The SMTP server should be configured with proper SPF/DKIM/DMARC records to ensure high deliverability and prevent spam classification.
 - **ical-generator** — generates the RFC 5545-compliant `.ics` calendar invite file attached to the invitee's confirmation email. Includes `TZID` so the event displays correctly in Apple Calendar, Outlook, and Google Calendar.
-- **Google Calendar API** — the `write-calendar-event` background job creates the host's calendar event on Google Calendar after the booking is confirmed. Google also automatically sends the invitee a calendar invitation email.
+- **Google Calendar API** — the `CALENDAR_WRITE` background job creates the host's calendar event on Google Calendar after the booking is confirmed. Google also automatically sends the invitee a calendar invitation email.
 - **Microsoft Graph API** — same as Google Calendar, but for hosts using Outlook/Office 365. The calendar event is created via the Graph API with the invitee as an attendee.

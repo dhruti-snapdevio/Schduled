@@ -329,10 +329,36 @@ To support multiple languages:
 
 ---
 
+## Background Jobs
+
+No background jobs are triggered by branding changes. When the host saves branding updates, the Server Action must call `revalidatePath` to bust cached pages:
+
+```typescript
+// After saving user_branding row — invalidate all cached booking pages for this host
+revalidatePath('/[username]')                    // profile overview page
+revalidatePath('/[username]/[eventSlug]', 'page') // each event type's booking page
+```
+
+For hosts with many event types, query all active slugs first and revalidate each one. If you only invalidate the profile page, individual booking pages will still show the old logo/color until the ISR TTL expires.
+
+---
+
+## Audit Logging
+
+Branding changes write an audit record so admins can trace customization mutations.
+
+| Action | When | source | Data Logged |
+|--------|------|--------|-------------|
+| `user.branding_updated` | Host saves logo, color, confirmation message, or any branding field | `'web'` | changedFields with before/after values (e.g., `{ primaryColor: { before: '#000', after: '#4F46E5' } }`) |
+
+All records include `actorUserId`, `actorIp`, `source: 'web'`. See `database-schema.md` for `auditSourceEnum`.
+
+---
+
 ## Tech Stack
 
 - **Next.js App Router dynamic routes** — public booking pages use `[username]` and `[username]/[eventSlug]` dynamic segments. These are React Server Components, so the full page (host info, branding, event type details) is rendered on the server — fast initial load, no layout shift.
-- **Next.js ISR (on-demand revalidation)** — booking pages are cached at the CDN edge. When the host updates their branding, event type, or availability, `revalidatePath` is called server-side to instantly push a fresh version — no stale booking pages visible to invitees.
+- **Next.js ISR (on-demand revalidation)** — booking pages are cached at the CDN edge. When the host updates branding, `revalidatePath('/[username]')` and `revalidatePath('/[username]/[slug]')` are called for every active event type to immediately push fresh versions — no stale logos or colors visible to invitees.
 - **Next.js Metadata API** — each booking page auto-generates SEO-optimised `<title>`, `<description>`, and Open Graph tags using the host's name and event type details.
 - **S3-compatible storage (@aws-sdk/client-s3 + @aws-sdk/s3-request-presigner)** — stores all host-uploaded assets: profile photo, organisation logo, and banner image. Works with any S3-compatible provider (AWS S3, Cloudflare R2, MinIO, Backblaze B2). Browsers upload directly to the bucket via a server-generated presigned URL; the S3 key is saved in `user_branding`. On booking page render, the server derives a public CDN URL from the key.
 - **PostgreSQL + Drizzle ORM** — branding settings (logo URL, banner URL, primary colour, confirmation message, remove-branding flag) are stored in a `user_branding` table. Loaded as part of the booking page server query.
