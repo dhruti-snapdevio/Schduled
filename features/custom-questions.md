@@ -68,7 +68,7 @@ These fields are always present on every booking form and cannot be removed:
 - Invitee picks exactly one option from a list
 - Best for: Category selection, routing-compatible field
 - Example: "What is the purpose of this call?" → Sales / Support / Partnership / Other
-- Can be used in routing form logic (see routing-forms.md)
+- Can be used in routing logic (Phase 2 routing forms feature)
 
 ### Multiple Select (Checkboxes) *(Post-MVP — Phase 2)*
 - Invitee picks one or more options
@@ -145,20 +145,9 @@ https://schedica.com/yourname/30-min-call?a1=Acme+Corp&a2=CEO
 
 > **Security — XSS risk surface:** URL parameter values are user-controlled input arriving from outside the application. Every pre-filled value must be sanitized server-side before rendering (strip HTML tags and script content) and escaped on output. The existing text field validation (line in Validation table: "Stripped of HTML/script tags before saving") must apply to URL-parameter pre-fills as well — not just manually typed answers. Never render pre-filled URL values as raw HTML.
 
-### Via JavaScript (Embed)
-```javascript
-window.schedica = {
-  url: 'https://schedica.com/yourname/30-min-call',
-  prefill: {
-    name: 'Jane Smith',
-    email: 'jane@acme.com',
-    customAnswers: {
-      a1: 'Acme Corp',
-      a2: 'CEO'
-    }
-  }
-};
-```
+### Via JavaScript (Embed) *(Post-MVP — Phase 2)*
+
+When the booking widget is embedded on an external website, hosts can pass pre-fill values via a JavaScript configuration object on the page before the embed script loads. The embed script reads the object and injects the values into the form fields before the invitee sees the page. This requires the embed widget feature (Phase 2) to be built first.
 
 ### Auto-Remember for Repeat Invitees
 

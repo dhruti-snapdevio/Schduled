@@ -291,32 +291,11 @@ Every booking lifecycle event triggers pg-boss jobs. All are keyed with `singlet
 
 ### BOOKING_CANCEL_REMINDERS job
 
-Cancels the pending 24h and 1h reminder jobs so they don't fire for a meeting that no longer exists:
-
-```typescript
-// Handler
-await boss.cancel('BOOKING_REMINDER_24H', `${bookingId}_reminder_24h`)
-await boss.cancel('BOOKING_REMINDER_1H',  `${bookingId}_reminder_1h`)
-```
+Cancels the pending 24h and 1h reminder jobs so they don't fire for a meeting that no longer exists. The handler calls `boss.cancel()` for both `BOOKING_REMINDER_24H` and `BOOKING_REMINDER_1H` using the singletonKey format `{bookingId}_reminder_24h` and `{bookingId}_reminder_1h`. All handlers are registered with `workMonitored()` — see `jobs-queues.md` for the dead-letter queue pattern.
 
 ### BOOKING_RESCHEDULE_REMINDERS job
 
-Cancels old reminder jobs and schedules new ones at the rescheduled meeting time:
-
-```typescript
-// Cancel old
-await boss.cancel('BOOKING_REMINDER_24H', `${oldBookingId}_reminder_24h`)
-await boss.cancel('BOOKING_REMINDER_1H',  `${oldBookingId}_reminder_1h`)
-// Schedule new
-await boss.sendAfter('BOOKING_REMINDER_24H', { bookingId: newBookingId }, {
-  singletonKey: `${newBookingId}_reminder_24h`,
-}, newStart24hBefore)
-await boss.sendAfter('BOOKING_REMINDER_1H', { bookingId: newBookingId }, {
-  singletonKey: `${newBookingId}_reminder_1h`,
-}, newStart1hBefore)
-```
-
-> **All handlers use `workMonitored()`** — every `boss.work('JOB_NAME', handler)` call in the worker is wrapped with `workMonitored('JOB_NAME', handler)` instead. This fires the dead-letter callback when a job exhausts all retries. See `jobs-queues.md` — "Dead-Letter Queue Monitoring" section.
+Cancels the old reminder jobs (using the original bookingId in the singletonKeys) and schedules two new reminder jobs using `boss.sendAfter()` with the rescheduled meeting time — one firing 24h before the new start time and one firing 1h before, each with a new `singletonKey` tied to the new bookingId.
 
 ## Audit Logging
 

@@ -193,33 +193,35 @@ The MVP focuses on delivering a complete solo + small team scheduling experience
 
 ### Future Roadmap (Post-MVP)
 
-| Phase | Feature | Description |
-|-------|---------|-------------|
-| 2 | Team Workspaces | Invite team members, shared event types, admin controls |
-| 2 | Round-Robin Scheduling | Auto-distribute meetings among team members |
-| 2 | Collective Events | Require multiple hosts available simultaneously |
-| 2 | Routing Forms | Qualify and route leads to the right team member |
-| 2 | Scheduling Outreach | Send specific available times; single-use booking links |
-| 2 | Meeting Polls | Propose times; participants vote; host confirms winner |
-| 2 | Website Embeds | Inline, pop-up, and widget embeds for any website |
-| 2 | Analytics Dashboard | Meeting stats, cancellation rates, no-show tracking |
-| 2 | Webhooks | Send booking data to external apps in real-time |
-| 2 | AI Notetaker | Auto-join, record, transcribe, summarize with action items |
-| 3 | Browser Extension | Chrome/Outlook extension; share times directly in Gmail |
-| 3 | Calendar Overlay | Invitees see mutual availability (SavvyCal-style) |
-| 3 | Mobile App | iOS & Android native apps |
-| 4 | SSO / SAML | Enterprise single sign-on (Okta, Azure AD, Google Workspace) |
-| 4 | Custom Domain | Host booking pages on your own domain |
-| 4 | Audit Logs | Activity log for all scheduling events — compliance-ready |
-| 4 | HIPAA Compliance | BAA agreements and healthcare-grade privacy |
-| 4 | Advanced Routing | Territory, account ownership, CRM lookup-based routing |
-| 4 | SCIM Provisioning | Automatic user provisioning via identity provider |
+> **Note on wave numbers below:** These are post-launch feature waves, not build phases. The build phases (Phase 0–20) are in [development-plan.md](./development-plan.md) and refer to the MVP build sequence.
+
+| Wave | Feature | Description |
+|------|---------|-------------|
+| Wave 1 | Team Workspaces | Invite team members, shared event types, admin controls |
+| Wave 1 | Round-Robin Scheduling | Auto-distribute meetings among team members |
+| Wave 1 | Collective Events | Require multiple hosts available simultaneously |
+| Wave 1 | Routing Forms | Qualify and route leads to the right team member |
+| Wave 1 | Scheduling Outreach | Send specific available times; single-use booking links |
+| Wave 1 | Meeting Polls | Propose times; participants vote; host confirms winner |
+| Wave 1 | Website Embeds | Inline, pop-up, and widget embeds for any website |
+| Wave 1 | Analytics Dashboard | Meeting stats, cancellation rates, no-show tracking |
+| Wave 1 | Webhooks | Send booking data to external apps in real-time |
+| Wave 1 | AI Notetaker | Auto-join, record, transcribe, summarize with action items |
+| Wave 2 | Browser Extension | Chrome/Outlook extension; share times directly in Gmail |
+| Wave 2 | Calendar Overlay | Invitees see mutual availability (SavvyCal-style) |
+| Wave 2 | Mobile App | iOS & Android native apps |
+| Wave 3 | SSO / SAML | Enterprise single sign-on (Okta, Azure AD, Google Workspace) |
+| Wave 3 | Custom Domain | Host booking pages on your own domain |
+| Wave 3 | Audit Logs | Activity log for all scheduling events — compliance-ready |
+| Wave 3 | HIPAA Compliance | BAA agreements and healthcare-grade privacy |
+| Wave 3 | Advanced Routing | Territory, account ownership, CRM lookup-based routing |
+| Wave 3 | SCIM Provisioning | Automatic user provisioning via identity provider |
 
 ---
 
-## Phase 2 Technical Planning
+## Post-MVP Technical Planning
 
-When Phase 2 features are started, these implementation patterns are already designed — based on Krova's production-proven approach. Build these exactly as specified to avoid rework.
+When Wave 1 post-launch features are started, these implementation patterns are already designed — based on Krova's production-proven approach. Build these exactly as specified to avoid rework.
 
 ---
 

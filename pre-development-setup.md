@@ -670,7 +670,7 @@ schedica/
 │       │   │   ├── bookings.ts           ← bookings, booking_answers, booking_guests
 │       │   │   ├── calendars.ts          ← connected_calendars, calendar_events_cache
 │       │   │   ├── video.ts              ← video_connections
-│       │   │   ├── notifications.ts      ← notification_preferences, email_outbox, email_events
+│       │   │   ├── notifications.ts      ← notification_preferences, workflow_jobs, email_outbox, email_events
 │       │   │   ├── platform.ts           ← audit_logs, platform_settings, idempotency_keys, disposable_email_domains
 │       │   │   └── index.ts              ← exports all schema tables for Drizzle
 │       │   ├── index.ts                  ← Drizzle client + db connection

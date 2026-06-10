@@ -531,81 +531,9 @@ All audit records include `actorUserId`, `actorIp`, `source: 'web'` (all auth ev
 
 ## Better Auth Configuration
 
-These options must be set in `src/lib/auth.ts`. They are not optional — each one closes a specific security or data gap.
+The auth config lives in `src/lib/auth.ts`. Three settings are required — each closes a specific security or data gap.
 
-```typescript
-// src/lib/auth.ts
-import { betterAuth } from 'better-auth'
-import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { magicLink, admin } from 'better-auth/plugins'
-import db from '@/lib/db'
-import * as schema from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { users } from '@/lib/db/schema'
-import { env } from '@/lib/env'  // ALWAYS import env vars from here — never process.env.X directly
-
-export const auth = betterAuth({
-  database: drizzleAdapter(db, {
-    provider: 'pg',
-    schema: {
-      user: schema.users,
-      session: schema.sessions,
-      account: schema.accounts,
-      verification: schema.verifications,
-    },
-  }),
-
-  socialProviders: {
-    google: {
-      clientId: env.GOOGLE_CLIENT_ID,       // ← env.ts validates this at startup; crash if missing
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-      // Always re-fetch the user's name and photo from Google on every login.
-      // Without this, a user who changes their Google profile photo would see
-      // their old photo in Schedica until they re-register.
-      overrideUserInfoOnSignIn: true,
-    },
-  },
-
-  session: {
-    cookieCache: {
-      enabled: true,
-      // Cache the session for 60 seconds to reduce DB reads on every request.
-      // Side effect: when an admin bans a user, the banned state propagates
-      // within at most 60 seconds — the banned user's next request after
-      // the cache expires will be rejected.
-      maxAge: 60,
-    },
-  },
-
-  plugins: [
-    magicLink({
-      sendMagicLink: async ({ email, url }) => {
-        // Silently suppress magic links to banned users.
-        // Do NOT return an error — that would reveal to the user that they are banned.
-        const user = await db.query.users.findFirst({
-          where: eq(users.email, email),
-        })
-        if (user?.banned) {
-          const notExpired = !user.banExpires || user.banExpires > new Date()
-          if (notExpired) return  // swallow silently
-        }
-
-        // User is not banned — enqueue the magic link email
-        await enqueueEmail({
-          to: email,
-          subject: 'Sign in to Schedica',
-          template: 'magic-link',
-          templateData: { url },
-        })
-      },
-    }),
-
-    admin(),
-  ],
-})
-```
-
-### Why Each Option Matters
+### Required Configuration Options
 
 | Option | What it does | What breaks without it |
 |--------|-------------|------------------------|

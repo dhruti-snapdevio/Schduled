@@ -97,7 +97,7 @@ https://meet.google.com/abc-defg-hij
 
 ---
 
-### Microsoft Teams *(Phase 2)*
+### Microsoft Teams *(Post-MVP — Phase 2)*
 
 Auto-generates a Teams meeting link via the Microsoft Graph API.
 
@@ -304,45 +304,13 @@ Hosts can disable this notice or the recording feature per event type.
 
 > **All handlers use `workMonitored()`** — register handlers with `workMonitored('VIDEO_LINK_GENERATE', handler)` not raw `boss.work()`. The DLQ callback fires when all 3 retries are exhausted — use it to send the "video link failed" alert email. See `jobs-queues.md` — "Dead-Letter Queue Monitoring".
 
-### Retry Pattern (from Krova's handler pattern)
+### Retry Pattern
 
-```typescript
-// VIDEO_LINK_GENERATE handler
-export async function handler(job: { data: { bookingId: string; provider: 'zoom' | 'teams' } }) {
-  const { bookingId, provider } = job.data
-  try {
-    const link = await createVideoMeeting(provider, bookingId)
-    await DbBookings.updateVideoLink(bookingId, link)
-    // Update email_outbox rows so confirmation emails include the link
-    await DbEmail.updateVideoLinkInOutbox(bookingId, link)
-  } catch (err) {
-    // pg-boss auto-retries up to 3 times with exponential backoff (5s → 30s → 120s)
-    // After all retries exhausted:
-    //   - booking NOT blocked (already confirmed)
-    //   - host receives EMAIL_SEND alert: "Video link generation failed — add link manually"
-    //   - invitee confirmation email updated: "Your video link will be sent shortly"
-    throw err
-  }
-}
-```
+The `VIDEO_LINK_GENERATE` handler calls the Zoom API to create the meeting, stores the host start URL and invitee join URL on the booking record, and updates any pending `email_outbox` rows so the confirmation emails include the correct link. On failure, pg-boss retries up to 3 times with exponential backoff (5s → 30s → 120s). After all 3 retries are exhausted: the booking remains confirmed (video failure never blocks the booking), the host receives an `EMAIL_SEND` alert "Video link generation failed — add link manually", and the invitee's confirmation email shows "Your video link will be sent shortly" instead of a broken link.
 
 ### Google Meet — No Background Job Needed
 
-Google Meet links are generated **inline** during `CALENDAR_WRITE` — the `conferenceData.createRequest` parameter in the Google Calendar API call causes Meet to auto-generate a link. No separate `VIDEO_LINK_GENERATE` job needed for Google Meet hosts.
-
-```typescript
-// Inside CALENDAR_WRITE job handler (Google only)
-const event = await googleCalendar.events.insert({
-  calendarId: 'primary',
-  conferenceDataVersion: 1,
-  requestBody: {
-    summary: ...,
-    conferenceData: { createRequest: { requestId: bookingId } },  // ← triggers Meet link
-  },
-})
-const meetLink = event.conferenceData.entryPoints[0].uri
-await DbBookings.updateVideoLink(bookingId, meetLink)
-```
+Google Meet links are generated **inline** during `CALENDAR_WRITE` — when creating the Google Calendar event, the `conferenceData.createRequest` field in the API request body causes Google to auto-generate and attach a Meet link. The handler reads the Meet URL from the response and stores it on the booking record. No separate `VIDEO_LINK_GENERATE` job is needed for Google Meet hosts.
 
 ---
 
