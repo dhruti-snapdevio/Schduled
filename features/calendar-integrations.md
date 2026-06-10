@@ -81,7 +81,7 @@ For Microsoft 365 accounts (work or school) and personal Outlook.com accounts.
 
 ---
 
-### Apple Calendar / iCloud *(Phase 2 — Post-MVP)*
+### Apple Calendar / iCloud *(Post-MVP — Phase 2)*
 
 > Note: Calendly dropped iCloud support in August 2024. Schedica will support it in Phase 2 — CalDAV lacks standard OAuth and requires app-specific passwords, making it more complex than Google/Outlook. Phase 2 differentiator vs Calendly.
 

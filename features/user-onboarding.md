@@ -250,12 +250,7 @@ Checklist dismissible once all steps complete or manually dismissed.
 
 ## Onboarding Progress Indicator
 
-Throughout onboarding, a progress bar or step indicator is shown:
-
-```
-Step 1 of 5: Connect your calendar
-[●●●○○]
-```
+Throughout onboarding, a progress bar or step indicator is shown — e.g., "Step 1 of 5: Connect your calendar" with filled dots for completed steps and empty dots for remaining steps.
 
 - Shows current step and total steps
 - Clicking a previous step allows going back

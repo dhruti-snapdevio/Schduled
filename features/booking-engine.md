@@ -157,17 +157,7 @@ If location type is Zoom, Google Meet, or Teams, generate a unique link.
 Add the meeting to the host's calendar (and optionally invitee's calendar).
 
 **Host Calendar (Google):**
-```
-POST /calendars/{calendarId}/events
-{
-  summary: "30-Min Call with Jane Smith",
-  start: { dateTime: "2026-06-10T14:00:00", timeZone: "America/New_York" },
-  end: { dateTime: "2026-06-10T14:30:00", timeZone: "America/New_York" },
-  attendees: [{ email: "jane@example.com" }],
-  location: "https://zoom.us/j/...",
-  description: "Booking ID: abc123\n\nQuestion answers..."
-}
-```
+The CALENDAR_WRITE job calls `POST /calendars/{calendarId}/events` via the Google Calendar API. The event includes the meeting title (event type name + invitee name), start and end times in the host's timezone, the invitee's email as an attendee, the video URL as the location field, and the booking ID plus form answers in the description.
 
 **Host Calendar (Outlook):**
 - Microsoft Graph API: `POST /me/events`
@@ -359,7 +349,7 @@ All post-booking work runs as pg-boss jobs after the DB transaction commits. The
 
 | Job Name | Trigger | Payload | pg-boss config |
 |----------|---------|---------|---------------|
-| `EMAIL_SEND` | On booking confirmed (×2: invitee + host) | `{ emailOutboxId }` | retryLimit: 3, retryDelay: 30s, **localConcurrency: 5** |
+| `EMAIL_SEND` | On booking confirmed (×2: invitee + host) | `{ emailOutboxId }` | retryLimit: 0 (state machine owns retries — handler re-enqueues with 60s/5min/15min backoff on failure), **localConcurrency: 5** |
 | `VIDEO_LINK_GENERATE` | On booking confirmed (if video location) | `{ bookingId, provider }` | retryLimit: 3, retryDelay: exponential (5s→30s→120s), **localConcurrency: 3** |
 | `CALENDAR_WRITE` | On booking confirmed | `{ bookingId, calendarId }` | retryLimit: 3, retryDelay: 15s, **localConcurrency: 1** — must be 1 to avoid concurrent writes to the same calendar |
 | `BOOKING_REMINDER_24H` | On booking confirmed — fires 24h before start | `{ bookingId }` | singletonKey: `{bookingId}_reminder_24h`; retryLimit: 2 |

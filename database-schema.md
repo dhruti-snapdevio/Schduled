@@ -136,7 +136,7 @@ export const jobStatusEnum = pgEnum('job_status', [
 // ── Email ────────────────────────────────────────────────────────────────────
 
 export const emailOutboxStatusEnum = pgEnum('email_outbox_status', [
-  'pending',  // queued, not yet attempted
+  'queued',   // inserted; not yet claimed by worker
   'sending',  // worker has claimed this row and is attempting delivery
   'sent',     // accepted by SMTP server
   'failed',   // all retries exhausted
@@ -743,9 +743,9 @@ export const emailOutbox = pgTable('email_outbox', {
   fromName:     text('from_name').notNull().default('Schedica'),
   replyToEmail: text('reply_to_email'),
 
-  // State machine: pending → sending → sent | failed
+  // State machine: queued → sending → sent | failed
   // The row state (not pg-boss retry count) is the source of truth for delivery status.
-  status: emailOutboxStatusEnum('status').notNull().default('pending'),
+  status: emailOutboxStatusEnum('status').notNull().default('queued'),
 
   attempts:      integer('attempts').notNull().default(0),
   lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }),
@@ -1135,7 +1135,7 @@ All JSONB columns use `.$type<T>()` for TypeScript safety:
 
 ---
 
-## Table Summary — 29 Tables
+## Table Summary — 28 Tables
 
 | Domain | Tables | Schema File | Query Helper |
 |--------|--------|-------------|-------------|
@@ -1151,4 +1151,4 @@ All JSONB columns use `.$type<T>()` for TypeScript safety:
 | **Email** | `email_outbox`, `email_events` | `email.ts` | `DbEmail` |
 | **Platform** | `platform_settings`, `disposable_email_domains`, `idempotency_keys` | `platform.ts` | `DbSettings` |
 
-**Total: 29 tables** across 11 domain schema files + 1 enums file + 1 relations file + 1 index.
+**Total: 28 tables** across 11 domain schema files + 1 enums file + 1 relations file + 1 index.

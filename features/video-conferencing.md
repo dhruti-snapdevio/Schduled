@@ -58,10 +58,7 @@ The most widely used business video conferencing platform.
 > ⚠️ **Zoom Marketplace Approval Required**
 > Creating unique meeting links via the Zoom API requires a published Zoom OAuth app approved through the [Zoom Marketplace](https://marketplace.zoom.us). Approval requires a publicly accessible privacy policy, terms of service, and a working demo. Review can take **2–4 weeks**. Submit the app early — this is a hard dependency before Zoom integration can go live for all users. During development, use a development-mode OAuth app (works for up to 100 users without approval).
 
-**Link Format:**
-```
-https://zoom.us/j/1234567890?pwd=AbCdEfGh
-```
+**Link Format:** A unique `zoom.us/j/{meetingId}?pwd={password}` URL generated per booking via the Zoom API.
 
 **Setup:**
 1. Go to Profile & Settings → Integrations → Zoom
@@ -85,10 +82,7 @@ Auto-generates a Google Meet link as part of calendar event creation. No separat
 - Host must have Google Calendar connected (see calendar-integrations.md)
 - Works with both personal Google accounts and Google Workspace accounts
 
-**Link Format:**
-```
-https://meet.google.com/abc-defg-hij
-```
+**Link Format:** A unique `meet.google.com/{code}` URL generated automatically as part of the Google Calendar event creation.
 
 **How It Works:**
 - When Schedica creates the Google Calendar event for the booking, it includes `conferenceData.createRequest` in the API call
@@ -112,10 +106,7 @@ Auto-generates a Teams meeting link via the Microsoft Graph API.
 - Host must have Outlook / Office 365 connected (see calendar-integrations.md)
 - Microsoft 365 Business Basic or higher recommended for full features
 
-**Link Format:**
-```
-https://teams.microsoft.com/l/meetup-join/...
-```
+**Link Format:** A `teams.microsoft.com/l/meetup-join/...` URL returned in the `joinWebUrl` field from the Microsoft Graph API.
 
 **How It Works:**
 - Schedica calls `POST /v1.0/users/{userId}/onlineMeetings` on the Microsoft Graph API

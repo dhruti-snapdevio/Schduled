@@ -20,7 +20,7 @@ Schedica syncs with connected calendars to determine real-time availability. On 
 - As a host, I want to block specific dates as unavailable, so that my holidays and vacations are never bookable. *(MVP)*
 - As a host, I want my connected calendar's busy events to automatically block availability, so that I am never double-booked. *(MVP)*
 - As a host, I want to set a daily meeting limit, so that I am not overloaded with back-to-back meetings in a single day. *(MVP)*
-- As a host, I want to create multiple availability schedules and assign them to different event types, so that my client call hours differ from my internal meeting hours. *(Phase 2)*
+- As a host, I want to create multiple availability schedules and assign them to different event types, so that my client call hours differ from my internal meeting hours. *(Post-MVP — Phase 2)*
 
 ---
 

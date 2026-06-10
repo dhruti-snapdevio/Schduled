@@ -890,7 +890,7 @@ Phase 20 →  QA & Launch Prep
 
 ## Phase 18 — Open Source Configuration
 
-**Goal:** Platform admins can manage users, view bookings, and configure the platform. No billing or plan enforcement — all features are available to all users.
+**Goal:** Confirm no billing or plan enforcement exists — all features are available to all users with no restrictions.
 
 **Note:** No billing or plan system — Schedica is fully open source. All features are available to all users with no restrictions.
 
@@ -907,7 +907,7 @@ Phase 20 →  QA & Launch Prep
 
 ## Phase 19 — Admin Panel
 
-**Goal:** Platform admins can look up users by email and ban/unban accounts. Minimal viable admin — 2 screens, not 5.
+**Goal:** Platform admins can manage users, view the audit log, monitor the job queue, and configure platform settings. Full MVP admin panel — 5 screens: Dashboard, Audit Log, Users, Jobs, Settings.
 
 **Reference doc:** [features/admin-panel.md](./features/admin-panel.md)
 

@@ -305,17 +305,9 @@ Schedica eliminates this by always showing both:
 
 ### What Each Person Sees
 
-**Invitee (in India) receives:**
-```
-Your meeting time:   Thursday, June 5 at 3:00 PM IST (Asia/Kolkata)
-Host's meeting time: Thursday, June 5 at 10:00 AM EST (America/New_York)
-```
+**Invitee (in India) receives:** their local time (e.g., "Thursday, June 5 at 3:00 PM IST (Asia/Kolkata)") plus the host's equivalent time (e.g., "Host's meeting time: Thursday, June 5 at 10:00 AM EST (America/New_York)").
 
-**Host (in New York) receives:**
-```
-Your meeting time:     Thursday, June 5 at 10:00 AM EST (America/New_York)
-Invitee's local time:  Thursday, June 5 at 3:00 PM IST (Asia/Kolkata)
-```
+**Host (in New York) receives:** their own local time (e.g., "Thursday, June 5 at 10:00 AM EST (America/New_York)") plus the invitee's equivalent time (e.g., "Invitee's local time: Thursday, June 5 at 3:00 PM IST (Asia/Kolkata)").
 
 ### Which Emails Show Both Timezones
 
@@ -536,11 +528,7 @@ Every booking-scoped job uses a `singletonKey` so each job can be individually c
 {bookingId}_calendar_write   — calendar event write
 ```
 
-On booking cancellation, `BOOKING_CANCEL_REMINDERS` runs:
-```typescript
-await boss.cancel('BOOKING_REMINDER_24H', `${bookingId}_reminder_24h`)
-await boss.cancel('BOOKING_REMINDER_1H',  `${bookingId}_reminder_1h`)
-```
+On booking cancellation, `BOOKING_CANCEL_REMINDERS` runs and calls `boss.cancel()` for both the 24h reminder (singletonKey `{bookingId}_reminder_24h`) and the 1h reminder (singletonKey `{bookingId}_reminder_1h`) to prevent reminders from firing for a cancelled meeting.
 
 ### Cron Schedule
 
@@ -554,7 +542,7 @@ await boss.cancel('BOOKING_REMINDER_1H',  `${bookingId}_reminder_1h`)
 
 ## Audit Logging
 
-Email delivery events are tracked in the `email_outbox` and `email_events` tables (not `audit_logs`) — see `database-schema.md`. The email outbox row records status (`pending → sent / failed`), and `email_events` records delivery events (sent, bounced, etc.). This is readable from the admin panel per-user email history.
+Email delivery events are tracked in the `email_outbox` and `email_events` tables (not `audit_logs`) — see `database-schema.md`. The email outbox row records status (`queued → sending → sent / failed`), and `email_events` records delivery events (sent, bounced, etc.). This is readable from the admin panel per-user email history.
 
 Host notification **preference changes** (toggling "new booking on/off", "cancellation on/off", etc.) are low-risk preference mutations and are **not** in `auditActionEnum` by design. A developer searching for a `notifications.preferences_updated` audit action will not find one — this is an explicit decision, not an oversight. If audit coverage of preferences is required, add a new enum value and log it in the notification preferences Server Action.
 

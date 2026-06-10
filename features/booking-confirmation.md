@@ -87,10 +87,7 @@ If the host has set a custom message for this event type, it appears below the m
 Sent automatically within seconds of a successful booking. This is the invitee's primary record of their booking.
 
 ### Email Subject Line
-```
-[Confirmed] 30-Minute Intro Call with Jane Smith on Thursday, June 5
-```
-Customizable by host via dynamic variables:
+Default format: "[Confirmed] {event_type} with {host_name} on {date}" — for example, "[Confirmed] 30-Minute Intro Call with Jane Smith on Thursday, June 5". Customizable by host via dynamic variables:
 - `{event_type}` — event type name
 - `{host_name}` — host's name
 - `{date}` — meeting date
@@ -121,12 +118,7 @@ Customizable by host via dynamic variables:
 - Same buttons as confirmation screen
 
 **Section 4 — Your Answers** (if custom questions were asked)
-Lists the invitee's own answers for their records:
-```
-Company: Acme Corp
-Purpose of call: Product demo
-Team size: 45
-```
+Lists the invitee's own answers for their records — each question label followed by the submitted answer (e.g., Company: Acme Corp, Purpose of call: Product demo, Team size: 45).
 
 **Section 5 — Manage Booking**
 - "Reschedule this meeting" link
@@ -168,13 +160,7 @@ New booking: 30-Min Call — Jane Smith on June 5 at 10:00 AM
 | Phone | +91 98765 43210 (if collected) |
 
 **Section 3 — Invitee's Answers**
-All custom question answers displayed with question labels:
-```
-Company: Acme Corp
-Purpose of call: Product demo
-Team size: 45
-How they heard about us: LinkedIn
-```
+All custom question answers displayed with question labels — each field shown as "Label: Answer" (e.g., Company: Acme Corp, Purpose of call: Product demo, Team size: 45, How they heard about us: LinkedIn).
 
 **Section 4 — Quick Actions**
 - "View in dashboard" link → opens meeting detail in Schedica dashboard
@@ -211,14 +197,7 @@ When Schedica adds this event to Google Calendar, Google automatically sends the
 - The same event on the host's Google Calendar shows 10:00 AM EST
 - Both parties see the correct local time in their own calendar — no manual conversion needed
 
-**ICS Description field also includes both timezones as plain text:**
-```
-Your time:   3:00 PM – 3:30 PM IST (Asia/Kolkata)
-Host's time: 10:00 AM – 10:30 AM EST (America/New_York)
-Join: https://zoom.us/j/1234567890
-Reschedule: https://schedica.com/reschedule/[token]
-Cancel: https://schedica.com/cancel/[token]
-```
+**ICS Description field also includes both timezones as plain text:** the invitee's local time, the host's local time, the video join URL, and the reschedule and cancel links — all as readable text in the description body.
 
 This means even users who read the calendar event description (without relying on timezone conversion) can see both times clearly.
 
@@ -331,19 +310,15 @@ Instead of Schedica's default confirmation screen, hosts can redirect invitees t
 - Reschedule and cancel links in confirmation email
 - Custom confirmation message (per event type)
 - From name and reply-to customization
-
-- Invitee's form answers in both emails (already MVP — answers are stored in `booking_answers` and included in the host notification email and invitee confirmation)
-- Custom confirmation message per event type
+- Invitee's form answers in both emails (answers stored in `booking_answers`; included in host notification and invitee confirmation)
 
 **Post-MVP:**
 - Custom email subject line with dynamic variables *(Post-MVP — Phase 2 — requires template editor UI)*
-
-**Post-MVP:**
 - Confirmation page redirect to custom URL
 - Pixel tracking on custom confirmation page
 - Open/bounce tracking
 - Group event invitee count display
-- Round-robin and collective event type confirmations (Phase 2)
+- Round-robin and collective event type confirmations *(Post-MVP — Phase 2)*
 
 
 ---

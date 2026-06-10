@@ -377,19 +377,19 @@ const CALENDAR_MUTATION_CONFIG = {
 Recurring cron job. Refreshes the `calendar_events_cache` table for all connected calendars.
 
 ```typescript
-// Payload: none (cron fires globally; handler queries all connected calendars)
-// Schedule: every 5 minutes
-// singletonKey: 'calendar_sync_global' (or per-calendar: 'calendar_sync_{calendarId}')
+// Payload: { calendarId: string } (one job per connected calendar)
+// Schedule: cron fires every 5 minutes → enqueues one CALENDAR_SYNC job per connected calendar
+// singletonKey: 'calendar_sync_{calendarId}' — prevents duplicate syncs for the same calendar
 
 export const CALENDAR_SYNC_CONFIG = {
-  singletonKey: 'calendar_sync_global',  // only one sync run at a time
+  singletonKey: (payload: { calendarId: string }) => `calendar_sync_${payload.calendarId}`,
 }
 
 // Handler:
-// 1. SELECT all connected_calendars WHERE status = 'connected'
-// 2. For each: call provider API to list events in the next 60 days
+// 1. Load connected_calendar WHERE id = payload.calendarId AND status = 'connected'
+// 2. Call provider API to list events in the next 60 days
 // 3. Upsert into calendar_events_cache
-// 4. On token error: trigger CALENDAR_TOKEN_REFRESH
+// 4. On token error: trigger CALENDAR_TOKEN_REFRESH for this calendarId
 ```
 
 ---
@@ -514,7 +514,7 @@ Raising it only where the handler is provably safe to run in parallel avoids rac
 
 ### The Problem
 
-pg-boss supports a `singletonKey` option to prevent duplicate jobs. For example, `singletonKey: 'calendar_sync_global'` on `CALENDAR_SYNC` should ensure only one sync runs at a time. **But `singletonKey` only works if the queue has `policy: "exclusive"`.**
+pg-boss supports a `singletonKey` option to prevent duplicate jobs. For example, `singletonKey: 'calendar_sync_{calendarId}'` on `CALENDAR_SYNC` should ensure only one sync per calendar runs at a time. **But `singletonKey` only works if the queue has `policy: "exclusive"`.**
 
 Without `policy: "exclusive"`:
 - `boss.send(jobName, payload, { singletonKey: 'key' })` silently enqueues duplicates

@@ -14,7 +14,7 @@ All documentation is written and ready before development starts.
 |---|------|----------------|
 | 1 | [README.md](./README.md) | Project overview, tech stack, competitive positioning |
 | 2 | [architecture.md](./architecture.md) | System architecture — request flow, two-process model, data flow |
-| 3 | [database-schema.md](./database-schema.md) | All 29 tables + 3 query files (audit.ts, email.ts, settings.ts) |
+| 3 | [database-schema.md](./database-schema.md) | All 28 tables + 3 query files (audit.ts, email.ts, settings.ts) |
 | 4 | [jobs-queues.md](./jobs-queues.md) | All 16 pg-boss job types, payloads, retry config, cron schedules |
 | 5 | [project-structure.md](./project-structure.md) | Full folder and file layout for the Next.js app |
 | 6 | [tools-packages.md](./tools-packages.md) | Every package used, why it was chosen, version notes |
@@ -81,7 +81,7 @@ Build phases **in this exact order**. Each phase depends on the previous one.
 ---
 
 ### Phase 1 — Database Schema
-**Builds:** All 29 tables created in PostgreSQL
+**Builds:** All 28 tables created in PostgreSQL
 **Reference:** [database-schema.md](./database-schema.md), [development-plan.md § Phase 1](./development-plan.md)
 
 **Table groups to write (in order):**
@@ -101,7 +101,7 @@ Build phases **in this exact order**. Each phase depends on the previous one.
 
 **After writing schemas:** Run `drizzle-kit generate` then `drizzle-kit migrate`. Confirm all tables visible in Drizzle Studio.
 
-**Done when:** All 29 tables exist in the database and migrations are tracked.
+**Done when:** All 28 tables exist in the database and migrations are tracked.
 
 ---
 

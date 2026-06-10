@@ -169,7 +169,7 @@ General account configuration.
 - Requires: current password, new password, confirm new password
 - Password requirements: 8+ chars, 1 uppercase, 1 number
 
-### Two-Factor Authentication (2FA) *(Phase 2 — Post-MVP)*
+### Two-Factor Authentication (2FA) *(Post-MVP — Phase 2)*
 - Enable / disable 2FA
 - Methods: Authenticator app (TOTP — Google Authenticator, Authy) or SMS
 - Setup flow: scan QR code with authenticator app → enter 6-digit code to verify

@@ -99,21 +99,7 @@ Invitees can manually change the timezone shown on the booking page.
 
 Availability windows are stored as `HH:mm` strings paired with the host's IANA timezone — **NOT as UTC ranges**. Individual generated slots are each converted to UTC at booking time.
 
-```
-Host stores: startTime = "09:00", endTime = "17:00", timezone = "America/New_York"
-  (stored as HH:mm strings in the IANA timezone — NOT a UTC range)
-
-Slot generation for a given date:
-  1. Generate local slots: 09:00, 09:30, 10:00 ... 16:30 (in America/New_York)
-  2. Convert EACH slot individually to UTC using date-fns-tz.zonedTimeToUtc()
-     → On a non-DST day (EST, UTC-5): 09:00 EST → 14:00 UTC
-     → On a DST transition day (EDT, UTC-4): 09:00 EDT → 13:00 UTC
-  3. Filter out slots that overlap with calendar busy events (UTC comparison)
-  4. Return remaining UTC slots; convert to invitee timezone for display
-
-Invitee in Asia/Kolkata (UTC+5:30):
-  14:00 UTC → 7:30 PM IST (displayed on booking page)
-```
+For example, a host with `startTime = "09:00"`, `endTime = "17:00"`, `timezone = "America/New_York"` generates local slots 09:00–16:30 in their timezone, then converts each slot individually to UTC using `date-fns-tz.zonedTimeToUtc()` — on a non-DST day (EST, UTC-5) 09:00 becomes 14:00 UTC; on a DST transition day (EDT, UTC-4) it becomes 13:00 UTC. Calendar busy events are compared in UTC to filter occupied slots. The remaining UTC slots are then converted to the invitee's timezone for display — so an invitee in Asia/Kolkata (UTC+5:30) sees 14:00 UTC as 7:30 PM IST on the booking page.
 
 > **Why NOT convert the window to a UTC range first:** On DST transition days, the local day is 23 or 25 hours long. A single-offset UTC range would generate slots that shift by 1 hour after the transition. Generating local slots first — then converting each slot individually — produces correct results for every day of the year.
 >
@@ -174,17 +160,9 @@ Calendly shows only the recipient's own timezone in confirmation and reminder em
 
 ### How Schedica Shows Both Timezones
 
-**Invitee confirmation email** (invitee is in India, host is in New York):
-```
-Your meeting time:   Thursday, June 5 at 3:00 PM – 3:30 PM IST (Asia/Kolkata)
-Host's meeting time: Thursday, June 5 at 10:00 AM – 10:30 AM EST (America/New_York)
-```
+**Invitee confirmation email** (invitee is in India, host is in New York): the invitee sees their own meeting time (e.g., "Thursday, June 5 at 3:00 PM – 3:30 PM IST (Asia/Kolkata)") and the host's equivalent time (e.g., "Host's meeting time: Thursday, June 5 at 10:00 AM – 10:30 AM EST (America/New_York)") shown directly below it.
 
-**Host notification email** (same meeting):
-```
-Your meeting time:    Thursday, June 5 at 10:00 AM – 10:30 AM EST (America/New_York)
-Invitee's local time: Thursday, June 5 at 3:00 PM – 3:30 PM IST (Asia/Kolkata)
-```
+**Host notification email** (same meeting): the host sees their own meeting time (e.g., "Thursday, June 5 at 10:00 AM – 10:30 AM EST (America/New_York)") and the invitee's local time (e.g., "Invitee's local time: Thursday, June 5 at 3:00 PM – 3:30 PM IST (Asia/Kolkata)") shown directly below it.
 
 This pattern is applied consistently in:
 - Booking confirmation email

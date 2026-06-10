@@ -75,7 +75,7 @@ Schedica is inspired by the best of the scheduling market — the simplicity of 
 |---------|---------|
 | **Google Calendar API** | Read free/busy events from Google Calendar; write new bookings; auto-generate Google Meet links via `conferenceData` on event creation |
 | **Microsoft Graph API** | Read/write Outlook & Office 365 calendars; create Teams meetings via `/onlineMeetings` endpoint |
-| **Apple CalDAV / iCloud** *(Phase 2)* | Read/write iCloud calendars using the CalDAV protocol with an app-specific password — no OAuth required; deferred post-MVP due to protocol complexity |
+| **Apple CalDAV / iCloud** *(Post-MVP — Phase 2)* | Read/write iCloud calendars using the CalDAV protocol with an app-specific password — no OAuth required; deferred post-MVP due to protocol complexity |
 | **Zoom API (OAuth 2.0)** | Create a unique Zoom meeting room per booking via the Zoom Meetings API |
 
 ### Email
@@ -140,11 +140,11 @@ Schedica is organized around five core pillars:
 
 ### 1. Smart Scheduling
 - Create 1-on-1 event types *(MVP)*
-- Group, round-robin, and collective event types *(Phase 2 — 1-on-1 only in MVP)*
+- Group, round-robin, and collective event types *(Post-MVP — Phase 2 — 1-on-1 only in MVP)*
 - Connect calendars and sync availability in real-time *(MVP)*
 - Share booking links that auto-update as availability changes *(MVP)*
 
-### 2. Team Coordination *(Phase 2)*
+### 2. Team Coordination *(Post-MVP — Phase 2)*
 - Distribute meetings across team members (round-robin, priority, weighted)
 - Require multiple hosts available simultaneously (collective)
 - Manage team workspaces with admin controls
@@ -152,17 +152,17 @@ Schedica is organized around five core pillars:
 ### 3. Booking Experience
 - Customizable booking pages with branding *(MVP)*
 - Custom intake questions before booking *(MVP)*
-- Calendar overlay so invitees see mutual availability *(Phase 3)*
+- Calendar overlay so invitees see mutual availability *(Post-MVP — Phase 3)*
 
 ### 4. Automation & Workflows
 - Automated email reminders (24hr and 1hr pre-meeting) *(MVP)*
 - Pre-meeting confirmation emails *(MVP)*
-- Post-meeting follow-up emails *(Phase 2)*
-- Webhook triggers for any event *(Phase 2)*
+- Post-meeting follow-up emails *(Post-MVP — Phase 2)*
+- Webhook triggers for any event *(Post-MVP — Phase 2)*
 
 ### 5. Insights & Growth
-- Lead qualification routing forms *(Phase 2)*
-- Analytics dashboard to track meeting performance *(Phase 2)*
+- Lead qualification routing forms *(Post-MVP — Phase 2)*
+- Analytics dashboard to track meeting performance *(Post-MVP — Phase 2)*
 
 ---
 
@@ -406,7 +406,7 @@ if (!keyRow) return jsonResponse(401, { error: 'Invalid API key' })
 |----------|---------------|
 | [architecture.md](./architecture.md) | System architecture — two-process design, request flows, auth, email, calendar sync, security decisions |
 | [project-structure.md](./project-structure.md) | Complete folder structure with explanations — where each file lives and why |
-| [database-schema.md](./database-schema.md) | All 29 database tables, Drizzle schema definitions, enums, query helpers |
+| [database-schema.md](./database-schema.md) | All 28 database tables, Drizzle schema definitions, enums, query helpers |
 | [jobs-queues.md](./jobs-queues.md) | All 16 background jobs — feature-to-job mapping, payloads, cron schedules, worker architecture |
 | [tools-packages.md](./tools-packages.md) | Every npm package — purpose, which feature uses it, env vars, setup notes |
 | [development-plan.md](./development-plan.md) | 20-phase build plan from project setup to launch |
