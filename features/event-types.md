@@ -232,7 +232,7 @@ Two distinct phone call variants exist:
   - Internal scheduling links for team use
   - Event types for specific campaigns (shared in email only)
 
-### Single-Use Booking Links *(Phase 2)*
+### Single-Use Booking Links *(Post-MVP — Phase 2)*
 - Generate a **one-time booking link** that expires after a single booking is made
 - Once used, the link returns "This booking link has expired" to anyone who visits it
 - Ideal for: sales outreach where only one prospect should book, controlled-access early-access slots

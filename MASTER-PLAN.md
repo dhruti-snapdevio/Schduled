@@ -14,12 +14,13 @@ All documentation is written and ready before development starts.
 |---|------|----------------|
 | 1 | [README.md](./README.md) | Project overview, tech stack, competitive positioning |
 | 2 | [architecture.md](./architecture.md) | System architecture — request flow, two-process model, data flow |
-| 3 | [database-schema.md](./database-schema.md) | All 28 tables + 3 query files (audit.ts, email.ts, settings.ts) |
-| 4 | [jobs-queues.md](./jobs-queues.md) | All 16 pg-boss job types, payloads, retry config, cron schedules |
-| 5 | [project-structure.md](./project-structure.md) | Full folder and file layout for the Next.js app |
-| 6 | [tools-packages.md](./tools-packages.md) | Every package used, why it was chosen, version notes |
-| 7 | [pre-development-setup.md](./pre-development-setup.md) | External accounts, credentials, env vars, full package install list |
-| 8 | [development-plan.md](./development-plan.md) | Detailed task list for each of the 21 build phases |
+| 3 | [design-system.md](./design-system.md) | Complete UI design system — colors, fonts, components, layouts, screens, dark mode |
+| 4 | [database-schema.md](./database-schema.md) | All 28 tables + 3 query files (audit.ts, email.ts, settings.ts) |
+| 5 | [jobs-queues.md](./jobs-queues.md) | All 16 pg-boss job types, payloads, retry config, cron schedules |
+| 6 | [project-structure.md](./project-structure.md) | Full folder and file layout for the Next.js app |
+| 7 | [tools-packages.md](./tools-packages.md) | Every package used, why it was chosen, version notes |
+| 8 | [pre-development-setup.md](./pre-development-setup.md) | External accounts, credentials, env vars, full package install list |
+| 9 | [development-plan.md](./development-plan.md) | Detailed task list for each of the 21 build phases |
 
 ### Feature Docs (16 files in `features/`)
 

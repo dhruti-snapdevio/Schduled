@@ -17,7 +17,7 @@ Every event type has a publicly accessible booking page. Above that, every host 
 - As a host, I want to set my brand color on my booking page, so that it feels consistent with my personal or company brand. *(MVP)*
 - As a host, I want to write a custom welcome message, so that invitees feel welcomed before they pick a time. *(MVP)*
 - As a host, I want to hide specific event types from my profile page, so that I can offer private links without showing them publicly. *(MVP)*
-- As a host, I want to redirect invitees to a custom URL after booking, so that I can send them to a thank-you page or onboarding form. *(Phase 2)*
+- As a host, I want to redirect invitees to a custom URL after booking, so that I can send them to a thank-you page or onboarding form. *(Post-MVP — Phase 2)*
 - As a host, I want to remove "Powered by Schedica" branding from my booking page, so that it feels fully like my own product. *(MVP)*
 - As a host, I want to host my booking page on my own domain, so that the URL matches my website instead of showing schedica.com. *(Phase 4)*
 
