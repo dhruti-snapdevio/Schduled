@@ -478,15 +478,18 @@ All emails are sent **asynchronously via pg-boss** — never inline in an API ro
 ```
 1. Booking engine creates booking record (PostgreSQL transaction)
 2. Inside same transaction:
-   a. Insert rows into email_outbox (confirmation to invitee + notification to host)
+   a. Insert rows into email_outbox (status='queued') — one for invitee, one for host
    b. Enqueue EMAIL_SEND jobs in pg-boss (one per outbox row)
    c. Schedule BOOKING_REMINDER_24H job (fires 24h before meeting)
    d. Schedule BOOKING_REMINDER_1H job (fires 1h before meeting)
 3. Transaction commits
-4. pg-boss EMAIL_SEND worker picks up jobs → renders React Email → sends via Nodemailer
+4. pg-boss EMAIL_SEND worker atomically claims the outbox row (WHERE status='queued')
+   → renders React Email → sends via Nodemailer
 5. On success: update email_outbox.status = 'sent'; insert email_events row (delivered)
-6. On failure: pg-boss retries up to 3× with exponential backoff;
-              after 3 failures: update email_outbox.status = 'failed'
+6. On RETRYABLE failure (5xx, 429, network): back to status='queued';
+   handler re-enqueues EMAIL_SEND with delay (60s → 5min → 15min)
+7. On TERMINAL failure (4xx non-429) or all retries used: status='failed'
+   — pg-boss job ends successfully (retryLimit: 0); state machine owns all retry logic
 ```
 
 ### Email Outbox Table
@@ -496,47 +499,13 @@ Every email starts as a row in `email_outbox` before being sent. This gives:
 - Per-user email history visible in the admin panel
 - Delivery tracking via `email_events` rows
 
-```typescript
-// Enqueueing an email (inside booking transaction)
-const [outboxRow] = await DbEmail.enqueue({
-  toEmail: invitee.email,
-  toName: invitee.name,
-  subject: '[Confirmed] 30-Min Call with Jane on Thursday June 5',
-  template: 'booking-confirmation',
-  templateData: { booking, host, invitee, timezones },
-  fromName: host.profile.displayName ?? 'Schedica',
-  replyToEmail: host.email,
-  bookingId: booking.id,
-})
-await boss.send('EMAIL_SEND', { emailOutboxId: outboxRow.id })
-```
+To enqueue an email, the Server Action (or booking engine) inserts an `email_outbox` row with all the template data (recipient, subject, template name, template variables, from name, reply-to, booking ID) and then sends an `EMAIL_SEND` job to pg-boss with the outbox row's ID as the payload. The worker fetches the row, renders the React Email template, and delivers via Nodemailer SMTP.
 
 **`idempotencyKey` — Deduplication on SMTP**
 
-Every `email_outbox` row is inserted with a random UUID `idempotencyKey` (generated at INSERT time via `crypto.randomUUID()`). This key is passed to the SMTP provider (Nodemailer / Resend) as a deduplication key with a 24-hour TTL.
+Every `email_outbox` row is inserted with a random UUID `idempotencyKey` (generated at INSERT time). This key is passed to the SMTP provider as a deduplication header with a 24-hour TTL.
 
-If the `EMAIL_SEND` worker crashes after SMTP accepts the message but before it can write `status = 'sent'`, pg-boss retries the job. On the retry, the same `emailOutboxId` → same `idempotencyKey` → SMTP deduplicates and does not re-deliver the email. Without this, a crash-then-retry cycle causes duplicate emails in the user's inbox.
-
-```typescript
-// DbEmail.enqueue() — called from within a booking transaction
-async function enqueue(data: NewEmail) {
-  return db.insert(emailOutbox).values({
-    ...data,
-    idempotencyKey: crypto.randomUUID(),  // generated here, never reused
-    status: 'pending',
-  }).returning()
-}
-
-// EMAIL_SEND worker — passes key to SMTP
-async function sendEmail(outboxId: string) {
-  const row = await db.query.emailOutbox.findFirst({ where: eq(emailOutbox.id, outboxId) })
-  await transporter.sendMail({
-    ...buildMessage(row),
-    headers: { 'X-Idempotency-Key': row.idempotencyKey },  // Resend / custom SMTP header
-  })
-  await db.update(emailOutbox).set({ status: 'sent', sentAt: new Date() }).where(eq(emailOutbox.id, outboxId))
-}
-```
+If the `EMAIL_SEND` worker crashes after SMTP accepts the message but before it can write `status = 'sent'`, pg-boss retries the job. On retry, the same `emailOutboxId` → same `idempotencyKey` → SMTP deduplicates and does not re-deliver the email. Without this, a crash-then-retry cycle causes duplicate emails in the user's inbox.
 
 ---
 
@@ -546,7 +515,7 @@ async function sendEmail(outboxId: string) {
 
 | Job Name | Trigger | Payload | pg-boss config |
 |----------|---------|---------|---------------|
-| `EMAIL_SEND` | Inline — any time an email is enqueued | `{ emailOutboxId }` | retryLimit: 3, retryDelay: 30s, **localConcurrency: 5** |
+| `EMAIL_SEND` | Inline — any time an email is enqueued | `{ emailOutboxId }` | retryLimit: 0 (state machine owns retries — handler re-enqueues with 60s/5min/15min backoff on failure), **localConcurrency: 5** |
 | `EMAIL_OUTBOX_REAP` | Cron — daily at 03:00 UTC | `{}` | Deletes `email_outbox` rows older than 90 days with status=sent/failed |
 | `EMAIL_EVENTS_PRUNE` | Cron — daily at 03:30 UTC | `{}` | Deletes `email_events` rows older than 30 days |
 | `BOOKING_REMINDER_24H` | On booking confirmed — fires exactly 24h before start | `{ bookingId }` | singletonKey: `{bookingId}_reminder_24h`; retryLimit: 2 |

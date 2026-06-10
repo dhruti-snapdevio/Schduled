@@ -308,34 +308,9 @@ When a host cancels a booking from the dashboard, two jobs are dispatched to cle
 | `BOOKING_CANCEL_REMINDERS` | Host cancels booking from dashboard | Cancels the 24h and 1h reminder jobs for this booking by singletonKey so reminders don't fire for a cancelled meeting | `retryLimit: 3, retryDelay: 10` |
 | `EMAIL_SEND` | Host cancels booking from dashboard | Sends cancellation notification email to invitee via email_outbox pattern | `retryLimit: 5, retryDelay: 30` |
 
-**BOOKING_CANCEL_REMINDERS handler (fired after host cancel):**
+**BOOKING_CANCEL_REMINDERS handler:** Registered with `workMonitored()` (not raw `boss.work()`). Receives the `bookingId`, then calls `boss.cancel()` for both `BOOKING_REMINDER_24H` and `BOOKING_REMINDER_1H` using their singletonKeys. See `jobs-queues.md` for the dead-letter queue monitoring pattern.
 
-```typescript
-// src/lib/worker/handlers/booking-cancel-reminders.ts
-// Use workMonitored() not boss.work() — enables dead-letter queue callback
-workMonitored('BOOKING_CANCEL_REMINDERS', async (job) => {
-  const { bookingId } = job.data
-  await boss.cancel('BOOKING_REMINDER_24H', `${bookingId}_reminder_24h`)
-  await boss.cancel('BOOKING_REMINDER_1H',  `${bookingId}_reminder_1h`)
-})
-```
-
-> **All handlers use `workMonitored()`** — import from `src/lib/worker/work-monitored.ts`. See `jobs-queues.md` — "Dead-Letter Queue Monitoring" for the full pattern.
-
-**Job dispatch from host cancel Server Action:**
-
-```typescript
-// app/actions/bookings.ts
-export async function cancelBookingAsHost(bookingId: string, reason?: string) {
-  // Inside DB transaction:
-  // 1. UPDATE bookings SET status='cancelled', cancelledBy='host', cancelledAt=NOW()
-  // 2. INSERT email_outbox (host-cancellation-invitee template)
-  // 3. INSERT audit_logs (action: 'booking.cancelled_by_host')
-  // After commit:
-  await boss.send('BOOKING_CANCEL_REMINDERS', { bookingId })
-  await boss.send('EMAIL_SEND', { emailOutboxId })
-}
-```
+**Host cancel Server Action flow:** Inside a single DB transaction: update `bookings.status` to `'cancelled'`, insert an `email_outbox` row for the host-cancellation-to-invitee email, and insert an `audit_logs` row with `action: 'booking.cancelled_by_host'`. After the transaction commits: enqueue `BOOKING_CANCEL_REMINDERS` and `EMAIL_SEND` jobs.
 
 ---
 

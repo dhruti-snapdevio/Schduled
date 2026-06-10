@@ -19,8 +19,8 @@ An event type is a reusable meeting template. Once created, it generates a booki
 - As a host, I want to write a description for each event type, so that invitees understand what the meeting is for before they book. *(MVP)*
 - As a host, I want to hide an event type without deleting it, so that I can temporarily stop accepting bookings for it and re-enable it later. *(MVP)*
 - As a host, I want to offer multiple duration options on a single event type, so that invitees can choose a 30-min or 60-min slot based on their need. *(MVP)*
-- As a host, I want to create round-robin events that auto-assign bookings to team members, so that no single person gets overloaded with meetings. *(Phase 2)*
-- As a host, I want to create collective events that require all team members to be free simultaneously, so that group meetings only appear when everyone is available. *(Phase 2)*
+- As a host, I want to create round-robin events that auto-assign bookings to team members, so that no single person gets overloaded with meetings. *(Post-MVP — Phase 2)*
+- As a host, I want to create collective events that require all team members to be free simultaneously, so that group meetings only appear when everyone is available. *(Post-MVP — Phase 2)*
 
 **Invitee**
 - As an invitee, I want to see a host's full list of event types on their profile page, so that I can pick the right meeting type for my purpose. *(MVP)*
@@ -339,15 +339,9 @@ Two distinct phone call variants exist:
 
 ## Background Jobs
 
-No background jobs are directly triggered by event type create, update, or delete operations. However, two things must happen synchronously inside the Server Action after every save:
+No background jobs are directly triggered by event type create, update, or delete operations. However, two `revalidatePath` calls must happen inside the Server Action after every save: one for `/[username]/[eventSlug]` (the event type's own booking page) and one for `/[username]` (the host's profile overview page).
 
-```typescript
-// After DB write commits — invalidate cached booking pages
-revalidatePath('/[username]/[eventSlug]')  // the event type's own booking page
-revalidatePath('/[username]')              // the host's profile overview page (event card list)
-```
-
-Both paths must be invalidated whenever: name, slug, duration, location, color, active/inactive status, or any scheduling rule changes. If you skip `revalidatePath`, invitees see stale booking pages for up to the ISR revalidation window.
+Both paths must be invalidated whenever name, slug, duration, location, color, active/inactive status, or any scheduling rule changes. If either is skipped, invitees see stale booking pages until the ISR revalidation window expires.
 
 ---
 

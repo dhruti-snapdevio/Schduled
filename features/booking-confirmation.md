@@ -332,9 +332,11 @@ Instead of Schedica's default confirmation screen, hosts can redirect invitees t
 - Custom confirmation message (per event type)
 - From name and reply-to customization
 
-**Post-MVP (additions to above):**
-- Custom email subject line with dynamic variables *(Phase 2 — requires template editor UI)*
-- Invitee's form answers in both emails
+- Invitee's form answers in both emails (already MVP — answers are stored in `booking_answers` and included in the host notification email and invitee confirmation)
+- Custom confirmation message per event type
+
+**Post-MVP:**
+- Custom email subject line with dynamic variables *(Post-MVP — Phase 2 — requires template editor UI)*
 
 **Post-MVP:**
 - Confirmation page redirect to custom URL
@@ -352,8 +354,8 @@ All confirmation work runs as pg-boss jobs after the booking DB transaction comm
 
 | Job Name | Trigger | Payload | pg-boss Config |
 |----------|---------|---------|----------------|
-| `EMAIL_SEND` | After booking confirmed (invitee) | `{ emailOutboxId }` | retryLimit: 3, retryDelay: 30s, localConcurrency: 5 |
-| `EMAIL_SEND` | After booking confirmed (host notification) | `{ emailOutboxId }` | retryLimit: 3, retryDelay: 30s, localConcurrency: 5 |
+| `EMAIL_SEND` | After booking confirmed (invitee) | `{ emailOutboxId }` | retryLimit: 0 (state machine), localConcurrency: 5 |
+| `EMAIL_SEND` | After booking confirmed (host notification) | `{ emailOutboxId }` | retryLimit: 0 (state machine), localConcurrency: 5 |
 | `CALENDAR_WRITE` | After booking confirmed | `{ bookingId, calendarId }` | retryLimit: 3, retryDelay: 15s, localConcurrency: 1 |
 | `VIDEO_LINK_GENERATE` | After booking confirmed (if location = zoom or teams) | `{ bookingId, provider }` | retryLimit: 3, retryDelay: exponential (5s→30s→120s), localConcurrency: 3 |
 

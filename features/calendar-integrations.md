@@ -301,14 +301,7 @@ For enterprise users scheduling physical meeting rooms:
 
 ### CALENDAR_SYNC cron (every 5 min)
 
-The 5-minute sync job polls the calendar provider for events within the next 60 days and upserts them into `calendar_events_cache`. Push notifications (Google Calendar push channels, Outlook subscriptions) replace polling in Phase 2.
-
-```typescript
-// singletonKey prevents two CALENDAR_SYNC jobs for same calendar running at once
-await boss.send('CALENDAR_SYNC', { connectedCalendarId }, {
-  singletonKey: `calendar_sync_${connectedCalendarId}`,
-})
-```
+The 5-minute sync job polls the calendar provider for events within the next 60 days and upserts them into `calendar_events_cache`. The job uses a `singletonKey` of `calendar_sync_{connectedCalendarId}` so two sync jobs for the same calendar can never run simultaneously. Push notifications (Google Calendar push channels, Outlook subscriptions) replace polling in Phase 2.
 
 ### Disconnect → Alert Flow
 

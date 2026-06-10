@@ -98,22 +98,32 @@ type EmailSendPayload = {
 }
 
 // pg-boss config
+// retryLimit: 0 — the email_outbox state machine owns retries, NOT pg-boss.
+// The handler re-enqueues EMAIL_SEND with explicit backoff on retryable SMTP failure
+// so the row stays 'queued' until all attempts are exhausted. If pg-boss owned retries,
+// a crash between SMTP success and DB update would let pg-boss retry and send the email
+// twice. The state machine + provider idempotencyKey prevents this entirely.
 export const EMAIL_SEND_CONFIG = {
-  retryLimit: 3,
-  retryDelay: 30,          // seconds
-  retryBackoff: true,      // exponential: 30s → 60s → 120s
-  teamSize: 5,             // fetch up to 5 jobs per poll cycle
-  teamConcurrency: 5,      // 5 emails processed in parallel (pg-boss option name)
+  retryLimit: 0,            // state machine owns retries — pg-boss must NOT retry
+  teamSize: 5,              // fetch up to 5 jobs per poll cycle
+  teamConcurrency: 5,       // 5 emails processed in parallel
 }
+
+// Retry backoff when SMTP call fails but is retryable (5xx, 429, network error):
+// handler backs the row to 'queued' and re-enqueues EMAIL_SEND with this delay.
+// These match Krova's proven production values.
+const EMAIL_RETRY_BACKOFF_SECONDS = [60, 300, 900]  // attempt 0 → 1min, 1 → 5min, 2 → 15min
 
 // Handler pattern
 import { env } from '@/lib/env'  // never access process.env.X directly
 
 export async function handleEmailSend(job: { data: EmailSendPayload }) {
-  const outbox = await DbEmail.getById(job.data.emailOutboxId)
-  if (!outbox || outbox.status === 'sent') return  // idempotent
+  // Atomic claim: UPDATE ... SET status='sending', claimedAt=now() WHERE id=X AND status='queued' RETURNING
+  // Only one concurrent worker can win this. If the row is already 'sending' or 'sent',
+  // another worker already claimed it — this call is an idempotent no-op.
+  const outbox = await DbEmail.claim(job.data.emailOutboxId)
+  if (!outbox) return  // already claimed by another worker (concurrent delivery) or already sent
 
-  await DbEmail.updateStatus(outbox.id, 'sending')
   try {
     const html = await renderEmailTemplate(outbox.template, outbox.templateData)
     await transporter.sendMail({
@@ -122,11 +132,27 @@ export async function handleEmailSend(job: { data: EmailSendPayload }) {
       from: `${outbox.fromName} <${env.SMTP_FROM_EMAIL}>`,
       replyTo: outbox.replyToEmail,
       html,
+      // idempotencyKey passed to SMTP provider prevents re-delivery if the worker
+      // crashes after SMTP accepts the message but before the DB is updated.
+      headers: { 'X-Idempotency-Key': outbox.idempotencyKey },
     })
     await DbEmail.updateStatus(outbox.id, 'sent', { sentAt: new Date() })
+    await DbEmail.insertEvent(outbox.id, 'delivered')
   } catch (err) {
-    await DbEmail.updateStatus(outbox.id, 'failed', { errorMessage: String(err) })
-    throw err  // let pg-boss retry
+    const attempt = outbox.attemptCount  // 0-indexed; DbEmail.claim() incremented it
+    const retryable = isRetryableSmtpError(err)  // true for 5xx, 429, network failures
+
+    if (retryable && attempt < EMAIL_RETRY_BACKOFF_SECONDS.length) {
+      // Retryable and attempts remaining: back to 'queued', re-enqueue with delay
+      await DbEmail.updateStatus(outbox.id, 'queued', { lastError: String(err) })
+      const delayMs = EMAIL_RETRY_BACKOFF_SECONDS[attempt] * 1000
+      await boss.sendAfter('EMAIL_SEND', { emailOutboxId: outbox.id }, {}, new Date(Date.now() + delayMs))
+    } else {
+      // Terminal failure (4xx non-429) OR all retries exhausted: mark permanently failed
+      await DbEmail.updateStatus(outbox.id, 'failed', { lastError: String(err) })
+      await DbEmail.insertEvent(outbox.id, 'failed')
+    }
+    // Do NOT throw — pg-boss retryLimit is 0; all retry logic is above in this handler
   }
 }
 ```
@@ -482,6 +508,100 @@ Raising it only where the handler is provably safe to run in parallel avoids rac
 
 ---
 
+## Queue Policy — `"exclusive"` Requirement
+
+> **Adopted from Krova.** This is a silent failure mode: without the correct policy, `singletonKey` deduplication does nothing. There is no error — duplicates just stack up silently.
+
+### The Problem
+
+pg-boss supports a `singletonKey` option to prevent duplicate jobs. For example, `singletonKey: 'calendar_sync_global'` on `CALENDAR_SYNC` should ensure only one sync runs at a time. **But `singletonKey` only works if the queue has `policy: "exclusive"`.**
+
+Without `policy: "exclusive"`:
+- `boss.send(jobName, payload, { singletonKey: 'key' })` silently enqueues duplicates
+- No error is thrown; `null` is never returned
+- Cron ticks stack up; booking reminder jobs stack up; calendar syncs pile up
+
+### Rule: Every cron job and every singletonKey job MUST use `policy: "exclusive"`
+
+| Job | Needs exclusive? | Why |
+|-----|-----------------|-----|
+| `CALENDAR_SYNC` | ✅ Yes | Cron — slow sync could still be running when next tick fires |
+| `EMAIL_OUTBOX_REAP` | ✅ Yes | Cron — only one sweep at a time |
+| `EMAIL_EVENTS_PRUNE` | ✅ Yes | Cron — only one sweep at a time |
+| `DISPOSABLE_EMAILS_REFRESH` | ✅ Yes | Cron — only one refresh at a time |
+| `BOOKING_REMINDER_24H` | ✅ Yes | Uses singletonKey per booking |
+| `BOOKING_REMINDER_1H` | ✅ Yes | Uses singletonKey per booking |
+| `VIDEO_LINK_GENERATE` | ✅ Yes | Uses `{bookingId}_video_link` singletonKey |
+| `CALENDAR_WRITE` | ✅ Yes | Uses `{bookingId}_calendar_write` singletonKey |
+| `CALENDAR_UPDATE` | ✅ Yes | Uses `{bookingId}_calendar_update` singletonKey |
+| `CALENDAR_CANCEL` | ✅ Yes | Uses `{bookingId}_calendar_cancel` singletonKey |
+| `EMAIL_SEND` | ❌ No | State machine (claim row) is the dedup mechanism — not singletonKey |
+| `CALENDAR_TOKEN_REFRESH` | ❌ No | No singletonKey; serialized by retryLimit |
+| `CALENDAR_DISCONNECT_ALERT` | ❌ No | No singletonKey; idempotent by design |
+
+### How to Set the Policy — `ensureQueues()`
+
+Queue policy cannot be set at `boss.send()` time. It must be set when the queue is created or updated. **pg-boss `createQueue()` is a no-op on existing queues** — so the policy must also be patched in the `pgboss.queue` table for queues that already exist (e.g. after a restart or schema migration).
+
+```typescript
+// src/lib/worker/ensure-queues.ts
+
+const QUEUE_POLICIES: Record<string, 'standard' | 'exclusive'> = {
+  CALENDAR_SYNC:             'exclusive',
+  EMAIL_OUTBOX_REAP:         'exclusive',
+  EMAIL_EVENTS_PRUNE:        'exclusive',
+  DISPOSABLE_EMAILS_REFRESH: 'exclusive',
+  BOOKING_REMINDER_24H:      'exclusive',
+  BOOKING_REMINDER_1H:       'exclusive',
+  VIDEO_LINK_GENERATE:       'exclusive',
+  CALENDAR_WRITE:            'exclusive',
+  CALENDAR_UPDATE:           'exclusive',
+  CALENDAR_CANCEL:           'exclusive',
+}
+
+export async function ensureQueues(boss: PgBoss): Promise<void> {
+  for (const [name, policy] of Object.entries(QUEUE_POLICIES)) {
+    try {
+      await boss.createQueue(name, { policy })
+    } catch (err) {
+      if (!isQueueAlreadyExistsError(err)) throw err
+    }
+    // Also patch existing queues — createQueue no-ops if queue already exists,
+    // so the UPDATE is the only way to change the policy on a running instance.
+    await db.execute(sql`
+      UPDATE pgboss.queue
+      SET policy = ${policy}, updated_on = now()
+      WHERE name = ${name} AND policy IS DISTINCT FROM ${policy}
+    `)
+  }
+}
+```
+
+Call `ensureQueues(boss)` once during worker startup, **before** registering any handlers:
+
+```typescript
+// In src/lib/worker/index.ts (startup sequence)
+await boss.start()
+await ensureQueues(boss)   // ← must run before boss.work() calls
+// ... register handlers ...
+```
+
+### What `boss.send()` Returns When Dedup Fires
+
+When a job with a `singletonKey` is already queued or active, `boss.send()` returns `null` (not a string ID). Always check for null in the calling code:
+
+```typescript
+const jobId = await boss.send('VIDEO_LINK_GENERATE', payload, {
+  singletonKey: `${bookingId}_video_link`,
+})
+if (jobId === null) {
+  // A VIDEO_LINK_GENERATE for this booking is already queued/active.
+  // This is normal on double-submit. No action needed.
+}
+```
+
+---
+
 ## Dead-Letter Queue Monitoring — `workMonitored()`
 
 When a pg-boss job exhausts all retries, it moves to `state = 'failed'` and stops. Without monitoring, this is silent — a failed job just sits in `pgboss.job` with no alert. The admin panel shows a failed count, but nobody is watching it at 3 AM.
@@ -507,21 +627,24 @@ async function onDeadLetter(jobName: string, job: PgBoss.Job) {
 
 export function workMonitored<T>(
   name: string,
-  optsOrHandler: PgBoss.WorkOptions | ((job: PgBoss.Job<T>) => Promise<void>),
-  handler?: (job: PgBoss.Job<T>) => Promise<void>,
+  optsOrHandler: PgBoss.WorkOptions | ((job: PgBoss.JobWithMetadata<T>) => Promise<void>),
+  handler?: (job: PgBoss.JobWithMetadata<T>) => Promise<void>,
 ) {
   const opts   = typeof optsOrHandler === 'function' ? {}           : optsOrHandler
   const handle = typeof optsOrHandler === 'function' ? optsOrHandler : handler!
 
-  return boss.work<T>(name, opts, async (job) => {
+  // includeMetadata: true is REQUIRED — without it retryCount and retryLimit are undefined.
+  // If this flag is missing, 0 >= 0 is always true and every first-attempt failure fires
+  // as a "permanent failure", flooding the dead-letter log with false alarms.
+  return boss.work<T>(name, { ...opts, includeMetadata: true }, async (job) => {
     try {
       await handle(job)
     } catch (err) {
-      // retryLimit comes from opts — default pg-boss value is 3 (0-indexed: 0, 1, 2)
-      const retryLimit = (opts as { retryLimit?: number }).retryLimit ?? 3
-      if (job.retrycount >= retryLimit - 1) {
-        // This is the last attempt. After this throw, pg-boss marks the job 'failed'.
-        await onDeadLetter(name, job as PgBoss.Job)
+      const retryCount = job.retryCount ?? 0
+      const retryLimit = job.retryLimit ?? 0
+      if (retryCount >= retryLimit) {
+        // This is the final attempt. After this throw, pg-boss marks the job 'failed'.
+        await onDeadLetter(name, job as PgBoss.JobWithMetadata<unknown>)
       }
       throw err  // always re-throw — never swallow errors here
     }
@@ -684,26 +807,37 @@ src/lib/worker/
 
 ## Email Outbox Pattern (How Every Email Goes Through pg-boss)
 
+The outbox row is the **source of truth** — not the pg-boss job. The job is only a trigger. This makes the EMAIL_SEND handler fully idempotent: if pg-boss somehow fires the job twice (or the worker crashes and restarts), the atomic claim (`WHERE status='queued'`) ensures only one delivery attempt wins.
+
 ```
 Server Action / API Route
          │
          ▼
-  1. Insert email_outbox row (status = pending)    ← inside DB transaction
+  1. Insert email_outbox row (status = 'queued')   ← inside DB transaction
   2. boss.send('EMAIL_SEND', { emailOutboxId })    ← after transaction commits
          │
          ▼
   EMAIL_SEND job handler
-  3. Fetch email_outbox row
+  3. Atomic claim: UPDATE email_outbox SET status='sending', claimedAt=now(),
+                   attemptCount=attemptCount+1
+                   WHERE id=X AND status='queued' RETURNING *
+     → If no row returned: another worker already claimed it — return (no-op)
   4. Render React Email template with templateData
-  5. Send via Nodemailer SMTP
-  6. Update email_outbox.status = 'sent'
+  5. Send via Nodemailer SMTP (with X-Idempotency-Key header for provider dedup)
+  6. Update email_outbox.status = 'sent', sentAt = now()
   7. Insert email_events row (event_type = 'delivered')
          │
-         │ (on failure: pg-boss auto-retries 3×)
+         │ (on RETRYABLE failure: 5xx, 429, network error)
          ▼
-  On permanent failure:
-  8. Update email_outbox.status = 'failed'
-  9. email_events row with event_type = 'failed'
+  8a. Update email_outbox.status = 'queued' (back to queued — not failed yet)
+  8b. boss.sendAfter('EMAIL_SEND', { emailOutboxId }, {}, <backoff delay>)
+      — delay: attempt 0 → 60s, attempt 1 → 5min, attempt 2 → 15min
+         │
+         │ (on TERMINAL failure: 4xx non-429, OR all 3 backoff attempts used up)
+         ▼
+  9a. Update email_outbox.status = 'failed'
+  9b. Insert email_events row (event_type = 'failed')
+  — Handler does NOT throw — pg-boss job ends successfully (retryLimit: 0)
 ```
 
 ---

@@ -331,15 +331,7 @@ To support multiple languages:
 
 ## Background Jobs
 
-No background jobs are triggered by branding changes. When the host saves branding updates, the Server Action must call `revalidatePath` to bust cached pages:
-
-```typescript
-// After saving user_branding row — invalidate all cached booking pages for this host
-revalidatePath('/[username]')                    // profile overview page
-revalidatePath('/[username]/[eventSlug]', 'page') // each event type's booking page
-```
-
-For hosts with many event types, query all active slugs first and revalidate each one. If you only invalidate the profile page, individual booking pages will still show the old logo/color until the ISR TTL expires.
+No background jobs are triggered by branding changes. When the host saves branding updates, the Server Action must call `revalidatePath` for `/[username]` (profile overview page) and for each active event type slug at `/[username]/[eventSlug]`. For hosts with many event types, query all active slugs first and revalidate each one. If only the profile page is invalidated, individual booking pages will still show the old logo/color until the ISR TTL expires.
 
 ---
 

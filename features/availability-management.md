@@ -264,14 +264,7 @@ No background jobs are directly triggered by availability saves. However, there 
 
 **Implication:** A host who just connected their calendar may see all slots appear available for up to 5 minutes — until `CALENDAR_SYNC` first populates the cache. This is expected behavior. There is no job to force-trigger this; the first sync will run within 5 minutes automatically.
 
-After saving availability rules, call both `revalidatePath` paths in the Server Action to bust the ISR cache so invitees see the updated schedule immediately:
-
-```typescript
-revalidatePath('/[username]/[eventSlug]')  // the event type's booking page
-revalidatePath('/[username]')              // the profile overview page (shows availability windows)
-```
-
-Both must be invalidated — the profile overview page caches the event type cards which include availability context. If you only bust the event slug page, the profile page continues serving stale data until the ISR TTL expires.
+After saving availability rules, the Server Action must call `revalidatePath` for both `/[username]/[eventSlug]` and `/[username]` to bust the ISR cache so invitees see the updated schedule immediately. Both must be invalidated — the profile overview page caches the event type cards which include availability context. If only the event slug page is busted, the profile page continues serving stale data until the ISR TTL expires.
 
 ---
 

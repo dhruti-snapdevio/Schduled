@@ -247,41 +247,11 @@ All booking creation steps (lock acquisition → idempotency check → availabil
 
 ### Idempotency Key (POST Safety)
 
-The booking form submission includes a client-generated idempotency key (UUID, generated on form load). Before taking any action, the engine checks the `idempotency_keys` table:
-
-```typescript
-const existingKey = await db.query.idempotencyKeys.findFirst({
-  where: and(
-    eq(idempotencyKeys.id, idempotencyKey),
-    eq(idempotencyKeys.requestPath, '/api/bookings'),
-    gt(idempotencyKeys.expiresAt, new Date()),
-  ),
-})
-if (existingKey) {
-  // Return the stored response — do NOT create a duplicate booking
-  return Response.json(existingKey.responseBody)
-}
-```
-
-If no existing key: proceed with booking creation and store the response in `idempotency_keys` (TTL: 24h). This prevents duplicate bookings caused by network retries, double-clicks, or browser back-button resubmissions.
+The booking form submission includes a client-generated idempotency key (UUID, generated on form load). Before taking any action, the engine queries the `idempotency_keys` table for a matching, non-expired key. If one exists, the stored response is returned immediately without creating a duplicate booking. If no existing key is found, booking creation proceeds and the response is stored in `idempotency_keys` with a 24-hour TTL. This prevents duplicate bookings caused by network retries, double-clicks, or browser back-button resubmissions.
 
 ### Audit Log
 
-On successful booking creation, an entry is written to `audit_logs`:
-```typescript
-await DbAudit.log({
-  actorUserId: undefined,        // invitees are not logged-in users
-  actorEmail: invitee.email,
-  action: 'booking.created',
-  source: 'api',                 // POST /api/bookings — unauthenticated API route
-  targetType: 'booking',
-  targetId: booking.id,
-  ipAddress: req.headers.get('x-forwarded-for'),
-  after: { bookingId: booking.id, hostId: booking.hostUserId, startTime: booking.startTime },
-})
-```
-
-The `source` field must always be set. Use `'api'` for booking creation (unauthenticated API route), `'web'` for Server Actions, `'worker'` for jobs fired by the worker process. See `database-schema.md` for `auditSourceEnum`.
+On successful booking creation, an entry is written to `audit_logs` inside the same transaction: `actorUserId` is null (invitees are not logged-in users), `actorEmail` is the invitee's email, `action` is `booking.created`, `source` is `'api'` (the `POST /api/bookings` route is unauthenticated), and `after` contains the booking ID, host ID, and start time. The `source` field must always be set — use `'api'` for booking creation, `'web'` for Server Actions, `'worker'` for jobs. See `database-schema.md` for `auditSourceEnum`.
 
 ---
 
@@ -395,29 +365,28 @@ All post-booking work runs as pg-boss jobs after the DB transaction commits. The
 | `BOOKING_REMINDER_24H` | On booking confirmed — fires 24h before start | `{ bookingId }` | singletonKey: `{bookingId}_reminder_24h`; retryLimit: 2 |
 | `BOOKING_REMINDER_1H` | On booking confirmed — fires 1h before start | `{ bookingId }` | singletonKey: `{bookingId}_reminder_1h`; retryLimit: 2 |
 
-### Job Dispatch Order (inside DB transaction)
+### Job Dispatch Order
 
-```typescript
-await db.transaction(async (tx) => {
-  // 1. Advisory lock
-  await tx.execute(sql`SELECT pg_advisory_xact_lock(${slotHash})`)
-  // 2. Idempotency check
-  // 3. Final availability check
-  // 4. Insert booking + answers + guests
-  // 5. Insert email_outbox rows (confirmation invitee + host notification)
-  // 6. Insert audit_logs row (booking.created, source: 'api')
-  // 7. Insert idempotency_keys row
-})
-// After transaction commits:
-// 8. boss.send('EMAIL_SEND', { emailOutboxId: outboxInvitee.id })
-// 9. boss.send('EMAIL_SEND', { emailOutboxId: outboxHost.id })
-// 10. boss.send('VIDEO_LINK_GENERATE', { bookingId, provider })  // if video location
-// 11. boss.send('CALENDAR_WRITE', { bookingId, calendarId })
-// 12. boss.sendAfter('BOOKING_REMINDER_24H', payload, {}, reminderTime24h)
-// 13. boss.sendAfter('BOOKING_REMINDER_1H', payload, {}, reminderTime1h)
-```
+All database writes happen inside a single transaction (steps 1–7 below). Jobs are enqueued only after the transaction commits successfully (steps 8–13). If the transaction rolls back, no jobs are dispatched.
 
-> **All handlers use `workMonitored()`** — every `boss.work('JOB_NAME', handler)` in the worker is wrapped with `workMonitored('JOB_NAME', handler)`. See `jobs-queues.md` — "Dead-Letter Queue Monitoring" for the pattern.
+**Inside the DB transaction:**
+1. Acquire advisory lock for the host + time slot
+2. Idempotency check — return stored response if key exists
+3. Final availability check — slot must still be free
+4. Insert `bookings` row + `booking_answers` rows
+5. Insert two `email_outbox` rows (invitee confirmation + host notification)
+6. Insert `audit_logs` row (`booking.created`, source `'api'`)
+7. Insert `idempotency_keys` row (TTL 24h)
+
+**After transaction commits — enqueue pg-boss jobs:**
+8. `EMAIL_SEND` for invitee confirmation email
+9. `EMAIL_SEND` for host notification email
+10. `VIDEO_LINK_GENERATE` (if location is Zoom or Teams)
+11. `CALENDAR_WRITE` (write event to host's calendar)
+12. `BOOKING_REMINDER_24H` scheduled for 24h before start time
+13. `BOOKING_REMINDER_1H` scheduled for 1h before start time
+
+All handlers are registered with `workMonitored()` (not raw `boss.work()`) — see `jobs-queues.md` for the dead-letter queue monitoring pattern.
 
 ---
 
