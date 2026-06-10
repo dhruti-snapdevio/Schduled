@@ -119,7 +119,7 @@ User sees a clean screen with calendar provider options:
 |----------|-------|
 | Google Calendar | Most common; recommended for Gmail users |
 | Outlook / Office 365 | For Microsoft 365 work and school accounts |
-| Apple Calendar / iCloud | *(Phase 2 — Post-MVP)* For iPhone/Mac users using iCloud calendar |
+| Apple Calendar / iCloud | *(Post-MVP — Phase 2)* For iPhone/Mac users using iCloud calendar |
 | Skip for now | Allowed but discouraged — shows a warning |
 
 ### OAuth Connection Flow (Google / Outlook)
@@ -133,7 +133,7 @@ User sees a clean screen with calendar provider options:
    - **Which calendar to add new bookings to** (radio selection)
 7. Connection status shows green: "✓ Google Calendar connected"
 
-### Apple Calendar (iCloud) Connection *(Phase 2 — Post-MVP)*
+### Apple Calendar (iCloud) Connection *(Post-MVP — Phase 2)*
 > Apple Calendar connection requires an app-specific password (no standard OAuth). This is a Phase 2 feature due to protocol complexity.
 
 1. User clicks "Apple Calendar"

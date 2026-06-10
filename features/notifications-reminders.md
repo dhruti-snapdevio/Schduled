@@ -147,7 +147,7 @@ Sent when a host cancels a meeting.
 
 Workflows are timed multi-step sequences that fire before or after meetings. They are the "set and forget" layer of communication.
 
-### What Is a Workflow? *(Phase 2 — Configurable Builder)*
+### What Is a Workflow? *(Post-MVP — Phase 2 — Configurable Builder)*
 
 > The trigger → condition → action builder described below is a **Phase 2 feature**. For MVP, the 24-hour and 1-hour reminders are hardcoded — they fire for every booking automatically without any host configuration.
 
@@ -156,7 +156,7 @@ A configurable workflow (Phase 2) is composed of:
 - **Condition** — Which event types does this apply to? (optional filter)
 - **Action** — What should happen? (send email; send SMS *(Phase 2)*)
 
-### Workflow Triggers *(Phase 2 — Configurable Builder)*
+### Workflow Triggers *(Post-MVP — Phase 2 — Configurable Builder)*
 
 > This full trigger system requires the Phase 2 workflow builder UI. MVP fires only the two hardcoded triggers: 24h before and 1h before.
 
@@ -383,7 +383,7 @@ Beyond email (and SMS in Phase 2), notifications appear in the Schedica dashboar
 
 ---
 
-## Slack Integration *(Phase 2 — Post-MVP)*
+## Slack Integration *(Post-MVP — Phase 2)*
 
 For teams using Slack, booking notifications can be sent to Slack channels. Not included in MVP — requires team workspace feature and OAuth bot setup.
 

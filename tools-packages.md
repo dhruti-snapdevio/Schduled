@@ -338,12 +338,16 @@ Complete documentation of every package, library, service, and tool used in Sche
 | **Features** | All UI |
 | **Setup** | Import in root `layout.tsx` via `next/font` |
 
-### lucide-react
+### @phosphor-icons/react
 
 | | |
 |---|---|
-| **Purpose** | Icon library — 1400+ clean, consistent SVG icons |
-| **Features** | All UI |
+| **Purpose** | Icon library — flexible, consistent SVG icons; 1000+ icons across 6 weights |
+| **Features** | All UI — navigation, actions, status indicators, form labels |
+| **Import (server components)** | `@phosphor-icons/react/dist/ssr` |
+| **Import (client components)** | `@phosphor-icons/react` |
+| **Version** | 2.1.x |
+| **Design reference** | See [design-system.md](./design-system.md) — Icons section for full context-to-icon mapping |
 
 ### @fontsource-variable/jetbrains-mono *(optional)*
 
@@ -572,7 +576,7 @@ Key compiler settings in `tsconfig.json`:
     "next-themes": "^0.4.0",
     "sonner": "^1.7.0",
     "geist": "^1.3.0",
-    "lucide-react": "^0.460.0",
+    "@phosphor-icons/react": "^2.1.10",
 
     "@paralleldrive/cuid2": "^2.2.2",
     "radix-ui": "^1.4.0"

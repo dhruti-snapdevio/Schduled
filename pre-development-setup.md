@@ -270,7 +270,7 @@ npm install \
   next-themes \
   clsx tailwind-merge \
   class-variance-authority \
-  lucide-react \
+  @phosphor-icons/react \
   geist
 ```
 
@@ -429,7 +429,7 @@ npx shadcn@latest add \
 | `clsx` | latest | Conditional className utility |
 | `tailwind-merge` | latest | Merge Tailwind classes without conflicts |
 | `class-variance-authority` | latest | Type-safe component variants (used by Shadcn/UI) |
-| `lucide-react` | latest | Icon library |
+| `@phosphor-icons/react` | ^2.1.10 | Icon library — all Phosphor icons; use `/dist/ssr` import in Server Components |
 | `geist` | latest | Vercel's Geist font (sans + mono) |
 | **Dev only** | | |
 | `@biomejs/biome` | latest | Linter + formatter — replaces ESLint + Prettier; 10-50× faster |

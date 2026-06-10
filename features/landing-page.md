@@ -340,4 +340,4 @@ All page metadata managed via Next.js `generateMetadata()` API.
 - **Tailwind CSS** — all landing page styles; responsive utility classes for mobile/tablet/desktop breakpoints.
 - **Shadcn/UI** — accordion component for FAQ, button components for CTAs.
 - **Next.js `<Image>`** — hero screenshot and section images automatically converted to WebP, sized for viewport, lazy-loaded below the fold.
-- **`next/font`** — self-hosted fonts (Inter or similar) loaded without external request; eliminates font-related layout shift.
+- **`next/font`** — self-hosted fonts (Geist Sans Variable + JetBrains Mono Variable) loaded without external request; eliminates font-related layout shift. See [design-system.md](../design-system.md) — Typography for full font spec.
