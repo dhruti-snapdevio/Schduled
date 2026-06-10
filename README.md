@@ -407,7 +407,7 @@ if (!keyRow) return jsonResponse(401, { error: 'Invalid API key' })
 | [architecture.md](./architecture.md) | System architecture — two-process design, request flows, auth, email, calendar sync, security decisions |
 | [design-system.md](./design-system.md) | Complete UI design system — colors (OKLCH), fonts, components, layouts, screens, dark mode, icons, email templates |
 | [project-structure.md](./project-structure.md) | Complete folder structure with explanations — where each file lives and why |
-| [database-schema.md](./database-schema.md) | All 28 database tables, Drizzle schema definitions, enums, query helpers |
+| [database-schema.md](./database-schema.md) | All 30 database tables, Drizzle schema definitions, enums, query helpers |
 | [jobs-queues.md](./jobs-queues.md) | All 16 background jobs — feature-to-job mapping, payloads, cron schedules, worker architecture |
 | [tools-packages.md](./tools-packages.md) | Every npm package — purpose, which feature uses it, env vars, setup notes |
 | [development-plan.md](./development-plan.md) | 20-phase build plan from project setup to launch |

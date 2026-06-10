@@ -194,12 +194,12 @@ Complete documentation of every package, library, service, and tool used in Sche
 | **Purpose** | TypeScript types for Microsoft Graph API responses |
 | **Features** | Calendar Integrations (Outlook) |
 
-### tsdav *(Phase 2 — Apple iCloud)*
+### tsdav *(Post-MVP — Phase 2)*
 
 | | |
 |---|---|
 | **Purpose** | CalDAV client for Apple iCloud calendar connection |
-| **Features using it** | Calendar Integrations (Phase 2 — Apple Calendar) |
+| **Features using it** | Calendar Integrations *(Post-MVP — Phase 2 — Apple Calendar)* |
 | **Why separate** | Apple Calendar doesn't support standard OAuth; uses CalDAV protocol with app-specific passwords |
 | **Env vars** | None — credentials entered per-user via UI (iCloud email + app-specific password) |
 

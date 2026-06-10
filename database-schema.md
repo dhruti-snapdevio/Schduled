@@ -1135,7 +1135,7 @@ All JSONB columns use `.$type<T>()` for TypeScript safety:
 
 ---
 
-## Table Summary — 28 Tables
+## Table Summary — 30 Tables
 
 | Domain | Tables | Schema File | Query Helper |
 |--------|--------|-------------|-------------|
@@ -1147,8 +1147,9 @@ All JSONB columns use `.$type<T>()` for TypeScript safety:
 | **Video** | `video_connections` | `video.ts` | `DbVideo` |
 | **Bookings** | `bookings`, `booking_answers`, `booking_guests` | `bookings.ts` | `DbBookings` |
 | **Notifications** | `notification_preferences`, `workflow_jobs` | `notifications.ts` | `DbNotifications` |
+| **Contacts** | `contacts`, `contacts_settings` | `contacts.ts` | `DbContacts` |
 | **Audit** | `audit_logs` | `audit.ts` | `DbAudit` |
 | **Email** | `email_outbox`, `email_events` | `email.ts` | `DbEmail` |
 | **Platform** | `platform_settings`, `disposable_email_domains`, `idempotency_keys` | `platform.ts` | `DbSettings` |
 
-**Total: 28 tables** across 11 domain schema files + 1 enums file + 1 relations file + 1 index.
+**Total: 30 tables** across 12 domain schema files + 1 enums file + 1 relations file + 1 index.
