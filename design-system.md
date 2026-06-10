@@ -316,6 +316,9 @@ Cards primarily use border (`border border-border`) rather than shadow for separ
 | Google Calendar | Google logo | `GoogleLogoIcon` |
 | Outlook | Microsoft icon | `MicrosoftOutlookLogoIcon` |
 | Copy to clipboard | Copy | `CopyIcon` |
+| Open in new tab | ArrowSquareOut | `ArrowSquareOutIcon` |
+| Email / send via email | Envelope | `EnvelopeIcon` |
+| QR code | QrCode | `QrCodeIcon` |
 | Delete / trash | Trash | `TrashIcon` |
 | Edit / pencil | PencilSimple | `PencilSimpleIcon` |
 | Add / plus | Plus | `PlusIcon` |
@@ -814,13 +817,86 @@ Email verification step (shown after signup): "Check your inbox" with animated e
 
 ### Settings — `/dashboard/settings`
 
-**Sub-nav (left tabs or top tabs):**
-- Profile — Name, photo upload, bio, job title, company, website
-- Account — Email change, password change, connected social accounts, 2FA *(Post-MVP — Phase 2)*
-- Branding — Logo upload, brand color picker, custom confirmation message
-- Notifications — Toggle per notification type
-- Integrations — Calendar + video integrations (same content as integrations page)
-- Danger Zone — Delete account (destructive section at bottom)
+**Layout:** Persistent left sidebar (same `<DashboardLayout>` shell) with 8 sections listed below. Clicking a section replaces the right-hand content area; the selected item gets the active sidebar state (teal left border, `bg-accent` background).
+
+**Settings sidebar sections:**
+
+| Section | Route |
+|---------|-------|
+| Profile | `/dashboard/settings/profile` |
+| Branding | `/dashboard/settings/branding` |
+| My Link | `/dashboard/settings/my-link` |
+| Communication | `/dashboard/settings/communication` |
+| Login preferences | `/dashboard/settings/login` |
+| Contacts settings | `/dashboard/settings/contacts` |
+| Security | `/dashboard/settings/security` |
+| Cookie settings | `/dashboard/settings/cookies` |
+
+Danger Zone (account deletion) sits at the bottom of the Security page, separated by a red-tinted `<Card>` with a red destructive button.
+
+---
+
+**Profile — `/dashboard/settings/profile`**
+
+`max-w-2xl` form: avatar upload (click to replace, circular crop), display name, job title, company, bio *(Post-MVP — Phase 2)*, website *(Post-MVP — Phase 2)*, timezone selector. Single "Save changes" primary button at bottom.
+
+---
+
+**Branding — `/dashboard/settings/branding`**
+
+Logo upload (square, max 2 MB), brand colour picker (colour swatch + hex input), custom confirmation message textarea. Changes reflected live in a small booking-page preview card on the right. "Save changes" primary button.
+
+---
+
+**My Link — `/dashboard/settings/my-link`**
+
+Three stacked `<Card>` components:
+
+**Card 1 — Your booking URL:**
+- Full URL displayed in a read-only input-style box: `schedica.com/[username]`
+- Three icon buttons to the right of the box: Copy (`CopyIcon`), Open in new tab (`ArrowSquareOutIcon`), Share via email (`EnvelopeIcon`)
+- Copy button label changes to "Copied!" for 2 seconds after click
+
+**Card 2 — QR code:**
+- QR code image centred in the card, generated from the booking URL
+- "Download QR code" ghost button below — saves as `schedica-[username]-qr.png`
+
+**Card 3 — Change username:**
+- Label: "Username" with current value shown above the input
+- Input field with real-time availability indicator (spinner → green "✓ Available" or red "✗ Already taken")
+- Helper text: "schedica.com/[typed-value]" shown live below the input
+- Warning text block (amber, `WarningIcon`): "Changing your username will break any links you have already shared. A redirect from your old URL will stay active for 30 days."
+- "Save username" primary button — disabled until a valid, available, changed username is entered
+
+---
+
+**Communication — `/dashboard/settings/communication`**
+
+Toggle list: one row per notification event (New booking, Cancellation, Reschedule, Reminder confirmation). Each row: label + description + `<Switch>`. "Save preferences" button at bottom.
+
+---
+
+**Login preferences — `/dashboard/settings/login`**
+
+Connected methods table: one row per auth method (Google OAuth, Email + password, Magic link). Each row shows the method name, email or "always available" note, and a Connect/Disconnect button where applicable. Magic link row has no action button. "Add password" flow for OAuth-only accounts shows an inline form with new password + confirm fields.
+
+---
+
+**Contacts settings — `/dashboard/settings/contacts`**
+
+Auto-save toggle: `<Switch>` with label "Automatically save new contacts when someone books with me" (default on). Below: excluded domains input (tag-style multi-value input for domain entries). "Save" button. *(Phase 2 contacts list view at `/dashboard/contacts`.)*
+
+---
+
+**Security — `/dashboard/settings/security`**
+
+Password change form (current password, new password, confirm). Active sessions list (device, IP, last active, Revoke button per row). 2FA section *(Post-MVP — Phase 2)*. Danger Zone card at the very bottom (red `<Card>` border): "Delete account" destructive button opens a confirmation dialog.
+
+---
+
+**Cookie settings — `/dashboard/settings/cookies`**
+
+Three toggle rows: Necessary (always on, toggle disabled), Analytics, Marketing. Description under each explains what it controls. "Save preferences" button. Preferences stored in `localStorage` under `cookie-consent`.
 
 ---
 

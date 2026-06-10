@@ -100,7 +100,12 @@ A searchable, filterable table of every significant mutation on the platform. Ev
 | `user.username_changed` | Host changed booking URL slug |
 | `user.photo_updated` | Host uploaded or removed profile photo |
 | `user.password_changed` | Password changed from settings |
+| `user.password_added` | Password added to an OAuth-only account |
+| `user.oauth_connected` | Google OAuth connected to existing account |
+| `user.oauth_disconnected` | Google OAuth disconnected from account |
 | `user.email_change_requested` | New email submitted; verification pending |
+| `user.contacts_settings_updated` | Auto-save toggle or domain exclusion list changed |
+| `user.cookie_preferences_updated` | Cookie consent preferences changed from settings |
 | `user.account_deleted` | Account deletion confirmed |
 | `user.branding_updated` | Host changed logo, color, or confirmation message |
 | `booking.created` | New booking confirmed |

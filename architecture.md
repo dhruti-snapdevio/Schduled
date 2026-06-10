@@ -237,7 +237,7 @@ Admin-only routes        /admin/*                 (admin panel)
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Total: 28 app tables** (22 original + 6 new platform tables)
+**Total: 30 app tables** (22 original + 8 new platform tables)
 
 ---
 

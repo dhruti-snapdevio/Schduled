@@ -15,7 +15,7 @@ All documentation is written and ready before development starts.
 | 1 | [README.md](./README.md) | Project overview, tech stack, competitive positioning |
 | 2 | [architecture.md](./architecture.md) | System architecture — request flow, two-process model, data flow |
 | 3 | [design-system.md](./design-system.md) | Complete UI design system — colors, fonts, components, layouts, screens, dark mode |
-| 4 | [database-schema.md](./database-schema.md) | All 28 tables + 3 query files (audit.ts, email.ts, settings.ts) |
+| 4 | [database-schema.md](./database-schema.md) | All 30 tables + 3 query files (audit.ts, email.ts, settings.ts) |
 | 5 | [jobs-queues.md](./jobs-queues.md) | All 16 pg-boss job types, payloads, retry config, cron schedules |
 | 6 | [project-structure.md](./project-structure.md) | Full folder and file layout for the Next.js app |
 | 7 | [tools-packages.md](./tools-packages.md) | Every package used, why it was chosen, version notes |
@@ -28,7 +28,7 @@ All documentation is written and ready before development starts.
 |---|------|----------------|
 | 1 | [landing-page.md](./features/landing-page.md) | Public marketing page — 4 sections, legal pages, SEO |
 | 2 | [user-onboarding.md](./features/user-onboarding.md) | Sign-up, email verification, 5-step onboarding wizard, auth flows |
-| 3 | [user-profile-settings.md](./features/user-profile-settings.md) | Profile, timezone, notifications, security, account deletion |
+| 3 | [user-profile-settings.md](./features/user-profile-settings.md) | Profile, My Link (URL + QR code), branding, communication, login preferences, contacts settings, cookie settings, security, account deletion |
 | 4 | [event-types.md](./features/event-types.md) | Creating and managing event types, durations, cancellation policies |
 | 5 | [availability-management.md](./features/availability-management.md) | Weekly hours, buffers, booking windows, date overrides |
 | 6 | [calendar-integrations.md](./features/calendar-integrations.md) | Google Calendar (P0), Outlook (P1), Apple CalDAV (Phase 2) |
@@ -82,7 +82,7 @@ Build phases **in this exact order**. Each phase depends on the previous one.
 ---
 
 ### Phase 1 — Database Schema
-**Builds:** All 28 tables created in PostgreSQL
+**Builds:** All 30 tables created in PostgreSQL
 **Reference:** [database-schema.md](./database-schema.md), [development-plan.md § Phase 1](./development-plan.md)
 
 **Table groups to write (in order):**
@@ -102,7 +102,7 @@ Build phases **in this exact order**. Each phase depends on the previous one.
 
 **After writing schemas:** Run `drizzle-kit generate` then `drizzle-kit migrate`. Confirm all tables visible in Drizzle Studio.
 
-**Done when:** All 28 tables exist in the database and migrations are tracked.
+**Done when:** All 30 tables exist in the database and migrations are tracked.
 
 ---
 
@@ -159,19 +159,20 @@ Build phases **in this exact order**. Each phase depends on the previous one.
 ---
 
 ### Phase 5 — User Profile & Settings
-**Builds:** Full settings area for hosts
+**Builds:** Full settings area for hosts — 8-section settings sidebar
 **Reference:** [features/user-profile-settings.md](./features/user-profile-settings.md), [development-plan.md § Phase 5](./development-plan.md)
 
 **Pages to build (in order):**
-1. `/settings/profile` — name, photo, bio, job title, company
-2. `/settings/timezone` — timezone picker
-3. `/settings/notifications` — per-type email toggles, from name, reply-to
-4. `/settings/security` — change password (2FA and sessions = Phase 2)
-5. `/settings/integrations` — connected calendars and video platforms (links to Phase 8 and 13)
-6. Username change with redirect logic (`username_redirects` table)
-7. Account deletion flow
+1. `/dashboard/settings/profile` — name, photo, job title, company, timezone; bio + website *(Post-MVP — Phase 2)*
+2. `/dashboard/settings/branding` — logo upload, brand colour picker, custom confirmation message
+3. `/dashboard/settings/my-link` — booking URL display, copy button, open in new tab, share via email, QR code download, change username with real-time availability check and 30-day redirect (`username_redirects` table)
+4. `/dashboard/settings/communication` — per-notification-type email toggles (new booking, cancellation, reschedule, reminder confirmation)
+5. `/dashboard/settings/login` — connected auth methods table; Google OAuth connect/disconnect; add password to OAuth-only account
+6. `/dashboard/settings/contacts` — auto-save invitees as contacts toggle (default on); domain/email exclusion list; `contacts` + `contacts_settings` tables
+7. `/dashboard/settings/security` — change password form; active sessions list with per-session Revoke; Danger Zone (account deletion); 2FA *(Post-MVP — Phase 2)*
+8. `/dashboard/settings/cookies` — necessary/analytics/marketing cookie toggles; preferences stored in `localStorage` under `cookie-consent`
 
-**Done when:** All profile fields save. Photo upload works. Username change creates a redirect. Account deletion works.
+**Done when:** All profile fields save. Photo upload works. My Link page shows QR code and copy works. Username change creates a 30-day redirect. Login preferences correctly handle Google connect/disconnect and add-password flows. Contacts auto-save toggle persists. Cookie preferences save to localStorage. Account deletion works.
 
 ---
 
