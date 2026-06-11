@@ -23,6 +23,16 @@ Schedica is inspired by the best of the scheduling market — the simplicity of 
 
 ---
 
+## Getting Started
+
+1. Follow [pre-development-setup.md](./pre-development-setup.md) to configure credentials, environment variables, and database setup before writing any code.
+2. Install dependencies: `pnpm install`
+3. Start both processes in development: `pnpm dev` — runs the Next.js server and the pg-boss worker concurrently via `concurrently`.
+
+For production, run the Next.js server and `pnpm worker` as separate pm2/systemd/Docker processes sharing the same PostgreSQL database.
+
+---
+
 ## Tech Stack
 
 ### Frontend & Framework
@@ -152,7 +162,7 @@ Schedica is organized around five core pillars:
 ### 3. Booking Experience
 - Customizable booking pages with branding *(MVP)*
 - Custom intake questions before booking *(MVP)*
-- Calendar overlay so invitees see mutual availability *(Post-MVP — Phase 3)*
+- Calendar overlay so invitees see mutual availability *(Post-MVP — Wave 2)*
 
 ### 4. Automation & Workflows
 - Automated email reminders (24hr and 1hr pre-meeting) *(MVP)*
@@ -170,7 +180,7 @@ Schedica is organized around five core pillars:
 
 The MVP focuses on delivering a complete solo + small team scheduling experience.
 
-### Phase 1 — Core MVP (Solo Users)
+### Core MVP (Solo Users)
 
 | # | Feature | Description |
 |---|---------|-------------|
@@ -221,166 +231,7 @@ The MVP focuses on delivering a complete solo + small team scheduling experience
 
 ## Post-MVP Technical Planning
 
-When Wave 1 post-launch features are started, these implementation patterns are already designed — based on Krova's production-proven approach. Build these exactly as specified to avoid rework.
-
----
-
-### Outbound Webhooks
-
-Hosts configure webhook endpoints on their account. Schedica POSTs a signed payload to each endpoint whenever a booking event occurs.
-
-**New database tables:**
-
-```typescript
-// src/lib/db/schema/webhooks.ts  (add in Phase 2)
-
-export const outboundWebhooks = pgTable('outbound_webhooks', {
-  id:          text('id').primaryKey(),
-  hostUserId:  text('host_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  url:         text('url').notNull(),               // validated — SSRF-checked before saving
-  secret:      text('secret').notNull(),            // random 32-byte hex; used for HMAC signature
-  events:      jsonb('events').$type<string[]>().notNull(), // ['booking.created', 'booking.cancelled']
-  isActive:    boolean('is_active').notNull().default(true),
-  createdAt:   timestamp('created_at').notNull().defaultNow(),
-})
-
-export const webhookDeliveries = pgTable('webhook_deliveries', {
-  id:            text('id').primaryKey(),
-  webhookId:     text('webhook_id').notNull().references(() => outboundWebhooks.id, { onDelete: 'cascade' }),
-  event:         text('event').notNull(),           // 'booking.created'
-  payload:       jsonb('payload').$type<Record<string, unknown>>().notNull(),
-  status:        text('status').notNull().default('pending'), // pending | delivered | failed
-  httpStatus:    integer('http_status'),            // 200, 404, 500, etc.
-  attempts:      integer('attempts').notNull().default(0),
-  lastAttemptAt: timestamp('last_attempt_at'),
-  createdAt:     timestamp('created_at').notNull().defaultNow(),
-})
-```
-
-**Events to emit:**
-
-| Event | When |
-|-------|------|
-| `booking.created` | Booking confirmed |
-| `booking.cancelled` | Booking cancelled (by host or invitee) |
-| `booking.rescheduled` | Booking rescheduled to new time |
-
-**SSRF protection — validate URL before saving:**
-
-```typescript
-// src/lib/webhook-ssrf.ts
-const PRIVATE_RANGES = [
-  /^127\./, /^10\./, /^192\.168\./, /^172\.(1[6-9]|2\d|3[01])\./,
-  /^::1$/, /^fc[0-9a-f]{2}:/i,
-]
-const BLOCKED_HOSTS = ['localhost', 'metadata.google.internal']
-
-export function validateWebhookUrl(url: string): { ok: boolean; error?: string } {
-  try {
-    const parsed = new URL(url)
-    if (!['http:', 'https:'].includes(parsed.protocol))
-      return { ok: false, error: 'Only http/https allowed' }
-    if (BLOCKED_HOSTS.includes(parsed.hostname))
-      return { ok: false, error: 'URL points to blocked host' }
-    if (PRIVATE_RANGES.some(r => r.test(parsed.hostname)))
-      return { ok: false, error: 'URL points to private IP range' }
-    return { ok: true }
-  } catch {
-    return { ok: false, error: 'Invalid URL' }
-  }
-}
-```
-
-**HMAC-SHA256 signature — added to every delivery:**
-
-```typescript
-// X-Schedica-Signature: sha256=<hmac>
-// Receiver verifies: HMAC(webhookSecret, rawBody) === signature header value
-
-import { createHmac } from 'crypto'
-
-export function signWebhookPayload(secret: string, payload: string): string {
-  return 'sha256=' + createHmac('sha256', secret).update(payload).digest('hex')
-}
-```
-
-**Delivery job — pg-boss handles retry with backoff:**
-
-```typescript
-// Job: WEBHOOK_DELIVER
-// retryLimit: 5, retryDelay: 30  (30s → 60s → 120s → 240s → 480s)
-// On permanent failure: mark delivery status = 'failed', log to webhook_deliveries
-```
-
----
-
-### Real-Time Dashboard Updates (Pusher / SSE)
-
-When an invitee books while the host has the dashboard open, push the new booking without a page refresh.
-
-**Recommended approach — Server-Sent Events (simpler than Pusher, no external service):**
-
-```typescript
-// app/api/stream/bookings/route.ts
-export async function GET(request: Request) {
-  const session = await requireSession(request)
-  const stream = new ReadableStream({
-    start(controller) {
-      // Poll bookings table every 5s and push new rows
-      // Or: pg LISTEN/NOTIFY for zero-poll push
-    }
-  })
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-    },
-  })
-}
-```
-
-**Alternative — Pusher** (if SSE proves limiting at scale):
-- `pusher` npm package — private channels with `POST /api/pusher/auth` session validation
-- Hosted service — no self-hosting; simpler client SDK
-
-> **Decision for Phase 2:** Start with SSE (no external service, simpler). Upgrade to Pusher only if SSE proves insufficient at scale.
-
----
-
-### Public API Keys (for `/api/v1/*`)
-
-Hosts generate API keys to access Schedica data programmatically (list bookings, check availability, etc.).
-
-**Storage pattern — never store raw keys:**
-
-```typescript
-// outbound_api_keys table
-export const apiKeys = pgTable('api_keys', {
-  id:          text('id').primaryKey(),
-  hostUserId:  text('host_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  name:        text('name').notNull(),              // "My Integration"
-  prefix:      text('prefix').notNull(),            // "sk_live_abc123" — shown to user for identification
-  hashedKey:   text('hashed_key').notNull().unique(), // SHA-256 hash of full key — what's stored
-  lastUsedAt:  timestamp('last_used_at'),
-  createdAt:   timestamp('created_at').notNull().defaultNow(),
-  expiresAt:   timestamp('expires_at'),             // null = never expires
-})
-```
-
-**Key generation and verification:**
-
-```typescript
-import { createHash, randomBytes } from 'crypto'
-
-// Generate:
-const rawKey = 'sk_live_' + randomBytes(32).toString('hex')   // shown once to user
-const hashedKey = createHash('sha256').update(rawKey).digest('hex')  // stored in DB
-
-// Verify on API request:
-const incomingHash = createHash('sha256').update(bearerToken).digest('hex')
-const keyRow = await db.query.apiKeys.findFirst({ where: eq(apiKeys.hashedKey, incomingHash) })
-if (!keyRow) return jsonResponse(401, { error: 'Invalid API key' })
-```
+Implementation patterns for Wave 1 features — outbound webhooks (with SSRF validation and HMAC-SHA256 signing), real-time dashboard updates via SSE, and public API key management (hashed storage, prefix identification) — are fully designed and documented in [architecture.md](./architecture.md). Refer to that document when starting Wave 1 development.
 
 ---
 
@@ -389,7 +240,7 @@ if (!keyRow) return jsonResponse(401, { error: 'Invalid API key' })
 | Product | Strength | Gap Schedica Fills |
 |---------|----------|-------------------|
 | **Calendly** | Market leader, ease of use | Expensive for teams; dropped Apple Calendar support; shows only one timezone |
-| **Cal.com** | Open source, generous free tier | Complex self-hosting; less polished UX |
+| **Cal.com** | Open source, generous free tier | Less polished UX — Schedica offers the same self-hosting freedom with a more refined experience |
 | **Acuity Scheduling** | Deep appointment customization, built-in payments | Outdated UI; no real-time calendar overlay; weak team routing |
 | **Microsoft Bookings** | Native Microsoft 365 integration | No invitee timezone auto-detect; limited customization; tied to Microsoft ecosystem |
 | **Chili Piper** | Best-in-class B2B lead routing | Extremely expensive; Salesforce-only; steep learning curve |
@@ -397,8 +248,6 @@ if (!keyRow) return jsonResponse(401, { error: 'Invalid API key' })
 | **SavvyCal** | Best booking UX (calendar overlay) | No free tier; small ecosystem |
 
 **Schedica's positioning:** A polished, open source scheduling platform with SavvyCal-quality UX, Calendly-level features, and Chili Piper-inspired lead routing — free for everyone to use and self-host.
-
-
 
 ## Documentation
 
@@ -410,180 +259,39 @@ if (!keyRow) return jsonResponse(401, { error: 'Invalid API key' })
 | [database-schema.md](./database-schema.md) | All 30 database tables, Drizzle schema definitions, enums, query helpers |
 | [jobs-queues.md](./jobs-queues.md) | All 16 background jobs — feature-to-job mapping, payloads, cron schedules, worker architecture |
 | [tools-packages.md](./tools-packages.md) | Every npm package — purpose, which feature uses it, env vars, setup notes |
-| [development-plan.md](./development-plan.md) | 20-phase build plan from project setup to launch |
+| [development-plan.md](./development-plan.md) | 21-phase (Phase 0–20) build plan from project setup to launch |
 | [pre-development-setup.md](./pre-development-setup.md) | Credentials, packages, env vars, DB setup — complete before writing any code |
 | [features/](./features/) | 16 detailed feature specification files |
 
 ---
 
-## Project Structure (Planned)
+## Project Structure
 
-Single Next.js application — frontend, API routes, and server actions all in one repo. No separate API server needed.
-
-```
-schedica/
-│
-├── src/
-│   │
-│   ├── middleware.ts                     # Route protection — redirects unauthenticated users, guards admin routes
-│   │
-│   ├── app/                              # Next.js App Router
-│   │   │
-│   │   ├── (auth)/                       # Auth pages — unauthenticated routes
-│   │   │   ├── sign-in/                  # Sign-in page (email/password + OAuth buttons)
-│   │   │   ├── sign-up/                  # Sign-up + onboarding entry point
-│   │   │   ├── forgot-password/          # Forgot password — request reset email
-│   │   │   ├── reset-password/           # Reset password — consume token from email
-│   │   │   └── verify-email/             # Email verification — enter 6-digit code
-│   │   │
-│   │   ├── (dashboard)/                  # Host dashboard — protected (requires login)
-│   │   │   ├── dashboard/                # Meetings overview + quick stats
-│   │   │   ├── event-types/              # Event type builder and management
-│   │   │   ├── availability/             # Weekly schedule, date overrides, limits
-│   │   │   ├── integrations/             # Connect Zoom, Google, Outlook, Apple Calendar
-│   │   │   └── settings/                 # Profile, timezone, notifications, security
-│   │   │
-│   │   ├── (admin)/                      # Custom admin panel — platform administration
-│   │   │   └── admin/                    # Protected by Better Auth admin role
-│   │   │       ├── users/                # User list, ban, impersonate (via Better Auth admin plugin)
-│   │   │       ├── bookings/             # Platform-wide booking oversight
-│   │   │       ├── jobs/                 # pg-boss job queue monitor and retry UI
-│   │   │       └── settings/             # Platform configuration
-│   │   │
-│   │   ├── onboarding/                   # First-run onboarding wizard (5 steps)
-│   │   │
-│   │   ├── [username]/                   # Public booking pages — no auth required
-│   │   │   └── [eventSlug]/              # Specific event type booking page
-│   │   │       └── confirmed/            # Post-booking confirmation page
-│   │   │
-│   │   └── api/                          # Next.js API routes
-│   │       ├── auth/
-│   │       │   └── [...all]/             # Better Auth universal handler (all auth endpoints)
-│   │       ├── bookings/                 # Booking creation, cancellation, reschedule
-│   │       ├── calendars/                # Calendar OAuth callbacks + push notification receivers
-│   │       ├── video/                    # Zoom / Teams meeting link generation
-│   │       └── webhooks/                 # Outbound webhook delivery to external apps (Phase 2)
-│   │
-│   ├── components/
-│   │   ├── booking/                      # Booking page, date picker, slot grid, confirmation screen
-│   │   ├── dashboard/                    # Meetings list, event type cards, stats bar
-│   │   ├── onboarding/                   # Step-by-step onboarding wizard components
-│   │   └── ui/                           # Shared UI primitives (buttons, inputs, modals)
-│   │
-│   ├── lib/
-│   │   ├── auth/
-│   │   │   ├── config.ts                 # Better Auth instance — providers, plugins, session config
-│   │   │   ├── admin-plugin.ts           # Better Auth admin plugin — user management API
-│   │   │   └── client.ts                 # Better Auth client (used in client components)
-│   │   │
-│   │   ├── db/
-│   │   │   ├── schema/                   # Drizzle ORM schema — one file per domain
-│   │   │   │   ├── users.ts              # users, accounts, sessions (Better Auth tables)
-│   │   │   │   ├── event-types.ts        # event_types, availability_schedules
-│   │   │   │   ├── bookings.ts           # bookings, booking_answers, cancellations
-│   │   │   │   ├── calendars.ts          # connected_calendars, calendar_events_cache
-│   │   │   │   ├── notifications.ts      # notification_preferences, workflow_templates
-│   │   │   ├── index.ts                  # Drizzle client + db connection (postgres.js)
-│   │   │   └── queries/                  # Reusable query helpers per domain
-│   │   │
-│   │   ├── email/
-│   │   │   ├── client.ts                 # Nodemailer SMTP transporter (singleton)
-│   │   │   ├── send.ts                   # send() wrapper — renders template + delivers via SMTP
-│   │   │   ├── renderer.ts               # renderEmailTemplate(template, data) → HTML string
-│   │   │   └── components/               # React Email components (one file per email type)
-│   │   │       ├── booking-confirmation.tsx
-│   │   │       ├── booking-notification-host.tsx
-│   │   │       ├── reminder-24h.tsx
-│   │   │       ├── reminder-1h.tsx
-│   │   │       ├── cancellation-invitee.tsx
-│   │   │       ├── cancellation-host.tsx
-│   │   │       ├── host-cancellation-invitee.tsx
-│   │   │       ├── reschedule-invitee.tsx
-│   │   │       ├── reschedule-host.tsx
-│   │   │       ├── email-verification.tsx
-│   │   │       ├── password-reset.tsx
-│   │   │       ├── welcome.tsx
-│   │   │       ├── calendar-disconnect-alert.tsx
-│   │   │       └── video-link-failed-host.tsx
-│   │   │
-│   │   ├── storage/
-│   │   │   ├── client.ts                 # S3-compatible storage client (S3Client singleton)
-│   │   │   └── upload.ts                 # upload(), deleteFile(), getPresignedUrl() helpers
-│   │   │
-│   │   └── worker/
-│   │       ├── boss.ts                   # pg-boss singleton (shared by app + worker process)
-│   │       ├── index.ts                  # Worker entry point — registers all handlers + crons
-│   │       ├── job-types.ts              # Canonical SCREAMING_SNAKE_CASE job name constants
-│   │       ├── work-monitored.ts         # workMonitored() wrapper — dead-letter on final failure
-│   │       └── handlers/                 # One file per pg-boss job type
-│   │           ├── email-send.ts
-│   │           ├── email-outbox-reap.ts
-│   │           ├── email-events-prune.ts
-│   │           ├── booking-reminder-24h.ts
-│   │           ├── booking-reminder-1h.ts
-│   │           ├── booking-cancel-reminders.ts
-│   │           ├── booking-reschedule-reminders.ts
-│   │           ├── video-link-generate.ts
-│   │           ├── video-link-retry.ts
-│   │           ├── calendar-write.ts
-│   │           ├── calendar-update.ts
-│   │           ├── calendar-cancel.ts
-│   │           ├── calendar-sync.ts
-│   │           ├── calendar-token-refresh.ts
-│   │           ├── calendar-disconnect-alert.ts
-│   │           └── disposable-emails-refresh.ts
-│   │
-│   └── types/
-│       ├── booking.ts                    # Booking, Invitee, BookingStatus types
-│       ├── event-type.ts                 # EventType, LocationType, AvailabilityRule types
-│       └── calendar.ts                   # CalendarProvider, CalendarEvent, FreeBusy types
-│
-├── drizzle/                              # Drizzle migration files (auto-generated)
-│   ├── 0001_initial_schema.sql
-│   └── meta/                             # Drizzle migration metadata
-│
-├── features/                             # Feature documentation (16 files)
-│   │
-│   ├── — Platform —
-│   ├── landing-page.md                   # Public marketing page — sections, SEO, CTAs, legal pages
-│   ├── admin-panel.md                    # Custom admin panel — user mgmt, bookings, job queue, settings
-│   │
-│   ├── — Account & Profile —
-│   ├── user-onboarding.md                # Sign-up, sign-in, email verification, password reset, OAuth, onboarding wizard
-│   ├── user-profile-settings.md          # Name, photo, timezone, calendars, 2FA, GDPR export, account
-│   │
-│   ├── — Scheduling Setup —
-│   ├── event-types.md                    # 1:1, Group, Round-Robin, Collective; all settings
-│   ├── availability-management.md        # Weekly hours, buffers, limits, date overrides
-│   ├── calendar-integrations.md          # Google, Outlook, Apple/iCloud, CalDAV
-│   ├── timezone-management.md            # Host/invitee timezone, DST, confirmation emails
-│   │
-│   ├── — Booking Experience —
-│   ├── booking-page-customization.md     # Branding, colors, logo, custom messages (MVP); custom domain (Phase 4)
-│   ├── custom-questions.md               # Intake form question types and configuration
-│   ├── video-conferencing.md             # Zoom, Meet, Teams (MVP); Webex (Phase 2)
-│   ├── booking-engine.md                 # Core booking processor, race conditions, retries
-│   ├── booking-confirmation.md           # Confirmation screen, emails, ICS, calendar writes
-│   │
-│   ├── — Management & Communication —
-│   ├── meetings-dashboard.md             # Upcoming/past meetings, search, filters, detail view
-│   ├── notifications-reminders.md        # Transactional emails, 24h+1h reminders (MVP); SMS reminders (Phase 2)
-│   └── booking-flow.md                   # Full booking flow, cancellation & reschedule policies
-│
-└── README.md
-```
+The app is a single Next.js monorepo — all frontend, API routes, and server actions live together with no separate API server. The complete folder layout with explanations for every file and directory is in [project-structure.md](./project-structure.md).
 
 ---
 
 ## Key Differentiators
 
-1. **Apple Calendar Support** — Native iCloud/Apple Calendar sync; Calendly dropped this in August 2024
+1. **Apple Calendar Support** *(Post-MVP)* — Native iCloud/Apple Calendar sync; Calendly dropped this in August 2024
 2. **Both Timezones in Every Email** — Confirmation and reminder emails show the invitee's time AND the host's time; Calendly only shows one timezone
 3. **Cancellation Policy Enforcement** — Calendly only displays policy text; Schedica actually blocks cancellations within the configured window
 4. **Unlimited Custom Questions** — No limits on intake questions; Calendly restricts questions behind paid plans
 5. **Multi-Duration Event Types** — One booking link can offer 15, 30, and 60-min options; invitee picks at booking time
 6. **Meeting Overload Protection** — Daily meeting limits, buffer times, and minimum notice periods prevent back-to-back burnout
 7. **Fully Open Source** — All features free, self-hostable, no paywalls or plan tiers
+
+---
+
+## Contributing
+
+Contributions are welcome. Open an issue to report bugs or propose features, or submit a pull request against `main`. See the [development plan](./development-plan.md) for the build sequence if you want to pick up a phase.
+
+---
+
+## License
+
+MIT — see [LICENSE](./LICENSE) for details.
 
 ---
 

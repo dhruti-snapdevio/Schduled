@@ -67,7 +67,7 @@ Phase 20 →  QA & Launch Prep
 
 **Goal:** Working Next.js 15 project with all tools configured, connected to the database, and ready for Phase 1.
 
-> **Before starting Phase 0:** Complete every step in [pre-development-setup.md](./pre-development-setup.md) — external accounts (Google, Azure, Zoom, S3, SMTP), credentials, package installation, environment variables, and database creation. Phase 0 assumes all of that is already in place.
+> **Before starting Phase 0:** Complete every step in [pre-development-setup.md](./pre-development-setup.md) — external accounts (Google, S3, SMTP), credentials, package installation, environment variables, and database creation. Phase 0 assumes all of that is already in place. *(Azure/Microsoft and Zoom accounts are Phase 2 — skip for now)*
 
 ### Tasks
 
@@ -76,7 +76,7 @@ Phase 20 →  QA & Launch Prep
   npx create-next-app@latest schedica --typescript --tailwind --app --src-dir --import-alias "@/*"
   cd schedica
   ```
-- [ ] Install all packages from [pre-development-setup.md § 4](./pre-development-setup.md#4-complete-package-list) — production + dev dependencies in one step
+- [ ] Install all packages — run the `pnpm add` commands in [pre-development-setup.md § 4](./pre-development-setup.md#4-complete-package-list); for the full versioned dependency list, see [tools-packages.md — Complete Dependencies](./tools-packages.md#complete-packagejson-dependencies)
 - [ ] Initialize Shadcn/UI and add all components
   ```bash
   npx shadcn@latest init
@@ -84,8 +84,9 @@ Phase 20 →  QA & Launch Prep
 - [ ] Add `biome.jsonc` to project root (config in [pre-development-setup.md § 4](./pre-development-setup.md#4-complete-package-list))
 - [ ] Update `package.json` scripts:
   ```json
-  "dev": "concurrently \"next dev\" \"tsx watch src/lib/worker/index.ts\"",
+  "dev": "concurrently \"next dev\" \"tsx --watch src/lib/worker/index.ts\"",
   "worker": "tsx src/lib/worker/index.ts",
+  "db:local": "tsx scripts/dev-db.ts",
   "db:generate": "drizzle-kit generate",
   "db:migrate": "drizzle-kit migrate",
   "db:studio": "drizzle-kit studio"
@@ -113,7 +114,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] Set up `src/lib/encrypt.ts` — AES-256-GCM `encryptValue(text)` / `decryptValue(ciphertext)` using `ENCRYPT_KEY` env var (for OAuth token storage at rest)
 - [ ] Initialize git repository and make initial commit
 
-**Done when:** `npm run dev` runs both the Next.js server and the pg-boss worker without errors.
+**Done when:** `pnpm dev` runs both the Next.js server and the pg-boss worker without errors.
 
 ---
 
@@ -137,7 +138,7 @@ Phase 20 →  QA & Launch Prep
   - [ ] `username_redirects` — id, userId, oldUsername, newUsername, expiresAt, createdAt — records old usernames for 30-day redirect; without this table, any old booking link in an email signature would 404 the moment a user changes their username
 
   **`event-types.ts` — Scheduling setup:**
-  - [ ] `event_types` — id, userId, name, slug, description, locationType, locationValue, phoneCallDirection (host_calls_invitee / invitee_calls_host — only used when locationType = phone; drives whether invitee phone is required on the form and whose number is displayed in confirmation), color, isActive, isHidden, status (active/inactive), minimumNotice, bookingWindow, bookingWindowType (rolling/fixed), bufferBefore, bufferAfter, maxBookingsPerDay, startTimeIncrement, requiresApproval, createdAt, updatedAt
+  - [ ] `event_types` — id, userId, name, slug, description, locationType, locationValue, hostPhoneNumber (host's phone shown to invitee when locationType=phone AND phoneCallDirection=invitee_calls_host), phoneCallDirection (host_calls_invitee / invitee_calls_host — only used when locationType = phone; drives whether invitee phone is required on the form and whose number is displayed in confirmation), color, isActive, isHidden, status (active/inactive), minimumNotice, bookingWindow, bookingWindowType (rolling/fixed), bufferBefore, bufferAfter, maxBookingsPerDay, startTimeIncrement, requiresApproval, createdAt, updatedAt
   - [ ] `event_type_durations` — id, eventTypeId, duration, isDefault
   - [ ] `cancellation_policies` — id, eventTypeId, allowCancellation, cutoffHours, allowRescheduling, rescheduleCutoffHours, maxReschedules, requireCancellationReason, cancellationReasonOptions (json), showPolicyText, createdAt
   - [ ] `availability_schedules` — id, userId, name, isDefault, timezone, createdAt
@@ -146,14 +147,14 @@ Phase 20 →  QA & Launch Prep
   - [ ] `event_type_questions` — id, eventTypeId, label, type (short_text/long_text/phone/single_select/multi_select/dropdown/number/date/url), isRequired, options (json), position, isActive
 
   **`calendars.ts` — Calendar integrations:**
-  - [ ] `connected_calendars` — id, userId, provider (google/outlook/apple/caldav), accountEmail, accessToken, refreshToken, tokenExpiresAt, calendarId, calendarName, isPrimary, isConflictCheck, isWriteTarget, createdAt
+  - [ ] `connected_calendars` — id, userId, provider (google/outlook/apple/caldav), accountEmail, accessToken, refreshToken, tokenExpiresAt, calendarId, calendarName, isPrimary, isConflictCheck, isWriteTarget, createdAt — **add partial unique index on (userId) WHERE isWriteTarget=true** to enforce only one write-target calendar per user at the DB level
   - [ ] `calendar_events_cache` — id, connectedCalendarId, externalEventId, title, startTime, endTime, isBusy, hostOverride (null/available/busy), syncedAt
 
   **`video.ts` — Video conferencing:**
   - [ ] `video_connections` — id, userId, provider (zoom/teams), accountEmail, accessToken, refreshToken, tokenExpiresAt, providerUserId, createdAt
 
   **`bookings.ts` — Booking records:**
-  - [ ] `bookings` — id, eventTypeId, hostUserId, inviteeName, inviteeEmail, inviteePhone, inviteeTimezone, startTime, endTime, status (confirmed/cancelled/rescheduled/completed/no_show), locationValue, videoLinkHost, videoLinkInvitee, cancelToken, rescheduleToken, cancellationReason, cancelledAt, rescheduledFromId, rescheduleCount (int default 0 — tracks how many times this booking has been rescheduled, checked against cancellation_policies.maxReschedules), createdAt, updatedAt
+  - [ ] `bookings` — id, eventTypeId, hostUserId, inviteeName, inviteeEmail, inviteePhone, inviteeTimezone, startTime, endTime, status (confirmed/cancelled/rescheduled/completed/no_show), locationValue, videoLinkHost, videoLinkInvitee, cancelToken, rescheduleToken, cancelTokenExpiresAt (set to createdAt + 30 days; null once used), rescheduleTokenExpiresAt (set to createdAt + 30 days; null once used), cancellationReason, cancelledAt, rescheduledFromId, rescheduleCount (int default 0 — tracks how many times this booking has been rescheduled, checked against cancellation_policies.maxReschedules), createdAt, updatedAt
   - [ ] `booking_answers` — id, bookingId, questionId, questionLabel, answer
   - [ ] `booking_guests` — id, bookingId, guestEmail, guestName
 
@@ -231,11 +232,12 @@ Phase 20 →  QA & Launch Prep
 **Better Auth setup:**
 - [ ] Configure Better Auth in `src/lib/auth/config.ts`
   - Email + password provider
-  - Google OAuth provider
+  - Google OAuth provider (`overrideUserInfoOnSignIn: true` — keeps name/photo in sync on re-login)
   - Magic link provider (passwordless sign-in via email)
-  - Admin Plugin
+  - Admin Plugin (`impersonationSessionDuration: 3600, allowImpersonatingAdmins: false`)
   - Drizzle adapter
   - Session config (7-day TTL, 30-day with "remember me")
+  - `cookieCache: { enabled: true, maxAge: 60 }` — caches session in a signed cookie for up to 60 seconds to reduce DB reads per request; **keep maxAge ≤ 60** so ban/role changes propagate within 1 minute
 - [ ] Mount Better Auth handler at `src/app/api/auth/[...all]/route.ts`
 - [ ] Configure Nodemailer SMTP as the email provider for Better Auth
 - [ ] Create Better Auth client in `src/lib/auth/client.ts`
@@ -280,7 +282,7 @@ Phase 20 →  QA & Launch Prep
   - [ ] Username / booking URL slug (auto-suggested from name, editable, uniqueness check)
 - [ ] **Step 2 — Connect Calendar**
   - [ ] Connect Google Calendar button → OAuth flow
-  - [ ] Connect Outlook / Office 365 button → OAuth flow
+  - [ ] Connect Outlook / Office 365 button — *(Phase 2 — greyed out at launch; show tooltip "Coming soon")*
   - [ ] "I'll connect later" skip button → **immediately deactivates all booking pages** (invitees see "This calendar is currently unavailable") + shows persistent dashboard banner "⚠️ Your booking pages are paused — connect a calendar to start accepting bookings" — booking pages auto-reactivate the moment a calendar is connected
   - [ ] Apple Calendar / iCloud connection — *(Phase 2 — CalDAV is complex, lacks OAuth; do not include in MVP onboarding)*
   - [ ] Show connected calendar with green checkmark after auth
@@ -290,7 +292,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] **Step 4 — Create First Event Type**
   - [ ] Name input (default: "30-Minute Meeting")
   - [ ] Duration selector (15 / 30 / 45 / 60 min)
-  - [ ] Location type selector (Zoom / Google Meet / Phone / In-Person)
+  - [ ] Location type selector (Google Meet / Custom Link / Phone / In-Person)
 - [ ] **Step 5 — Preview & Share**
   - [ ] Live preview of the booking page (iframe or component)
   - [ ] Copy booking link button
@@ -364,12 +366,11 @@ Phase 20 →  QA & Launch Prep
 - [ ] Create event type button → opens builder
 - [ ] Event type builder page `/event-types/new` and `/event-types/[id]/edit`:
   - [ ] **What** tab: name, description, duration (preset + custom), color picker
-  - [ ] **Where** tab: location type selector — Zoom, Google Meet, Teams, Phone, In-Person address, Custom link
-    - [ ] When "Phone" is selected: show `phoneCallDirection` radio — "Host calls invitee" (invitee phone required in form) vs "Invitee calls host" (host phone number shown in confirmation)
+  - [ ] **Where** tab: location type selector — Google Meet, Custom Link, Phone, In-Person address *(Zoom and Teams are Phase 2 — show greyed out with "Coming soon")*
+    - [ ] When "Phone" is selected: show `phoneCallDirection` radio — "Host calls invitee" (invitee phone required in form) vs "Invitee calls host" (host's `hostPhoneNumber` shown in confirmation)
     - [ ] Google Meet option: greyed out with tooltip "Google Meet generates links through your Google Calendar — connect it in Settings first." if the host has not connected a Google Calendar account — Google Meet link generation requires Google Calendar OAuth (see Phase 13)
   - [ ] **When** tab: availability schedule selector, booking window, minimum notice, buffer before/after, daily limit
   - [ ] **Options** tab: URL slug, hide from profile, booking confirmation message, redirect URL after booking
-  - [ ] Multi-duration option: toggle "Let invitees choose duration" → add multiple durations
   - [ ] Live preview panel showing how the booking page will look
   - [ ] Save + Publish button
 - [ ] Copy booking link button on each event type card
@@ -422,7 +423,7 @@ Phase 20 →  QA & Launch Prep
 
 ## Phase 8 — Calendar Integrations
 
-**Goal:** Hosts can connect Google Calendar (P0) and Outlook (P1) to read free/busy data in real-time and write new bookings. Google Calendar ships first — it is the launch blocker. Outlook follows in sprint 2 after Google integration is stable and tested.
+**Goal:** Hosts can connect Google Calendar to read free/busy data in real-time and write new bookings. Google Calendar is the only calendar integration at launch. Outlook / Office 365 is Phase 2.
 
 **Reference doc:** [features/calendar-integrations.md](./features/calendar-integrations.md)
 
@@ -439,14 +440,14 @@ Phase 20 →  QA & Launch Prep
 - [ ] Disconnect Google Calendar → delete tokens from DB; all event types using this calendar as write target are automatically disabled (booking pages show "This calendar is currently unavailable") until a calendar is reconnected
 - [ ] Token expiry detection — if token refresh fails (revoked access), mark calendar as `disconnected` in `connected_calendars` and disable associated booking pages; host receives alert email: "Your Google Calendar has been disconnected — reconnect to resume bookings"
 
-**Microsoft Outlook / Office 365 *(P1 — build in sprint 2 after Google Calendar is stable)*:**
-- [ ] OAuth 2.0 flow via Microsoft Graph API
-- [ ] Callback handler — save tokens to `connected_calendars`
-- [ ] Read free/busy via `/me/calendarView`
-- [ ] Write bookings via `/me/events`
-- [ ] Token refresh logic (access token expires every 1 hour)
-- [ ] Token expiry detection — if token refresh fails (revoked access), mark calendar as `disconnected`; disable associated booking pages; host receives alert email: "Your Outlook has been disconnected — reconnect to resume bookings"
-- [ ] Disconnect Outlook → delete tokens from DB; booking pages automatically disabled until reconnected
+**Microsoft Outlook / Office 365 *(Phase 2 — Post-MVP)*:**
+> Google Calendar covers the primary use case at launch. Outlook integration requires Microsoft Graph API registration, additional OAuth scopes review, and separate token management. Defer until Google integration is stable and user demand for Outlook is confirmed.
+- [ ] OAuth 2.0 flow via Microsoft Graph API *(Phase 2)*
+- [ ] Callback handler — save tokens to `connected_calendars` *(Phase 2)*
+- [ ] Read free/busy via `/me/calendarView` *(Phase 2)*
+- [ ] Write bookings via `/me/events` *(Phase 2)*
+- [ ] Token refresh logic *(Phase 2)*
+- [ ] Token expiry detection + disconnect alert *(Phase 2)*
 
 **Apple iCloud / CalDAV *(Phase 2 — Post-MVP)*:**
 > CalDAV lacks standard OAuth, requires app-specific passwords, and involves a complex protocol. Include in Phase 2 after Google + Outlook integrations are stable.
@@ -464,12 +465,12 @@ Phase 20 →  QA & Launch Prep
 **UI (`/settings/integrations/`):**
 - [ ] Connected calendars section:
   - [ ] Google: "Connect Google Calendar" button → OAuth flow
-  - [ ] Outlook: "Connect Outlook" button → OAuth flow
-  - [ ] Apple: App-specific password form
+  - [ ] Outlook: "Connect Outlook" button — greyed out with "Coming soon" tooltip *(Phase 2)*
+  - [ ] Apple: App-specific password form *(Phase 2)*
   - [ ] Each connected calendar shows: account email, calendars checked for conflicts, write-target calendar, "Disconnect" button
 - [ ] Per-calendar toggles: which calendars to include in conflict check
 
-**Done when (P0):** Google Calendar connects via OAuth, reads free/busy data, writes bookings, refreshes tokens silently, and sends an email alert immediately on token expiry. **Done when (P1):** Outlook integration mirrors Google's behaviour — same token management, same disconnect alert email.
+**Done when:** Google Calendar connects via OAuth, reads free/busy data, writes bookings, refreshes tokens silently, and sends an email alert immediately on token expiry. Outlook is Phase 2 — not a launch blocker.
 
 ---
 
@@ -530,7 +531,6 @@ Phase 20 →  QA & Launch Prep
 
 **Event Type Booking Page (`/[username]/[eventSlug]`):**
 - [ ] Server-rendered page (no auth required)
-- [ ] **Multi-duration selection step** — if `inviteeCanChooseDuration` is enabled on the event type, render a duration picker card **before** the calendar. Invitee must select a duration first; the calendar then loads slots calculated for that duration. Without this step, slot availability is undefined (a 15-min slot may exist while a 60-min slot at the same time does not).
 - [ ] Host info in left panel (photo, name, event type name, duration, location, description)
 - [ ] Date picker (calendar) in center — grayed-out unavailable dates, highlighted available dates
 - [ ] Time slot grid — available slots listed for selected date in invitee's timezone
@@ -566,20 +566,22 @@ Phase 20 →  QA & Launch Prep
 
 **API Route: `POST /api/bookings`**
 - [ ] Validate request body with Zod (eventTypeId, startTime, inviteeName, inviteeEmail, inviteeTimezone, answers)
+- [ ] **All external/network calls (e.g., idempotency key check, calendar pre-check) happen BEFORE opening the DB transaction** — never call an external API inside an open transaction; a slow or failing external call holds the lock and blocks other writers
 - [ ] Acquire PostgreSQL advisory lock for the slot: `pg_advisory_xact_lock(hostUserId + startTime)` — key must be derived from **hostUserId + startTime**, not eventTypeId, so concurrent bookings across different event types for the same host at the same time are serialised correctly
 - [ ] Re-verify slot availability inside a DB transaction (final check)
+- [ ] Re-validate cancellation cutoff policy inside the transaction — not just on page load; the meeting may have started between page load and form submit
 - [ ] Insert booking record into `bookings` table
 - [ ] Release advisory lock
 - [ ] Enqueue post-booking pg-boss jobs (after transaction commits — all jobs use canonical names from jobs-queues.md):
-  - [ ] `VIDEO_LINK_GENERATE` — create Zoom or Teams meeting link (Google Meet generated inside CALENDAR_WRITE)
-  - [ ] `CALENDAR_WRITE` — create event on host's Google/Outlook calendar
+  - [ ] `VIDEO_LINK_GENERATE` — create video meeting link for Phase 2 integrations (Zoom/Teams); at launch, Google Meet link is generated inside `CALENDAR_WRITE` as part of the calendar event
+  - [ ] `CALENDAR_WRITE` — create event on host's Google Calendar (Outlook is Phase 2)
   - [ ] `EMAIL_SEND` ×2 — confirmation email to invitee + notification email to host
   - [ ] `BOOKING_REMINDER_24H` / `BOOKING_REMINDER_1H` — scheduled for 24h and 1h before startTime
 - [ ] Return booking confirmation data to client
 
 **pg-boss Workers:**
-- [ ] `VIDEO_LINK_GENERATE` handler — calls Zoom API (`POST /v2/users/me/meetings`) or reads Meet link from CALENDAR_WRITE result; updates `bookings.videoLinkHost` / `videoLinkInvitee`; `localConcurrency: 3`
-- [ ] `CALENDAR_WRITE` handler — creates calendar event on host's calendar with invitee as attendee; stores `externalEventId` on booking; `localConcurrency: 1` (must serialize)
+- [ ] `VIDEO_LINK_GENERATE` handler — at launch: reads Google Meet link from `CALENDAR_WRITE` result (no separate API call needed); in Phase 2: calls Zoom/Teams API; updates `bookings.videoLinkHost` / `videoLinkInvitee`; `localConcurrency: 3`
+- [ ] `CALENDAR_WRITE` handler — creates calendar event on host's Google Calendar with invitee as attendee, with `conferenceData` to generate Google Meet link; stores `externalEventId` on booking; `localConcurrency: 1` (must serialize)
 - [ ] `EMAIL_SEND` handler — fetches `email_outbox` row, renders React Email template, sends via Nodemailer SMTP, updates status; `localConcurrency: 5`
 - [ ] `BOOKING_REMINDER_24H` / `BOOKING_REMINDER_1H` handlers — look up booking, render reminder template, insert `email_outbox` row, enqueue `EMAIL_SEND`; `localConcurrency: 5`
 
@@ -647,39 +649,27 @@ Phase 20 →  QA & Launch Prep
 - [ ] Answers included in host notification email
 - [ ] Answers visible in Meetings Dashboard booking detail view
 
-**Auto-Remember for Repeat Invitees:**
-- [ ] On email field blur during booking: query `bookings` table for previous bookings by same host + same invitee email
-- [ ] If found: pre-fill question answers from most recent booking into form fields
-- [ ] Show notice: "We've pre-filled your answers from a previous booking. Update anything that has changed."
-- [ ] Invitee can edit any pre-filled answer before submitting
-
-**Done when:** Hosts can add, reorder, and delete questions. Invitees see and answer them during booking. Answers are stored and visible in the dashboard. Repeat invitees see pre-filled answers.
+**Done when:** Hosts can add, reorder, and delete questions. Invitees see and answer them during booking. Answers are stored and visible in the dashboard.
 
 ---
 
 ## Phase 13 — Video Conferencing
 
-**Goal:** Every booking automatically gets a unique video link for the host and a join link for the invitee.
+**Goal:** Google Meet and Custom Links work at launch. Zoom is Phase 2.
 
 **Reference doc:** [features/video-conferencing.md](./features/video-conferencing.md)
 
 ### Tasks
 
-> ⚠️ **Zoom Marketplace Approval — Submit on Day 1 of Development (Hard Dependency)**
-> The Zoom API requires a published, approved OAuth app in the Zoom Marketplace before it works for all users. **This is not a risk — it is a hard external deadline.** If you submit on launch day, Zoom will not work for anyone on day one. Submit for review on the first day of development. Approval takes **2–4 weeks** and requires a live privacy policy, terms of service, and a working demo URL. During development, use a **development-mode** Zoom OAuth app (works for up to 100 connected users, no approval needed). Switch to the published app before launch.
-> **Day 1 checklist:** Register as Zoom developer → Create OAuth app (dev mode) → Submit for Marketplace review → Track approval status weekly.
+> ⚠️ **Zoom deferred to Phase 2.** Zoom Marketplace approval requires a published app with a live privacy policy, live terms of service, and a working demo URL — none of which exist before launch. Approval takes 2–4 weeks after a live URL is available. Attempting to submit before launch is impossible; attempting to launch without approval means Zoom doesn't work for any user. Google Meet covers the primary use case at launch.
+> **Phase 2 reminder:** Once the app is live, register as Zoom developer → create OAuth app → submit for Marketplace review. Track approval weekly.
 
-**Zoom Integration:**
-- [ ] Register Zoom OAuth app in Zoom Marketplace (development mode first)
-- [ ] OAuth 2.0 connection: `GET /api/video/zoom/connect` → redirect to Zoom OAuth
-- [ ] Callback: `GET /api/video/zoom/callback` → exchange code, save tokens
-- [ ] `VIDEO_LINK_GENERATE` handler (`src/lib/worker/handlers/video-link-generate.ts`): call `POST /v2/users/me/meetings` via Zoom API
-  - [ ] Unique meeting ID + passcode per booking
-  - [ ] Meeting title = event type name + invitee name
-  - [ ] Duration = booking duration
-- [ ] Store `videoLinkHost` (start URL) and `videoLinkInvitee` (join URL) on booking record
-- [ ] Token refresh logic
-- [ ] Disconnect Zoom from settings
+**Zoom Integration *(Phase 2 — do not build at launch)*:**
+- [ ] Register Zoom OAuth app in Zoom Marketplace *(Phase 2)*
+- [ ] OAuth 2.0 connection + callback + token storage *(Phase 2)*
+- [ ] `VIDEO_LINK_GENERATE` handler: call Zoom API to create meeting *(Phase 2)*
+- [ ] Store `videoLinkHost` (start URL) and `videoLinkInvitee` (join URL) *(Phase 2)*
+- [ ] Token refresh + disconnect from settings *(Phase 2)*
 
 **Google Meet Integration:**
 - [ ] Google Meet link generated via `conferenceData` on Google Calendar event creation
@@ -694,17 +684,18 @@ Phase 20 →  QA & Launch Prep
 
 **UI (`/settings/integrations/`):**
 - [ ] Video platforms section:
-  - [ ] Zoom: "Connect Zoom Account" button → OAuth → connected state with account email
   - [ ] Google Meet: auto-available if Google Calendar is connected (no extra auth needed)
-  - [ ] Microsoft Teams: auto-available if Outlook is connected *(Phase 2 — show greyed out at launch)*
-- [ ] Event type builder — location type selector shows connected platforms only
+  - [ ] Custom Link: always available — host pastes any video URL
+  - [ ] Zoom: greyed out with "Coming soon" tooltip *(Phase 2)*
+  - [ ] Microsoft Teams: greyed out with "Coming soon" tooltip *(Phase 2)*
+- [ ] Event type builder — location type selector shows available platforms only
 
 **Video Link Failure Handling:**
 - [ ] pg-boss retries failed video link generation 3× with exponential backoff (5s → 30s → 2min)
 - [ ] If all 3 retries fail: send host alert email "Video link generation failed for [Invitee Name]'s booking — please add the meeting link manually"; invitee confirmation email text reads "Your video link will be sent shortly" instead of showing a broken link
 - [ ] Booking is always confirmed regardless of video link failure — video link is non-blocking
 
-**Done when (MVP):** Google Meet generates links automatically for any host with Google Calendar connected. Selecting Zoom creates a unique meeting per booking (Marketplace-approved app live). All video link failures retry 3× and notify the host if permanently failed. **Teams is Phase 2 — not a launch blocker.**
+**Done when:** Google Meet generates links automatically for any host with Google Calendar connected. Custom Link location type works. Video link failures retry 3× and notify the host if permanently failed. Zoom and Teams are Phase 2 — not launch blockers.
 
 ---
 
@@ -744,7 +735,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] Subject: "New booking: [Invitee Name] — [Date + Time]"
 - [ ] Invitee name + email
 - [ ] Meeting time in host's timezone
-- [ ] Video join link (host's start link for Zoom)
+- [ ] Video join link (host's moderator/start link for Zoom *(Phase 2)*; Google Meet link for Google-connected hosts)
 - [ ] All booking form answers
 - [ ] Cancel booking link
 
@@ -856,9 +847,9 @@ Phase 20 →  QA & Launch Prep
 
 **API Routes:**
 - [ ] `GET /api/bookings/[token]/cancel` — load cancellation page (validate token; if `startTime <= NOW()` return "Meeting Already Completed" page — cannot cancel a past meeting)
-- [ ] `POST /api/bookings/[token]/cancel` — process cancellation (re-validate `startTime > NOW()` before writing; prevents race condition where meeting starts between page load and submit)
-- [ ] `GET /api/bookings/[token]/reschedule` — load reschedule page (validate token; if `startTime <= NOW()` return "Meeting Already Completed" page — cannot reschedule a past meeting)
-- [ ] `POST /api/bookings/[token]/reschedule` — confirm reschedule (re-validate `startTime > NOW()` before writing)
+- [ ] `POST /api/bookings/[token]/cancel` — process cancellation: re-validate `startTime > NOW()` AND re-validate cancellation cutoff policy inside the transaction (cutoff can expire between page load and form submit)
+- [ ] `GET /api/bookings/[token]/reschedule` — load reschedule page (validate token; check token not expired; if `startTime <= NOW()` return "Meeting Already Completed" page — cannot reschedule a past meeting)
+- [ ] `POST /api/bookings/[token]/reschedule` — confirm reschedule: re-validate `startTime > NOW()` AND re-validate reschedule cutoff inside the transaction
 
 **Cancellation Flow:**
 - [ ] Unique cancel token per booking (stored on `bookings` table)
@@ -873,7 +864,9 @@ Phase 20 →  QA & Launch Prep
 - [ ] Reschedule page: shows full booking page (same as original event type) with available slots
 - [ ] Original time shown at top: "You are rescheduling from: Thu Jun 5, 3:00 PM IST"
 - [ ] On reschedule: cancel old booking, create new booking with same invitee details, cancel old pg-boss jobs, schedule new jobs, send reschedule emails to both parties
+- [ ] **Propagate `rescheduleCount`**: new booking gets `rescheduleCount = oldBooking.rescheduleCount + 1` — checked against `cancellation_policies.maxReschedules` to prevent unlimited rescheduling
 - [ ] Rescheduled booking links to previous via `rescheduledFromId`
+- [ ] Null out `cancelTokenExpiresAt` and `rescheduleTokenExpiresAt` on old booking when tokens are consumed (single-use)
 
 **Host Cancellation (from Dashboard):**
 - [ ] "Cancel Meeting" button in booking detail panel
@@ -915,6 +908,7 @@ Phase 20 →  QA & Launch Prep
 
 **Access Control:**
 - [ ] `/admin` route group — check `session.user.role === 'admin'` via Better Auth Admin Plugin, else redirect to `/`
+- [ ] **Defense-in-depth DB re-check** on all `/admin` layout and API routes: re-query `users.role` from DB (do not rely on cookie cache alone) — the session cookie caches role for up to 60 seconds; a user demoted from admin could still have a valid cookie for that window; the DB check closes the gap
 - [ ] All `/api/admin/*` routes return 403 for non-platform-admins
 
 **Admin Panel Setup:**
@@ -983,9 +977,9 @@ Phase 20 →  QA & Launch Prep
 - [ ] S3-compatible storage bucket created with correct access policy (allow PutObject/GetObject/DeleteObject for the app credentials only)
 - [ ] S3 bucket not publicly accessible — all access via presigned URLs only
 - [ ] Google OAuth app reviewed and not in "Testing" mode (production OAuth consent screen published)
-- [ ] Microsoft Graph API app registered for production (calendar + Teams scopes approved)
-- [ ] Zoom OAuth app published (not in development mode)
-- [ ] All environment variables set in production (SMTP_*, S3_*, BETTER_AUTH_*, GOOGLE_*, MICROSOFT_*, ZOOM_*)
+- [ ] Microsoft Graph API app registered *(Phase 2 — Outlook and Teams are Post-MVP)*
+- [ ] Zoom OAuth app submitted for Marketplace review *(Phase 2 — requires live demo URL; submit after launch)*
+- [ ] All environment variables set in production (SMTP_*, S3_*, BETTER_AUTH_*, GOOGLE_*)
 - [ ] pg-boss job workers started on server boot
 - [ ] Confirm `console.error` output is captured by hosting platform logs
 - [ ] Create first platform admin account
@@ -1002,6 +996,8 @@ Phase 20 →  QA & Launch Prep
 - **pg-boss jobs are the source of truth for async work** — never send emails or create calendar events synchronously in the booking API response; always enqueue a job
 - **Cancel reminder jobs immediately on cancellation/reschedule** — use `singletonKey` to cancel pending pg-boss jobs when a booking changes; no reminders for meetings that no longer exist
 - **Advisory locks for slot booking** — use `pg_advisory_xact_lock` (released on transaction end) to prevent two concurrent bookings claiming the same slot
+- **External calls before transactions** — never call an external API (calendar, video, email) inside an open DB transaction; slow or failing network calls hold the lock and block other writers; do all external work first, then open the transaction
+- **pg-boss v12 `includeMetadata`** — all `boss.work()` handlers that need `retryCount` or `retryLimit` must pass `{ includeMetadata: true }` as the second argument; in pg-boss v12, job metadata is not included by default
 - **Server Actions over API Routes where possible** — use Next.js Server Actions for dashboard mutations; API Routes for public-facing booking endpoints (invitees are not logged in)
 - **Token refresh is silent** — calendar API token refresh must happen invisibly; never show an OAuth re-auth error to an invitee during booking
 - **Error states on every async action** — loading state + error state required for every booking form submit, calendar connect, and settings save

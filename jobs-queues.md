@@ -59,7 +59,6 @@ Without this, `drizzle-kit push` / `drizzle-kit generate` would attempt to migra
 | Feature | Job Name | Queue / Type | Trigger | Purpose | singletonKey |
 |---------|---------|-------------|---------|---------|-------------|
 | **User Onboarding** | `EMAIL_SEND` | Instant | After account created | Welcome email to new user | — |
-| **User Onboarding** | `DISPOSABLE_EMAILS_REFRESH` | Cron — daily 04:00 UTC | Scheduled | Sync disposable email domain blocklist | — |
 | **Booking Engine** | `EMAIL_SEND` | Instant ×2 | After booking confirmed | Confirmation email to invitee; notification to host | — |
 | **Booking Engine** | `VIDEO_LINK_GENERATE` | Instant | After booking confirmed (Zoom/Teams only) | Create unique Zoom or Teams meeting room | `{bookingId}_video_link` |
 | **Booking Engine** | `CALENDAR_WRITE` | Instant | After booking confirmed | Write booking event to host's Google/Outlook calendar | `{bookingId}_calendar_write` |
@@ -72,7 +71,7 @@ Without this, `drizzle-kit push` / `drizzle-kit generate` would attempt to migra
 | **Booking Flow — Reschedule** | `BOOKING_RESCHEDULE_REMINDERS` | Instant | After booking rescheduled | Cancel old reminder jobs; schedule new ones for rescheduled time | — |
 | **Booking Flow — Reschedule** | `CALENDAR_UPDATE` | Instant | After booking rescheduled | Update existing calendar event with new time | `{bookingId}_calendar_update` |
 | **Calendar Integrations** | `CALENDAR_SYNC` | Cron — every 5 min | Scheduled | Poll calendar provider for events; refresh `calendar_events_cache` | `calendar_sync_{calendarId}` |
-| **Calendar Integrations** | `CALENDAR_TOKEN_REFRESH` | On-demand | Before any calendar API call when token is expired | Refresh OAuth access token using stored refresh token | — |
+| **Calendar Integrations** | `CALENDAR_TOKEN_REFRESH` | On-demand | Before any calendar API call when token is expired | Refresh OAuth access token using stored refresh token | `token_refresh_{connectedCalendarId}` |
 | **Calendar Integrations** | `CALENDAR_DISCONNECT_ALERT` | Instant | After `CALENDAR_TOKEN_REFRESH` exhausts 3 retries | Mark calendar disconnected; disable booking pages; send host alert email | — |
 | **Video Conferencing** | `VIDEO_LINK_GENERATE` | Instant | After booking confirmed (Zoom/Teams) | See Booking Engine row above | `{bookingId}_video_link` |
 | **Video Conferencing** | `VIDEO_LINK_RETRY` | Instant | Spawned on retryable error from `VIDEO_LINK_GENERATE` | Manual retry path for rate-limited or temporary API failures | — |
@@ -405,9 +404,16 @@ type CalendarTokenRefreshPayload = {
 }
 
 // pg-boss config
+// singletonKey + policy:'exclusive' together prevent a race condition:
+// without them, two concurrent CALENDAR_SYNC jobs for the same calendar can both
+// detect an expired token and both call the OAuth endpoint simultaneously — the
+// second response overwrites the first, and one of the new tokens is immediately invalid.
 export const CALENDAR_TOKEN_REFRESH_CONFIG = {
   retryLimit: 3,
   retryDelay: 10,
+  teamConcurrency: 1,   // one refresh at a time across workers
+  singletonKey: 'token_refresh_{connectedCalendarId}',  // one job per calendar in the queue at any time
+  policy: 'exclusive',  // required for singletonKey enforcement in pg-boss
 }
 
 // Handler:
@@ -441,19 +447,23 @@ type CalendarDisconnectAlertPayload = {
 
 ---
 
-### `DISPOSABLE_EMAILS_REFRESH`
+### ~~`DISPOSABLE_EMAILS_REFRESH`~~ — Removed
 
-Daily cron. Syncs the disposable email domain blocklist from a public upstream source.
+The disposable email blocklist is now a **static JSON file** bundled with the app (`src/lib/data/disposable-domains.json`), not a DB-backed cron job.
+
+**Rationale:** A cron job that fetches from an external URL adds network failure risk, an external dependency, a DB table, and a background job — for a list that rarely changes. A static JSON file checked into the repo is simpler, faster (no DB query — just an in-memory import), and updated via PR whenever needed.
 
 ```typescript
-// Payload: none
-// Schedule: daily 04:00 UTC
+// Usage at signup (in Better Auth sendMagicLink callback or sign-up hook):
+import disposableDomains from '@/lib/data/disposable-domains.json'
 
-// Handler:
-// 1. Fetch domain list from upstream (e.g., https://disposable.github.io/disposable-email-domains/domains.txt)
-// 2. Upsert into disposable_email_domains table
-// 3. Log count of added/removed domains
+const domain = email.split('@')[1]
+if (disposableDomains.includes(domain)) {
+  throw new Error('Disposable email addresses are not allowed.')
+}
 ```
+
+The `disposable_email_domains` DB table and `DISPOSABLE_EMAILS_REFRESH` cron are not created.
 
 ---
 
@@ -490,7 +500,7 @@ Raising it only where the handler is provably safe to run in parallel avoids rac
 | `BOOKING_REMINDER_1H` | **5** | Same as above |
 | `VIDEO_LINK_GENERATE` | **3** | Zoom API allows parallel calls; keep at 3 to stay within Zoom rate limits |
 | `CALENDAR_SYNC` | **3** | Fetching multiple users' calendars in parallel is safe; capped at 3 to avoid hitting provider rate limits |
-| `CALENDAR_TOKEN_REFRESH` | **2** | Concurrent token refreshes for different calendars are safe; serialize per-calendar via singletonKey |
+| `CALENDAR_TOKEN_REFRESH` | **1** | One refresh at a time; singletonKey prevents concurrent refreshes for the same calendar |
 | `BOOKING_CANCEL_REMINDERS` | **3** | boss.cancel() calls are independent per booking |
 | `BOOKING_RESCHEDULE_REMINDERS` | **3** | Same as above |
 | All other jobs | **1** (default) | Serialized — any concurrency risk makes 1 the safe default |
@@ -504,7 +514,6 @@ Raising it only where the handler is provably safe to run in parallel avoids rac
 | `CALENDAR_CANCEL` | Same calendar event delete must be idempotent — serializing avoids double-cancel errors |
 | `CALENDAR_DISCONNECT_ALERT` | Writes `status = 'disconnected'` — idempotent but no need to race |
 | `EMAIL_OUTBOX_REAP` | Cron; single sweep is sufficient |
-| `DISPOSABLE_EMAILS_REFRESH` | Cron; single upsert sweep |
 
 ---
 
@@ -528,7 +537,6 @@ Without `policy: "exclusive"`:
 | `CALENDAR_SYNC` | ✅ Yes | Cron — slow sync could still be running when next tick fires |
 | `EMAIL_OUTBOX_REAP` | ✅ Yes | Cron — only one sweep at a time |
 | `EMAIL_EVENTS_PRUNE` | ✅ Yes | Cron — only one sweep at a time |
-| `DISPOSABLE_EMAILS_REFRESH` | ✅ Yes | Cron — only one refresh at a time |
 | `BOOKING_REMINDER_24H` | ✅ Yes | Uses singletonKey per booking |
 | `BOOKING_REMINDER_1H` | ✅ Yes | Uses singletonKey per booking |
 | `VIDEO_LINK_GENERATE` | ✅ Yes | Uses `{bookingId}_video_link` singletonKey |
@@ -536,7 +544,7 @@ Without `policy: "exclusive"`:
 | `CALENDAR_UPDATE` | ✅ Yes | Uses `{bookingId}_calendar_update` singletonKey |
 | `CALENDAR_CANCEL` | ✅ Yes | Uses `{bookingId}_calendar_cancel` singletonKey |
 | `EMAIL_SEND` | ❌ No | State machine (claim row) is the dedup mechanism — not singletonKey |
-| `CALENDAR_TOKEN_REFRESH` | ❌ No | No singletonKey; serialized by retryLimit |
+| `CALENDAR_TOKEN_REFRESH` | ✅ Yes | Uses `token_refresh_{connectedCalendarId}` singletonKey to prevent concurrent token refreshes for the same calendar |
 | `CALENDAR_DISCONNECT_ALERT` | ❌ No | No singletonKey; idempotent by design |
 
 ### How to Set the Policy — `ensureQueues()`
@@ -550,7 +558,7 @@ const QUEUE_POLICIES: Record<string, 'standard' | 'exclusive'> = {
   CALENDAR_SYNC:             'exclusive',
   EMAIL_OUTBOX_REAP:         'exclusive',
   EMAIL_EVENTS_PRUNE:        'exclusive',
-  DISPOSABLE_EMAILS_REFRESH: 'exclusive',
+  CALENDAR_TOKEN_REFRESH:    'exclusive',
   BOOKING_REMINDER_24H:      'exclusive',
   BOOKING_REMINDER_1H:       'exclusive',
   VIDEO_LINK_GENERATE:       'exclusive',
@@ -698,7 +706,7 @@ import { handleCalendarTokenRefresh } from './handlers/calendar-token-refresh'
 import { handleCalendarDisconnectAlert } from './handlers/calendar-disconnect-alert'
 import { handleEmailOutboxReap } from './handlers/email-outbox-reap'
 import { handleEmailEventsPrune } from './handlers/email-events-prune'
-import { handleDisposableEmailsRefresh } from './handlers/disposable-emails-refresh'
+// disposable-emails-refresh.ts removed — disposable email check uses static JSON file, not cron
 
 // Register all job handlers via workMonitored() — drop-in replacement for boss.work()
 // that fires the dead-letter handler on final failed attempt.
@@ -714,13 +722,12 @@ await workMonitored('CALENDAR_WRITE',              handleCalendarWrite)         
 await workMonitored('CALENDAR_UPDATE',             handleCalendarUpdate)                // 1 — must serialize
 await workMonitored('CALENDAR_CANCEL',             handleCalendarCancel)                // 1 — must serialize
 await workMonitored('CALENDAR_SYNC',               { teamSize: 3, teamConcurrency: 3 }, handleCalendarSync)
-await workMonitored('CALENDAR_TOKEN_REFRESH',      { teamSize: 2, teamConcurrency: 2 }, handleCalendarTokenRefresh)
+await workMonitored('CALENDAR_TOKEN_REFRESH',      { teamSize: 1, teamConcurrency: 1, includeMetadata: true }, handleCalendarTokenRefresh)
 await workMonitored('CALENDAR_DISCONNECT_ALERT',   handleCalendarDisconnectAlert)       // 1 — default
 
 // Register cron schedules
 await boss.schedule('EMAIL_OUTBOX_REAP',          '0 3 * * *', {},   { tz: 'UTC' })
 await boss.schedule('EMAIL_EVENTS_PRUNE',         '30 3 * * *', {},  { tz: 'UTC' })
-await boss.schedule('DISPOSABLE_EMAILS_REFRESH',  '0 4 * * *', {},   { tz: 'UTC' })
 await boss.schedule('CALENDAR_SYNC',              '*/5 * * * *', {}, { tz: 'UTC' })
 
 // Graceful shutdown — MUST be at the end of index.ts, after all handlers are registered.
@@ -766,7 +773,6 @@ src/lib/worker/
     calendar-sync.ts            ← CALENDAR_SYNC (cron)
     calendar-token-refresh.ts   ← CALENDAR_TOKEN_REFRESH
     calendar-disconnect-alert.ts ← CALENDAR_DISCONNECT_ALERT
-    disposable-emails-refresh.ts ← DISPOSABLE_EMAILS_REFRESH (cron)
 ```
 
 ---
@@ -778,7 +784,6 @@ src/lib/worker/
 | `CALENDAR_SYNC` | Every 5 min (`*/5 * * * *`) | Refresh free/busy cache for all connected calendars |
 | `EMAIL_OUTBOX_REAP` | Daily 03:00 UTC (`0 3 * * *`) | Delete email_outbox rows >90 days (sent/failed) |
 | `EMAIL_EVENTS_PRUNE` | Daily 03:30 UTC (`30 3 * * *`) | Delete email_events rows >30 days |
-| `DISPOSABLE_EMAILS_REFRESH` | Daily 04:00 UTC (`0 4 * * *`) | Sync disposable email domain blocklist from upstream |
 
 ---
 

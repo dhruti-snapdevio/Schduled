@@ -2,8 +2,6 @@
 
 Complete documentation of every package, library, service, and tool used in Schedica. For each entry: what it is, why it is needed, which features use it, required environment variables, and setup notes.
 
-> **Architecture reference:** Based on Krova (Next.js SaaS with pg-boss, Better Auth, Drizzle, Shadcn/UI). Krova proved these package choices work together at production scale.
-
 ---
 
 ## Package Manager
@@ -548,7 +546,7 @@ Key compiler settings in `tsconfig.json`:
 
     "better-auth": "^1.6.0",
 
-    "pg-boss": "^10.0.0",
+    "pg-boss": "^12.0.0",
 
     "zod": "^3.23.0",
     "@hookform/resolvers": "^3.9.0",
@@ -556,6 +554,7 @@ Key compiler settings in `tsconfig.json`:
 
     "nodemailer": "^6.9.0",
     "@react-email/components": "^0.0.24",
+    "@react-email/render": "^0.0.24",
     "react-email": "^3.0.0",
 
     "date-fns": "^4.1.0",
@@ -568,8 +567,6 @@ Key compiler settings in `tsconfig.json`:
     "googleapis": "^144.0.0",
     "@microsoft/microsoft-graph-client": "^3.0.7",
 
-    "tailwindcss": "^4.0.0",
-    "@tailwindcss/postcss": "^4.0.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "tailwind-merge": "^2.5.0",
@@ -579,7 +576,8 @@ Key compiler settings in `tsconfig.json`:
     "@phosphor-icons/react": "^2.1.10",
 
     "@paralleldrive/cuid2": "^2.2.2",
-    "radix-ui": "^1.4.0"
+    "radix-ui": "^1.4.0",
+    "tsx": "^4.19.0"
   }
 }
 ```
@@ -594,7 +592,9 @@ Key compiler settings in `tsconfig.json`:
     "@biomejs/biome": "^1.9.0",
     "husky": "^9.1.0",
     "concurrently": "^9.0.0",
-    "tsx": "^4.19.0",
+    "postcss": "^8.5.0",
+    "@tailwindcss/postcss": "^4.0.0",
+    "tailwindcss": "^4.0.0",
 
     "@types/node": "^22.0.0",
     "@types/nodemailer": "^6.4.17",
