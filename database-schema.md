@@ -20,7 +20,7 @@ src/lib/db/
 │   ├── notifications.ts   ← notification_preferences, workflow_jobs
 │   ├── audit.ts           ← audit_logs
 │   ├── email.ts           ← email_outbox, email_events
-│   ├── platform.ts        ← platform_settings, disposable_email_domains, idempotency_keys
+│   ├── platform.ts        ← idempotency_keys (platform settings → env vars; disposable emails → static JSON)
 │   ├── relations.ts       ← ALL Drizzle relations (avoids circular imports)
 │   └── index.ts           ← re-exports everything
 ├── index.ts               ← Drizzle client (imports schema from schema/index.ts)
@@ -199,7 +199,7 @@ export const auditActionEnum = pgEnum('audit_action', [
   'calendar.connected',
   'calendar.disconnected',
   // Platform
-  'platform_settings.updated',
+  // platform_settings removed — settings are now env vars (no admin-level DB audit needed)
 ])
 ```
 
@@ -358,6 +358,7 @@ export const eventTypes = pgTable('event_types', {
   description:          text('description'),
   locationType:         locationTypeEnum('location_type').notNull().default('zoom'),
   locationValue:        text('location_value'),              // video URL, address, phone number, etc.
+  hostPhoneNumber:      text('host_phone_number'),           // shown to invitee when locationType=phone AND phoneCallDirection=invitee_calls_host
   color:                text('color').default('#0070f3'),
   isActive:             boolean('is_active').notNull().default(true),
   isHidden:             boolean('is_hidden').notNull().default(false), // bookable via direct link only
@@ -496,6 +497,8 @@ export const connectedCalendars = pgTable('connected_calendars', {
 }, (t) => [
   index('connected_calendars_user_provider_idx').on(t.userId, t.provider),
   index('connected_calendars_status_idx').on(t.status),
+  // Enforce at most one write target per user — partial unique index (only rows where is_write_target = true are indexed)
+  uniqueIndex('connected_calendars_one_write_target_per_user').on(t.userId).where(sql`is_write_target = true`),
 ])
 
 // 5-minute TTL cache of external calendar events for free/busy lookups.
@@ -579,8 +582,10 @@ export const bookings = pgTable('bookings', {
   status: bookingStatusEnum('status').notNull().default('confirmed'),
 
   // Cancellation & reschedule tokens — crypto.randomUUID(), single-use, in confirmation emails
-  cancelToken:         text('cancel_token').notNull().unique(),
-  rescheduleToken:     text('reschedule_token').notNull().unique(),
+  cancelToken:             text('cancel_token').notNull().unique(),
+  rescheduleToken:         text('reschedule_token').notNull().unique(),
+  cancelTokenExpiresAt:    timestamp('cancel_token_expires_at', { withTimezone: true }),    // set to createdAt + 30 days; null if already used
+  rescheduleTokenExpiresAt: timestamp('reschedule_token_expires_at', { withTimezone: true }), // set to createdAt + 30 days; null if already used
   cancellationReason:  text('cancellation_reason'),
   cancelledBy:         text('cancelled_by'),          // 'host' | 'invitee'
   cancelledAt:         timestamp('cancelled_at', { withTimezone: true }),
@@ -785,25 +790,21 @@ Platform-wide settings, disposable email blocklist, and POST idempotency keys.
 import { pgTable, text, boolean, integer, jsonb, timestamp, index } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 
-// Singleton row — always id = 1. Admin-tunable at runtime without a deploy.
-// Never INSERT a second row. Use DbSettings.get() and DbSettings.update().
-export const platformSettings = pgTable('platform_settings', {
-  id:                           integer('id').primaryKey().default(1),
-  allowNewSignups:              boolean('allow_new_signups').notNull().default(true),
-  emailSenderName:              text('email_sender_name').notNull().default('Schedica'),
-  maxBookingsPerInviteePerDay:  integer('max_bookings_per_invitee_per_day').notNull().default(10),
-  maintenanceMessage:           text('maintenance_message'), // null = no banner shown
-  updatedAt:                    timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedByUserId:              text('updated_by_user_id').references(() => users.id, { onDelete: 'set null' }),
-})
+// Platform-level settings are controlled via environment variables — no DB table needed.
+// All values come from env.ts (Zod-validated). To change a setting: update the env var and restart.
+//
+//   ALLOW_NEW_SIGNUPS=true            — set false to lock the platform (maintenance)
+//   EMAIL_SENDER_NAME=Schedica        — from-name used on all outbound emails
+//   MAINTENANCE_MESSAGE=              — if set, shows a maintenance banner on all pages
+//   MAX_BOOKINGS_PER_INVITEE_PER_DAY=10
+//
+// These were previously a platform_settings singleton DB row. Removed: env vars require
+// no schema migration to change, and the admin panel for runtime-edit is deferred to Phase 2.
 
 // Blocklist of known disposable/throwaway email providers.
-// Checked at signup via the sendMagicLink callback before creating a user row.
-// Refreshed weekly by the DISPOSABLE_EMAILS_REFRESH pg-boss cron job.
-export const disposableEmailDomains = pgTable('disposable_email_domains', {
-  domain:  text('domain').primaryKey(), // e.g. 'mailinator.com'
-  addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow(),
-})
+// Stored as a static JSON file: src/lib/data/disposable-domains.json
+// Checked at signup; update the file and deploy to add new domains — no cron job or DB table needed.
+// import disposableDomains from '@/lib/data/disposable-domains.json'
 
 // Prevents duplicate booking POST submissions from network retries.
 // Client generates a UUID idempotency key before POST /api/bookings.
@@ -1147,9 +1148,9 @@ All JSONB columns use `.$type<T>()` for TypeScript safety:
 | **Video** | `video_connections` | `video.ts` | `DbVideo` |
 | **Bookings** | `bookings`, `booking_answers`, `booking_guests` | `bookings.ts` | `DbBookings` |
 | **Notifications** | `notification_preferences`, `workflow_jobs` | `notifications.ts` | `DbNotifications` |
-| **Contacts** | `contacts`, `contacts_settings` | `contacts.ts` | `DbContacts` |
 | **Audit** | `audit_logs` | `audit.ts` | `DbAudit` |
 | **Email** | `email_outbox`, `email_events` | `email.ts` | `DbEmail` |
-| **Platform** | `platform_settings`, `disposable_email_domains`, `idempotency_keys` | `platform.ts` | `DbSettings` |
+| **Platform** | `idempotency_keys` | `platform.ts` | — |
 
-**Total: 30 tables** across 12 domain schema files + 1 enums file + 1 relations file + 1 index.
+**Total: 26 tables** across 11 domain schema files + 1 enums file + 1 relations file + 1 index.
+*(platform_settings removed → env vars; disposable_email_domains removed → static JSON; contacts tables deferred to Phase 2)*

@@ -31,7 +31,7 @@ This document describes the complete system architecture of Schedica: how the co
                            │ Drizzle ORM
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
-│                    PostgreSQL Database                        │
+│                    PostgreSQL Database                       │
 │                                                              │
 │  public.*    ← App tables (Drizzle manages schema)           │
 │  pgboss.*    ← Job queue tables (pg-boss manages itself)     │
@@ -39,8 +39,8 @@ This document describes the complete system architecture of Schedica: how the co
                            ▲
                            │ postgres driver (separate pool)
 ┌──────────────────────────┴───────────────────────────────────┐
-│                    pg-boss Worker Process                     │
-│                    (pnpm worker)                              │
+│                    pg-boss Worker Process                    │
+│                    (pnpm worker)                             │
 │                                                              │
 │  16 job handlers                                             │
 │  4 cron schedules                                            │

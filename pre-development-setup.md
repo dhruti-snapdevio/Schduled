@@ -32,7 +32,7 @@ Install these tools on your development machine before anything else.
 | **VS Code** | Any | — | [code.visualstudio.com](https://code.visualstudio.com) |
 
 > **No PostgreSQL install? Use `embedded-postgres`.**
-> If you prefer not to install PostgreSQL on your machine, the `embedded-postgres` dev dependency boots a real PostgreSQL instance inside the Node.js process automatically. See [Section 7.1 — Option B](#option-b-embedded-postgres-zero-install) for setup. Both options produce a real PostgreSQL 16 database — pick whichever is simpler for your machine.
+> If you prefer not to install PostgreSQL on your machine, `embedded-postgres` downloads and runs a real PostgreSQL 16 binary as a separate local process — no system install needed. Run `pnpm db:local` in one terminal, then `pnpm dev` in another. See [Section 7.1 — Option B](#option-b-embedded-postgres-zero-install) for setup.
 
 **Recommended VS Code Extensions:**
 - Biome (replaces ESLint + Prettier — install the `biomejs.biome` extension)
@@ -251,7 +251,7 @@ cd schedica
 
 **Production dependencies:**
 ```bash
-npm install \
+pnpm add \
   drizzle-orm postgres \
   better-auth \
   pg-boss \
@@ -270,20 +270,23 @@ npm install \
   next-themes \
   clsx tailwind-merge \
   class-variance-authority \
+  radix-ui \
   @phosphor-icons/react \
-  geist
+  geist \
+  tsx
 ```
 
 **Development dependencies:**
 ```bash
-npm install -D \
+pnpm add -D \
   drizzle-kit \
   @biomejs/biome \
   concurrently \
-  tsx \
+  postcss \
+  @tailwindcss/postcss \
+  @types/node \
   @types/nodemailer \
   @microsoft/microsoft-graph-types \
-  @types/pg \
   embedded-postgres   # optional — only if using Option B (no local PostgreSQL install)
 ```
 
@@ -295,6 +298,7 @@ npm install -D \
   "scripts": {
     "dev": "concurrently \"next dev\" \"tsx src/lib/worker/index.ts\"",
     "worker": "tsx src/lib/worker/index.ts",
+    "db:local": "tsx scripts/dev-db.ts",
     "build": "next build",
     "start": "next start",
     "db:generate": "drizzle-kit generate",
@@ -333,7 +337,7 @@ Husky runs Biome automatically before every `git commit`. This catches formattin
 **1. Install and initialise husky:**
 
 ```bash
-npm install -D husky
+pnpm add -D husky
 npx husky init
 ```
 
@@ -403,7 +407,7 @@ npx shadcn@latest add \
 | `next` | 15.x | Framework — App Router, Server Components, Server Actions, ISR |
 | `react` / `react-dom` | 19.x | Included with Next.js 15 |
 | `typescript` | 5.x | Type safety across full stack |
-| `tailwindcss` | 3.x | Utility-first CSS |
+| `tailwindcss` | 4.x | Utility-first CSS *(dev — compiled at build time)* |
 | `drizzle-orm` | latest | TypeScript ORM — schema-as-code, type-safe queries |
 | `drizzle-kit` | latest | Dev tool — migration generation and Drizzle Studio |
 | `postgres` | latest | PostgreSQL client driver (used by Drizzle) |
@@ -411,8 +415,8 @@ npx shadcn@latest add \
 | `pg-boss` | latest | PostgreSQL-backed job queue — no Redis required |
 | `nodemailer` | latest | SMTP email delivery |
 | `@react-email/components` | latest | Email template component library |
-| `@react-email/render` | latest | Render React Email templates to HTML string |
-| `react-email` | latest | Email template dev server |
+| `@react-email/render` | latest | Renders React Email components to HTML string — used in worker |
+| `react-email` | latest | Email template dev server (`pnpm email:preview`) |
 | `date-fns` | latest | Date arithmetic (add, subtract, format) |
 | `date-fns-tz` | latest | Timezone-aware date arithmetic using IANA names — DST-safe |
 | `ical-generator` | latest | RFC 5545-compliant `.ics` calendar invite file generator |
@@ -431,10 +435,14 @@ npx shadcn@latest add \
 | `class-variance-authority` | latest | Type-safe component variants (used by Shadcn/UI) |
 | `@phosphor-icons/react` | ^2.1.10 | Icon library — all Phosphor icons; use `/dist/ssr` import in Server Components |
 | `geist` | latest | Vercel's Geist font (sans + mono) |
+| `radix-ui` | latest | Radix UI primitives — consumed by Shadcn/UI components |
+| `tsx` | latest | Run TypeScript files directly — used by the worker process in production |
 | **Dev only** | | |
 | `@biomejs/biome` | latest | Linter + formatter — replaces ESLint + Prettier; 10-50× faster |
 | `concurrently` | latest | Run Next.js server and pg-boss worker in parallel in dev |
-| `tsx` | latest | Run TypeScript files directly (for the worker process) |
+| `postcss` | latest | PostCSS processor — required peer of `@tailwindcss/postcss` |
+| `@tailwindcss/postcss` | latest | PostCSS plugin for Tailwind v4 |
+| `@types/node` | latest | TypeScript types for Node.js built-ins |
 | `tsdav` | latest | CalDAV client — Apple iCloud calendar *(Phase 2 only — do not install at MVP)* |
 
 ---
@@ -671,7 +679,7 @@ schedica/
 │       │   │   ├── calendars.ts          ← connected_calendars, calendar_events_cache
 │       │   │   ├── video.ts              ← video_connections
 │       │   │   ├── notifications.ts      ← notification_preferences, workflow_jobs, email_outbox, email_events
-│       │   │   ├── platform.ts           ← audit_logs, platform_settings, idempotency_keys, disposable_email_domains
+│       │   │   ├── platform.ts           ← idempotency_keys (platform_settings → env vars; disposable emails → static JSON)
 │       │   │   └── index.ts              ← exports all schema tables for Drizzle
 │       │   ├── index.ts                  ← Drizzle client + db connection
 │       │   ├── audit.ts                  ← DbAudit.log(), auditBatch(), extractRequestContext()
@@ -724,7 +732,7 @@ schedica/
 │       │       ├── calendar-sync.ts                 ← CALENDAR_SYNC (cron, every 5 min)
 │       │       ├── calendar-token-refresh.ts        ← CALENDAR_TOKEN_REFRESH
 │       │       ├── calendar-disconnect-alert.ts     ← CALENDAR_DISCONNECT_ALERT
-│       │       └── disposable-emails-refresh.ts     ← DISPOSABLE_EMAILS_REFRESH (cron)
+│       │       └── // disposable-emails-refresh.ts removed — disposable email check uses static JSON
 │       │
 │       ├── types/
 │       │   ├── booking.ts
@@ -737,7 +745,7 @@ schedica/
 │       ├── secret.ts                     ← Secret<T> wrapper — prevents tokens appearing in logs
 │       ├── rate-limit.ts                 ← applyRateLimit() — in-memory fixed-window counter per IP
 │       └── platform-settings/
-│           └── index.ts                  ← DbSettings.get() — platform_settings with 60s in-memory cache
+│           └── // platform-settings/ directory removed — settings are now env vars (see src/lib/env.ts)
 │
 ├── drizzle/                              ← Auto-generated migration files
 │   └── meta/
@@ -783,84 +791,89 @@ postgresql://schedica_user:your_password@localhost:5432/schedica_dev
 
 ### Option B — embedded-postgres (Zero-Install)
 
-No PostgreSQL installation needed. `embedded-postgres` downloads and runs a real PostgreSQL 16 binary inside your Node.js process. **Development only — never use in production.**
+No PostgreSQL installation needed. `embedded-postgres` downloads a real PostgreSQL 16 binary and runs it as a **separate local process** via `pnpm db:local`. **Development only — never use in production.**
 
-**1. Install the package** (dev dependency):
-```bash
-npm install -D embedded-postgres
-```
+**1. `embedded-postgres` is already in your dev dependencies** (installed in § 4.2). No extra install needed.
 
-**2. Create `src/lib/db/embedded.ts`** — auto-starts PostgreSQL when `DATABASE_URL` is not set:
+**2. Create `scripts/dev-db.ts`** — the standalone database process:
 
 ```typescript
-// src/lib/db/embedded.ts
-// Only runs in development when DATABASE_URL is not set.
-// Import this at the top of src/lib/worker/boss.ts and src/lib/db/index.ts.
+// scripts/dev-db.ts
 import EmbeddedPostgres from 'embedded-postgres'
+import { existsSync } from 'fs'
+import path from 'path'
 
-const DB_PORT = 54321
-const DB_NAME = 'schedica_dev'
-const DB_USER = 'schedica'
-const DB_PASS = 'schedica_dev_password'
-
-export const EMBEDDED_DB_URL =
-  `postgresql://${DB_USER}:${DB_PASS}@localhost:${DB_PORT}/${DB_NAME}`
-
-let pg: EmbeddedPostgres | null = null
-
-export async function startEmbeddedPostgres() {
-  if (process.env.DATABASE_URL) return  // real DB configured — skip
-  if (pg) return                         // already started
-
-  pg = new EmbeddedPostgres({
-    databaseDir: './.postgres-data',  // data stored in project root
-    user: DB_USER,
-    password: DB_PASS,
-    port: DB_PORT,
-    persistent: true,                 // data survives restarts
-  })
-
-  await pg.initialise()
-  await pg.start()
-
-  // Create the database if first run
-  const client = pg.getPgClient()
-  await client.connect()
-  await client.query(`CREATE DATABASE ${DB_NAME}`).catch(() => {})  // ignore "already exists"
-  await client.end()
-
-  // Inject the connection string so the rest of the app picks it up
-  process.env.DATABASE_URL = EMBEDDED_DB_URL
-  console.log(`[embedded-postgres] started on port ${DB_PORT}`)
+if (existsSync('.env.local')) {
+  process.loadEnvFile('.env.local')
 }
-```
 
-**3. Call `startEmbeddedPostgres()` before anything else** — add to the top of the worker entry point and the Next.js instrumentation file:
+const DATABASE_URL = process.env.DATABASE_URL
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL is not set — add it to .env.local')
+  process.exit(1)
+}
 
-```typescript
-// src/instrumentation.ts  (Next.js calls this before the server starts)
-export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { startEmbeddedPostgres } = await import('./lib/db/embedded')
-    await startEmbeddedPostgres()
+const url = new URL(DATABASE_URL)
+const user = decodeURIComponent(url.username) || 'postgres'
+const password = decodeURIComponent(url.password) || 'password'
+const port = Number(url.port) || 54329
+const database = url.pathname.replace(/^\//, '') || 'postgres'
+const dataDir = path.resolve(process.cwd(), '.pgdata')
+
+const pg = new EmbeddedPostgres({ databaseDir: dataDir, user, password, port, persistent: true })
+
+async function main() {
+  const alreadyInitialised = existsSync(path.join(dataDir, 'PG_VERSION'))
+  if (!alreadyInitialised) {
+    console.log(`Initialising data directory at ${dataDir}`)
+    await pg.initialise()
   }
+
+  await pg.start()
+  console.log(`Embedded Postgres listening on port ${port}`)
+
+  if (!alreadyInitialised && database !== 'postgres') {
+    try {
+      await pg.createDatabase(database)
+      console.log(`Created database '${database}'`)
+    } catch {
+      // already exists
+    }
+  }
+
+  const shutdown = async (signal: string) => {
+    console.log(`Received ${signal}, stopping Postgres...`)
+    try { await pg.stop() } catch (err) { console.error(err) }
+    process.exit(0)
+  }
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'))
+  process.on('SIGINT', () => shutdown('SIGINT'))
 }
 
-// src/lib/worker/index.ts — add at the very top, before boss import
-import { startEmbeddedPostgres } from '../db/embedded'
-await startEmbeddedPostgres()
+main().catch((err) => {
+  console.error('Failed to start embedded Postgres:', err)
+  process.exit(1)
+})
 ```
 
-**4. `.env.local`** — leave `DATABASE_URL` blank; embedded-postgres fills it in at runtime:
+**3. Set `DATABASE_URL` in `.env.local`** — same as Option A, just pointing to the embedded port:
 ```bash
-# DATABASE_URL=  ← leave commented out; embedded-postgres sets it automatically
-BETTER_AUTH_SECRET=<generate with openssl rand -base64 32>
-BETTER_AUTH_URL=http://localhost:3000
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-# ... rest of env vars unchanged
+DATABASE_URL=postgresql://schedica:password@localhost:54329/schedica_dev
 ```
 
-> **Switching back to a real PostgreSQL:** Set `DATABASE_URL` in `.env.local` and `embedded-postgres` will skip starting entirely. The rest of the codebase is unaffected.
+**4. How to use** — two terminals:
+```bash
+# Terminal 1 — start the database (keep running)
+pnpm db:local
+
+# Terminal 2 — start the app
+pnpm dev
+```
+
+> **Switching to a real PostgreSQL:** Update `DATABASE_URL` in `.env.local` to point to your real database and stop running `pnpm db:local`. No code changes needed.
+
+> **Add `.pgdata/` to `.gitignore`** — this directory holds the embedded database files and must not be committed.
 
 ### 7.2 Key Configuration — drizzle.config.ts
 
@@ -903,7 +916,7 @@ Complete every item below before starting Phase 0 of [development-plan.md](./dev
 
 ### Machine Setup
 - [ ] Node.js 20+ installed (`node -v`)
-- [ ] **Option A:** PostgreSQL 16+ installed and running (`pg_isready`) — OR — **Option B:** `embedded-postgres` dev dependency installed and `src/lib/db/embedded.ts` created
+- [ ] **Option A:** PostgreSQL 16+ installed and running (`pg_isready`) — OR — **Option B:** `embedded-postgres` dev dependency installed and `scripts/dev-db.ts` created; `DATABASE_URL` set in `.env.local`; `.pgdata/` added to `.gitignore`
 - [ ] Git configured (`git config --global user.email`)
 
 ### Credentials Collected
@@ -922,7 +935,7 @@ Complete every item below before starting Phase 0 of [development-plan.md](./dev
 
 ### Project Init
 - [ ] Next.js 15 project created with TypeScript + Tailwind + App Router + src dir
-- [ ] All npm packages installed (see [Section 4](#4-complete-package-list))
+- [ ] All packages installed via `pnpm add` (see [Section 4](#4-complete-package-list); full versioned list in [tools-packages.md](./tools-packages.md#complete-packagejson-dependencies))
 - [ ] Shadcn/UI initialized + all components added
 - [ ] `biome.jsonc` added to project root
 - [ ] `husky` installed and initialised (`npx husky init`)
@@ -933,8 +946,8 @@ Complete every item below before starting Phase 0 of [development-plan.md](./dev
 - [ ] `.env.local` confirmed in `.gitignore`
 - [ ] PostgreSQL database created
 - [ ] `drizzle.config.ts` configured with `schemaFilter: ["public"]`
-- [ ] `pnpm dev` (or `npm run dev`) runs without errors on `http://localhost:3000`
-- [ ] Worker process starts: `npm run worker` shows "pg-boss started" with no errors
+- [ ] `pnpm dev` runs without errors on `http://localhost:3000`
+- [ ] Worker process starts: `pnpm worker` shows "pg-boss started" with no errors
 - [ ] Git repository initialized with first commit
 
 ### Verify External Services Work
