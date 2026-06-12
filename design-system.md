@@ -181,6 +181,344 @@ React Email templates cannot read CSS variables. Use these hardcoded hex values 
 
 ---
 
+## Logo & Brand Identity
+
+---
+
+### Design Concept
+
+The Schedica logo mark is a **calendar slot icon** — a square grid with one cell booked. It tells the product story at a glance: you pick a time, it gets confirmed. The design follows the same principles as the entire app:
+
+- **Zero border radius** — every corner is a sharp right angle, no curves anywhere
+- **One accent color** — teal `#0d9488` on a white/dark background, nothing else
+- **Minimal geometry** — outer frame + header strip + 3×2 grid + one filled cell
+
+```
+┌─────────────────┐
+│ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │  ← teal header strip  #0d9488
+├──────┬──────┬───┤
+│      │      │   │
+│      │  ▓▓  │   │  ← booked cell (teal fill)  #0d9488
+│      │  ▓▓  │   │
+├──────┼──────┼───┤
+│      │      │   │
+│      │      │   │
+└──────┴──────┴───┘
+
+Outer frame:    stroke #0d9488  (teal — frame is brand-colored)
+Background:     white #ffffff  (light) / dark #171717  (dark mode)
+Header strip:   fill  #0d9488
+Grid lines:     stroke #e5e5e5 (light) / rgba(255,255,255,0.12) (dark)
+Booked cell:    fill  #0d9488
+All corners:    rx="0"  — no rounding anywhere
+```
+
+---
+
+### Logo Mark SVG — Full Detail (32 × 32)
+
+Use this as the base SVG. Scale up or down uniformly. Save as `public/logo-mark.svg`.
+
+```svg
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none"
+     xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Outer frame -->
+  <rect x="1" y="1" width="30" height="30"
+        fill="white" stroke="#0d9488" stroke-width="1.5"/>
+
+  <!-- Teal header strip -->
+  <rect x="1" y="1" width="30" height="8" fill="#0d9488"/>
+
+  <!-- Vertical grid dividers -->
+  <line x1="11" y1="9"  x2="11" y2="31" stroke="#e5e5e5" stroke-width="1"/>
+  <line x1="21" y1="9"  x2="21" y2="31" stroke="#e5e5e5" stroke-width="1"/>
+
+  <!-- Horizontal grid divider -->
+  <line x1="1"  y1="20" x2="31" y2="20" stroke="#e5e5e5" stroke-width="1"/>
+
+  <!-- Booked cell (center-top cell) -->
+  <rect x="13" y="11" width="6" height="7" fill="#0d9488"/>
+
+</svg>
+```
+
+**Dark mode version** — swap inside `public/logo-mark-dark.svg`:
+- `fill="white"` → `fill="#171717"`
+- `stroke="#0d9488"` → `stroke="#14b8a6"`
+- Header `fill="#0d9488"` → `fill="#14b8a6"`
+- Grid stroke `#e5e5e5` → `rgba(255,255,255,0.12)`
+- Booked cell `fill="#0d9488"` → `fill="#14b8a6"`
+
+---
+
+### Logo Mark SVG — Favicon (16 × 16)
+
+At 16px the grid lines are too fine. Simplify to a solid teal square with 3 white dots representing slots.
+Save as `public/favicon.svg` (and export to `favicon.ico`).
+
+```svg
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+     xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Solid teal background -->
+  <rect width="16" height="16" fill="#0d9488"/>
+
+  <!-- White header line (top separator) -->
+  <rect x="0" y="0" width="16" height="4" fill="#0b7a70"/>
+
+  <!-- Three white slot dots -->
+  <rect x="2"  y="7" width="3" height="3" fill="white" opacity="0.4"/>
+  <rect x="6"  y="7" width="3" height="3" fill="white"/>
+  <rect x="11" y="7" width="3" height="3" fill="white" opacity="0.4"/>
+
+</svg>
+```
+
+The center dot is fully white (the booked slot). Outer dots are 40% white (available but not selected). This reads clearly at 16–32px.
+
+---
+
+### React Logo Component
+
+File: `src/components/logo.tsx`
+
+```tsx
+import Link from 'next/link'
+import { cn } from '@/lib/utils'
+
+interface LogoProps {
+  variant?: 'full' | 'icon' | 'wordmark'
+  size?: 'sm' | 'md' | 'lg'
+  href?: string
+  className?: string
+}
+
+const sizes = {
+  sm: { icon: 16, text: 'text-sm'  },
+  md: { icon: 20, text: 'text-base' },
+  lg: { icon: 32, text: 'text-xl'  },
+}
+
+function LogoMark({ px }: { px: number }) {
+  return (
+    <svg
+      width={px}
+      height={px}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <rect x="1" y="1" width="30" height="30"
+            className="fill-background"
+            stroke="currentColor" strokeWidth="1.5"/>
+      <rect x="1" y="1" width="30" height="8" fill="currentColor"/>
+      <line x1="11" y1="9"  x2="11" y2="31"
+            className="stroke-border" strokeWidth="1"/>
+      <line x1="21" y1="9"  x2="21" y2="31"
+            className="stroke-border" strokeWidth="1"/>
+      <line x1="1"  y1="20" x2="31" y2="20"
+            className="stroke-border" strokeWidth="1"/>
+      <rect x="13" y="11" width="6" height="7" fill="currentColor"/>
+    </svg>
+  )
+}
+
+export function Logo({
+  variant = 'full',
+  size = 'md',
+  href = '/',
+  className,
+}: LogoProps) {
+  const { icon, text } = sizes[size]
+
+  const inner = (
+    <span className={cn('flex items-center gap-2 text-primary', className)}>
+      {variant !== 'wordmark' && <LogoMark px={icon} />}
+      {variant !== 'icon' && (
+        <span className={cn(text, 'font-semibold tracking-tight text-foreground')}>
+          <span className="text-primary">S</span>chedica
+        </span>
+      )}
+    </span>
+  )
+
+  if (!href) return inner
+  return (
+    <Link href={href} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      {inner}
+    </Link>
+  )
+}
+```
+
+**Usage:**
+
+```tsx
+<Logo />                              // full lockup, md size — nav bar
+<Logo variant="icon" size="sm" />     // icon only, 16px — mobile / favicon context
+<Logo variant="full" size="lg" />     // full lockup, large — auth pages
+<Logo variant="wordmark" />           // text only — footer inline text
+<Logo href={undefined} />             // no link wrapper — inside another <a>
+```
+
+The `text-primary` class on `currentColor` means the icon and the "S" automatically switch to `#0d9488` in light mode and `#14b8a6` in dark mode — no extra dark-mode handling needed.
+
+---
+
+### Wordmark Typography
+
+| Property | Value |
+|----------|-------|
+| Font family | Geist Sans (`--font-sans`) |
+| Font weight | 600 — semibold |
+| Letter spacing | `tracking-tight` (−0.025 em) |
+| Case | Sentence case — `Schedica` (never `SCHEDICA`) |
+| First letter "S" | `text-primary` — teal, links it visually to the icon |
+| Remaining letters | `text-foreground` — adapts to light/dark automatically |
+
+---
+
+### All Variants at a Glance
+
+```
+FULL (md) — dashboard nav, landing nav, admin top bar
+┌────────┐
+│▓▓▓▓▓▓▓▓│  Schedica
+├──┬──┬──┤  ↑ "S" in teal, rest in foreground
+│  │▓▓│  │
+└──┴──┴──┘
+icon: 20px  gap: 8px  text: text-base font-semibold
+
+──────────────────────────────────────────────────
+
+STACKED (lg) — auth pages, email header, onboarding
+      ┌──────────┐
+      │▓▓▓▓▓▓▓▓▓▓│
+      ├───┬───┬──┤
+      │   │▓▓▓│  │
+      └───┴───┴──┘
+         Schedica
+  icon: 40px   text: text-xl  centered
+
+──────────────────────────────────────────────────
+
+ICON ONLY (sm) — favicon, collapsed mobile nav
+  ┌──────┐
+  │▓▓▓▓▓▓│
+  ├─┬─┬──┤
+  │ │▓│  │
+  └─┴─┴──┘
+  icon: 16–20px
+
+──────────────────────────────────────────────────
+
+WORDMARK ONLY — footer inline, print
+  Schedica
+  text-base font-semibold   "S" in teal
+```
+
+---
+
+### Color Variants
+
+| Context | Icon stroke + fills | "S" + wordmark |
+|---------|---------------------|----------------|
+| Light mode (default) | `#0d9488` teal | `#0d9488` + `#111111` |
+| Dark mode | `#14b8a6` lighter teal | `#14b8a6` + `#fafafa` |
+| On teal CTA banner | White (`#ffffff`) | White + white |
+| Monochrome black (print) | `#111111` | `#111111` + `#111111` |
+| Monochrome white (dark print) | `#ffffff` | `#ffffff` + `#ffffff` |
+
+The React component handles light/dark automatically via `text-primary` and `text-foreground` CSS variables — no manual dark mode override needed.
+
+---
+
+### Favicon & App Icon Files
+
+| File | Size | Notes |
+|------|------|-------|
+| `public/favicon.svg` | vector | Simplified 3-dot version (see SVG above) |
+| `public/favicon.ico` | 16 + 32px | Export from `favicon.svg` |
+| `public/apple-touch-icon.png` | 180 × 180px | Full mark on `#ffffff` background, 24px padding |
+| `public/icon-192.png` | 192 × 192px | Full mark on `#0d9488` background, white icon fills |
+| `public/icon-512.png` | 512 × 512px | Same as 192, high-res |
+
+**`app/layout.tsx` metadata:**
+
+```tsx
+export const metadata: Metadata = {
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/site.webmanifest',
+}
+```
+
+**`public/site.webmanifest`:**
+
+```json
+{
+  "name": "Schedica",
+  "short_name": "Schedica",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#0d9488",
+  "background_color": "#0d9488",
+  "display": "standalone"
+}
+```
+
+---
+
+### Where Each Variant Is Used in the App
+
+| Location | Variant | Size prop |
+|----------|---------|-----------|
+| Landing page nav (sticky header) | `full` | `md` |
+| Dashboard top nav | `full` | `md` |
+| Admin top bar | `full` | `md` |
+| Auth page (above sign-in card) | `full` | `lg` stacked |
+| Onboarding wizard card header | `full` | `lg` stacked |
+| Mobile nav sheet (top) | `full` | `md` |
+| Footer (left column) | `full` | `sm` |
+| Email template header | `full` stacked, hardcoded SVG | — |
+| Browser tab / favicon | `icon` simplified | 16px |
+| `<title>` tag | wordmark text only | — |
+
+---
+
+### Minimum Sizes & Clear Space
+
+| Variant | Minimum size |
+|---------|-------------|
+| Full horizontal lockup | Icon 16px — total ~110px wide |
+| Icon only | 16px (UI) / 12px (favicon only) |
+| Wordmark only | `text-sm` 14px — never smaller |
+
+**Clear space:** Keep a margin equal to the icon height on all four sides. No text, border, or UI element inside that zone.
+
+---
+
+### Logo Rules — Never Do This
+
+| Rule | What to avoid |
+|------|--------------|
+| No rounding | Never add `border-radius` or `rx` to any logo shape |
+| No recoloring | Never use purple, blue, red, or any off-brand color |
+| No gradient | The header fill is solid `#0d9488` — never a gradient |
+| No drop shadow | No `filter: drop-shadow(...)` or `box-shadow` on the logo |
+| No stretching | Always scale uniformly — never distort width or height independently |
+| No outlined-only version | The mark is filled, not just a stroke outline |
+| No all-caps wordmark | Always `Schedica`, never `SCHEDICA` |
+| No font change | Wordmark is always Geist Sans 600 — never swap to another font |
+
+---
+
 ## Typography
 
 ### Fonts
@@ -280,6 +618,43 @@ Cards primarily use border (`border border-border`) rather than shadow for separ
 
 ---
 
+## Gradient System
+
+Gradients are used **only on the landing page** for depth and visual polish. Never use gradients in the dashboard, admin panel, booking form, or settings pages — those use flat solid colors exclusively.
+
+### Landing Page Gradients
+
+| Name | CSS value | Where used |
+|------|-----------|-----------|
+| Hero radial glow | `radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.6 0.104 184.735 / 20%), transparent)` | `::before` pseudo-element on the hero section — subtle teal glow behind the hero illustration |
+| Feature card sheen | `linear-gradient(135deg, transparent 40%, oklch(0.6 0.104 184.735 / 8%) 100%)` | Overlay on feature cards; drives the `schedica-sheen` animation |
+| Section fade divider | `linear-gradient(to bottom, transparent, oklch(0.97 0 0 / 60%), transparent)` | Subtle vertical separator between landing page sections (light mode only) |
+
+### Dark Mode Gradient Adjustments
+
+In dark mode the hero glow and card sheen increase opacity to stay visible against the dark background:
+
+| Gradient | Light mode opacity | Dark mode opacity |
+|----------|--------------------|-------------------|
+| Hero radial glow | `20%` | `35%` |
+| Feature card sheen | `8%` | `14%` |
+
+### CTA Banner — No Gradient
+
+The full-width CTA section at the bottom of the landing page uses `bg-primary` solid teal — **no gradient**. The hard solid block is intentional and creates a strong visual stop.
+
+### Email Header — No Gradient
+
+Email template headers use a flat `#0d9488` background — no gradient. Email client support for CSS gradients is unreliable.
+
+### Rules
+
+- Never apply gradients to buttons, cards, inputs, or any component inside the app shell.
+- Never use `bg-gradient-to-*` Tailwind classes outside of `app/(landing)/` files.
+- Only apply gradients as decorative background layers (`::before`, `::after`, or a dedicated `<div aria-hidden>` overlay) — never as the primary background of an interactive element.
+
+---
+
 ## Icons
 
 **Library: Phosphor Icons** — `@phosphor-icons/react`
@@ -332,6 +707,97 @@ Cards primarily use border (`border border-border`) rather than shadow for separ
 | Lock (cancelled policy) | Lock | `LockIcon` |
 | Impersonate | Mask | `MaskIcon` |
 | Ban user | Prohibit | `ProhibitIcon` |
+
+---
+
+## Interactive States
+
+Every interactive element must have clearly styled hover, focus, active, and disabled states. These are defined here so all components behave consistently across the app.
+
+### Button States
+
+| State | Classes / behaviour |
+|-------|-------------------|
+| Default | `bg-primary text-primary-foreground` |
+| Hover | `bg-primary/90` — 10% opacity reduction |
+| Active (pressed) | `bg-primary/80 scale-[0.98]` — micro-press shrink |
+| Focus | `ring-2 ring-ring ring-offset-2` — visible keyboard ring |
+| Disabled | `opacity-50 cursor-not-allowed pointer-events-none` |
+| Loading | Spinner (`size={14}`) left of text; button width unchanged |
+
+The same pattern applies to destructive, outline, ghost, and secondary variants — only the base color differs.
+
+### Input States
+
+| State | Classes |
+|-------|---------|
+| Default | `border-input` |
+| Focus | `border-primary ring-1 ring-primary/30` — teal border + soft ring |
+| Error | `border-destructive ring-1 ring-destructive/30` — red border + ring |
+| Success / Available | `border-green-500 ring-1 ring-green-500/30` — green border + ring |
+| Disabled | `bg-muted opacity-60 cursor-not-allowed` |
+| Read-only | `bg-muted cursor-default` — no ring on focus |
+| Async checking (spinner) | `<Spinner size={14} />` absolutely positioned inside the right edge of the input |
+
+### Card & List Row States
+
+| Context | Hover / active state |
+|---------|---------------------|
+| Event type card | `hover:border-primary/40 hover:bg-accent/50` |
+| Booking table row | `hover:bg-muted/50` |
+| Admin table row | `hover:bg-muted/50 cursor-pointer` |
+| Settings sidebar item | `hover:bg-accent hover:text-accent-foreground` |
+| Settings sidebar active | `bg-accent text-accent-foreground border-l-2 border-primary` |
+| Admin sidebar item | `hover:bg-sidebar-accent hover:text-sidebar-accent-foreground` |
+| Admin sidebar active | `bg-sidebar-primary text-sidebar-primary-foreground` |
+| Dashboard top nav link | Active: `text-foreground font-medium`; Inactive: `text-muted-foreground hover:text-foreground` |
+
+### Switch / Toggle States
+
+| State | Track color |
+|-------|------------|
+| Off | `bg-input` — neutral gray |
+| On | `bg-primary` — teal |
+| On + hover | `bg-primary/90` |
+| Disabled | `opacity-50 cursor-not-allowed` |
+
+### Select / Dropdown States
+
+| State | Classes |
+|-------|---------|
+| Trigger closed | Same as Input default |
+| Trigger open | `border-primary ring-1 ring-primary/30` |
+| Option hover | `bg-accent text-accent-foreground` |
+| Option selected | `bg-primary/10 text-primary font-medium` |
+
+### Time Slot States (Booking Page)
+
+| State | Classes |
+|-------|---------|
+| Available | `border border-border bg-card hover:border-[--booking-primary] hover:bg-[--booking-primary]/10` |
+| Selected | `bg-[--booking-primary] text-white border-[--booking-primary]` |
+| Unavailable | `opacity-40 cursor-not-allowed bg-muted` |
+| Loading | Replaced by `<Skeleton>` grid (6 items) |
+
+### Calendar Date States (Booking Page)
+
+| State | Classes |
+|-------|---------|
+| Available | `hover:bg-[--booking-primary]/15 cursor-pointer rounded-none` |
+| Selected | `bg-[--booking-primary] text-white` |
+| Today (unselected) | `ring-1 ring-[--booking-primary]/50` |
+| Unavailable | `text-muted-foreground opacity-40 cursor-not-allowed` |
+| Outside current month | `text-muted-foreground opacity-20` |
+
+### Copy Button Feedback
+
+The "Copy link" / "Copy booking URL" button shows a 2-second confirmation:
+
+```
+Default:   [CopyIcon]  Copy link
+After click (2 s):   [CheckIcon text-green-600]  Copied!
+Reverts automatically after 2 000 ms
+```
 
 ---
 
@@ -391,6 +857,124 @@ All animations respect `prefers-reduced-motion: reduce` — disable every keyfra
 
 In `app/globals.css`, a `@media (prefers-reduced-motion: reduce)` block sets `animation: none` on all five animation classes (`schedica-float`, `schedica-blink`, `schedica-reveal`, `schedica-ping`, `schedica-sheen`). This disables every keyframe animation when the user has set the reduced-motion system preference.
 
+### Transition Durations (App Shell)
+
+Short, snappy transitions keep the app feeling responsive. These apply only to interactive state changes — not to page content.
+
+| Element | Transition |
+|---------|-----------|
+| Button hover / active | `transition-colors duration-150` |
+| Input focus ring | `transition-shadow duration-150` |
+| Card hover border | `transition-colors duration-150` |
+| Sidebar collapse expand | `transition-width duration-200 ease-in-out` |
+| Sheet / drawer open | Radix default — slide-in 200ms ease |
+| Dialog open | Radix default — fade + scale 150ms |
+| Nav link active underline | `transition-colors duration-100` |
+| Cookie banner enter | `transition-transform duration-400 ease-out` slide up from bottom |
+| Toast enter/exit | Sonner built-in — slide + fade |
+| Theme switch | **No transition** (`disableTransitionOnChange: true`) — instant |
+
+---
+
+## Loading States
+
+### Page-Level Skeleton Rule
+
+Never show a blank white/dark screen while data loads. Always render the page shell (header, nav, page title) immediately, then show skeletons where content will appear.
+
+### Skeleton Patterns per Screen
+
+| Screen | Skeleton layout |
+|--------|----------------|
+| Dashboard — stats row | 3 × `h-24 w-full` card skeletons side by side |
+| Dashboard — bookings table | 5 × `h-14 w-full` row skeletons |
+| Event types list | 3 × `h-20 w-full` card skeletons |
+| Settings — profile | `h-16 w-16 rounded-full` avatar + 4 × `h-9 w-full` field skeletons |
+| Booking page — calendar | `h-64 w-full` single calendar skeleton |
+| Booking page — time slots | 6 × `h-10 w-full` slot skeletons in a 2-col grid |
+| Admin users table | 10 × `h-12 w-full` row skeletons |
+| Admin audit log | 8 × `h-12 w-full` row skeletons |
+
+Skeleton base class: `<Skeleton className="..." />` renders `bg-muted animate-pulse` — no extra Tailwind needed.
+
+### Spinner Usage Contexts
+
+`<Spinner />` (inline animated circle) is used for:
+
+| Context | Placement | Size |
+|---------|-----------|------|
+| Button loading state | Inside button, left of text label | 14px |
+| Username availability check | Absolutely inside the right edge of the input | 14px |
+| Page-level async fetch (no skeleton available) | Centered in the content area | 24px |
+| Video link generating (booking confirmation) | Next to "Generating video link…" text | 16px |
+
+### Nav Progress Bar
+
+`<NavProgress />` renders a fixed 2px teal bar at the very top of the viewport during Next.js route transitions:
+- Color: `bg-primary`
+- Animates: `scaleX` from `0` → `1`, `transform-origin: left`
+- Fades out on completion
+- Always present in `(app)` and `(admin)` layouts, above the sticky header
+
+---
+
+## Form Validation States
+
+All forms use **React Hook Form + Zod**. Validation messages render below the relevant input, linked via `aria-describedby`.
+
+### Error State
+
+```
+Email address
+┌──────────────────────────────────────┐  ← border-destructive ring-1 ring-destructive/30
+│ user@                                │
+└──────────────────────────────────────┘
+✕  Please enter a valid email address    ← text-destructive text-xs mt-1
+```
+
+### Available / Success State (e.g. username check)
+
+```
+Username
+┌────────────────────────────────── ✓ ─┐  ← border-green-500 ring-1 ring-green-500/30
+│ john-smith                           │     CheckIcon inside input (right edge)
+└──────────────────────────────────────┘
+✓  Available                             ← text-green-600 text-xs mt-1
+```
+
+### Checking State (async validation debounced 400ms)
+
+```
+Username
+┌────────────────────────────────── ⟳ ─┐  ← border-input (neutral — not yet resolved)
+│ john-smith                           │     Spinner inside input (right edge)
+└──────────────────────────────────────┘
+   Checking availability…               ← text-muted-foreground text-xs mt-1
+```
+
+### Warning Block (username change / destructive notice)
+
+```
+┌──────────────────────────────────────────────────┐
+│ ⚠  Changing your username will break any links   │  bg-amber-50 border border-amber-200
+│    you have already shared. A redirect from      │  text-amber-800 text-xs p-3 mt-2
+│    your old URL stays active for 30 days.        │
+└──────────────────────────────────────────────────┘
+```
+
+### Password Strength Indicator (Sign Up)
+
+Four-segment bar rendered directly below the password input:
+
+```
+[████░░░░]  text-destructive  → Weak
+[████████░░░░]  text-amber-500  → Fair
+[████████████░░░░]  text-yellow-500  → Good
+[████████████████]  text-green-600  → Strong
+```
+
+Each segment: `h-1 flex-1 rounded-none`. Filled segments colored, empty segments `bg-muted`. Label appears right-aligned below the bar as `text-xs`.
+
 ---
 
 ## Accessibility
@@ -427,6 +1011,103 @@ Tailwind default breakpoints:
 - Sidebar (admin): collapsible on desktop, hidden on mobile (sheet triggered by hamburger)
 - Booking page: single-column on mobile, two-column (calendar + form) on md+
 - Dashboard cards: single-column on mobile, grid on sm+
+
+---
+
+## Empty State Designs
+
+All empty states use the `<Empty>` component. Layout: `flex flex-col items-center gap-3 py-16 text-center`. Structure: large icon (Phosphor, 48px, `text-muted-foreground/50`) → heading → description → optional CTA.
+
+```
+                    [Icon 48px]
+              text-muted-foreground/50
+
+           No event types yet
+           text-base font-semibold
+
+   Create your first event type to start
+   accepting bookings.
+   text-sm text-muted-foreground max-w-xs
+
+          [ New event type ]
+          primary button mt-4
+```
+
+### Empty State Specs per Screen
+
+| Screen | Icon | Heading | Description | CTA |
+|--------|------|---------|-------------|-----|
+| Event types | `CalendarIcon` | "No event types yet" | "Create your first event type to start accepting bookings." | "New event type" (primary) |
+| Bookings — Upcoming | `HandshakeIcon` | "No upcoming bookings" | "Share your booking link to start accepting meetings." | "Copy booking link" (outline) |
+| Bookings — Past | `ClockIcon` | "No past bookings" | "Completed meetings will appear here." | — |
+| Bookings — Cancelled | `XCircleIcon` | "No cancelled bookings" | — | — |
+| Availability overrides | `CalendarPlusIcon` | "No date overrides" | "Block specific days or set custom hours for exceptions." | "Add override" (outline) |
+| Admin users (filtered, 0 results) | `UsersIcon` | "No users found" | "Try a different search term or clear the filter." | — |
+| Admin jobs (empty) | `QueueIcon` | "No jobs in queue" | "All background tasks have completed successfully." | — |
+| Admin audit log (filtered, 0 results) | `ClockCounterClockwiseIcon` | "No audit events" | "Events matching your filters will appear here." | — |
+| Contacts list (Phase 2) | `AddressBookIcon` | "No contacts yet" | "Invitees who book with you will appear here." | — |
+
+---
+
+## Toast Notification Patterns
+
+All transient feedback uses **Sonner** toasts via `import { toast } from 'sonner'`. Never use `alert()`, inline status `<div>`s, or custom notification components for transient messages.
+
+### Sonner Configuration (`app/layout.tsx`)
+
+```tsx
+<Toaster
+  position="bottom-right"
+  toastOptions={{
+    classNames: {
+      toast: 'rounded-none border border-border bg-background text-foreground shadow-md',
+      title: 'text-sm font-medium',
+      description: 'text-xs text-muted-foreground',
+      actionButton: 'bg-primary text-primary-foreground text-xs',
+      cancelButton: 'bg-muted text-muted-foreground text-xs',
+    },
+  }}
+  richColors
+/>
+```
+
+`rounded-none` enforces the global zero-radius rule. `richColors` provides semantic color coding automatically.
+
+### Toast Copy Patterns
+
+| Trigger | Type | Title | Description |
+|---------|------|-------|-------------|
+| Settings saved | success | "Changes saved" | — |
+| Link copied | success | "Copied to clipboard" | — |
+| Calendar connected | success | "Calendar connected" | "Google Calendar is now synced." |
+| Calendar disconnected | success | "Calendar disconnected" | — |
+| API / server error | error | "Something went wrong" | "Please try again. If this continues, contact support." |
+| Validation error (form) | error | Field-specific message | — |
+| Booking cancelled | success | "Booking cancelled" | "A confirmation has been sent to the invitee." |
+| Email sent | success | "Email sent" | — |
+| Username taken | error | "Username unavailable" | "Please choose a different username." |
+| Video link failed | error | "Video link failed" | "We'll retry automatically. You'll be notified if it fails permanently." |
+
+### Duration Rules
+
+| Type | Duration |
+|------|----------|
+| Success | 3 000 ms |
+| Error | 5 000 ms — longer so the user can read it |
+| Info | 3 000 ms |
+| Promise toast | Dismisses on resolve / reject |
+
+### Promise Toast Pattern (async actions)
+
+```tsx
+toast.promise(saveSettings(), {
+  loading: 'Saving…',
+  success: 'Settings saved',
+  error: 'Failed to save. Please try again.',
+})
+```
+
+Use `toast.promise` for: saving settings, connecting calendar, uploading avatar, generating QR code, revoking sessions.
 
 ---
 
@@ -741,6 +1422,79 @@ Email verification step (shown after signup): "Check your inbox" with animated e
 
 ---
 
+### Onboarding Wizard — `/onboarding`
+
+Shown once to every new user after email verification is complete. Cannot be fully skipped — Step 2 (Calendar) has a "Skip for now" option; all other steps are required.
+
+**Page wrapper:**
+```
+min-h-screen bg-muted/30 flex items-center justify-center p-4
+```
+
+**Card layout:**
+```
+<Card className="w-full max-w-lg p-8 space-y-6">
+  <StepIndicator />          ← step dots + progress bar
+  <div>
+    <h2>Step heading</h2>
+    <p className="text-sm text-muted-foreground">Instruction text</p>
+  </div>
+  {/* Step content area */}
+  <div className="flex justify-between pt-4 border-t border-border">
+    <Button variant="ghost">← Back</Button>
+    <div className="flex gap-2">
+      {canSkip && <Button variant="outline">Skip for now</Button>}
+      <Button>Continue →</Button>
+    </div>
+  </div>
+</Card>
+```
+
+**Step indicator (top of card):**
+
+```
+Step 2 of 5
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  ← bg-primary progress bar (40% filled)
+
+[●]──────[●]──────[ ]──────[ ]──────[ ]
+Profile  Calendar Timezone  Event   Share
+```
+
+| Dot state | Classes |
+|-----------|---------|
+| Completed | `bg-primary` filled circle + `bg-primary` connecting line |
+| Current | `bg-background ring-2 ring-primary ring-offset-2` — white fill, teal ring |
+| Upcoming | `bg-muted border-2 border-muted-foreground/20` |
+
+**Step specs:**
+
+| Step | Heading | Key content |
+|------|---------|-------------|
+| 1 — Profile | "Set up your profile" | Full name input, avatar upload (click circle to upload), username / booking URL slug with real-time availability check |
+| 2 — Calendar | "Connect your calendar" | Google Calendar card + Outlook card (each: logo, label, "Connect" outline button). "Skip for now" link below cards. |
+| 3 — Timezone | "Confirm your timezone" | Auto-detected timezone shown in a `<Select>` with a `GlobeIcon`. "We auto-detected this from your browser — change it if needed." |
+| 4 — Event type | "Create your first event type" | Name input, duration selector (15 / 30 / 60 min), location type selector. Minimal — full builder is in dashboard. |
+| 5 — Share | "You're all set!" | Animated large `CheckCircleIcon` with `schedica-ping` ring in teal. Booking URL in read-only monospace box. Copy button + Open button. "Go to dashboard" primary button. |
+
+**Step 5 — Completion screen detail:**
+
+```
+            ◎  (CheckCircleIcon 64px, text-primary, schedica-ping ring)
+
+         You're all set!
+    text-2xl font-bold tracking-tight
+
+  Your booking page is live at:
+┌──────────────────────────────────────────┐
+│ schedica.com/your-username     [Copy] [↗]│   font-mono text-sm bg-muted
+└──────────────────────────────────────────┘
+
+          [Go to dashboard →]
+             primary button
+```
+
+---
+
 ### Dashboard Home — `/dashboard`
 
 **Page header:** "Good morning, [name]" + current date
@@ -1001,14 +1755,158 @@ The host's brand color (`user.brandColor`, hex) replaces the default teal on boo
 - "Book" primary button (uses brand color)
 - Cancellation policy notice (if set) shown as small text above the button
 
+### Multi-step Booking Flow
+
+If the event type has multiple durations, the flow adds a duration-picker step before the calendar. The URL stays at `/{username}/{eventSlug}` throughout — steps are client-side state, not separate routes.
+
+**Step progression:**
+
+```
+Step 1 (multi-duration only):   Duration picker
+         ↓
+Step 2:  Calendar date selection + timezone selector
+         ↓
+Step 3:  Time slot selection (for selected date)
+         ↓
+Step 4:  Booking form (name, email, custom questions)
+         ↓
+Step 5:  Confirmation screen (replaces the form area)
+```
+
+**Step 1 — Duration picker (multi-duration only):**
+
+```
+┌─────────────────────────────────────────────┐
+│  How long do you need?                       │
+│                                             │
+│  ┌──────────────┐  ┌──────────────┐         │
+│  │  15 minutes  │  │  30 minutes  │  ...    │
+│  │  Quick sync  │  │  Standard    │         │
+│  └──────────────┘  └──────────────┘         │
+│  Each option: border card, hover teal ring  │
+│  Selected: bg-[--booking-primary] text-white│
+└─────────────────────────────────────────────┘
+```
+
+**Back navigation:** Every step shows a `←` icon button (ghost, no label) in the top-left of the booking card to go back one step. Step 1 / single-duration: no back button.
+
+**Step indicator (optional — only when multi-duration is active):**
+
+A minimal `1 · 2 · 3` dot row at the top of the card. Current step dot is `bg-[--booking-primary]`; completed steps are `bg-[--booking-primary]/30`; future steps are `bg-muted`.
+
 ### Confirmation Screen
 
-- Green checkmark icon (large, animated)
-- "You're scheduled!" headline
-- Meeting card: event type name, date/time (both invitee and host timezone), duration, location (join button for video)
-- "Add to Calendar" buttons: Google Calendar, iCal/Outlook, Office 365
-- "Reschedule" and "Cancel" text links
-- Host's custom message (if set) in a `<Card>` below
+```
+         ✓  (CheckCircleIcon 56px, text-green-500, animate schedica-ping ring)
+
+        You're scheduled!
+        text-2xl font-bold
+
+┌──────────────────────────────────────────────┐
+│  Event type name                             │  Card with border, no shadow
+│  ──────────────────                          │
+│  📅  Thu, 15 Jan 2026 · 3:00 PM IST          │  invitee timezone
+│      (10:00 AM EST — host's time)            │  text-muted-foreground text-sm
+│  ⏱   30 minutes                              │
+│  📹  [Join Zoom meeting →]                   │  outline button, brand color border
+└──────────────────────────────────────────────┘
+
+  [ + Google Calendar ]  [ + iCal/Outlook ]  [ + Office 365 ]
+    outline sm buttons, gap-2
+
+  Reschedule · Cancel     ← ghost text links, text-muted-foreground text-sm
+
+┌──────────────────────────────────────────────┐
+│  Looking forward to meeting you!             │  Host's custom message card
+│  — Host name                                 │  bg-muted p-4 text-sm
+└──────────────────────────────────────────────┘
+```
+
+---
+
+## Cookie Consent Banner
+
+Shown on first visit to any public page (landing, booking page). Stored in `localStorage` under `cookie-consent`. Not shown in the dashboard or admin — consent is managed under Settings → Cookie settings for authenticated users.
+
+**Layout:**
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  We use cookies to improve your experience.  [Learn more]  │  fixed bottom-0 full-width
+│                                    [Manage]  [Accept All]  │  bg-background border-t
+│                                                             │  border-border shadow-md z-50
+└────────────────────────────────────────────────────────────┘
+```
+
+**Classes:** `fixed bottom-0 inset-x-0 z-50 bg-background border-t border-border shadow-md`
+
+**Inner layout:** `max-w-6xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3`
+
+**Buttons:**
+- "Accept All" — `<Button size="sm">` (primary teal)
+- "Manage" — `<Button variant="outline" size="sm">` (opens `/dashboard/settings/cookies` or a cookie modal if unauthenticated)
+- "Learn more" — `<Button variant="link" size="sm">` (links to `/cookies`)
+
+**Entrance animation:** slides up from `translateY(100%)` to `translateY(0)` over 400ms with `ease-out`, after a 600ms delay on first load. Respects `prefers-reduced-motion`.
+
+---
+
+## Error Pages
+
+### 404 — Not Found (`app/not-found.tsx`)
+
+```
+min-h-screen flex flex-col items-center justify-center gap-6 text-center px-4
+
+  404
+  text-8xl font-bold text-muted-foreground/20 select-none
+
+  Page not found
+  text-2xl font-bold tracking-tight
+
+  The page you're looking for doesn't exist or has been moved.
+  text-sm text-muted-foreground max-w-sm
+
+  [ ← Go back ]   [ Go home ]
+  outline button   primary button
+  flex gap-3
+```
+
+### 500 — Server Error (`app/error.tsx`)
+
+Same layout as 404 but:
+- Large text: `"500"`
+- Heading: `"Something went wrong"`
+- Description: `"Try refreshing the page. If the problem continues, contact support."`
+- Single primary button: `"Refresh page"` — `onClick={() => window.location.reload()}`
+
+### Maintenance Banner
+
+When `platform_settings.maintenanceMessage` is non-empty, a full-width amber bar renders above the sticky header on every page (`z-60`):
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ ⚠  Scheduled maintenance — service may be interrupted.    │  bg-amber-50 border-b
+│    Expected downtime: 2:00–4:00 AM UTC.  [Learn more →]   │  border-amber-200 text-amber-800
+└────────────────────────────────────────────────────────────┘
+px-4 py-2 text-sm text-center
+```
+
+### Booking — Host Not Found (`/[username]` — unknown username)
+
+```
+Centered card max-w-sm:
+
+  [UserIcon 48px text-muted-foreground/50]
+
+  This booking page doesn't exist
+  text-base font-semibold
+
+  The link may be incorrect or this account has been removed.
+  text-sm text-muted-foreground
+
+  [ Back to Schedica ]  ← link button → /
+```
 
 ---
 
@@ -1092,6 +1990,16 @@ React Email components live in `src/lib/email/`. These are rendered server-side 
 | Use `rounded-none` or omit radius classes | Add `rounded-*` to any component except `Avatar` |
 | Use Phosphor icons from `@phosphor-icons/react/dist/ssr` in server components | Mix icon libraries (no Heroicons, Lucide, etc.) |
 | Use `<AlertDialog>` for destructive confirmations | Use `confirm()` or inline warnings for delete/ban actions |
-| Use Sonner toasts for operation feedback | Use custom alert divs for transient messages |
+| Use Sonner `toast.promise()` for async operations | Use custom alert divs or inline status for transient messages |
+| Always render the page shell + skeletons while data loads | Show a blank white / dark screen during loading |
+| Use `<Empty>` component for zero-state screens | Render `null` or nothing when a list is empty |
+| Apply `transition-colors duration-150` on all hover state changes | Leave interactive elements with no hover feedback |
+| Use `schedica-ping` animation only on status indicator dots | Apply pulsing rings to buttons or cards |
+| Use gradients **only** inside `app/(landing)/` files | Apply gradients to dashboard, admin, or booking form elements |
+| Use `toast.promise` for save / connect / upload actions | Leave async actions with no loading feedback |
+| Add `aria-label` to every icon-only button | Ship icon-only buttons without a screen reader label |
+| Show both timezones (invitee + host) on every booking time display | Show only one timezone anywhere in the booking flow |
+| Use `bg-[--booking-primary]` on booking page CTA and selected states | Use `bg-primary` on the public booking page (it ignores the host's brand color) |
 | Test every screen in both light and dark mode | Assume light mode only |
 | Disable animations for `prefers-reduced-motion` | Add animations without reduced-motion fallbacks |
+| Verify WCAG AA contrast for any custom brand color on booking pages | Trust that any brand color the host picks will be readable |
