@@ -1,0 +1,44 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { google } from 'googleapis'
+import { getCurrentSession } from '@/lib/authz'
+import { env } from '@/lib/env'
+
+const SCOPES = [
+  'https://www.googleapis.com/auth/calendar',
+  'https://www.googleapis.com/auth/calendar.events',
+]
+
+export async function GET(req: NextRequest) {
+  const session = await getCurrentSession()
+  if (!session) {
+    return NextResponse.redirect(new URL('/login', req.url))
+  }
+
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+    return NextResponse.json(
+      { error: 'Google Calendar integration is not configured on this server.' },
+      { status: 503 },
+    )
+  }
+
+  const returnTo = req.nextUrl.searchParams.get('returnTo') ?? '/dashboard'
+
+  const oauth2Client = new google.auth.OAuth2(
+    env.GOOGLE_CLIENT_ID,
+    env.GOOGLE_CLIENT_SECRET,
+    `${env.NEXT_PUBLIC_APP_URL}/api/integrations/google/callback`,
+  )
+
+  const state = Buffer.from(
+    JSON.stringify({ userId: session.user.id, returnTo }),
+  ).toString('base64')
+
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    prompt: 'consent', // ensures refresh_token is always returned
+    scope: SCOPES,
+    state,
+  })
+
+  return NextResponse.redirect(authUrl)
+}

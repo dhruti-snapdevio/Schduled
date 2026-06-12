@@ -12,20 +12,26 @@ export function UserRoleForm({
   role: string | null;
   userId: string;
 }) {
-  const nextRole = role === ADMIN_ROLE ? USER_ROLE : ADMIN_ROLE;
+  const isAdmin = role === ADMIN_ROLE;
+  const nextRole = isAdmin ? USER_ROLE : ADMIN_ROLE;
 
   return (
     <form action={setUserRoleAction}>
       <input name="userId" type="hidden" value={userId} />
       <input name="role" type="hidden" value={nextRole} />
-      <Button type="submit" variant="secondary" size="sm">
-        Make {nextRole}
+      <Button
+        type="submit"
+        variant={isAdmin ? "destructive" : "secondary"}
+        size="sm"
+        className="text-xs h-7"
+      >
+        {isAdmin ? "Remove Admin" : "Make Admin"}
       </Button>
     </form>
   );
 }
 
-export function UserBanForm({
+export function UserSuspendForm({
   banned,
   userId,
 }: {
@@ -36,8 +42,13 @@ export function UserBanForm({
     <form action={toggleUserBanAction}>
       <input name="userId" type="hidden" value={userId} />
       <input name="banned" type="hidden" value={String(!banned)} />
-      <Button type="submit" variant={banned ? "secondary" : "destructive"} size="sm">
-        {banned ? "Unban" : "Ban"}
+      <Button
+        type="submit"
+        variant={banned ? "secondary" : "outline"}
+        size="sm"
+        className="text-xs h-7"
+      >
+        {banned ? "Reactivate" : "Suspend"}
       </Button>
     </form>
   );

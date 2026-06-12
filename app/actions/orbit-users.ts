@@ -57,10 +57,10 @@ export async function toggleUserBanAction(formData: FormData): Promise<void> {
     .where(eq(user.id, userId));
 
   await audit({
-    action: banned ? "orbit.user_banned" : "orbit.user_unbanned",
+    action: banned ? "orbit.user_suspended" : "orbit.user_reactivated",
     actorEmail: admin.user.email,
     actorId: admin.user.id,
-    description: banned ? "Banned user" : "Unbanned user",
+    description: banned ? "Suspended user" : "Reactivated user",
     entityId: userId,
     entityType: "user",
   });

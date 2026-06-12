@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PRODUCT_NAME } from "@/config/platform";
+import { Logo } from "@/components/logo";
 import { signIn, useSession } from "@/lib/auth-client";
 
 export function AuthForm() {
@@ -61,12 +60,9 @@ function AuthFormInner() {
   return (
     <main className="grid min-h-screen place-items-center bg-page px-4 py-10">
       <div className="w-full max-w-md">
-        <Link className="mb-6 flex items-center justify-center gap-3" href="/">
-          <span className="grid size-10 place-items-center rounded-none bg-primary font-black text-primary-foreground text-xs">
-            KR
-          </span>
-          <span className="font-black tracking-normal">{PRODUCT_NAME}</span>
-        </Link>
+        <div className="mb-6 flex justify-center">
+          <Logo variant="full" size="lg" href="/" />
+        </div>
 
         <Card>
           <CardHeader>
@@ -74,7 +70,7 @@ function AuthFormInner() {
             <CardDescription>
               {sent
                 ? "Your one-time sign-in link is on its way."
-                : "Enter your email and KROVA will send a magic link."}
+                : "Enter your email and we'll send you a magic link."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -93,30 +89,47 @@ function AuthFormInner() {
                 </Button>
               </div>
             ) : (
-              <form className="space-y-4" onSubmit={onSubmit}>
-                <label className="block" htmlFor="email">
-                  <span className="mb-2 block font-semibold text-foreground text-sm">
-                    Email
-                  </span>
-                  <Input
-                    autoComplete="email"
-                    id="email"
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="you@example.com"
-                    required
-                    type="email"
-                    value={email}
-                  />
-                </label>
-                {error && (
-                  <p className="rounded-none bg-destructive/10 p-3 text-destructive text-sm">
-                    {error}
-                  </p>
-                )}
-                <Button className="w-full" disabled={submitting} type="submit">
-                  {submitting ? "Sending..." : "Send magic link"}
+              <div className="space-y-4">
+                <Button
+                  className="w-full"
+                  onClick={() => signIn.social({ provider: "google", callbackURL: "/post-auth" })}
+                  type="button"
+                  variant="outline"
+                >
+                  Continue with Google
                 </Button>
-              </form>
+
+                <div className="relative flex items-center gap-3">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs text-muted-foreground">or</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+
+                <form className="space-y-4" onSubmit={onSubmit}>
+                  <label className="block" htmlFor="email">
+                    <span className="mb-2 block font-semibold text-foreground text-sm">
+                      Email
+                    </span>
+                    <Input
+                      autoComplete="email"
+                      id="email"
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      type="email"
+                      value={email}
+                    />
+                  </label>
+                  {error && (
+                    <p className="rounded-none bg-destructive/10 p-3 text-destructive text-sm">
+                      {error}
+                    </p>
+                  )}
+                  <Button className="w-full" disabled={submitting} type="submit">
+                    {submitting ? "Sending..." : "Send magic link"}
+                  </Button>
+                </form>
+              </div>
             )}
           </CardContent>
         </Card>
