@@ -1,0 +1,57 @@
+import { requireSession } from '@/lib/authz'
+import { db } from '@/lib/db'
+import { user } from '@/db/schema'
+import { eq } from 'drizzle-orm'
+import { listAvailabilitySchedules } from '@/app/actions/event-types'
+import { EventTypeBuilder } from '../_components/builder'
+import type { BuilderFormValues } from '../_components/builder'
+
+export const metadata = { title: 'New Event Type' }
+
+const DEFAULT_VALUES: BuilderFormValues = {
+  name:                    '',
+  slug:                    '',
+  description:             '',
+  color:                   '#0d9488',
+  isActive:                true,
+  isHidden:                false,
+  durations:               [30],
+  defaultDuration:         30,
+  availabilityScheduleId:  undefined,
+  bookingWindow:           60,
+  bookingWindowType:       'rolling',
+  minimumNotice:           60,
+  bufferBefore:            0,
+  bufferAfter:             0,
+  maxBookingsPerDay:       null,
+  startTimeIncrement:      30,
+  locationType:            'google_meet',
+  locationValue:           '',
+  hostPhoneNumber:         '',
+  confirmationNote:        '',
+  allowCancellation:       true,
+  cancellationCutoffHours: 0,
+  allowRescheduling:       true,
+  rescheduleCutoffHours:   0,
+  requireCancellationReason: false,
+  showPolicyText:          false,
+  policyText:              '',
+}
+
+export default async function NewEventTypePage() {
+  const session = await requireSession()
+
+  const [[currentUser], schedules] = await Promise.all([
+    db.select({ username: user.username }).from(user).where(eq(user.id, session.user.id)).limit(1),
+    listAvailabilitySchedules(),
+  ])
+
+  return (
+    <EventTypeBuilder
+      mode="create"
+      defaultValues={DEFAULT_VALUES}
+      schedules={schedules}
+      username={currentUser?.username ?? null}
+    />
+  )
+}

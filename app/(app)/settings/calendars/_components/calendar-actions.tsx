@@ -1,0 +1,88 @@
+'use client'
+
+import { useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { ArrowsClockwise, CheckCircle, GoogleLogo, XCircle } from '@phosphor-icons/react'
+import { disconnectCalendar } from '@/app/actions/settings'
+import { Button } from '@/components/ui/button'
+
+interface CalendarRow {
+  id: string
+  provider: string
+  accountEmail: string
+  calendarName: string | null
+  status: string
+  isPrimary: boolean
+  isConflictCheck: boolean
+  isWriteTarget: boolean
+  createdAt: string
+}
+
+interface CalendarActionsProps {
+  calendar: CalendarRow
+  connectUrl: string
+}
+
+export function CalendarActions({ calendar, connectUrl }: CalendarActionsProps) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const isConnected = calendar.status === 'connected'
+
+  function handleDisconnect() {
+    if (!confirm('Disconnect this calendar? Bookings will no longer be written to it.')) return
+    startTransition(async () => {
+      await disconnectCalendar(calendar.id)
+      router.refresh()
+    })
+  }
+
+  return (
+    <div className="flex items-center gap-4 px-6 py-4">
+      {/* Provider icon */}
+      <div className="flex size-10 shrink-0 items-center justify-center bg-muted">
+        <GoogleLogo size={20} className="text-foreground" weight="bold" />
+      </div>
+
+      {/* Info */}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{calendar.accountEmail}</p>
+        <p className="text-xs text-muted-foreground">
+          {calendar.calendarName ?? 'Google Calendar'}
+          {calendar.isWriteTarget && ' · write target'}
+          {calendar.isConflictCheck && ' · conflict check'}
+        </p>
+      </div>
+
+      {/* Status badge */}
+      <div className="flex shrink-0 items-center gap-1.5">
+        {isConnected ? (
+          <CheckCircle size={16} className="text-[var(--success-foreground)]" weight="fill" />
+        ) : (
+          <XCircle size={16} className="text-destructive" weight="fill" />
+        )}
+        <span className={`text-xs font-medium ${isConnected ? 'text-[var(--success-foreground)]' : 'text-destructive'}`}>
+          {isConnected ? 'Connected' : 'Disconnected'}
+        </span>
+      </div>
+
+      {/* Actions */}
+      {isConnected ? (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isPending}
+          onClick={handleDisconnect}
+        >
+          Disconnect
+        </Button>
+      ) : (
+        <Button asChild size="sm" variant="outline">
+          <a href={connectUrl}>
+            <ArrowsClockwise size={14} />
+            Reconnect
+          </a>
+        </Button>
+      )}
+    </div>
+  )
+}
