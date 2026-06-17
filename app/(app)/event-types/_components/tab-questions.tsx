@@ -38,14 +38,18 @@ interface TabQuestionsProps {
   eventTypeId?: string
   questions: ExistingQuestion[]
   mode: 'create' | 'edit'
+  pendingQuestions?: ExistingQuestion[]
+  onPendingChange?: (next: ExistingQuestion[]) => void
 }
 
 function blankForm(): { label: string; type: QuestionData['type']; isRequired: boolean; placeholder: string; options: string; } {
   return { label: '', type: 'short_text', isRequired: false, placeholder: '', options: '' }
 }
 
-export function TabQuestions({ eventTypeId, questions: initialQuestions, mode }: TabQuestionsProps) {
+export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, pendingQuestions = [], onPendingChange }: TabQuestionsProps) {
   const [questions, setQuestions] = useState<ExistingQuestion[]>(initialQuestions)
+  // In create mode, use parent-controlled pendingQuestions; in edit mode, use local state
+  const displayQuestions = mode === 'create' ? pendingQuestions : questions
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<ExistingQuestion | null>(null)
   const [form, setForm] = useState(blankForm())
@@ -73,12 +77,6 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode }:
 
   function handleSave() {
     if (!form.label.trim()) { toast.error('Question label is required'); return }
-    if (!eventTypeId && mode === 'create') {
-      toast.info('Save the event type first, then add questions.')
-      setDialogOpen(false)
-      return
-    }
-    if (!eventTypeId) { toast.error('Event type ID missing'); return }
 
     const data: QuestionData = {
       label: form.label.trim(),
@@ -89,6 +87,31 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode }:
         ? form.options.split('\n').map((s) => s.trim()).filter(Boolean)
         : undefined,
     }
+
+    if (mode === 'create') {
+      if (editing) {
+        onPendingChange?.(pendingQuestions.map((q) =>
+          q.id === editing.id
+            ? { ...q, label: data.label, type: data.type, isRequired: data.isRequired,
+                options: data.options ?? null, placeholder: data.placeholder ?? null }
+            : q
+        ))
+        toast.success('Question updated')
+      } else {
+        const tmpId = `tmp-${pendingQuestions.length}-${data.label.slice(0, 6)}`
+        onPendingChange?.([
+          ...pendingQuestions,
+          { id: tmpId, label: data.label, type: data.type, isRequired: data.isRequired,
+            options: data.options ?? null, placeholder: data.placeholder ?? null,
+            position: pendingQuestions.length, isActive: true },
+        ])
+        toast.success('Question added')
+      }
+      setDialogOpen(false)
+      return
+    }
+
+    if (!eventTypeId) { toast.error('Event type ID missing'); return }
 
     startTransition(async () => {
       if (editing) {
@@ -112,6 +135,10 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode }:
   }
 
   function handleDelete(id: string) {
+    if (mode === 'create') {
+      onPendingChange?.(pendingQuestions.filter((q) => q.id !== id))
+      return
+    }
     startTransition(async () => {
       const res = await deleteQuestion(id)
       if ('error' in res) { toast.error(res.error); return }
@@ -120,9 +147,14 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode }:
     })
   }
 
-  // Simple drag reorder via mouseup
   function moveUp(index: number) {
     if (index === 0) return
+    if (mode === 'create') {
+      const next = [...pendingQuestions]
+      ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
+      onPendingChange?.(next)
+      return
+    }
     const next = [...questions]
     ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
     setQuestions(next)
@@ -133,7 +165,13 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode }:
   }
 
   function moveDown(index: number) {
-    if (index === questions.length - 1) return
+    if (index === displayQuestions.length - 1) return
+    if (mode === 'create') {
+      const next = [...pendingQuestions]
+      ;[next[index], next[index + 1]] = [next[index + 1], next[index]]
+      onPendingChange?.(next)
+      return
+    }
     const next = [...questions]
     ;[next[index], next[index + 1]] = [next[index + 1], next[index]]
     setQuestions(next)
@@ -168,10 +206,10 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode }:
       </div>
 
       {/* Custom questions */}
-      {questions.length > 0 && (
+      {displayQuestions.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Custom questions</p>
-          {questions.map((q, i) => (
+          {displayQuestions.map((q, i) => (
             <div key={q.id} className="flex items-center gap-3 border border-border bg-card px-4 py-3">
               <div className="flex flex-col gap-0.5">
                 <button
@@ -184,7 +222,7 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode }:
                 <button
                   type="button"
                   onClick={() => moveDown(i)}
-                  disabled={i === questions.length - 1 || isPending}
+                  disabled={i === displayQuestions.length - 1 || isPending}
                   className="text-[10px] leading-none text-muted-foreground hover:text-foreground disabled:opacity-30"
                 >▼</button>
               </div>
@@ -222,12 +260,6 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode }:
       <Button type="button" variant="outline" size="sm" className="gap-2" onClick={openNew}>
         <Plus size={14} /> Add question
       </Button>
-
-      {mode === 'create' && (
-        <p className="text-xs text-muted-foreground">
-          Save the event type first, then add custom questions.
-        </p>
-      )}
 
       {/* Add / Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

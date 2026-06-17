@@ -1,21 +1,24 @@
+import { getAvailabilityData } from '@/app/actions/availability'
 import { PageHeader } from '@/components/scaffold/page-header'
-import { Card, CardContent } from '@/components/ui/card'
+import { AvailabilityForm } from './_components/availability-form'
 
 export const metadata = { title: 'Availability' }
 
-export default function AvailabilityPage() {
+export default async function AvailabilityPage() {
+  const { schedule, overrides, userTimezone } = await getAvailabilityData()
+
   return (
     <>
       <PageHeader
         eyebrow="Scheduling"
         title="Availability"
-        description="Set the hours you are available for meetings."
+        description="Set the hours you're available for meetings each week."
       />
-      <Card>
-        <CardContent className="py-12 text-center text-muted-foreground text-sm">
-          Availability management coming soon.
-        </CardContent>
-      </Card>
+      <AvailabilityForm
+        initialSchedule={schedule}
+        initialOverrides={overrides}
+        userTimezone={userTimezone}
+      />
     </>
   )
 }

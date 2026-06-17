@@ -100,7 +100,7 @@ export interface EventTypeFormData {
   policyText?: string
 }
 
-export async function createEventType(data: EventTypeFormData): Promise<ActionResult<{ id: string }>> {
+export async function createEventType(data: EventTypeFormData, initialQuestions?: QuestionData[]): Promise<ActionResult<{ id: string; slug: string }>> {
   try {
     const session = await requireSession()
 
@@ -166,6 +166,23 @@ export async function createEventType(data: EventTypeFormData): Promise<ActionRe
       policyText: data.policyText?.trim() || null,
     })
 
+    // Insert initial questions (added before first save in create mode)
+    if (initialQuestions && initialQuestions.length > 0) {
+      await db.insert(eventTypeQuestion).values(
+        initialQuestions.map((q, i) => ({
+          id: createId(),
+          eventTypeId: id,
+          label: q.label.trim(),
+          type: q.type,
+          isRequired: q.isRequired,
+          options: q.options && q.options.length > 0 ? q.options : null,
+          placeholder: q.placeholder?.trim() || null,
+          position: i,
+          isActive: true,
+        }))
+      )
+    }
+
     await audit({
       action: 'event_type.created',
       actorId: session.user.id,
@@ -177,7 +194,7 @@ export async function createEventType(data: EventTypeFormData): Promise<ActionRe
     })
 
     revalidatePath('/event-types')
-    return { ok: true, id }
+    return { ok: true, id, slug }
   } catch {
     return { error: 'Something went wrong. Please try again.' }
   }

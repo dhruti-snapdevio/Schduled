@@ -1,6 +1,6 @@
 # Schduled — MVP Implementation Plan
 
-> **Full review date:** 2026-06-16 (re-audited against actual source)
+> **Full review date:** 2026-06-17 (re-audited after session 2 — major progress)
 > Based on: all 16 feature docs, architecture.md, design-system.md, database-schema.md,
 > jobs-queues.md, tools-packages.md, pre-development-setup.md, project-structure.md,
 > development-plan.md, MASTER-PLAN.md — AND actual project source code audit.
@@ -16,7 +16,7 @@
 
 | Category | Files | Status |
 |----------|-------|--------|
-| Auth | `lib/auth.ts`, `lib/auth-client.ts` | ✅ Better Auth, magic link + admin plugin |
+| Auth | `lib/auth.ts`, `lib/auth-client.ts` | ✅ Better Auth, magic link + admin plugin, 30-day session |
 | DB Client | `lib/db.ts`, `lib/pg-connection.ts` | ✅ Drizzle + postgres driver |
 | DB Schema — auth | `db/schema/auth.ts` | ✅ user (+ username, timezone, onboarding fields), session, account, verification |
 | DB Schema — platform | `db/schema/email-outbox.ts`, `email-events.ts`, `audit-logs.ts`, `job-logs.ts` | ✅ platform tables |
@@ -26,29 +26,31 @@
 | Worker | `lib/worker/boss.ts`, `ensure-queues.ts`, `enqueue.ts`, `job-types.ts` | ✅ pg-boss setup, 16+ job types defined |
 | Worker handlers | `email-send.ts`, `email-outbox-reap.ts`, `email-events-prune.ts`, `scaffold-healthcheck.ts` | ✅ email jobs only (video/calendar/reminder handlers still needed) |
 | Email | `lib/email/index.ts`, `renderer.ts`, `smtp/client.ts` | ✅ nodemailer + react-email |
-| Email templates | `lib/email/templates/magic-link.ts`, `components/magic-link.tsx`, `components/layout.tsx` | ✅ magic link only (8 booking templates still needed) |
+| Email templates | `magic-link.ts` ✅, `delete-confirmation.ts` ✅ | 2 of 10 done — 8 booking templates still needed |
 | Utilities | `lib/utils.ts`, `lib/audit.ts`, `lib/authz.ts`, `lib/env.ts` | ✅ done |
 | Encryption | `lib/encrypt.ts` | ✅ AES-256-GCM for OAuth tokens |
-| File storage | `lib/storage/index.ts`, `local.ts`, `s3.ts` | ✅ Multi-driver abstraction — `local` (default, no creds) or `s3` (R2/AWS). Upload API: `POST /api/upload/avatar`. Old `lib/s3.ts` kept as legacy re-export. |
+| File storage | `lib/storage/index.ts`, `local.ts`, `s3.ts` | ✅ Multi-driver: `local` (default, `public/uploads/`) or `s3` (R2/AWS). `POST /api/upload/avatar` working. |
 | Config | `config/platform.ts` | ✅ `PRODUCT_NAME = "Schduled"` |
-| UI components | All Shadcn: textarea, select, dialog, sheet, popover, calendar, separator, switch, tabs, avatar, tooltip, alert, skeleton, progress, dropdown-menu, alert-dialog, label, radio-group, checkbox, pagination, sonner, scroll-area, slider, + base 5 | ✅ all installed |
-| Custom components | `components/logo.tsx`, `components/theme-provider.tsx`, `components/theme-toggle.tsx` | ✅ done |
-| Scaffold | `components/scaffold/app-shell.tsx`, `page-header.tsx`, `sidebar-nav.tsx` | ✅ with Schduled nav |
-| Admin | `components/admin/admin-sidebar.tsx`, `orbit-page-header.tsx` | ✅ orbit admin |
-| Orbit components | `components/orbit/email-client.tsx`, `queues-client.tsx`, `users-table.tsx`, `audit-table.tsx`, `user-actions.tsx` | ✅ done |
-| Admin pages | `app/(orbit)/orbit/page.tsx`, `users/`, `email/`, `queues/`, `audit/` | ✅ orbit admin complete |
-| Profile | `components/profile/account-forms.tsx`, `sessions-card.tsx` | ✅ done |
-| Middleware | `middleware.ts` | ✅ Layer 1 route protection — cookie check, protected/admin/auth redirects |
+| UI components | All Shadcn installed | ✅ all installed |
+| Custom components | `logo.tsx`, `theme-provider.tsx`, `theme-toggle.tsx` | ✅ done |
+| Scaffold | `app-shell.tsx` (shows avatar), `page-header.tsx`, `sidebar-nav.tsx` (shows avatar) | ✅ avatar flows through nav |
+| Admin | `components/admin/`, `components/orbit/` | ✅ orbit admin complete |
+| Admin pages | `app/(orbit)/orbit/` — overview, users, email, queues, audit | ✅ orbit admin complete |
+| Profile | `account-forms.tsx` (AvatarUploadCard + Identity), `sessions-card.tsx`, `delete-account-modal.tsx` | ✅ done |
+| Middleware | `middleware.ts` | ✅ Layer 1 route protection |
 | Route groups | `(landing)/`, `(auth)/`, `(app)/`, `(booking)/`, `(onboarding)/`, `(orbit)/` | ✅ all created |
-| Landing page | `app/(landing)/page.tsx` + `app/globals.css` | ✅ full redesign: hero, features, stats, how-it-works, testimonials, FAQ, CTA, footer — scroll-driven animations |
-| Dashboard | `app/(app)/dashboard/page.tsx` | ✅ real stats (4 cards, upcoming meetings, recent bookings) |
-| App layout | `app/(app)/layout.tsx` | ✅ `requireSession()` + DB freshUser check, OnboardingModal placeholder comment |
-| Root layout | `app/layout.tsx` | ✅ Plus Jakarta Sans (headings) + Geist Sans/Mono (body/code) + ThemeProvider |
-| Settings | `app/(app)/settings/profile/page.tsx` | ✅ profile + sessions + export + delete |
-| Page stubs | `(app)/availability/page.tsx`, `(app)/event-types/page.tsx`, `(app)/bookings/page.tsx` | ✅ stubs exist — need real implementation |
-| Booking stubs | `(booking)/[username]/page.tsx`, `[eventSlug]/page.tsx`, `cancel/[token]/page.tsx`, `reschedule/[token]/page.tsx` | ✅ stubs exist — need real implementation |
-| API | `app/api/auth/[...all]/route.ts`, `api/webhooks/email/route.ts`, `api/account/export/route.ts` | ✅ done |
-| Actions | `app/actions/profile.ts`, `auth.ts`, `orbit-users.ts`, `orbit-queues.ts` | ✅ done |
+| Landing page | `app/(landing)/page.tsx` | ✅ full redesign with animations |
+| Dashboard | `app/(app)/dashboard/page.tsx` | ✅ 5 stat cards + upcoming + recent bookings + hover effects + empty states |
+| App layout | `app/(app)/layout.tsx` | ✅ `requireSession()` + freshUser (with image) + OnboardingModal |
+| Root layout | `app/layout.tsx` | ✅ Geist fonts + ThemeProvider |
+| **Onboarding modal** | `components/onboarding/` — all 5 steps | ✅ **COMPLETE** — step-resume flow, avatar upload, Google OAuth |
+| **Event type builder** | `app/(app)/event-types/` — list + new + [id] | ✅ **COMPLETE** — 6-tab builder, full CRUD, questions, durations |
+| **Settings — all pages** | profile, branding, my-link, calendars, integrations, communication, contacts, security, cookies | ✅ **ALL COMPLETE** |
+| **Google Calendar OAuth** | `app/api/integrations/google/route.ts` + `callback/route.ts` | ✅ **COMPLETE** — encrypt tokens, store calendar |
+| **Username check API** | `app/api/username-check/route.ts` | ✅ done |
+| **Hooks** | `hooks/use-username-check.ts` | ✅ done |
+| API | `auth/[...all]`, `webhooks/email`, `account/export`, `upload/avatar`, `username-check` | ✅ all done |
+| Actions | `profile.ts`, `auth.ts`, `onboarding.ts`, `event-types.ts`, `settings.ts`, `orbit-*.ts` | ✅ all done |
 | DB scripts | `scripts/dev-db.ts`, `make-admin.ts`, `worker.ts`, `db/reset.ts` | ✅ done |
 | Post-auth redirect | `app/post-auth/page.tsx` | ✅ routes to `/orbit` (admin) or `/dashboard` (user) |
 
@@ -56,27 +58,27 @@
 
 | Issue | Impact | Fix step |
 |-------|--------|----------|
-| Onboarding is route stub | `/onboarding/[step]` exists but just shows placeholder text — replace with modal | Step 10 — **do next** |
 | Missing worker handlers | Video-link, calendar-write, calendar-sync, reminders have no handler code | Step 7.3 |
-| Settings pages 2–9 missing | Branding, My Link, Calendars, Integrations, Communication, Security all 404 | Step 11 |
-| Common UI components missing | `spinner.tsx`, `stat.tsx`, `empty.tsx`, `data-table.tsx` not yet built | Step 4 partial |
+| Common UI components missing | `spinner.tsx`, `stat.tsx`, `empty.tsx`, `data-table.tsx` not yet built as shared components | Step 4 |
+| Availability page is a stub | `/availability` shows "coming soon" — no weekly grid or date overrides | Step 13 |
+| Bookings page is a stub | `/bookings` shows placeholder — no list, tabs, or detail sheet | Step 22 |
+| Public booking page is a stub | `/{username}` and `/{username}/{slug}` show "coming soon" | Step 17 |
 
 ### What's Still Missing ❌
 
 - Worker handlers for: video-link, calendar-write, calendar-sync, reminders, cleanup
 - `lib/api/helpers.ts` — rate limiting + typed JSON response
 - `lib/validators.ts` — username / email / URL / XSS sanitization
-- `hooks/` directory — `use-username-check.ts` and other client hooks
 - Common UI components: `spinner.tsx`, `stat.tsx`, `empty.tsx`, `data-table.tsx`, `kbd.tsx`, `nav-progress.tsx`
-- Settings pages: branding, my-link, calendars, integrations, communication, security
-- Onboarding modal (5 steps) — Step 10
-- All feature implementations: event type builder, availability, booking engine, calendar integrations, video
-- Booking flow full implementation (stubs exist)
-- 8 remaining booking email templates (magic-link done, need 8 booking templates)
+- Availability management page (weekly grid + date overrides) — stub exists
+- Bookings list page (3-tab Upcoming/Past/Cancelled + Sheet detail) — stub exists
+- Public booking page (calendar UI + booking form) — stub exists
+- Booking engine (`POST /api/bookings`, `GET /api/slots`, advisory lock)
+- 8 remaining booking email templates (magic-link + delete done ✅)
 - `lib/calendar/slots.ts` — DST-safe slot generation
 - `lib/calendar/ics.ts` — ICS file generation
-- Google Calendar + Zoom OAuth clients (`lib/video/zoom.ts`, etc.)
-- `IDEMPOTENCY_KEYS_PRUNE` job type missing from `lib/worker/job-types.ts` (needs to be added)
+- Zoom OAuth (`lib/video/zoom.ts`, `/api/integrations/zoom/*`)
+- Cancel & reschedule flows — stubs exist, logic missing
 
 ### Architecture Decisions Made (differs from original plan)
 
@@ -1452,13 +1454,13 @@ type ActionResult<T = Record<string, never>> =
 
 ---
 
-## STEP 9 — Auth + Onboarding Flow Fixes 🔶 PARTIAL
+## STEP 9 — Auth + Onboarding Flow Fixes ✅ DONE
 
-> **Status: Partial.**
-> - `(app)/layout.tsx` ✅ — uses `requireSession()`, DB freshUser query, OnboardingModal placeholder comment
-> - ❌ **Still need: 30-day session config in `lib/auth.ts`**
-> - ❌ **Still need: Google OAuth social provider in `lib/auth.ts` (after GOOGLE_CLIENT_ID is set)**
-> - ❌ **Still need: update `lib/auth-client.ts` to add `magicLinkClient` + `adminClient`**
+> **Status: Complete.**
+> - `(app)/layout.tsx` ✅ — `requireSession()` + DB freshUser (including `image`, `onboardingStep`) + passes props to AppShell + OnboardingModal
+> - `lib/auth.ts` ✅ — 30-day session config in place
+> - Google OAuth social provider ✅ — wired (active when `GOOGLE_CLIENT_ID` is set in `.env`)
+> - `lib/auth-client.ts` ✅ — `magicLinkClient` + `adminClient` added
 
 ### 9.1 — Session config in `lib/auth.ts`
 
@@ -1515,7 +1517,20 @@ export const { useSession, signIn, signOut } = authClient
 
 ---
 
-## STEP 10 — Onboarding Wizard (Modal) ❌ — DO NEXT
+## STEP 10 — Onboarding Wizard (Modal) ✅ DONE
+
+> **Status: Complete.** Full 5-step non-dismissable Dialog rendered in `(app)/layout.tsx` when `onboardingDone = false`. Resumes at correct step after page reloads and OAuth redirects.
+>
+> **Completed:**
+> - `onboarding-modal.tsx` — Dialog, progress bar, step state machine, resumes from `onboardingStep` DB value
+> - `step-1-profile.tsx` — name + username (live check) + avatar upload (real upload to `/api/upload/avatar`)
+> - `step-2-timezone.tsx` — timezone select, auto-detected from browser
+> - `step-3-availability.tsx` — Calendly-style weekly schedule (circular day badges, 12h times)
+> - `step-4-calendar.tsx` — Google Calendar OAuth connect (saves step before redirect so resume works)
+> - `step-5-share-link.tsx` — booking link + copy + redirects to `/event-types` on complete
+> - `app/actions/onboarding.ts` — all 5 step actions + `completeOnboarding()` (auto-creates "30-Minute Meeting")
+> - `app/api/username-check/route.ts` — live username availability check
+> - `hooks/use-username-check.ts` — debounced hook used by step 1
 
 **Approach:** Full-screen non-dismissable `<Dialog>` rendered in `(app)/layout.tsx` when `user.onboardingDone = false`. User lands on `/dashboard`, sees the modal on top — they glimpse the product before finishing setup.
 
@@ -1606,13 +1621,18 @@ completeOnboarding()                          // step 5 → auto-create event ty
 
 ---
 
-## STEP 11 — Dashboard Shell + Settings 🔶 PARTIAL
+## STEP 11 — Dashboard Shell + Settings ✅ DONE
 
-> **Status: Partial.**
-> - `(app)/layout.tsx` ✅ — AppShell with nav, session guard
-> - `settings/profile/page.tsx` ✅ — profile + sessions + export + delete
-> - `settings/layout.tsx` + `settings-nav.tsx` ✅ — settings sidebar navigation
-> - ❌ **Still need: branding, my-link, communication, login, contacts, security, cookies, integrations pages**
+> **Status: Complete.** All 9 settings pages built and working.
+> - `settings/profile` ✅ — name, email, avatar upload (AvatarUploadCard), sessions, data export, delete account
+> - `settings/branding` ✅ — display name, brand color, logo upload, confirmation messages
+> - `settings/my-link` ✅ — username change (tracks old→new redirects), booking URL display
+> - `settings/calendars` ✅ — connected calendars list, primary/conflict-check/write toggles, disconnect
+> - `settings/integrations` ✅ — Google Calendar connect, Google Meet badge, Zoom (pending approval)
+> - `settings/communication` ✅ — email notification toggles, from name, reply-to
+> - `settings/contacts` ✅ — auto-save invitees, add/edit/delete contacts
+> - `settings/security` ✅ — session management, password change
+> - `settings/cookies` ✅ — analytics/marketing consent toggles
 
 **Reference:** `docs/features/user-profile-settings.md`
 
@@ -1642,9 +1662,15 @@ completeOnboarding()                          // step 5 → auto-create event ty
 
 ---
 
-## STEP 12 — Event Type Builder ❌
+## STEP 12 — Event Type Builder ✅ DONE
 
-> **Status:** Route stub `app/(app)/event-types/page.tsx` exists. Full 6-tab builder not yet built.
+> **Status: Complete.** Full 6-tab builder implemented.
+> - `event-types/page.tsx` ✅ — list with event-type-card.tsx (toggle active, duplicate, delete, copy link)
+> - `event-types/new/page.tsx` ✅ — create mode
+> - `event-types/[id]/page.tsx` ✅ — edit mode
+> - `components/event-types/builder.tsx` ✅ — tabbed form container
+> - `tab-general.tsx` ✅, `tab-location.tsx` ✅, `tab-cancellation.tsx` ✅, `tab-notifications.tsx` ✅, `tab-questions.tsx` ✅ (drag-drop), `tab-availability.tsx` ✅
+> - `app/actions/event-types.ts` ✅ — full CRUD: create, update, delete, duplicate, toggle, questions CRUD, reorder
 
 **Reference:** `docs/features/event-types.md`
 
@@ -1701,24 +1727,33 @@ app/(app)/availability/page.tsx
 
 ---
 
-## STEP 15 — Calendar Integrations ❌
+## STEP 15 — Calendar Integrations 🔶 PARTIAL
+
+> **Status: Partial.**
+> - OAuth initiate (`/api/integrations/google/route.ts`) ✅ — redirects to Google consent
+> - OAuth callback (`/api/integrations/google/callback/route.ts`) ✅ — encrypts tokens, inserts `connected_calendar`, sets write-target calendar
+> - Settings UI (`settings/integrations` + `settings/calendars`) ✅ — connect/disconnect/manage UI done
+> - ❌ **Still need:** `CALENDAR_WRITE` worker handler — writes booking to Google Calendar after booking
+> - ❌ **Still need:** `CALENDAR_TOKEN_REFRESH` handler — silent token refresh
+> - ❌ **Still need:** `CALENDAR_SYNC` handler — free/busy cache refresh (needed for slot generation)
+> - ❌ **Still need:** `CALENDAR_DISCONNECT_ALERT` handler — email host when token expires
+> - ❌ **Outlook = P1** — build after booking engine is stable
 
 **Reference:** `docs/features/calendar-integrations.md`
 
 ```
-app/(app)/settings/integrations/page.tsx
-app/api/integrations/google/route.ts
-app/api/integrations/google/callback/route.ts
+app/(app)/settings/integrations/page.tsx  ✅ done
+app/api/integrations/google/route.ts      ✅ done
+app/api/integrations/google/callback/route.ts  ✅ done
 ```
 
-### Build order for Google (P0):
-1. OAuth initiate (`/api/integrations/google`) → redirect to Google consent
-2. Callback (`/api/integrations/google/callback`) → encrypt tokens → INSERT `connected_calendar`
-3. Calendar list fetch via `calendar.calendarList.list`
-4. Free/busy read via `calendar.freebusy.query` → `calendar_events_cache`
-5. Write booking via `calendar.events.insert` (in `CALENDAR_WRITE` handler)
-6. Token refresh (`CALENDAR_TOKEN_REFRESH` handler)
-7. Token expiry → `CALENDAR_DISCONNECT_ALERT` → host email alert
+### Remaining build order for Google (P0):
+1. ~~OAuth initiate~~ ✅ done
+2. ~~Callback → encrypt tokens → INSERT `connected_calendar`~~ ✅ done
+3. Free/busy read via `calendar.freebusy.query` → `calendar_events_cache` (in `CALENDAR_SYNC` handler)
+4. Write booking via `calendar.events.insert` (in `CALENDAR_WRITE` handler)
+5. Token refresh (`CALENDAR_TOKEN_REFRESH` handler)
+6. Token expiry → `CALENDAR_DISCONNECT_ALERT` → host email alert
 
 **Outlook = P1.** Build after Google stable.
 
@@ -2151,62 +2186,63 @@ import { CalendarIcon } from '@phosphor-icons/react'
 ## BUILD ORDER SUMMARY
 
 ```
-ALREADY DONE ✅ (re-audited 2026-06-16):
-  Auth (Better Auth + magic link + admin plugin)
+ALREADY DONE ✅ (re-audited 2026-06-17):
+  Auth (Better Auth + magic link + admin plugin + 30-day session)
   DB client (Drizzle + postgres)
   ALL DB schema files (enums, auth, profile, event-types, availability,
     calendars, video, bookings, notifications, platform, relations)
-  ALL job types defined in lib/worker/job-types.ts (16 types)
+  ALL job types defined in lib/worker/job-types.ts (16+ types)
   Worker email handlers (email-send, email-outbox-reap, email-events-prune, scaffold-healthcheck)
   encrypt.ts (AES-256-GCM)
-  lib/s3.ts (S3/R2 client)
+  lib/storage/ (local + S3/R2 multi-driver abstraction, avatar upload API)
   ALL Shadcn UI components installed
-  Logo, ThemeProvider, ThemeToggle
-  app/globals.css — teal OKLCH palette, Plus Jakarta Sans, landing animations, scroll-reveal
-  app/layout.tsx — Plus Jakarta Sans + Geist fonts + ThemeProvider
+  Logo, ThemeProvider, ThemeToggle, PageHeader
+  app/globals.css — teal OKLCH palette, Plus Jakarta Sans, scroll animations
+  app/layout.tsx — Geist fonts + ThemeProvider + Sonner
   middleware.ts — full route protection Layer 1
+  app-shell.tsx + sidebar-nav.tsx — show real avatar image (from user.image)
   orbit admin — overview, users, email, queues, audit
-  profile settings page + account-forms + sessions-card
-  dashboard page (real stats + upcoming meetings)
-  landing page — premium full redesign (Step 24 done)
+  ALL settings pages — profile, branding, my-link, calendars, integrations,
+    communication, contacts, security, cookies (9 pages complete)
+  dashboard page — 5 stat cards + hover effects + upcoming + recent + empty states
+  landing page — premium full redesign
+  ALL onboarding steps — 5-step modal, resume-from-step, avatar upload, Google OAuth
+  Event type builder — list + new/[id], 6-tab form, full CRUD, questions, durations
+  Google Calendar OAuth — initiate + callback, encrypt tokens, store calendar
   all route groups + stubs created
   post-auth redirect
 
-Step 1   → ✅ globals.css + fonts (teal primary, Plus Jakarta Sans, scroll animations)
-Step 2   → ✅ Renamed KROVA → Schduled, updated app-shell nav
+Step 1   → ✅ globals.css + fonts
+Step 2   → ✅ Renamed KROVA → Schduled
 Step 3   → ✅ All packages + Shadcn components installed
-Step 4   → 🔶 PARTIAL — Logo/ThemeProvider/ThemeToggle ✅
+Step 4   → 🔶 PARTIAL — Logo/ThemeProvider/ThemeToggle/PageHeader ✅
              ❌ Still need: spinner.tsx, stat.tsx, empty.tsx, data-table.tsx, kbd.tsx, nav-progress.tsx
-Step 5   → ✅ middleware.ts complete — Layer 1 route protection
-Step 6   → ✅ All DB schema tables + relations + migrations applied
-Step 7   → 🔶 PARTIAL — All job types defined ✅
-             ❌ Still need: IDEMPOTENCY_KEYS_PRUNE job type (missing from job-types.ts)
-             ❌ Still need: handler files for video-link, calendar-write/cancel/update, calendar-sync, reminders, cleanup
-Step 8   → 🔶 PARTIAL — encrypt.ts ✅, lib/s3.ts ✅
+             (dashboard has inline StatCard — move to shared component when booking pages need it)
+Step 5   → ✅ middleware.ts complete
+Step 6   → ✅ All DB schema + migrations applied
+Step 7   → 🔶 PARTIAL — All job types + email handlers ✅
+             ❌ Still need: CALENDAR_WRITE, CALENDAR_CANCEL, CALENDAR_UPDATE, CALENDAR_SYNC,
+               CALENDAR_TOKEN_REFRESH, VIDEO_LINK_GENERATE, BOOKING_REMINDER_24H/1H, cleanup handlers
+Step 8   → 🔶 PARTIAL — encrypt.ts ✅, lib/storage/ ✅
              ❌ Still need: lib/api/helpers.ts, lib/validators.ts
-Step 9   → 🔶 PARTIAL — app layout has requireSession() + freshUser DB query ✅
-             ❌ Still need: 30-day session config in lib/auth.ts
-             ❌ Still need: Google OAuth social provider (when GOOGLE_CLIENT_ID available)
-Step 10  → ✅ Onboarding modal — 5 steps in non-dismissable Dialog on /dashboard
-             Done: profile+username, Google Calendar OAuth, timezone picker, Calendly-style event type, share link+QR
-             Avatar upload UI built — S3 code commented, ready to uncomment when credentials added
-             Google OAuth routes built: /api/integrations/google + /callback
-Step 11  → 🔶 PARTIAL — dashboard ✅, settings profile ✅, settings layout/nav ✅
-             ❌ Still need: branding, my-link, communication, login, contacts, security, cookies, integrations
-Step 12  → ❌ Event type builder (list + new/[id] 6-tab form) — stub exists
+Step 9   → ✅ requireSession() + freshUser + 30-day session + Google OAuth social provider
+Step 10  → ✅ Onboarding modal — all 5 steps, resume-from-step, avatar upload, Google OAuth
+Step 11  → ✅ ALL settings pages — 9 pages complete
+Step 12  → ✅ Event type builder — list + 6-tab builder, full CRUD + questions
 Step 13  → ❌ Availability management (weekly grid + date overrides) — stub exists
 Step 14  → ✅ lib/encrypt.ts — AES-256-GCM OAuth token encryption
-Step 15  → ❌ Calendar integrations (Google OAuth P0 + Google Meet, Outlook P1)
+Step 15  → 🔶 PARTIAL — Google OAuth routes + settings UI ✅
+             ❌ Still need: CALENDAR_WRITE/SYNC/TOKEN_REFRESH worker handlers
 Step 16  → ❌ Timezone DST-safe slot generation (lib/calendar/slots.ts)
-Step 17  → ❌ Public booking page — stubs exist, full implementation needed
+Step 17  → ❌ Public booking page — stubs exist
 Step 18  → ❌ Booking engine (pg_advisory_xact_lock + 5 async jobs post-commit)
-Step 19  → ❌ Custom questions (5 types + @dnd-kit drag-drop)
-Step 20  → ❌ Video conferencing (Google Meet free from Step 15, Zoom OAuth)
-Step 21  → ❌ 8 remaining booking email templates + ICS generation (magic-link done ✅)
-Step 22  → 🔶 PARTIAL — dashboard stats done ✅, bookings list stub exists
-             ❌ Still need: 3-tab list (Upcoming/Past/Cancelled) + Sheet detail panel
-Step 23  → ❌ Cancel & reschedule flows — stubs exist, API routes + logic needed
-Step 24  → ✅ Landing page — full premium redesign complete
+Step 19  → ❌ Custom questions on booking form (already built in event type builder)
+Step 20  → ❌ Video conferencing (Google Meet free from Step 15, Zoom OAuth P1)
+Step 21  → ❌ 8 booking email templates + ICS (magic-link + delete-confirmation done ✅)
+Step 22  → 🔶 PARTIAL — dashboard stats ✅, bookings list stub exists
+             ❌ Still need: 3-tab list (Upcoming/Past/Cancelled) + Sheet detail
+Step 23  → ❌ Cancel & reschedule flows — stubs exist, API + logic needed
+Step 24  → ✅ Landing page — premium redesign complete
 Step 25  → 🔶 PARTIAL — overview/users/email/queues/audit ✅
              ❌ Still need: /orbit/users/[id] detail + /orbit/settings
 Step 26  → ❌ Open source audit (no billing/plan gates)
@@ -2214,15 +2250,33 @@ Step 27  → ❌ QA (10 test sequences) + launch checklist
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-NEXT PRIORITY ORDER (start here):
-  1. Step 10  → Onboarding modal (5 steps in Dialog — first thing a new user sees)
-  2. Step 4   → Missing common components: spinner, stat, empty, data-table, kbd, nav-progress
-  3. Step 11  → Remaining settings pages (branding, my-link, integrations, security, etc.)
-  4. Step 7.3 → Worker handlers (video-link, calendar, reminders, cleanup)
-  5. Step 8   → lib/api/helpers.ts + lib/validators.ts
-  6. Step 12  → Event type builder
-  7. Step 13  → Availability management
-  8. Step 15  → Calendar integrations (Google OAuth + Meet)
-  9. Step 16  → DST-safe slot generation
-  10. Steps 17–23 → Booking engine + public pages + emails
+NEXT PRIORITY ORDER (pick up here):
+
+  1. Step 13  → Availability management — users need to edit their schedule after onboarding
+                (weekly grid Mon–Sun + time slots + date overrides)
+
+  2. Step 16  → DST-safe slot generation (lib/calendar/slots.ts)
+                — prerequisite for the public booking page
+
+  3. Step 17  → Public booking page — /{username} event list + /{username}/{slug} calendar + form
+                — THE core feature. Needs Step 16 (slots) first.
+
+  4. Step 18  → Booking engine — POST /api/bookings + GET /api/slots
+                (advisory lock, idempotency, 5 async post-commit jobs)
+
+  5. Step 21  → 8 booking email templates + ICS file generation
+                — needed immediately after booking engine
+
+  6. Step 7.3 → Worker handlers — CALENDAR_WRITE, CALENDAR_SYNC, VIDEO_LINK_GENERATE, reminders
+                — needed for post-booking async jobs to actually execute
+
+  7. Step 22  → Bookings list page — 3-tab Upcoming/Past/Cancelled + Sheet detail panel
+
+  8. Step 23  → Cancel & reschedule flows (token-based public pages + API routes)
+
+  9. Step 4   → Missing shared UI components (spinner, empty, data-table)
+                — do alongside Step 22 when building the bookings list
+
+  10. Steps 8, 15.3, 19, 20, 25, 26, 27
+                → Security libs, remaining calendar workers, Zoom, admin detail, QA
 ```
