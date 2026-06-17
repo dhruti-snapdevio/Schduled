@@ -174,14 +174,17 @@ export function TabAvailability({ form, schedules }: TabAvailabilityProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Availability schedule</FormLabel>
-              <Select value={field.value ?? ''} onValueChange={field.onChange}>
+              <Select
+                value={field.value ?? '__none__'}
+                onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Use default schedule" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Use default schedule</SelectItem>
+                  <SelectItem value="__none__">Use default schedule</SelectItem>
                   {schedules.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.name}{s.isDefault ? ' (default)' : ''}
