@@ -22,6 +22,10 @@ export const auth = betterAuth({
   }),
   secret: env.APP_SECRET,
   baseURL: env.NEXT_PUBLIC_APP_URL,
+  trustedOrigins: [
+    "http://localhost:3000",
+    env.NEXT_PUBLIC_APP_URL,
+  ],
   ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
     ? {
         socialProviders: {

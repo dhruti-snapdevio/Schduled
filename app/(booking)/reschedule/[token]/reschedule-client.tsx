@@ -1,0 +1,389 @@
+"use client";
+
+import {
+  ArrowRight,
+  CaretLeft,
+  CaretRight,
+  CheckCircle,
+  Clock,
+  Spinner,
+} from "@phosphor-icons/react";
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameMonth,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
+import { useCallback, useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
+
+interface SlotInfo {
+  endUtc: string;
+  startUtc: string;
+}
+
+interface Props {
+  availableDaysOfWeek: string[];
+  currentStartUtc: string;
+  eventName: string;
+  hostName: string;
+  inviteeTimezone: string;
+  maxDate: string;
+  slug: string;
+  today: string;
+  token: string;
+  username: string;
+}
+
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DATE_FMT = "EEE, MMM d 'at' h:mm a";
+
+export function RescheduleClient(props: Props) {
+  const [inviteeTz] = useState(
+    () =>
+      Intl.DateTimeFormat().resolvedOptions().timeZone || props.inviteeTimezone
+  );
+  const [today, setToday] = useState(props.today);
+  const [month, setMonth] = useState(() => {
+    const [y, m] = props.today.split("-").map(Number);
+    return new Date(y, m - 1, 1);
+  });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount to correct to the client's local date
+  useEffect(() => {
+    const clientToday = format(new Date(), "yyyy-MM-dd");
+    if (clientToday !== props.today) {
+      setToday(clientToday);
+      const [y, m] = clientToday.split("-").map(Number);
+      setMonth(new Date(y, m - 1, 1));
+    }
+  }, []);
+
+  const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
+  const [loadingDays, setLoadingDays] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [slots, setSlots] = useState<SlotInfo[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<SlotInfo | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [newStartUtc, setNewStartUtc] = useState<string | null>(null);
+
+  const fetchDays = useCallback(
+    async (forMonth: Date) => {
+      setLoadingDays(true);
+      try {
+        const res = await fetch(
+          `/api/available-days?username=${props.username}&slug=${props.slug}&month=${format(forMonth, "yyyy-MM")}`
+        );
+        const data = await res.json();
+        setAvailableDates(new Set<string>(data.availableDates ?? []));
+      } catch {
+        setAvailableDates(new Set());
+      } finally {
+        setLoadingDays(false);
+      }
+    },
+    [props.username, props.slug]
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refetch available days whenever the visible month changes
+  useEffect(() => {
+    fetchDays(month);
+  }, [month]);
+
+  async function fetchSlots(date: string) {
+    setLoadingSlots(true);
+    setSlots([]);
+    setSelectedSlot(null);
+    try {
+      const res = await fetch(
+        `/api/slots?username=${props.username}&slug=${props.slug}&date=${date}`
+      );
+      const data = await res.json();
+      setSlots(data.slots ?? []);
+    } catch {
+      setSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  }
+
+  function isDayAvailable(dateStr: string): boolean {
+    if (dateStr < today || dateStr > props.maxDate) {
+      return false;
+    }
+    return availableDates.has(dateStr);
+  }
+
+  async function handleConfirm() {
+    if (!selectedSlot) {
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/bookings/reschedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: props.token,
+          startUtc: selectedSlot.startUtc,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setError(data.error ?? "Could not reschedule.");
+        return;
+      }
+      setNewStartUtc(data.startUtc);
+      setDone(true);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const calendarDays = eachDayOfInterval({
+    start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
+    end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
+  });
+
+  const currentWhen = formatInTimeZone(
+    new Date(props.currentStartUtc),
+    inviteeTz,
+    DATE_FMT
+  );
+
+  if (done) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
+        <div className="w-full max-w-md bg-white px-8 py-12 text-center shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+          <CheckCircle
+            className="mx-auto text-primary"
+            size={48}
+            weight="fill"
+          />
+          <h1 className="mt-4 text-lg font-bold text-gray-900">
+            Booking rescheduled
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your {props.eventName} with {props.hostName} is now on{" "}
+            <strong className="text-gray-700">
+              {newStartUtc &&
+                formatInTimeZone(new Date(newStartUtc), inviteeTz, DATE_FMT)}
+            </strong>
+            . A confirmation email is on its way.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
+      <div className="w-full max-w-3xl overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+        <div className="border-b border-gray-100 bg-[#F8FCFB] px-8 py-5">
+          <h1 className="text-base font-bold text-gray-900">
+            Reschedule your booking
+          </h1>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="text-primary/70" size={13} />
+            Currently: {currentWhen} ({inviteeTz})
+          </p>
+        </div>
+
+        <div className="flex flex-col lg:flex-row">
+          {/* Calendar */}
+          <div className="shrink-0 border-b border-gray-100 p-6 lg:w-[340px] lg:border-b-0 lg:border-r">
+            <div className="mb-4 flex items-center justify-between">
+              <button
+                className="flex h-8 w-8 items-center justify-center text-gray-400 transition-colors hover:text-gray-700 disabled:opacity-30"
+                disabled={format(month, "yyyy-MM") <= today.slice(0, 7)}
+                onClick={() => setMonth((m) => subMonths(m, 1))}
+                type="button"
+              >
+                <CaretLeft size={14} weight="bold" />
+              </button>
+              <span className="text-[13px] font-semibold text-gray-700">
+                {format(month, "MMMM yyyy")}
+              </span>
+              <button
+                className="flex h-8 w-8 items-center justify-center text-gray-400 transition-colors hover:text-gray-700 disabled:opacity-30"
+                disabled={
+                  format(addMonths(month, 1), "yyyy-MM") >
+                  props.maxDate.slice(0, 7)
+                }
+                onClick={() => setMonth((m) => addMonths(m, 1))}
+                type="button"
+              >
+                <CaretRight size={14} weight="bold" />
+              </button>
+            </div>
+            <div className="mb-2 grid grid-cols-7">
+              {DAY_LABELS.map((d) => (
+                <span
+                  className="py-1 text-center text-[10px] font-bold uppercase tracking-widest text-gray-400"
+                  key={d}
+                >
+                  {d}
+                </span>
+              ))}
+            </div>
+            <div
+              className={cn(
+                "grid grid-cols-7 gap-y-0.5 transition-opacity",
+                loadingDays && "opacity-40 pointer-events-none"
+              )}
+            >
+              {calendarDays.map((day) => {
+                const dateStr = format(day, "yyyy-MM-dd");
+                const inMonth = isSameMonth(day, month);
+                const available = inMonth && isDayAvailable(dateStr);
+                const isSelected = selectedDate === dateStr;
+                const isToday = dateStr === today;
+                return (
+                  <div
+                    className="flex items-center justify-center p-0.5"
+                    key={dateStr}
+                  >
+                    <button
+                      className={cn(
+                        "flex h-9 w-9 items-center justify-center rounded-full text-[13px] transition-all",
+                        !inMonth && "invisible pointer-events-none",
+                        inMonth && !available && "cursor-default text-gray-200",
+                        inMonth &&
+                          available &&
+                          !isSelected &&
+                          !isToday &&
+                          "cursor-pointer font-medium text-gray-700 hover:bg-primary/10 hover:text-primary",
+                        isToday &&
+                          !isSelected &&
+                          "cursor-pointer font-bold text-primary ring-2 ring-inset ring-primary",
+                        isSelected &&
+                          "cursor-pointer bg-primary font-bold text-white"
+                      )}
+                      disabled={!available}
+                      onClick={() => {
+                        if (available) {
+                          setSelectedDate(dateStr);
+                          fetchSlots(dateStr);
+                        }
+                      }}
+                      type="button"
+                    >
+                      {format(day, "d")}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Slots */}
+          <div className="flex flex-1 flex-col">
+            {selectedDate ? (
+              <div className="flex flex-1 flex-col">
+                <div className="border-b border-gray-100 px-6 py-4">
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    {formatInTimeZone(
+                      new Date(`${selectedDate}T12:00:00Z`),
+                      inviteeTz,
+                      "EEEE, MMMM d"
+                    )}
+                  </h3>
+                </div>
+                <div className="max-h-[360px] flex-1 overflow-y-auto p-6">
+                  {loadingSlots && (
+                    <div className="flex flex-col items-center gap-3 pt-8">
+                      <Spinner
+                        className="animate-spin text-primary"
+                        size={22}
+                      />
+                      <p className="text-[12px] text-muted-foreground">
+                        Loading times…
+                      </p>
+                    </div>
+                  )}
+                  {!loadingSlots && slots.length === 0 && (
+                    <p className="pt-8 text-center text-[13px] text-muted-foreground">
+                      No times available. Try another date.
+                    </p>
+                  )}
+                  {!loadingSlots && slots.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      {slots.map((slot) => {
+                        const isChosen =
+                          selectedSlot?.startUtc === slot.startUtc;
+                        return (
+                          <button
+                            className={cn(
+                              "flex h-11 w-full items-center justify-center gap-2 text-[13px] font-semibold transition-all",
+                              isChosen
+                                ? "bg-primary text-white"
+                                : "border border-gray-200 bg-white text-gray-700 hover:border-primary/60 hover:bg-primary/5 hover:text-primary"
+                            )}
+                            key={slot.startUtc}
+                            onClick={() => setSelectedSlot(slot)}
+                            type="button"
+                          >
+                            {isChosen && (
+                              <CheckCircle size={14} weight="fill" />
+                            )}
+                            {formatInTimeZone(
+                              new Date(slot.startUtc),
+                              inviteeTz,
+                              "h:mm a"
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                {error && (
+                  <p className="px-6 pb-2 text-[12px] text-destructive">
+                    {error}
+                  </p>
+                )}
+                {selectedSlot && (
+                  <div className="border-t border-gray-100 p-4">
+                    <button
+                      className="flex h-11 w-full items-center justify-center gap-2 bg-primary text-sm font-bold text-white transition-all hover:bg-primary/90 disabled:opacity-60"
+                      disabled={submitting}
+                      onClick={handleConfirm}
+                      type="button"
+                    >
+                      {submitting ? (
+                        <>
+                          <Spinner className="animate-spin" size={15} />
+                          Rescheduling…
+                        </>
+                      ) : (
+                        <>
+                          Confirm new time
+                          <ArrowRight size={15} weight="bold" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-1 items-center justify-center p-10 text-center text-sm text-muted-foreground">
+                Pick a date to see available times.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}

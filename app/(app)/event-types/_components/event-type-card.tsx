@@ -15,6 +15,7 @@ import {
   MapPin,
   Globe,
   Screencast,
+  ProhibitInset,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import {
@@ -129,9 +130,9 @@ export function EventTypeCard({
   const sortedDurations = [...durations].sort((a, b) => a.duration - b.duration)
 
   return (
-    <div className="group flex items-stretch border border-border bg-card transition-colors hover:border-primary/30">
+    <div className={`group flex items-stretch border border-border bg-card transition-colors hover:border-primary/30 ${!isActive ? 'opacity-60' : ''}`}>
       {/* Color bar */}
-      <div className="w-1 shrink-0" style={{ backgroundColor: color }} />
+      <div className="w-1 shrink-0" style={{ backgroundColor: isActive ? color : '#9ca3af' }} />
 
       {/* Content */}
       <div className="flex flex-1 items-center gap-4 px-4 py-4 min-w-0">
@@ -143,7 +144,9 @@ export function EventTypeCard({
               <Badge variant="outline" className="text-xs py-0">Hidden</Badge>
             )}
             {!isActive && (
-              <Badge variant="secondary" className="text-xs py-0">Inactive</Badge>
+              <Badge variant="secondary" className="flex items-center gap-1 text-xs py-0">
+                <ProhibitInset size={11} /> Inactive
+              </Badge>
             )}
           </div>
 
@@ -153,7 +156,7 @@ export function EventTypeCard({
               <span
                 key={d.duration}
                 className={`inline-flex items-center px-2 py-0.5 text-xs border ${
-                  d.isDefault
+                  d.isDefault && isActive
                     ? 'border-primary/40 bg-primary/5 text-primary font-medium'
                     : 'border-border text-muted-foreground'
                 }`}
@@ -172,7 +175,7 @@ export function EventTypeCard({
 
         {/* Right side controls */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Active toggle */}
+          {/* Active toggle — always enabled so user can re-activate */}
           <Switch
             checked={isActive}
             disabled={isPending}
@@ -180,30 +183,34 @@ export function EventTypeCard({
             aria-label={isActive ? 'Deactivate event type' : 'Activate event type'}
           />
 
-          {/* Copy link */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Copy booking link"
-            onClick={copyLink}
-            disabled={!bookingUrl}
-          >
-            <LinkIcon size={15} />
-          </Button>
+          {/* Copy link — hidden when inactive */}
+          {isActive && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Copy booking link"
+              onClick={copyLink}
+              disabled={!bookingUrl}
+            >
+              <LinkIcon size={15} />
+            </Button>
+          )}
 
-          {/* Edit */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Edit"
-            asChild
-          >
-            <Link href={`/event-types/${id}`}>
-              <PencilSimple size={15} />
-            </Link>
-          </Button>
+          {/* Edit — hidden when inactive */}
+          {isActive && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Edit"
+              asChild
+            >
+              <Link href={`/event-types/${id}`}>
+                <PencilSimple size={15} />
+              </Link>
+            </Button>
+          )}
 
           {/* 3-dot menu */}
           <DropdownMenu>
@@ -218,7 +225,10 @@ export function EventTypeCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem
+                asChild
+                disabled={!isActive}
+              >
                 <Link href={`/event-types/${id}`} className="flex items-center gap-2">
                   <PencilSimple size={14} /> Edit
                 </Link>
@@ -226,7 +236,7 @@ export function EventTypeCard({
               <DropdownMenuItem
                 className="flex items-center gap-2"
                 onClick={copyLink}
-                disabled={!bookingUrl}
+                disabled={!bookingUrl || !isActive}
               >
                 <LinkIcon size={14} /> Copy link
               </DropdownMenuItem>

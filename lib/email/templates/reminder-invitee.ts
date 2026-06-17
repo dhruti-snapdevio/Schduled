@@ -1,0 +1,64 @@
+import { createElement } from 'react'
+import { formatInTimeZone } from 'date-fns-tz'
+import { renderEmailTemplate } from '@/lib/email/renderer'
+import { ReminderInviteeEmail } from '@/lib/email/components/reminder-invitee'
+import { env } from '@/lib/env'
+
+interface ReminderInviteeParams {
+  inviteeName:     string
+  hostName:        string
+  eventName:       string
+  startUtc:        Date
+  hostTimezone:    string
+  inviteeTimezone: string
+  locationLabel:   string
+  meetLink:        string | null
+  cancelToken:     string
+  rescheduleToken: string
+  timeUntil:       '24 hours' | '1 hour'
+}
+
+const DATE_FMT = "EEEE, MMMM d, yyyy 'at' h:mm a"
+
+export async function reminderInviteeTemplate(p: ReminderInviteeParams) {
+  const base = env.NEXT_PUBLIC_APP_URL
+
+  const startFormatted = formatInTimeZone(p.startUtc, p.hostTimezone,    DATE_FMT)
+  const inviteeTime    = formatInTimeZone(p.startUtc, p.inviteeTimezone, DATE_FMT)
+
+  const cancelUrl      = `${base}/cancel/${p.cancelToken}`
+  const rescheduleUrl  = `${base}/reschedule/${p.rescheduleToken}`
+
+  const html = await renderEmailTemplate(
+    createElement(ReminderInviteeEmail, {
+      inviteeName:     p.inviteeName,
+      hostName:        p.hostName,
+      eventName:       p.eventName,
+      startFormatted,
+      hostTimezone:    p.hostTimezone,
+      inviteeTime,
+      inviteeTimezone: p.inviteeTimezone,
+      locationLabel:   p.locationLabel,
+      meetLink:        p.meetLink,
+      cancelUrl,
+      rescheduleUrl,
+      timeUntil:       p.timeUntil,
+    }),
+  )
+
+  const text = `Hi ${p.inviteeName},
+
+Your ${p.eventName} with ${p.hostName} is in ${p.timeUntil}.
+
+Time (${p.hostTimezone}): ${startFormatted}
+Time (${p.inviteeTimezone}): ${inviteeTime}
+Location: ${p.locationLabel}
+${p.meetLink ? `\nJoin: ${p.meetLink}` : ''}
+
+Reschedule: ${rescheduleUrl}
+Cancel: ${cancelUrl}
+
+— Schduled`
+
+  return { html, text }
+}

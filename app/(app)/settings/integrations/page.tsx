@@ -1,26 +1,38 @@
-import { eq } from 'drizzle-orm'
-import { GoogleLogo, VideoCamera } from '@phosphor-icons/react/dist/ssr'
-import { PageHeader } from '@/components/scaffold/page-header'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { connectedCalendar } from '@/db/schema'
-import { requireSession } from '@/lib/authz'
-import { db } from '@/lib/db'
-import { env } from '@/lib/env'
+import { GoogleLogo, VideoCamera } from "@phosphor-icons/react/dist/ssr";
+import { and, eq } from "drizzle-orm";
+import { PageHeader } from "@/components/scaffold/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { connectedCalendar, videoConnection } from "@/db/schema";
+import { requireSession } from "@/lib/authz";
+import { db } from "@/lib/db";
+import { env } from "@/lib/env";
+import { ZoomDisconnectButton } from "./_components/zoom-action";
 
-export const metadata = { title: 'Integrations' }
+export const metadata = { title: "Integrations" };
 
 interface IntegrationRowProps {
-  icon: React.ReactNode
-  name: string
-  description: string
-  badge?: React.ReactNode
-  action?: React.ReactNode
+  action?: React.ReactNode;
+  badge?: React.ReactNode;
+  description: string;
+  icon: React.ReactNode;
+  name: string;
 }
 
-function IntegrationRow({ icon, name, description, badge, action }: IntegrationRowProps) {
+function IntegrationRow({
+  icon,
+  name,
+  description,
+  badge,
+  action,
+}: IntegrationRowProps) {
   return (
     <div className="flex items-center gap-4 py-5">
       <div className="flex size-10 shrink-0 items-center justify-center bg-muted">
@@ -35,49 +47,64 @@ function IntegrationRow({ icon, name, description, badge, action }: IntegrationR
       </div>
       {action}
     </div>
-  )
+  );
 }
 
 export default async function IntegrationsPage() {
-  const session = await requireSession()
+  const session = await requireSession();
 
   const googleCal = await db
-    .select({ id: connectedCalendar.id, accountEmail: connectedCalendar.accountEmail, status: connectedCalendar.status })
+    .select({
+      id: connectedCalendar.id,
+      accountEmail: connectedCalendar.accountEmail,
+      status: connectedCalendar.status,
+    })
     .from(connectedCalendar)
     .where(eq(connectedCalendar.userId, session.user.id))
     .limit(1)
-    .then((r) => r[0])
+    .then((r) => r[0]);
 
-  const googleConnectUrl = `${env.NEXT_PUBLIC_APP_URL}/api/integrations/google?returnTo=/settings/integrations`
-  const googleConfigured = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET)
+  const googleConnectUrl = `${env.NEXT_PUBLIC_APP_URL}/api/integrations/google?returnTo=/settings/integrations`;
+  const googleConfigured = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+
+  const zoomConn = await db
+    .select({
+      id: videoConnection.id,
+      accountEmail: videoConnection.accountEmail,
+    })
+    .from(videoConnection)
+    .where(
+      and(
+        eq(videoConnection.userId, session.user.id),
+        eq(videoConnection.provider, "zoom")
+      )
+    )
+    .limit(1)
+    .then((r) => r[0]);
+  const zoomConnectUrl = `${env.NEXT_PUBLIC_APP_URL}/api/integrations/zoom?returnTo=/settings/integrations`;
+  const zoomConfigured = !!(env.ZOOM_CLIENT_ID && env.ZOOM_CLIENT_SECRET);
 
   return (
     <div className="space-y-6">
       <PageHeader
+        description="Connect third-party services to power your meetings."
         eyebrow="Settings"
         title="Integrations"
-        description="Connect third-party services to power your meetings."
       />
 
       <Card>
         <CardHeader>
           <CardTitle>Video Conferencing</CardTitle>
-          <CardDescription>Automatically generate meeting links for your bookings.</CardDescription>
+          <CardDescription>
+            Automatically generate meeting links for your bookings.
+          </CardDescription>
         </CardHeader>
         <CardContent className="divide-y divide-border p-0 px-6">
           {/* Google Meet */}
           <IntegrationRow
-            icon={<GoogleLogo size={20} weight="bold" />}
-            name="Google Meet"
-            description="Generate Google Meet links automatically when Google Calendar is connected."
-            badge={
-              googleCal?.status === 'connected'
-                ? <Badge variant="secondary" className="text-[var(--success-foreground)]">Active</Badge>
-                : <Badge variant="secondary">Not connected</Badge>
-            }
             action={
-              googleCal?.status === 'connected' ? (
-                <Button asChild variant="outline" size="sm">
+              googleCal?.status === "connected" ? (
+                <Button asChild size="sm" variant="outline">
                   <a href="/settings/calendars">Manage</a>
                 </Button>
               ) : googleConfigured ? (
@@ -85,22 +112,62 @@ export default async function IntegrationsPage() {
                   <a href={googleConnectUrl}>Connect</a>
                 </Button>
               ) : (
-                <span className="text-xs text-muted-foreground">Requires setup</span>
+                <span className="text-xs text-muted-foreground">
+                  Requires setup
+                </span>
               )
             }
+            badge={
+              googleCal?.status === "connected" ? (
+                <Badge
+                  className="text-[var(--success-foreground)]"
+                  variant="secondary"
+                >
+                  Active
+                </Badge>
+              ) : (
+                <Badge variant="secondary">Not connected</Badge>
+              )
+            }
+            description="Generate Google Meet links automatically when Google Calendar is connected."
+            icon={<GoogleLogo size={20} weight="bold" />}
+            name="Google Meet"
           />
 
           {/* Zoom */}
           <IntegrationRow
+            action={
+              zoomConn ? (
+                <ZoomDisconnectButton />
+              ) : zoomConfigured ? (
+                <Button asChild size="sm">
+                  <a href={zoomConnectUrl}>Connect</a>
+                </Button>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  Requires setup
+                </span>
+              )
+            }
+            badge={
+              zoomConn ? (
+                <Badge
+                  className="text-[var(--success-foreground)]"
+                  variant="secondary"
+                >
+                  Active
+                </Badge>
+              ) : (
+                <Badge variant="secondary">Not connected</Badge>
+              )
+            }
+            description={
+              zoomConn
+                ? `Connected as ${zoomConn.accountEmail}`
+                : "Generate Zoom meeting links automatically for video bookings."
+            }
             icon={<VideoCamera size={20} />}
             name="Zoom"
-            description="Generate Zoom meeting links automatically for video bookings."
-            badge={<Badge variant="secondary">Pending approval</Badge>}
-            action={
-              <Button variant="outline" size="sm" disabled>
-                Coming soon
-              </Button>
-            }
           />
         </CardContent>
       </Card>
@@ -108,32 +175,39 @@ export default async function IntegrationsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Calendar</CardTitle>
-          <CardDescription>Manage calendar connections used for scheduling.</CardDescription>
+          <CardDescription>
+            Manage calendar connections used for scheduling.
+          </CardDescription>
         </CardHeader>
         <CardContent className="divide-y divide-border p-0 px-6">
           <IntegrationRow
-            icon={<GoogleLogo size={20} weight="bold" />}
-            name="Google Calendar"
-            description={
-              googleCal?.status === 'connected'
-                ? `Connected as ${googleCal.accountEmail}`
-                : 'Sync bookings and check availability with Google Calendar.'
-            }
-            badge={
-              googleCal?.status === 'connected'
-                ? <Badge variant="secondary" className="text-[var(--success-foreground)]">Connected</Badge>
-                : undefined
-            }
             action={
-              <Button asChild variant="outline" size="sm">
+              <Button asChild size="sm" variant="outline">
                 <a href="/settings/calendars">
-                  {googleCal?.status === 'connected' ? 'Manage' : 'Connect'}
+                  {googleCal?.status === "connected" ? "Manage" : "Connect"}
                 </a>
               </Button>
             }
+            badge={
+              googleCal?.status === "connected" ? (
+                <Badge
+                  className="text-[var(--success-foreground)]"
+                  variant="secondary"
+                >
+                  Connected
+                </Badge>
+              ) : undefined
+            }
+            description={
+              googleCal?.status === "connected"
+                ? `Connected as ${googleCal.accountEmail}`
+                : "Sync bookings and check availability with Google Calendar."
+            }
+            icon={<GoogleLogo size={20} weight="bold" />}
+            name="Google Calendar"
           />
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
