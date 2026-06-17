@@ -46,3 +46,7 @@ next-env.d.ts
 *.sql.zst
 *.dump
 krova-db-*
+
+# local file uploads (dev storage driver — files are stored here, not in git)
+/public/uploads/*
+!/public/uploads/.gitkeep

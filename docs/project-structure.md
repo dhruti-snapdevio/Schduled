@@ -20,7 +20,7 @@ schedica/
 │   │   ├── email/          ← Email templates (React Email)
 │   │   ├── calendar/       ← Google/Microsoft calendar integration
 │   │   ├── video/          ← Zoom / Teams integration
-│   │   ├── storage/        ← S3 file upload helpers
+│   │   ├── storage/        ← File upload abstraction (local disk or S3/R2)
 │   │   ├── encrypt.ts      ← AES-256-GCM encryption helper
 │   │   └── env.ts          ← Zod-validated environment variables
 │   └── hooks/              ← React custom hooks (client components only)
@@ -260,9 +260,10 @@ src/lib/
 │   ├── zoom.ts                     ← Zoom API: createMeeting, refreshToken
 │   └── teams.ts                    ← MS Teams (Phase 2): createMeeting via Graph API
 │
-├── storage/                        ← S3 file uploads
-│   ├── s3.ts                       ← S3 client init + upload/delete helpers
-│   └── presign.ts                  ← Generate presigned PUT URLs for profile photos
+├── storage/                        ← File upload abstraction (multi-driver)
+│   ├── index.ts                    ← Unified API: uploadFile, deleteFile, getFileUrl, avatarKey, logoKey
+│   ├── local.ts                    ← Local disk driver — saves to public/uploads/, served at /uploads/
+│   └── s3.ts                       ← S3/R2 driver (AWS S3 / Cloudflare R2) — activate via STORAGE_DRIVER=s3
 │
 ├── booking-engine/                 ← Core booking logic
 │   ├── conflict-check.ts           ← Full conflict check (calendar cache + Schedica bookings)

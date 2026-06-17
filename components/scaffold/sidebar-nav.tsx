@@ -60,9 +60,11 @@ function NavItem({
 export function SidebarNav({
   email,
   isAdmin,
+  userImage,
 }: {
   email: string;
   isAdmin: boolean;
+  userImage?: string | null;
 }) {
   const pathname = usePathname();
 
@@ -105,8 +107,13 @@ export function SidebarNav({
 
         {/* User email row */}
         <div className="flex items-center gap-2.5 px-3 py-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
-            {email.slice(0, 2).toUpperCase()}
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
+            {userImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={userImage} alt="Profile" className="size-full object-cover" />
+            ) : (
+              email.slice(0, 2).toUpperCase()
+            )}
           </span>
           <p className="min-w-0 flex-1 truncate text-xs font-medium text-sidebar-foreground/90 leading-none">
             {email}

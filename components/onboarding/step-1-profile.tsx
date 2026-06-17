@@ -7,32 +7,26 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { saveProfileStep } from '@/app/actions/onboarding'
 
-// ── Avatar upload note ────────────────────────────────────────────────────────
-// Avatar upload to S3/R2 is not yet active.
-// The UI shows a local preview of the selected file so the user can see what
-// their avatar will look like, but the image is NOT uploaded or saved yet.
-//
-// To enable real uploads:
-//  1. Ensure S3_* env vars are set in .env
-//  2. Uncomment the upload block below (marked AVATAR UPLOAD — UNCOMMENT)
-//  3. Import { uploadFile, avatarKey } from '@/lib/s3'
-//  4. Call uploadFile(...) and save the returned URL with saveProfileStep
-// ─────────────────────────────────────────────────────────────────────────────
+// Avatar upload uses STORAGE_DRIVER from .env:
+//   local (default) → saved to public/uploads/avatars/{userId}.webp, served at /uploads/...
+//   s3              → uploaded to Cloudflare R2 / AWS S3 (activate in lib/storage/index.ts)
 
 interface StepProfileProps {
   defaultName: string
   defaultUsername: string
+  defaultImage?: string | null
   onNext: (username: string) => void
 }
 
 type UsernameState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
 
-export function StepProfile({ defaultName, defaultUsername, onNext }: StepProfileProps) {
+export function StepProfile({ defaultName, defaultUsername, defaultImage, onNext }: StepProfileProps) {
   const [name, setName] = useState(defaultName)
   const [username, setUsername] = useState(defaultUsername)
   const [usernameState, setUsernameState] = useState<UsernameState>('idle')
   const [usernameMsg, setUsernameMsg] = useState('')
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(defaultImage ?? null)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -82,7 +76,7 @@ export function StepProfile({ defaultName, defaultUsername, onNext }: StepProfil
       setError('Image must be under 5 MB')
       return
     }
-    // Show local preview — actual upload happens when S3 is configured (see note above)
+    setAvatarFile(file)
     const reader = new FileReader()
     reader.onload = (ev) => setAvatarPreview(ev.target?.result as string)
     reader.readAsDataURL(file)
@@ -98,20 +92,18 @@ export function StepProfile({ defaultName, defaultUsername, onNext }: StepProfil
 
     setSaving(true)
 
-    // ── AVATAR UPLOAD — UNCOMMENT when S3 credentials are configured ────────
-    // const file = fileInputRef.current?.files?.[0]
-    // if (file) {
-    //   const { uploadFile, avatarKey } = await import('@/lib/s3')
-    //   const arrayBuffer = await file.arrayBuffer()
-    //   const buffer = Buffer.from(arrayBuffer)
-    //   await uploadFile({
-    //     key: avatarKey(session.user.id),
-    //     body: buffer,
-    //     contentType: file.type,
-    //   })
-    //   // Then add imageUrl to saveProfileStep payload
-    // }
-    // ────────────────────────────────────────────────────────────────────────
+    // Upload avatar if a file was selected (works with any STORAGE_DRIVER)
+    if (avatarFile) {
+      const form = new FormData()
+      form.append('file', avatarFile)
+      const res = await fetch('/api/upload/avatar', { method: 'POST', body: form })
+      if (!res.ok) {
+        const data: { error?: string } = await res.json().catch(() => ({}))
+        setSaving(false)
+        setError(data.error ?? 'Avatar upload failed. Please try again.')
+        return
+      }
+    }
 
     const result = await saveProfileStep({
       name: name.trim(),
@@ -146,13 +138,6 @@ export function StepProfile({ defaultName, defaultUsername, onNext }: StepProfil
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold">Welcome! Let&apos;s set up your profile</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          This is how people will recognise you on Schduled.
-        </p>
-      </div>
-
       {/* Avatar */}
       <div className="flex flex-col items-center gap-3">
         <button
@@ -184,10 +169,7 @@ export function StepProfile({ defaultName, defaultUsername, onNext }: StepProfil
           onChange={handleFileChange}
         />
 
-        <p className="text-xs text-muted-foreground">
-          JPG, PNG or WebP · max 5 MB
-          <span className="ml-1 text-amber-600">(preview only — upload enabled after S3 setup)</span>
-        </p>
+        <p className="text-xs text-muted-foreground">JPG, PNG or WebP · max 5 MB</p>
       </div>
 
       {/* Name */}

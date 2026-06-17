@@ -1,12 +1,14 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useActionState } from "react";
+import { UserCircle } from "@phosphor-icons/react";
 import {
   type ActionState,
   changeEmailAction,
-  deleteAccountAction,
   updateNameAction,
 } from "@/app/actions/profile";
+import { DeleteAccountModal } from "@/components/profile/delete-account-modal";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +20,148 @@ import {
 import { Input } from "@/components/ui/input";
 
 const initialState: ActionState = {};
+
+export function AvatarUploadCard({
+  currentImageUrl,
+  name,
+}: {
+  currentImageUrl?: string | null;
+  name: string;
+}) {
+  const [preview, setPreview] = useState<string | null>(
+    currentImageUrl ?? null
+  );
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const initials = name
+    .trim()
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError("");
+    setSuccess(false);
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Please select a JPG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be under 5 MB.");
+      return;
+    }
+
+    // Optimistic local preview
+    const reader = new FileReader();
+    reader.onload = (ev) => setPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    setUploading(true);
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload/avatar", {
+        method: "POST",
+        body: form,
+      });
+      const data: { url?: string; error?: string } = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Upload failed. Please try again.");
+        setPreview(currentImageUrl ?? null);
+      } else {
+        // Bust the browser cache so the new image is shown immediately
+        setPreview(`${data.url}?t=${new Date().getTime()}`);
+        setSuccess(true);
+      }
+    } catch {
+      setError("Upload failed. Please try again.");
+      setPreview(currentImageUrl ?? null);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Profile Photo</CardTitle>
+        <CardDescription>
+          Shown on your public booking page and in notification emails.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-6">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="group relative size-20 shrink-0 overflow-hidden rounded-full border-2 border-dashed border-border bg-muted transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+            aria-label="Upload profile photo"
+          >
+            {preview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={preview}
+                alt="Profile photo"
+                className="size-full object-cover"
+              />
+            ) : initials ? (
+              <span className="flex size-full items-center justify-center text-2xl font-semibold text-primary">
+                {initials}
+              </span>
+            ) : (
+              <UserCircle size={40} className="m-auto text-muted-foreground" />
+            )}
+
+            {uploading ? (
+              <span className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <span className="size-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              </span>
+            ) : (
+              <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+                <span className="text-xs font-medium text-white">Change</span>
+              </span>
+            )}
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-foreground">
+              Click the photo to upload a new one
+            </p>
+            <p className="text-xs text-muted-foreground">
+              JPG, PNG or WebP · max 5 MB · saved at 256×256
+            </p>
+            {success && (
+              <p className="text-xs font-medium text-green-600">
+                Photo updated!
+              </p>
+            )}
+            {error && <p className="text-xs text-destructive">{error}</p>}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function ActionMessage({ state }: { state: ActionState }) {
   if (state.error) {
@@ -116,38 +260,17 @@ export function AccountIdentityForms({
 }
 
 export function DeleteAccountForm({ email }: { email: string }) {
-  const [state, action, pending] = useActionState(
-    deleteAccountAction,
-    initialState
-  );
-
   return (
     <Card className="border-destructive/30">
       <CardHeader>
         <CardTitle className="text-destructive">Delete Account</CardTitle>
         <CardDescription>
-          Permanently delete your user, sessions, and linked auth accounts.
-          Audit records remain for operator history.
+          Permanently delete your account, sessions, event types, and all connected
+          data. Audit records remain for operator history. This cannot be undone.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={action} className="space-y-4">
-          <label className="block" htmlFor="confirmEmail">
-            <span className="mb-2 block font-semibold text-foreground text-sm">
-              Type your email to confirm
-            </span>
-            <Input
-              autoComplete="off"
-              id="confirmEmail"
-              name="confirmEmail"
-              placeholder={email}
-            />
-          </label>
-          <ActionMessage state={state} />
-          <Button disabled={pending} type="submit" variant="destructive">
-            {pending ? "Deleting..." : "Delete my account"}
-          </Button>
-        </form>
+        <DeleteAccountModal email={email} />
       </CardContent>
     </Card>
   );

@@ -108,8 +108,11 @@ Phase 20 →  QA & Launch Prep
 - [ ] Set up `src/lib/db/index.ts` — Drizzle client singleton
 - [ ] Set up `src/lib/email/client.ts` — Nodemailer transporter using `SMTP_*` env vars; use Mailhog (`smtp://localhost:1025`) for local dev
 - [ ] Set up `src/lib/email/renderer.ts` — `renderEmailTemplate(template, data)` → HTML string using `@react-email/render`
-- [ ] Set up `src/lib/storage/s3.ts` — `S3Client` singleton using `S3_*` env vars; set `endpoint` when using non-AWS provider
-- [ ] Set up `src/lib/storage/presign.ts` — `getPresignedUploadUrl(key)`, `deleteFile(key)`, `getPublicUrl(key)`
+- [x] Set up `lib/storage/index.ts` — unified storage API (`uploadFile`, `deleteFile`, `getFileUrl`, `avatarKey`, `logoKey`)
+- [x] Set up `lib/storage/local.ts` — local disk driver (dev): saves to `public/uploads/`, no credentials needed
+- [x] Set up `lib/storage/s3.ts` — S3/R2 driver (prod): `S3Client` singleton using `S3_*` env vars; import is commented in `index.ts` until credentials are available
+- [x] Upload API route: `POST /api/upload/avatar` — multipart upload, resizes to 256×256 WebP via `sharp`, updates `user.image` in DB
+- [ ] When going live: set `STORAGE_DRIVER=s3`, fill `S3_*` env vars, uncomment S3 driver in `lib/storage/index.ts`
 - [ ] Set up `src/lib/worker/boss.ts` — pg-boss client singleton
 - [ ] Set up `src/lib/encrypt.ts` — AES-256-GCM `encryptValue(text)` / `decryptValue(ciphertext)` using `ENCRYPT_KEY` env var (for OAuth token storage at rest)
 - [ ] Initialize git repository and make initial commit

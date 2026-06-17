@@ -1,78 +1,54 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { StepProfile } from './step-1-profile'
-import { StepCalendar } from './step-2-calendar'
-import { StepTimezone } from './step-3-timezone'
-import { StepEventType } from './step-4-event-type'
+import { StepTimezone } from './step-2-timezone'
+import { StepAvailability } from './step-3-availability'
+import { StepCalendar } from './step-4-calendar'
 import { StepShareLink } from './step-5-share-link'
-
-interface OnboardingModalProps {
-  initialStep: number       // user.onboardingStep from DB (0–4)
-  userUsername: string | null
-  userName: string
-  calendarConnected: boolean
-  appUrl: string
-}
 
 const TOTAL_STEPS = 5
 
-export function OnboardingModal({
-  initialStep,
-  userUsername,
-  userName,
-  calendarConnected,
-  appUrl,
-}: OnboardingModalProps) {
-  // initialStep is the last *completed* step (0 = none done).
-  // Current UI step = initialStep + 1, capped to 1–5.
-  const [step, setStep] = useState<number>(
-    Math.min(Math.max(initialStep + 1, 1), TOTAL_STEPS),
-  )
-  // Track username saved in step 1 so step 5 can show the booking link
-  const [savedUsername, setSavedUsername] = useState<string>(userUsername ?? '')
-  const router = useRouter()
-  const searchParams = useSearchParams()
+const STEP_META = [
+  { title: 'Set up your profile',       sub: 'How should people know you?' },
+  { title: 'Your timezone',             sub: 'When are you accepting meetings?' },
+  { title: 'Your availability',         sub: 'Set your default working hours' },
+  { title: 'Connect your calendar',     sub: 'Prevent double-bookings automatically' },
+  { title: "You're all set!",           sub: 'Start sharing your booking link' },
+]
 
-  // After returning from Google OAuth (calendar_connected=1 in URL), advance to step 3
-  useEffect(() => {
-    if (searchParams.get('calendar_connected') === '1' && step <= 2) {
-      setStep(3)
-      // Clean the URL param without full reload
-      const url = new URL(window.location.href)
-      url.searchParams.delete('calendar_connected')
-      window.history.replaceState({}, '', url.toString())
-    }
-  }, [searchParams, step])
+interface Props {
+  name: string
+  username?: string | null
+  // DB onboardingStep (0–4) — how many steps are done. Modal resumes at dbStep + 1.
+  onboardingStep?: number
+  userImage?: string | null
+}
 
-  function onNext() {
-    setStep((s) => Math.min(s + 1, TOTAL_STEPS))
-  }
-  function onBack() {
-    setStep((s) => Math.max(s - 1, 1))
-  }
-  function onComplete() {
-    // Server action was already called by step 5 component.
-    // Refresh so layout re-fetches onboardingDone=true and modal unmounts.
-    router.refresh()
-  }
+export function OnboardingModal({ name, username: initialUsername, onboardingStep = 0, userImage }: Props) {
+  // Resume at the correct step after page navigations / OAuth redirects
+  const startAt = Math.max(1, Math.min(onboardingStep + 1, 5))
+  const [step, setStep] = useState(startAt)
+  const [savedUsername, setSavedUsername] = useState(initialUsername ?? '')
 
+  const { title, sub } = STEP_META[step - 1]
   const progressPct = Math.round((step / TOTAL_STEPS) * 100)
 
   return (
     <Dialog open modal>
-      {/* DialogContent without the built-in close button */}
       <DialogContent
+        showCloseButton={false}
         className="sm:max-w-lg w-full p-0 gap-0 overflow-hidden"
-        // Remove the default ✕ close button — onboarding is non-dismissable
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        {/* Required by Radix for accessibility — visually hidden, shown to screen readers only */}
-        <DialogTitle className="sr-only">Account setup — Step {step} of {TOTAL_STEPS}</DialogTitle>
-        <DialogDescription className="sr-only">Complete your Schduled profile setup to get started.</DialogDescription>
+        <DialogTitle className="sr-only">
+          Account setup — Step {step} of {TOTAL_STEPS}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          Complete your Schduled profile setup to get started.
+        </DialogDescription>
 
         {/* Progress bar */}
         <div className="h-1 w-full bg-muted">
@@ -82,51 +58,47 @@ export function OnboardingModal({
           />
         </div>
 
-        {/* Step label */}
+        {/* Step label + heading */}
         <div className="px-6 pt-5 pb-0">
           <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
             Step {step} of {TOTAL_STEPS}
           </p>
+          <h2 className="mt-1 text-xl font-bold">{title}</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">{sub}</p>
         </div>
 
         {/* Step content */}
-        <div className="px-6 pb-6 pt-3">
+        <div className="px-6 pb-6 pt-4">
           {step === 1 && (
             <StepProfile
-              defaultName={userName}
+              defaultName={name}
               defaultUsername={savedUsername}
-              onNext={(username) => {
-                setSavedUsername(username)
-                onNext()
-              }}
+              defaultImage={userImage}
+              onNext={(username) => { setSavedUsername(username); setStep(2) }}
             />
           )}
           {step === 2 && (
-            <StepCalendar
-              calendarConnected={calendarConnected}
-              appUrl={appUrl}
-              onNext={onNext}
-              onBack={onBack}
+            <StepTimezone
+              onNext={() => setStep(3)}
+              onBack={() => setStep(1)}
             />
           )}
           {step === 3 && (
-            <StepTimezone
-              onNext={onNext}
-              onBack={onBack}
+            <StepAvailability
+              onNext={() => setStep(4)}
+              onBack={() => setStep(2)}
             />
           )}
           {step === 4 && (
-            <StepEventType
-              onNext={onNext}
-              onBack={onBack}
+            <StepCalendar
+              onNext={() => setStep(5)}
+              onBack={() => setStep(3)}
             />
           )}
           {step === 5 && (
             <StepShareLink
               username={savedUsername}
-              appUrl={appUrl}
-              onComplete={onComplete}
-              onBack={onBack}
+              onBack={() => setStep(4)}
             />
           )}
         </div>

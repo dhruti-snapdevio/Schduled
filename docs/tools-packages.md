@@ -221,23 +221,43 @@ Complete documentation of every package, library, service, and tool used in Sche
 
 ## File Storage
 
-### @aws-sdk/client-s3
+> **Storage driver pattern:** Set `STORAGE_DRIVER=local` (default, no credentials needed) for development.
+> Files are saved to `public/uploads/` and served at `/uploads/{key}`.
+> Set `STORAGE_DRIVER=s3` for production to use Cloudflare R2 / AWS S3 / MinIO.
+> All call sites import from `lib/storage/index.ts` — switching drivers requires only one env var change.
+
+### Local driver (default — development)
 
 | | |
 |---|---|
-| **Purpose** | S3-compatible object storage — stores user profile photos |
+| **Env var** | `STORAGE_DRIVER=local` |
+| **Files** | `lib/storage/local.ts` |
+| **Saves to** | `public/uploads/{key}` (project root) |
+| **Served at** | `/uploads/{key}` (Next.js static file serving) |
+| **No credentials needed** | Works out of the box — no S3/R2 setup required |
+
+### @aws-sdk/client-s3 (production — S3/R2 driver)
+
+| | |
+|---|---|
+| **Env var** | `STORAGE_DRIVER=s3` |
+| **Files** | `lib/storage/s3.ts` (code is present but import is commented in `index.ts`) |
+| **Purpose** | S3-compatible object storage — stores user profile photos and logos |
 | **Features using it** | User Profile & Settings (profile photo upload) |
 | **Compatible with** | AWS S3, Cloudflare R2, Backblaze B2, MinIO, DigitalOcean Spaces |
-| **Env vars** | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION`, `S3_BUCKET_NAME`, `S3_ENDPOINT` (optional, for non-AWS) |
-| **CORS** | Required — configure CORS on the bucket to allow PUT from `NEXT_PUBLIC_APP_URL` |
+| **Env vars** | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION`, `S3_BUCKET`, `S3_ENDPOINT`, `S3_PUBLIC_URL` |
+| **Activate** | Uncomment the `s3` import and `if (driver === 's3')` block in `lib/storage/index.ts` |
 
-### @aws-sdk/s3-request-presigner
+### Upload API
 
 | | |
 |---|---|
-| **Purpose** | Generate time-limited presigned URLs for direct browser-to-S3 uploads |
-| **Features using it** | User Profile & Settings (profile photo) |
-| **Pattern** | Browser requests presigned URL from server → browser uploads directly to S3 → S3 key stored in DB. File never passes through Next.js server. |
+| **Route** | `POST /api/upload/avatar` |
+| **Auth** | Requires session — rejects unauthenticated requests |
+| **Input** | `multipart/form-data` with `file` field (image/jpeg, image/png, image/webp — max 5 MB) |
+| **Processing** | Resizes to 256×256 WebP via `sharp` before storing |
+| **Output** | `{ url: string }` — the public URL of the stored file |
+| **Side effect** | Updates `user.image` in the DB automatically |
 
 ---
 

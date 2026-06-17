@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useEffect, useState } from "react";
+import { CircleNotch } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,7 +39,11 @@ function AuthFormInner() {
   }, [router, session]);
 
   if (isPending || session) {
-    return null;
+    return (
+      <main className="grid min-h-screen place-items-center bg-page">
+        <CircleNotch size={28} className="animate-spin text-primary" />
+      </main>
+    );
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {

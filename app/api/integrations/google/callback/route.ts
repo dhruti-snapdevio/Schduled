@@ -123,10 +123,10 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  // Advance onboarding step to 2 (calendar step completed)
+  // Advance onboarding step to 4 (calendar is step 4 in the current onboarding order)
   await db
     .update(user)
-    .set({ onboardingStep: 2, updatedAt: new Date() })
+    .set({ onboardingStep: 4, updatedAt: new Date() })
     .where(eq(user.id, session.user.id))
 
   await audit({

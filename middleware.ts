@@ -8,7 +8,7 @@ const PUBLIC_PREFIXES = [
   "/reschedule/",  // public booking reschedule
 ];
 
-const AUTH_PATHS = ["/login"];  // redirect to /dashboard if already signed in
+const AUTH_PATHS: string[] = [];  // handled client-side in auth-form via useSession()
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
@@ -45,13 +45,6 @@ export function middleware(request: NextRequest) {
     request.cookies.get("better-auth.session_token") ||
     request.cookies.get("__Secure-better-auth.session_token");
   const hasSession = Boolean(session?.value);
-
-  // Auth pages: signed-in users → go to dashboard
-  if (AUTH_PATHS.some((p) => pathname.startsWith(p))) {
-    return hasSession
-      ? NextResponse.redirect(new URL("/post-auth", request.url))
-      : NextResponse.next();
-  }
 
   // Protected app routes
   if (PROTECTED_PREFIXES.some((p) => pathname.startsWith(p))) {

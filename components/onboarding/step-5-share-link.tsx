@@ -7,19 +7,17 @@ import { completeOnboarding } from '@/app/actions/onboarding'
 
 interface StepShareLinkProps {
   username: string
-  appUrl: string
-  onComplete: () => void
   onBack: () => void
 }
 
-export function StepShareLink({ username, appUrl, onComplete, onBack }: StepShareLinkProps) {
+export function StepShareLink({ username, onBack }: StepShareLinkProps) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const bookingUrl = `${appUrl}/${username}`
   const [copied, setCopied] = useState(false)
   const [finishing, setFinishing] = useState(false)
   const [error, setError] = useState('')
   const qrRef = useRef<HTMLImageElement>(null)
 
-  // Generate QR code client-side
   useEffect(() => {
     if (!username) return
     let cancelled = false
@@ -37,7 +35,7 @@ export function StepShareLink({ username, appUrl, onComplete, onBack }: StepShar
           qrRef.current.style.display = 'block'
         }
       } catch {
-        // QR generation failed — non-fatal
+        // non-fatal
       }
     }
 
@@ -51,7 +49,7 @@ export function StepShareLink({ username, appUrl, onComplete, onBack }: StepShar
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      /* clipboard not available */
+      /* clipboard unavailable */
     }
   }
 
@@ -59,21 +57,15 @@ export function StepShareLink({ username, appUrl, onComplete, onBack }: StepShar
     setFinishing(true)
     setError('')
     const result = await completeOnboarding()
-    setFinishing(false)
-    if ('error' in result) { setError(result.error); return }
-    onComplete()
+    if ('error' in result) { setFinishing(false); setError(result.error); return }
+    // Hard navigate so the layout fully re-renders (reads onboardingDone=true, modal unmounts)
+    // and the user lands directly on their new event type.
+    window.location.href = '/event-types'
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold">You&apos;re all set! 🎉</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Share your booking link and people can start scheduling time with you instantly.
-        </p>
-      </div>
-
-      {/* Booking link display */}
+      {/* Booking link */}
       <div className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
           Your booking link
@@ -89,15 +81,9 @@ export function StepShareLink({ username, appUrl, onComplete, onBack }: StepShar
             aria-label="Copy booking link"
           >
             {copied ? (
-              <>
-                <CheckCircle size={15} weight="fill" />
-                Copied!
-              </>
+              <><CheckCircle size={15} weight="fill" /> Copied!</>
             ) : (
-              <>
-                <Copy size={15} />
-                Copy
-              </>
+              <><Copy size={15} /> Copy</>
             )}
           </button>
         </div>
@@ -109,7 +95,6 @@ export function StepShareLink({ username, appUrl, onComplete, onBack }: StepShar
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
             QR Code
           </p>
-          {/* Hidden until generated */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             ref={qrRef}
@@ -120,7 +105,7 @@ export function StepShareLink({ username, appUrl, onComplete, onBack }: StepShar
             className="border border-border"
           />
           <p className="text-xs text-muted-foreground text-center">
-            Let clients scan to book directly from their phone
+            Let clients scan to book from their phone
           </p>
         </div>
       )}
@@ -128,9 +113,9 @@ export function StepShareLink({ username, appUrl, onComplete, onBack }: StepShar
       {/* What's ready */}
       <ul className="space-y-2 text-sm text-muted-foreground">
         {[
-          'Your profile is set up',
-          'Your first event type is ready',
-          'Invitees can start booking right now',
+          'Your profile and timezone are saved',
+          'Your default availability is set',
+          'A 30-minute event type is ready to book',
         ].map((item) => (
           <li key={item} className="flex items-center gap-2">
             <CheckCircle size={15} weight="fill" className="shrink-0 text-primary" />
@@ -143,18 +128,13 @@ export function StepShareLink({ username, appUrl, onComplete, onBack }: StepShar
 
       <div className="flex flex-col gap-2">
         <Button className="w-full" onClick={handleFinish} disabled={finishing}>
-          {finishing ? 'Setting up your dashboard…' : (
+          {finishing ? 'Setting things up…' : (
             <span className="flex items-center gap-2">
-              Go to Dashboard <ArrowRight size={16} />
+              Go to my Event Types <ArrowRight size={16} />
             </span>
           )}
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground"
-          onClick={onBack}
-        >
+        <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={onBack}>
           Back
         </Button>
       </div>

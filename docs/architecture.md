@@ -561,12 +561,15 @@ const envSchema = z.object({
   ZOOM_CLIENT_ID:            z.string(),
   ZOOM_CLIENT_SECRET:        z.string(),
   ZOOM_REDIRECT_URI:         z.string().url(),
-  // S3-compatible storage (profile photos, logos, banners)
-  S3_ACCESS_KEY_ID:          z.string(),
-  S3_SECRET_ACCESS_KEY:      z.string(),
-  S3_BUCKET_NAME:            z.string(),
-  S3_REGION:                 z.string(),
+  // File storage — 'local' (default, no creds) or 's3' (Cloudflare R2 / AWS S3)
+  STORAGE_DRIVER:            z.enum(['local', 's3']).default('local'),
+  // S3/R2 credentials — only required when STORAGE_DRIVER=s3
+  S3_ACCESS_KEY_ID:          z.string().optional(),
+  S3_SECRET_ACCESS_KEY:      z.string().optional(),
+  S3_BUCKET:                 z.string().optional(),
+  S3_REGION:                 z.string().optional(),
   S3_ENDPOINT:               z.string().optional(),  // blank for AWS S3; set for R2/MinIO/B2
+  S3_PUBLIC_URL:             z.string().optional(),  // CDN URL; leave blank to use endpoint URL
   // SMTP transactional email
   SMTP_HOST:                 z.string(),
   SMTP_PORT:                 z.coerce.number().default(587),

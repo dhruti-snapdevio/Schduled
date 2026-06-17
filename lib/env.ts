@@ -32,7 +32,10 @@ const envSchema = z.object({
   ZOOM_CLIENT_ID: optionalString,
   ZOOM_CLIENT_SECRET: optionalString,
 
-  // S3-compatible file storage (Cloudflare R2 / AWS S3 / MinIO)
+  // File storage driver: 'local' (default, saves to public/uploads/) or 's3' (Cloudflare R2 / AWS S3)
+  STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
+
+  // S3/R2 credentials — only required when STORAGE_DRIVER=s3
   S3_ENDPOINT: optionalString,
   S3_REGION: optionalString,
   S3_BUCKET: optionalString,

@@ -5,6 +5,7 @@ import {
   CalendarBlank,
   CalendarCheck,
   CalendarX,
+  CalendarPlus,
   Clock,
   LinkSimple,
   Plus,
@@ -15,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { booking, eventType, user } from "@/db/schema";
 import { requireSession } from "@/lib/authz";
 import { db } from "@/lib/db";
+import { env } from "@/lib/env";
 
 export const metadata = { title: "Dashboard" };
 
@@ -28,7 +30,7 @@ export default async function DashboardPage() {
   const session = await requireSession();
 
   const [freshUser] = await db
-    .select({ name: user.name, email: user.email })
+    .select({ name: user.name, email: user.email, username: user.username })
     .from(user)
     .where(eq(user.id, session.user.id))
     .limit(1);
@@ -48,6 +50,7 @@ export default async function DashboardPage() {
     cancelledResult,
     cancelledMonthResult,
     nextMeetingResult,
+    activeEventTypesResult,
   ] = await Promise.all([
     db
       .select({ value: count() })
@@ -131,18 +134,32 @@ export default async function DashboardPage() {
       )
       .orderBy(booking.startTime)
       .limit(1),
+
+    db
+      .select({ value: count() })
+      .from(eventType)
+      .where(
+        and(
+          eq(eventType.userId, session.user.id),
+          eq(eventType.isActive, true),
+        ),
+      ),
   ]);
 
   const stats = {
-    total:             totalResult[0]?.value ?? 0,
-    totalThisMonth:    totalMonthResult[0]?.value ?? 0,
-    upcoming:          upcomingResult[0]?.value ?? 0,
-    nextMeeting:       nextMeetingResult[0] ?? null,
-    completed:         completedResult[0]?.value ?? 0,
+    total:              totalResult[0]?.value ?? 0,
+    totalThisMonth:     totalMonthResult[0]?.value ?? 0,
+    upcoming:           upcomingResult[0]?.value ?? 0,
+    nextMeeting:        nextMeetingResult[0] ?? null,
+    completed:          completedResult[0]?.value ?? 0,
     completedThisMonth: completedMonthResult[0]?.value ?? 0,
-    cancelled:         cancelledResult[0]?.value ?? 0,
+    cancelled:          cancelledResult[0]?.value ?? 0,
     cancelledThisMonth: cancelledMonthResult[0]?.value ?? 0,
+    activeEventTypes:   activeEventTypesResult[0]?.value ?? 0,
   };
+
+  const username = freshUser?.username ?? null
+  const bookingUrl = username ? `${env.NEXT_PUBLIC_APP_URL}/${username}` : null
 
   // ── Lists ──────────────────────────────────────────────────────────
   const [upcomingMeetings, recentBookings] = await Promise.all([
@@ -198,23 +215,28 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Stat cards ──────────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <StatCard
+          label="Event Types"
+          value={stats.activeEventTypes}
+          subtitle="Active"
+          icon={<CalendarPlus size={20} weight="duotone" />}
+          accent={stats.activeEventTypes > 0 && stats.total === 0}
+          href="/event-types"
+        />
         <StatCard
           label="Total Bookings"
           value={stats.total}
-          subtitle={
-            stats.totalThisMonth > 0
-              ? `+${stats.totalThisMonth} this month`
-              : "All time"
-          }
+          subtitle="All time"
           icon={<CalendarBlank size={20} weight="duotone" />}
+          note={`${stats.totalThisMonth} bookings this month`}
         />
         <StatCard
           label="Upcoming"
           value={stats.upcoming}
           subtitle={upcomingSubtitle}
           icon={<Clock size={20} weight="duotone" />}
-          accent
+          accent={stats.upcoming > 0}
         />
         <StatCard
           label="Completed"
@@ -243,7 +265,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="p-0">
             {upcomingMeetings.length === 0 ? (
-              <EmptyUpcoming />
+              <EmptyUpcoming hasEventTypes={stats.activeEventTypes > 0} bookingUrl={bookingUrl} />
             ) : (
               upcomingMeetings.map((m) => (
                 <div
@@ -283,7 +305,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="p-0">
             {recentBookings.length === 0 ? (
-              <EmptyBookings />
+              <EmptyBookings bookingUrl={bookingUrl} />
             ) : (
               recentBookings.map((b) => (
                 <div
@@ -349,18 +371,27 @@ function StatCard({
   subtitle,
   icon,
   accent = false,
+  note,
+  href,
 }: {
   label: string;
   value: number;
   subtitle: string;
   icon: React.ReactNode;
   accent?: boolean;
+  note?: string;
+  href?: string;
 }) {
   return (
-    <Card className={accent ? "border-primary/40 bg-primary/[0.04]" : ""}>
+    <Card
+      className={[
+        "transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-primary/60",
+        accent ? "border-primary/40 bg-primary/[0.04]" : "",
+      ].join(" ")}
+    >
       <CardContent className="px-5 pt-5 pb-4">
         <div className="flex items-start justify-between">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-ui text-muted-foreground">
               {label}
             </p>
@@ -373,12 +404,65 @@ function StatCard({
             {icon}
           </span>
         </div>
+
+        {(note || href) && (
+          <div className="mt-3 border-t border-border pt-3">
+            {note && (
+              <p className="text-xs text-muted-foreground">{note}</p>
+            )}
+            {href && (
+              <Link
+                href={href}
+                className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                Manage →
+              </Link>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-function EmptyUpcoming() {
+function EmptyUpcoming({
+  hasEventTypes,
+  bookingUrl,
+}: {
+  hasEventTypes: boolean
+  bookingUrl: string | null
+}) {
+  if (hasEventTypes) {
+    return (
+      <div className="flex flex-col items-center px-6 py-10 text-center">
+        <ShareNetwork
+          size={36}
+          weight="thin"
+          className="mb-3 text-muted-foreground/30"
+        />
+        <p className="text-sm font-medium text-foreground">No upcoming meetings yet</p>
+        <p className="mt-1 max-w-56 text-xs text-muted-foreground">
+          Share your booking link and people can start scheduling with you.
+        </p>
+        {bookingUrl ? (
+          <Button asChild size="sm" className="mt-4">
+            <Link href="/event-types">
+              <LinkSimple size={13} className="mr-1.5" />
+              View Booking Link
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild size="sm" className="mt-4">
+            <Link href="/event-types">
+              <CalendarPlus size={13} className="mr-1.5" />
+              View Event Types
+            </Link>
+          </Button>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col items-center px-6 py-10 text-center">
       <CalendarBlank
@@ -400,7 +484,7 @@ function EmptyUpcoming() {
   );
 }
 
-function EmptyBookings() {
+function EmptyBookings({ bookingUrl }: { bookingUrl: string | null }) {
   return (
     <div className="flex flex-col items-center px-6 py-10 text-center">
       <ShareNetwork
@@ -410,10 +494,14 @@ function EmptyBookings() {
       />
       <p className="text-sm font-medium text-foreground">No bookings yet</p>
       <p className="mt-1 max-w-56 text-xs text-muted-foreground">
-        Share your booking link to get your first booking.
+        {bookingUrl
+          ? "Share your booking link to get your first booking."
+          : "Create an event type, then share your link to get bookings."}
       </p>
       <Button asChild size="sm" variant="secondary" className="mt-4">
-        <Link href="/settings">Share Link</Link>
+        <Link href="/event-types">
+          {bookingUrl ? "View Event Types" : "Create Event Type"}
+        </Link>
       </Button>
     </div>
   );

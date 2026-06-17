@@ -1,6 +1,7 @@
 import { desc, eq } from 'drizzle-orm'
 import {
   AccountIdentityForms,
+  AvatarUploadCard,
   DeleteAccountForm,
 } from '@/components/profile/account-forms'
 import { type SessionRow, SessionsCard } from '@/components/profile/sessions-card'
@@ -50,6 +51,10 @@ export default async function ProfilePage() {
         description="Manage identity, sessions, and account data."
       />
 
+      <AvatarUploadCard
+        currentImageUrl={freshUser.image}
+        name={freshUser.name ?? ''}
+      />
       <AccountIdentityForms email={freshUser.email} name={freshUser.name} />
       <SessionsCard sessions={sessionRows} />
 

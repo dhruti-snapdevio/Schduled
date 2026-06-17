@@ -14,14 +14,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
-    return NextResponse.json(
-      { error: 'Google Calendar integration is not configured on this server.' },
-      { status: 503 },
-    )
-  }
-
   const returnTo = req.nextUrl.searchParams.get('returnTo') ?? '/dashboard'
+
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+    const fallback = new URL(returnTo, req.url)
+    fallback.searchParams.set('calendar_error', 'not_configured')
+    return NextResponse.redirect(fallback)
+  }
 
   const oauth2Client = new google.auth.OAuth2(
     env.GOOGLE_CLIENT_ID,

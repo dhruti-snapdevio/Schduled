@@ -1,0 +1,213 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Plus, X, Globe } from '@phosphor-icons/react'
+import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { saveAvailabilityStep } from '@/app/actions/onboarding'
+
+// 30-min increments stored as HH:mm (24h), displayed as 12h
+const TIMES = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2).toString().padStart(2, '0')
+  const m = i % 2 === 0 ? '00' : '30'
+  return `${h}:${m}`
+})
+
+function fmt12(t: string): string {
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const hour = h % 12 === 0 ? 12 : h % 12
+  return `${hour}:${m.toString().padStart(2, '0')}${ampm}`
+}
+
+function detectTimezone(): string {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return 'UTC' }
+}
+
+type DayOfWeek =
+  | 'monday' | 'tuesday' | 'wednesday' | 'thursday'
+  | 'friday' | 'saturday' | 'sunday'
+
+type DaySchedule = { enabled: boolean; startTime: string; endTime: string }
+
+const DAYS: { key: DayOfWeek; letter: string; label: string }[] = [
+  { key: 'monday',    letter: 'M', label: 'Monday' },
+  { key: 'tuesday',   letter: 'T', label: 'Tuesday' },
+  { key: 'wednesday', letter: 'W', label: 'Wednesday' },
+  { key: 'thursday',  letter: 'T', label: 'Thursday' },
+  { key: 'friday',    letter: 'F', label: 'Friday' },
+  { key: 'saturday',  letter: 'S', label: 'Saturday' },
+  { key: 'sunday',    letter: 'S', label: 'Sunday' },
+]
+
+const DEFAULT: Record<DayOfWeek, DaySchedule> = {
+  monday:    { enabled: true,  startTime: '09:00', endTime: '17:00' },
+  tuesday:   { enabled: true,  startTime: '09:00', endTime: '17:00' },
+  wednesday: { enabled: true,  startTime: '09:00', endTime: '17:00' },
+  thursday:  { enabled: true,  startTime: '09:00', endTime: '17:00' },
+  friday:    { enabled: true,  startTime: '09:00', endTime: '17:00' },
+  saturday:  { enabled: false, startTime: '09:00', endTime: '17:00' },
+  sunday:    { enabled: false, startTime: '09:00', endTime: '17:00' },
+}
+
+interface StepAvailabilityProps {
+  onNext: () => void
+  onBack: () => void
+}
+
+function TimeSelect({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (v: string) => void
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="h-9 w-[92px] text-sm px-3">
+        <SelectValue>{fmt12(value)}</SelectValue>
+      </SelectTrigger>
+      <SelectContent className="max-h-52">
+        {TIMES.map((t) => (
+          <SelectItem key={t} value={t} className="text-sm">
+            {fmt12(t)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+export function StepAvailability({ onNext, onBack }: StepAvailabilityProps) {
+  const [schedule, setSchedule] = useState<Record<DayOfWeek, DaySchedule>>(DEFAULT)
+  const [timezone, setTimezone] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => { setTimezone(detectTimezone()) }, [])
+
+  function toggleDay(day: DayOfWeek) {
+    setSchedule((prev) => ({
+      ...prev,
+      [day]: { ...prev[day], enabled: !prev[day].enabled },
+    }))
+  }
+
+  function updateTime(day: DayOfWeek, field: 'startTime' | 'endTime', value: string) {
+    setSchedule((prev) => ({
+      ...prev,
+      [day]: { ...prev[day], [field]: value },
+    }))
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    const result = await saveAvailabilityStep(schedule)
+    setSaving(false)
+    if ('error' in result) { setError(result.error); return }
+    onNext()
+  }
+
+  // Format timezone for display: "America/New_York" → "America/New York"
+  const tzDisplay = timezone.replace(/_/g, ' ')
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Day rows */}
+      <div className="space-y-3">
+        {DAYS.map(({ key, letter, label }) => {
+          const day = schedule[key]
+          return (
+            <div key={key} className="flex items-center gap-3" aria-label={label}>
+              {/* Day badge */}
+              <div
+                className={[
+                  'flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold select-none',
+                  day.enabled
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground',
+                ].join(' ')}
+              >
+                {letter}
+              </div>
+
+              {day.enabled ? (
+                <>
+                  {/* Time range */}
+                  <div className="flex flex-1 items-center gap-2">
+                    <TimeSelect
+                      value={day.startTime}
+                      onChange={(v) => updateTime(key, 'startTime', v)}
+                    />
+                    <span className="text-sm text-muted-foreground">–</span>
+                    <TimeSelect
+                      value={day.endTime}
+                      onChange={(v) => updateTime(key, 'endTime', v)}
+                    />
+                  </div>
+
+                  {/* Remove slot */}
+                  <button
+                    type="button"
+                    onClick={() => toggleDay(key)}
+                    aria-label={`Remove ${label}`}
+                    className="shrink-0 rounded-full p-1 text-muted-foreground transition hover:text-foreground hover:bg-muted"
+                  >
+                    <X size={15} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 text-sm text-muted-foreground">Unavailable</span>
+
+                  {/* Add slot */}
+                  <button
+                    type="button"
+                    onClick={() => toggleDay(key)}
+                    aria-label={`Add hours for ${label}`}
+                    className="shrink-0 rounded-full p-1 text-muted-foreground transition hover:text-foreground hover:bg-muted"
+                  >
+                    <Plus size={15} />
+                  </button>
+                </>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Timezone hint */}
+      {timezone && (
+        <div className="flex items-center gap-2 border-t border-border pt-4 text-sm text-muted-foreground">
+          <Globe size={15} className="shrink-0 text-primary" />
+          <span className="truncate">{tzDisplay}</span>
+        </div>
+      )}
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <div className="flex flex-col gap-2">
+        <Button type="submit" className="w-full" disabled={saving}>
+          {saving ? 'Saving…' : 'Continue'}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          onClick={onBack}
+        >
+          Back
+        </Button>
+      </div>
+    </form>
+  )
+}

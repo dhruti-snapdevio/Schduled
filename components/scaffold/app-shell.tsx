@@ -9,10 +9,12 @@ export function AppShell({
   children,
   email,
   isAdmin = false,
+  userImage,
 }: {
   children: ReactNode;
   email: string;
   isAdmin?: boolean;
+  userImage?: string | null;
 }) {
   const initials = email.slice(0, 2).toUpperCase();
 
@@ -45,9 +47,14 @@ export function AppShell({
           <button
             type="button"
             aria-label="Account"
-            className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center bg-primary text-primary-foreground text-xs font-bold transition-opacity hover:opacity-80"
+            className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden bg-primary text-primary-foreground text-xs font-bold transition-opacity hover:opacity-80"
           >
-            {initials}
+            {userImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={userImage} alt="Profile" className="size-full object-cover" />
+            ) : (
+              initials
+            )}
           </button>
           </div>
         </div>
@@ -57,7 +64,7 @@ export function AppShell({
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Left sidebar — always-dark deep ocean */}
         <aside className="hidden md:flex w-60 shrink-0 flex-col bg-sidebar border-r border-sidebar-border overflow-y-auto">
-          <SidebarNav email={email} isAdmin={isAdmin} />
+          <SidebarNav email={email} isAdmin={isAdmin} userImage={userImage} />
         </aside>
 
         {/* Page content */}

@@ -29,7 +29,7 @@
 | Email templates | `lib/email/templates/magic-link.ts`, `components/magic-link.tsx`, `components/layout.tsx` | ✅ magic link only (8 booking templates still needed) |
 | Utilities | `lib/utils.ts`, `lib/audit.ts`, `lib/authz.ts`, `lib/env.ts` | ✅ done |
 | Encryption | `lib/encrypt.ts` | ✅ AES-256-GCM for OAuth tokens |
-| File storage | `lib/s3.ts` | ✅ S3/R2 client (path: `lib/s3.ts`) |
+| File storage | `lib/storage/index.ts`, `local.ts`, `s3.ts` | ✅ Multi-driver abstraction — `local` (default, no creds) or `s3` (R2/AWS). Upload API: `POST /api/upload/avatar`. Old `lib/s3.ts` kept as legacy re-export. |
 | Config | `config/platform.ts` | ✅ `PRODUCT_NAME = "Schduled"` |
 | UI components | All Shadcn: textarea, select, dialog, sheet, popover, calendar, separator, switch, tabs, avatar, tooltip, alert, skeleton, progress, dropdown-menu, alert-dialog, label, radio-group, checkbox, pagination, sonner, scroll-area, slider, + base 5 | ✅ all installed |
 | Custom components | `components/logo.tsx`, `components/theme-provider.tsx`, `components/theme-toggle.tsx` | ✅ done |
@@ -83,7 +83,8 @@
 | Decision | Original plan | Current implementation |
 |----------|--------------|----------------------|
 | Onboarding | Modal overlay on `/dashboard` | Route stub at `/onboarding/[step]` currently — **confirmed switching back to modal** (Step 10) |
-| S3 client path | `lib/storage/s3.ts` | `lib/s3.ts` |
+| S3 client path | `lib/storage/s3.ts` | `lib/s3.ts` (legacy) → migrated to `lib/storage/` multi-driver abstraction |
+| File storage driver | S3/R2 required from Day 1 | `STORAGE_DRIVER=local` (default, no credentials) → `local` saves to `public/uploads/`; switch to `s3` for production |
 | Heading font | Geist only | Plus Jakarta Sans (`--font-jakarta`) for headings, Geist for body/mono |
 | Dashboard | Placeholder | Full stats + meetings list (built ahead of plan) |
 | Landing page | Simple 4-section | Full premium redesign with scroll animations, bento grid, FAQ, testimonials |
@@ -102,7 +103,7 @@
 |---------|----------|-----------------|---------|
 | **PostgreSQL** | Database | ✅ Already running locally | `DATABASE_URL` ✅ |
 | **SMTP email** | Magic link emails | ✅ Already configured | `SMTP_*` ✅ |
-| **Cloudflare R2** (or AWS S3) | Avatar uploads, logo uploads | Cloudflare Dashboard → R2 | `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET`, `S3_PUBLIC_URL` |
+| **File Storage** | Avatar/logo uploads | ✅ `STORAGE_DRIVER=local` for dev — files saved to `public/uploads/`. Switch to `s3` for production with R2/S3 credentials. | `STORAGE_DRIVER` (+ `S3_*` only when `=s3`) |
 
 ### Tier 2 — Required before booking features (Step 12+)
 
@@ -122,12 +123,16 @@
 ### Env vars to add to `.env` and `.env.example`
 
 ```bash
-# File Storage (Cloudflare R2 or AWS S3)
-S3_ENDPOINT=https://<account>.r2.cloudflarestorage.com
-S3_ACCESS_KEY_ID=
-S3_SECRET_ACCESS_KEY=
-S3_BUCKET=schduled
-S3_PUBLIC_URL=https://assets.schduled.com
+# File Storage — STORAGE_DRIVER=local saves files to public/uploads/ (no credentials needed)
+# Switch to STORAGE_DRIVER=s3 for production and fill in the S3_* vars below
+STORAGE_DRIVER=local
+
+# S3/R2 credentials (only needed when STORAGE_DRIVER=s3)
+# S3_ENDPOINT=https://<account>.r2.cloudflarestorage.com
+# S3_ACCESS_KEY_ID=
+# S3_SECRET_ACCESS_KEY=
+# S3_BUCKET=schduled
+# S3_PUBLIC_URL=https://assets.schduled.com
 
 # Encryption (for OAuth token storage in DB)
 ENCRYPT_KEY=   # 64-char hex = 32 bytes. Generate: openssl rand -hex 32
@@ -1512,58 +1517,92 @@ export const { useSession, signIn, signOut } = authClient
 
 ## STEP 10 — Onboarding Wizard (Modal) ❌ — DO NEXT
 
-**Reference:** `docs/features/user-onboarding.md`
+**Approach:** Full-screen non-dismissable `<Dialog>` rendered in `(app)/layout.tsx` when `user.onboardingDone = false`. User lands on `/dashboard`, sees the modal on top — they glimpse the product before finishing setup.
 
-**Approach:** Full-screen non-dismissable `<Dialog>` rendered in `(app)/layout.tsx` when `user.onboardingDone = false`. No separate route group. User lands on `/dashboard`, sees the modal overlay on top — they glimpse the product before completing setup.
-
-> **NOTE (2026-06-16):** A `/onboarding/[step]` route-based approach was briefly scaffolded but has been reverted back to the modal approach. The `(app)/layout.tsx` should NOT redirect to `/onboarding/1` — instead it renders `<OnboardingModal />` when `onboardingDone = false`. Delete or repurpose the `app/(onboarding)/` route group.
+> **NOTE:** `app/(onboarding)/onboarding/[step]/page.tsx` stub exists — do NOT use it. The modal lives in `components/onboarding/`. The `(app)/layout.tsx` renders it when `onboardingDone = false`.
 
 ```
 components/onboarding/
-├── onboarding-modal.tsx     ← Dialog wrapper, step state, progress bar
-├── step-1-profile.tsx       ← name + avatar + username
-├── step-2-calendar.tsx      ← connect Google / Outlook (skippable)
-├── step-3-timezone.tsx      ← timezone select (auto-detected)
-├── step-4-event-type.tsx    ← create first event type
-└── step-5-share-link.tsx    ← booking URL + copy + QR
+├── onboarding-modal.tsx       ← Dialog wrapper, step state machine, progress bar
+├── step-1-profile.tsx         ← name + username (live check) + avatar initials
+├── step-2-timezone.tsx        ← timezone select (auto-detected from browser)
+├── step-3-availability.tsx    ← weekly schedule (day toggles + start/end time)
+├── step-4-calendar.tsx        ← connect Google/Outlook (skippable)
+└── step-5-ready.tsx           ← booking link + copy + QR code
+
+hooks/
+└── use-username-check.ts      ← debounced username availability check (shared with Settings > My Link)
+
+app/actions/
+└── onboarding.ts              ← saveProfile, saveTimezone, saveAvailability, completeOnboarding
+
+app/api/username-check/
+└── route.ts                   ← GET ?username=xxx → { available: bool }
 ```
 
 ### Modal behaviour
 - Opens automatically when `onboardingDone = false` — no user action needed
-- **Cannot be closed or skipped** — no X button, no backdrop click dismiss
-- Progress bar at top showing `Step X of 5`
-- "Back" button from step 2 onward, "Continue" / "Finish" primary CTA
-- On step 5 "Go to Dashboard" → server action sets `onboardingDone = true`, modal closes, dashboard visible
+- **Cannot be closed** — no X button, backdrop click does nothing
+- Progress bar at top: `Step X of 5`
+- Back button from step 2 onward
+- Each step has its own "Continue" / "Save & Continue" CTA
+- Step 5 "Go to Dashboard" → `completeOnboarding()` server action → modal unmounts
 
-### 5 onboarding steps:
+### 5 onboarding steps
 
-| Step | Component | Content |
-|------|-----------|---------|
-| 1 | `step-1-profile.tsx` | Full name + Avatar upload (placeholder, S3 skip) + Username (live check) |
-| 2 | `step-2-calendar.tsx` | Connect Calendar — Google / Outlook cards — **skippable** |
-| 3 | `step-3-timezone.tsx` | Timezone `<Select>` (auto-detected from `Intl.DateTimeFormat`) |
-| 4 | `step-4-event-type.tsx` | Create first event type (name + duration + location) |
-| 5 | `step-5-share-link.tsx` | Booking URL + copy button + QR code — "Go to Dashboard" closes modal |
+| Step | Component | What it does |
+|------|-----------|-------------|
+| 1 | `step-1-profile.tsx` | Full name (pre-filled from auth) + username with live check + avatar initials display |
+| 2 | `step-2-timezone.tsx` | Timezone `<Select>` auto-detected from `Intl.DateTimeFormat().resolvedOptions().timeZone` |
+| 3 | `step-3-availability.tsx` | Weekly schedule — Mon–Sun rows, each: toggle + start time + end time. Default: Mon–Fri 9:00–17:00 |
+| 4 | `step-4-calendar.tsx` | Google Calendar card (Connect button) + Outlook card (Coming Soon). Skip link at bottom |
+| 5 | `step-5-ready.tsx` | Shows `schduled.com/{username}`. Copy button + QR. Auto-creates default event type in DB |
 
-### `useUsernameCheck` hook (used in Step 1 AND Settings > My Link)
+### DB writes per step
+
+| Step | Tables written |
+|------|---------------|
+| 1 | `user.name`, `user.username` |
+| 2 | `user.timezone` |
+| 3 | `availability_schedule` (default), `availability_window` rows (one per enabled day) |
+| 4 | `connected_calendar` (if connected) — skippable, nothing written if skipped |
+| 5 | `event_type` auto-created: title="30-Minute Meeting", slug="30-min", duration=30. `user.onboardingDone=true`, `user.onboardingStep=5` |
+
+### Auto-created default event type (on step 5 complete)
 
 ```ts
-// Debounce: 400ms
-// States: checking (Spinner), available (border-green-500, CheckIcon), taken (border-destructive, XIcon)
-// API call: GET /api/username-check?username=xxx
-// Used in: onboarding step 1 modal, /settings/my-link
+// Always created in completeOnboarding() server action:
+await db.insert(eventType).values({
+  id: createId(),
+  userId: session.user.id,
+  title: '30-Minute Meeting',
+  slug: '30-min',
+  duration: 30,
+  isActive: true,
+})
 ```
 
-### Server action on final step
+### `useUsernameCheck` hook
 
 ```ts
-// app/actions/onboarding.ts
-'use server'
-await db.update(user).set({ onboardingDone: true, onboardingStep: 5 }).where(eq(user.id, userId))
-revalidatePath('/dashboard')
+// hooks/use-username-check.ts — client hook, shared with Settings > My Link
+// Debounce: 400ms after last keystroke
+// States: idle | checking | available | taken | error
+// API: GET /api/username-check?username=xxx → { available: boolean }
+// Validation: 3–30 chars, a-z 0-9 hyphen only, lowercase
+// UI: checking → Spinner | available → green border + CheckCircle | taken → red border + X
 ```
 
-**Done when:** New user completes all 5 steps inside the modal. `user.onboardingDone = true` written. Modal closes. Dashboard is visible underneath.
+### Server actions (`app/actions/onboarding.ts`)
+
+```ts
+saveProfile(data: { name, username })         // step 1 → user.name + user.username
+saveTimezone(timezone: string)                // step 2 → user.timezone
+saveAvailability(windows: WeeklySchedule)     // step 3 → availability_schedule + availability_window
+completeOnboarding()                          // step 5 → auto-create event type + onboardingDone=true
+```
+
+**Done when:** New user completes all 5 steps. `user.onboardingDone = true`. Default event type exists. Modal unmounts. Dashboard visible.
 
 ---
 
