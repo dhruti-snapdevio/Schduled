@@ -1,4 +1,4 @@
-import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -10,13 +10,21 @@ export const user = pgTable("user", {
   banned: boolean("banned").notNull().default(false),
   banReason: text("ban_reason"),
   banExpires: timestamp("ban_expires", { withTimezone: true }),
+  // Schduled-specific fields
+  username: text("username").unique(),
+  timezone: text("timezone").default("UTC"),
+  onboardingStep: integer("onboarding_step").default(0),
+  onboardingDone: boolean("onboarding_done").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (t) => [
+  index("user_email_idx").on(t.email),
+  index("user_username_idx").on(t.username),
+]);
 
 export const session = pgTable("session", {
   id: text("id").primaryKey(),

@@ -1,84 +1,429 @@
-import { count, desc } from "drizzle-orm";
-import { OrbitPageHeader } from "@/components/admin/orbit-page-header";
+import { count, desc, eq, gte, max } from "drizzle-orm";
+import { format, formatDistanceToNow, startOfMonth } from "date-fns";
+import Link from "next/link";
+import {
+  ArrowRight,
+  CalendarCheck,
+  CheckCircle,
+  Envelope,
+  GoogleLogo,
+  Queue,
+  Stack,
+  Timer,
+  Users,
+  Warning,
+  XCircle,
+} from "@phosphor-icons/react/dist/ssr";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ADMIN_ROLE } from "@/config/platform";
-import { emailOutbox, user } from "@/db/schema";
+import { auditLogs, booking, emailOutbox, session, user } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getQueueSummary } from "@/lib/worker/queue-inspection";
 
-export const metadata = {
-  title: "Orbit",
-};
+export const metadata = { title: "Admin Panel" };
 
 export default async function OrbitPage() {
-  const [[userCount], [emailCount], queues, recentUsers] = await Promise.all([
-    db.select({ count: count() }).from(user),
-    db.select({ count: count() }).from(emailOutbox),
+  const monthStart = startOfMonth(new Date());
+
+  const [
+    [userCount],
+    [emailCount],
+    [bookingCount],
+    [bookingThisMonth],
+    [failedEmailCount],
+    queues,
+    recentUsers,
+    recentActivities,
+  ] = await Promise.all([
+    db.select({ value: count() }).from(user),
+    db.select({ value: count() }).from(emailOutbox),
+    db.select({ value: count() }).from(booking),
+    db
+      .select({ value: count() })
+      .from(booking)
+      .where(gte(booking.createdAt, monthStart)),
+    db
+      .select({ value: count() })
+      .from(emailOutbox)
+      .where(eq(emailOutbox.status, "failed")),
     getQueueSummary(),
-    db.select().from(user).orderBy(desc(user.createdAt)).limit(5),
+    db
+      .select({
+        id:        user.id,
+        name:      user.name,
+        email:     user.email,
+        role:      user.role,
+        banned:    user.banned,
+        createdAt: user.createdAt,
+        lastLogin: max(session.createdAt),
+      })
+      .from(user)
+      .leftJoin(session, eq(session.userId, user.id))
+      .groupBy(
+        user.id,
+        user.name,
+        user.email,
+        user.role,
+        user.banned,
+        user.createdAt,
+      )
+      .orderBy(desc(user.createdAt))
+      .limit(5),
+    db
+      .select()
+      .from(auditLogs)
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(6),
   ]);
 
-  return (
-    <div>
-      <OrbitPageHeader
-        eyebrow="Admin"
-        title="Overview"
-        description="Operator surface for users, queues, email, and audit-ready admin actions."
-      />
+  const googleConfigured = !!(
+    process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+  );
+  const emailHealthy = (failedEmailCount?.value ?? 0) === 0;
+  const queuesRunning = queues.length > 0;
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatBlock label="Total Users" value={userCount.count} />
-        <StatBlock label="Outbox Emails" value={emailCount.count} />
-        <StatBlock label="Queue States" value={queues.length} />
+  return (
+    <div className="space-y-8">
+      {/* ── Page heading ────────────────────────────────────────────── */}
+      <div className="mb-8 border-b border-border pb-5">
+        <p className="mb-2 text-xs font-bold uppercase tracking-eyebrow text-success">
+          Admin Panel
+        </p>
+        <h1 className="font-black text-2xl tracking-normal">
+          Workspace Administration
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Manage users, bookings, emails and monitor system health.
+        </p>
       </div>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Recent Users</CardTitle>
-          <CardDescription>The five most recently registered accounts.</CardDescription>
+      {/* ── Stat cards ──────────────────────────────────────────────── */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Total Users"
+          value={userCount?.value ?? 0}
+          icon={<Users size={20} weight="duotone" />}
+          href="/orbit/users"
+        />
+        <StatCard
+          label="Total Bookings"
+          value={bookingCount?.value ?? 0}
+          icon={<CalendarCheck size={20} weight="duotone" />}
+          accent
+          subtitle={`${bookingThisMonth?.value ?? 0} bookings this month`}
+          href="/bookings"
+        />
+        <StatCard
+          label="Outbox Emails"
+          value={emailCount?.value ?? 0}
+          icon={<Envelope size={20} weight="duotone" />}
+          href="/orbit/email"
+        />
+        <StatCard
+          label="Queue Jobs"
+          value={queues.length}
+          icon={<Stack size={20} weight="duotone" />}
+          href="/orbit/queues"
+        />
+      </div>
+
+      {/* ── Recent Users + System Status ────────────────────────────── */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Recent Users (2/3 width) */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="py-4">
+            <CardTitle className="text-base font-semibold">
+              Recent Users
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-t border-border bg-muted/40">
+                    <th className="px-6 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                      User
+                    </th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                      Role
+                    </th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                      Status
+                    </th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                      Joined
+                    </th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                      Last Login
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentUsers.map((u) => (
+                    <tr
+                      key={u.id}
+                      className="border-t border-border hover:bg-muted/20 transition-colors"
+                    >
+                      <td className="px-6 py-3">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-primary/10 text-primary text-xs font-bold">
+                            {(u.name ?? u.email).slice(0, 2).toUpperCase()}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">
+                              {u.name ?? "—"}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {u.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge
+                          variant={
+                            u.role === ADMIN_ROLE ? "default" : "secondary"
+                          }
+                          className="text-xs"
+                        >
+                          {u.role}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        {u.banned ? (
+                          <span className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+                            <XCircle size={13} weight="fill" />
+                            Suspended
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5 text-xs font-medium text-success">
+                            <CheckCircle size={13} weight="fill" />
+                            Active
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {format(u.createdAt, "MMM d, yyyy")}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {u.lastLogin
+                          ? formatDistanceToNow(u.lastLogin, {
+                              addSuffix: true,
+                            })
+                          : <span className="text-muted-foreground/40">Never</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* System Status (1/3 width) */}
+        <Card>
+          <CardHeader className="py-4">
+            <CardTitle className="text-base font-semibold">
+              System Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 p-0 pb-3">
+            <StatusRow
+              label="Google Calendar"
+              icon={<GoogleLogo size={15} weight="bold" />}
+              ok={googleConfigured}
+              okText="Connected"
+              failText="Not configured"
+            />
+            <StatusRow
+              label="Email Queue"
+              icon={<Envelope size={15} weight="bold" />}
+              ok={emailHealthy}
+              okText="Healthy"
+              failText={`${failedEmailCount?.value} failed`}
+            />
+            <StatusRow
+              label="Database"
+              icon={<Queue size={15} weight="bold" />}
+              ok={true}
+              okText="Healthy"
+              failText="Error"
+            />
+            <StatusRow
+              label="Cron Jobs"
+              icon={<Timer size={15} weight="bold" />}
+              ok={queuesRunning}
+              okText="Running"
+              failText="Not running"
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Recent Activities ────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="py-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">
+              Recent Activities
+            </CardTitle>
+            <Link
+              href="/orbit/audit"
+              className="inline-flex items-center gap-1.5 border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
+            >
+              View all
+              <ArrowRight size={13} />
+            </Link>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-border">
-            {recentUsers.map((item) => (
-              <div
-                className="flex items-center gap-3 px-(--card-spacing) py-3"
-                key={item.id}
-              >
-                <span className="grid size-8 shrink-0 place-items-center bg-muted font-black text-xs text-muted-foreground">
-                  {(item.name ?? item.email).slice(0, 2).toUpperCase()}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{item.email}</p>
-                  {item.name && (
-                    <p className="truncate text-muted-foreground text-xs">{item.name}</p>
-                  )}
-                </div>
-                <Badge
-                  className={item.role === ADMIN_ROLE ? "text-success" : undefined}
-                  variant={item.role === ADMIN_ROLE ? "default" : "secondary"}
+          {recentActivities.length === 0 ? (
+            <p className="px-6 py-8 text-center text-sm text-muted-foreground">
+              No activities recorded yet.
+            </p>
+          ) : (
+            <div>
+              {recentActivities.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3"
                 >
-                  {item.role}
-                </Badge>
-                <span className="hidden font-mono text-muted-foreground text-xs sm:block">
-                  {item.id.slice(0, 8)}
-                </span>
-              </div>
-            ))}
-          </div>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-primary/10 text-primary">
+                      <ActivityIcon action={log.action} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium capitalize">
+                        {formatAction(log.action)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {log.description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0 flex flex-col items-end gap-1">
+                    <Badge variant="secondary" className="text-xs">
+                      {log.entityType}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground">
+                      {format(log.createdAt, "MMM d, h:mm a")}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
 
-function StatBlock({ label, value }: { label: string; value: number }) {
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function StatCard({
+  label,
+  value,
+  icon,
+  accent = false,
+  subtitle,
+  href,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  accent?: boolean;
+  subtitle?: string;
+  href?: string;
+}) {
   return (
-    <div className="border border-border bg-card p-6">
-      <p className="text-2xs font-semibold uppercase tracking-ui text-muted-foreground">
+    <Card className={accent ? "border-primary/40 bg-primary/[0.04]" : ""}>
+      <CardContent className="px-5 pt-5 pb-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+              {label}
+            </p>
+            <p className="mt-1.5 font-heading text-3xl font-bold text-foreground">
+              {value}
+            </p>
+          </div>
+          <span className={accent ? "text-primary" : "text-muted-foreground/60"}>
+            {icon}
+          </span>
+        </div>
+        {(subtitle || href) && (
+          <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-3">
+            {subtitle && (
+              <p className="text-xs text-muted-foreground">{subtitle}</p>
+            )}
+            {href && (
+              <Link
+                href={href}
+                className="ml-auto flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              >
+                View all
+                <ArrowRight size={12} />
+              </Link>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function StatusRow({
+  label,
+  icon,
+  ok,
+  okText,
+  failText,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  ok: boolean;
+  okText: string;
+  failText: string;
+}) {
+  return (
+    <div className="flex items-center justify-between px-6 py-2.5">
+      <div className="flex items-center gap-2.5 text-sm font-medium text-foreground">
+        <span className="text-muted-foreground">{icon}</span>
         {label}
-      </p>
-      <p className="mt-2 font-black text-4xl tracking-normal">{value}</p>
+      </div>
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-none border px-2 py-0.5 text-xs font-semibold ${
+          ok
+            ? "bg-success/10 text-success border-success/25"
+            : "bg-destructive/10 text-destructive border-destructive/20"
+        }`}
+      >
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${
+            ok ? "bg-success" : "bg-destructive"
+          }`}
+        />
+        {ok ? okText : failText}
+      </span>
     </div>
   );
+}
+
+function formatAction(action: string): string {
+  return action.replace(/[._]/g, " ");
+}
+
+function ActivityIcon({ action }: { action: string }) {
+  if (action.includes("user"))    return <Users size={14} />;
+  if (action.includes("booking")) return <CalendarCheck size={14} />;
+  if (action.includes("email"))   return <Envelope size={14} />;
+  if (action.includes("event"))   return <Warning size={14} />;
+  return <CheckCircle size={14} />;
 }

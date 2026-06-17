@@ -16,160 +16,206 @@ body {
   min-height: 100vh;
   margin: 0;
   letter-spacing: 0;
-  background-size: 32px 32px;
 }
 
 @theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
+  /* Fonts — Plus Jakarta Sans for headings (distinctive), Geist for body */
+  --font-heading: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-sans:    var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    var(--font-geist-mono), ui-monospace, monospace;
 
-  /* Typography scale */
-  --text-2xs: 0.625rem; /* 10px — micro-labels, sidebar metadata */
-  --tracking-eyebrow: 0.16em;
-  --tracking-ui: 0.1em;
+  /* Typography extras */
+  --text-2xs:          0.625rem;
+  --tracking-eyebrow:  0.16em;
+  --tracking-ui:       0.1em;
 
-  /* Page & brand */
+  /* Page background token */
   --color-page: var(--page);
 
-  /* Semantic status */
-  --color-success: var(--success);
+  /* Status tokens */
+  --color-success:            var(--success);
   --color-success-foreground: var(--success-foreground);
-  --color-success-subtle: var(--success-subtle);
-  --color-success-light: var(--success-light);
-  --color-warning: var(--warning);
+  --color-success-subtle:     var(--success-subtle);
+  --color-success-light:      var(--success-light);
+  --color-warning:            var(--warning);
 
-  /* Shadcn core */
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
+  /* Sidebar tokens */
+  --color-sidebar-ring:                var(--sidebar-ring);
+  --color-sidebar-border:              var(--sidebar-border);
+  --color-sidebar-accent-foreground:   var(--sidebar-accent-foreground);
+  --color-sidebar-accent:              var(--sidebar-accent);
+  --color-sidebar-primary-foreground:  var(--sidebar-primary-foreground);
+  --color-sidebar-primary:             var(--sidebar-primary);
+  --color-sidebar-foreground:          var(--sidebar-foreground);
+  --color-sidebar:                     var(--sidebar);
+
+  /* Chart tokens */
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
+
+  /* Core tokens */
+  --color-ring:                 var(--ring);
+  --color-input:                var(--input);
+  --color-border:               var(--border);
+  --color-destructive:          var(--destructive);
+  --color-accent-foreground:    var(--accent-foreground);
+  --color-accent:               var(--accent);
+  --color-muted-foreground:     var(--muted-foreground);
+  --color-muted:                var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
-  --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-secondary:            var(--secondary);
+  --color-primary-foreground:   var(--primary-foreground);
+  --color-primary:              var(--primary);
+  --color-popover-foreground:   var(--popover-foreground);
+  --color-popover:              var(--popover);
+  --color-card-foreground:      var(--card-foreground);
+  --color-card:                 var(--card);
+  --color-foreground:           var(--foreground);
+  --color-background:           var(--background);
+
+  /* Border radius — ZERO everywhere. Sharp corners are the brand. */
+  --radius-sm:  0;
+  --radius-md:  0;
+  --radius-lg:  0;
+  --radius-xl:  0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
 }
 
+/* ── Light mode ─────────────────────────────────────────────────── */
 :root {
-  /* ── Page background (warm beige) ─────────── */
-  --page: oklch(0.96 0.006 85);
+  /*
+   * SCHDULED DESIGN SYSTEM — Teal-forward palette
+   * Primary: Rich Teal #0d9488 → oklch(0.6 0.104 184.735)
+   * The hue (185°) touches every surface: page, borders, text, sidebar.
+   * Result: cohesive teal identity rather than teal buttons on a gray app.
+   */
 
-  /* ── Status colours ───────────────────────── */
-  --success: oklch(0.45 0.13 145);          /* emerald-700 */
-  --success-foreground: oklch(0.25 0.09 145); /* emerald-900 */
-  --success-subtle: oklch(0.97 0.04 145);   /* emerald-50  */
-  --success-light: oklch(0.78 0.13 145);    /* emerald-300 (on dark bg) */
-  --warning: oklch(0.58 0.15 65);           /* amber-700   */
+  /* Page background — clean neutral #F8FAFC (Calendly/Notion style) */
+  --page: oklch(0.982 0.003 248);
 
-  /* ── Shadcn core ──────────────────────────── */
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* Status */
+  --success:            oklch(0.45 0.13 145);
+  --success-foreground: oklch(0.25 0.09 145);
+  --success-subtle:     oklch(0.97 0.04 145);
+  --success-light:      oklch(0.78 0.13 145);
+  --warning:            oklch(0.58 0.15 65);
+
+  /* Backgrounds — pure white topbar, white cards */
+  --background:         oklch(1 0 0);
+  --foreground:         oklch(0.12 0.016 200);
+  --card:               oklch(1 0 0);
+  --card-foreground:    oklch(0.12 0.016 200);
+  --popover:            oklch(1 0 0);
+  --popover-foreground: oklch(0.12 0.016 200);
+
+  /* PRIMARY — Teal */
+  --primary:            oklch(0.60 0.104 184.735);
+  --primary-foreground: oklch(0.984 0.014 181.064);
+
+  /* SECONDARY — teal-tinted light surface (not plain gray) */
+  --secondary:          oklch(0.928 0.028 185);
+  --secondary-foreground: oklch(0.22 0.08 190);
+
+  /* MUTED — subtle teal wash */
+  --muted:              oklch(0.954 0.014 185);
+  --muted-foreground:   oklch(0.50 0.024 200);    /* cool blue-slate mid-tone */
+
+  /* ACCENT — rich teal hover state (not a washed-out gray) */
+  --accent:             oklch(0.894 0.042 185);
+  --accent-foreground:  oklch(0.28 0.11 183);
+
+  --destructive:        oklch(0.577 0.245 27.325);
+
+  /* Borders — clean neutral #E5E7EB */
+  --border:             oklch(0.922 0.005 260);
+  --input:              oklch(0.922 0.005 260);
+  --ring:               oklch(0.60 0.104 184.735);
+
+  /* CHART — teal scale light → dark */
+  --chart-1: oklch(0.855 0.125 181.107);
+  --chart-2: oklch(0.785 0.133 181.944);
+  --chart-3: oklch(0.704 0.123 182.533);
+  --chart-4: oklch(0.60  0.104 184.735);
+  --chart-5: oklch(0.511 0.086 186.423);
+
+  /* Border radius — ZERO */
   --radius: 0rem;
 
-  /* ── Sidebar — always dark (admin panel) ───── */
-  --sidebar: oklch(0.145 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.985 0 0);
-  --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.22 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.22 0 0);
-  --sidebar-ring: oklch(0.556 0 0);
+  /*
+   * SIDEBAR — Deep ocean blue-teal (signature element)
+   * Not pure black. Not dark gray. A rich blue-teal depth.
+   * oklch(0.108 0.032 215) ≈ a very dark teal-navy.
+   */
+  --sidebar:                    oklch(0.108 0.032 215);
+  --sidebar-foreground:         oklch(0.940 0.012 185);
+  --sidebar-primary:            oklch(0.700 0.140 182);
+  --sidebar-primary-foreground: oklch(0.108 0.032 215);
+  --sidebar-accent:             oklch(0.185 0.040 210);
+  --sidebar-accent-foreground:  oklch(0.940 0.012 185);
+  --sidebar-border:             oklch(0.200 0.036 210);
+  --sidebar-ring:               oklch(0.60  0.104 184.735);
 }
 
+/* ── Dark mode ──────────────────────────────────────────────────── */
 .dark {
-  --page: oklch(0.18 0.004 85);
+  --page: oklch(0.130 0.020 210);
 
-  --success: oklch(0.65 0.13 145);
-  --success-foreground: oklch(0.9 0.06 145);
-  --success-subtle: oklch(0.22 0.06 145);
-  --success-light: oklch(0.78 0.13 145);
-  --warning: oklch(0.72 0.15 65);
+  --success:            oklch(0.65 0.13 145);
+  --success-foreground: oklch(0.90 0.06 145);
+  --success-subtle:     oklch(0.20 0.07 145);
+  --success-light:      oklch(0.78 0.13 145);
+  --warning:            oklch(0.72 0.15 65);
 
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* Dark surfaces — teal-ocean darkness */
+  --background:         oklch(0.145 0.022 210);
+  --foreground:         oklch(0.946 0.012 185);
+  --card:               oklch(0.180 0.025 210);
+  --card-foreground:    oklch(0.946 0.012 185);
+  --popover:            oklch(0.180 0.025 210);
+  --popover-foreground: oklch(0.946 0.012 185);
 
-  --sidebar: oklch(0.145 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.985 0 0);
-  --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.22 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.22 0 0);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* PRIMARY — slightly lighter teal for dark mode readability */
+  --primary:            oklch(0.700 0.120 183);
+  --primary-foreground: oklch(0.108 0.032 215);
+
+  --secondary:          oklch(0.220 0.032 210);
+  --secondary-foreground: oklch(0.920 0.012 185);
+
+  --muted:              oklch(0.210 0.028 210);
+  --muted-foreground:   oklch(0.620 0.028 200);
+
+  --accent:             oklch(0.240 0.048 185);
+  --accent-foreground:  oklch(0.840 0.085 183);
+
+  --destructive:        oklch(0.65 0.22 25);
+
+  --border:             oklch(1 0 0 / 9%);
+  --input:              oklch(1 0 0 / 12%);
+  --ring:               oklch(0.700 0.120 183);
+
+  --chart-1: oklch(0.855 0.125 181.107);
+  --chart-2: oklch(0.785 0.133 181.944);
+  --chart-3: oklch(0.704 0.123 182.533);
+  --chart-4: oklch(0.60  0.104 184.735);
+  --chart-5: oklch(0.511 0.086 186.423);
+
+  /* Sidebar — same deep ocean in dark mode (already dark) */
+  --sidebar:                    oklch(0.085 0.025 215);
+  --sidebar-foreground:         oklch(0.940 0.012 185);
+  --sidebar-primary:            oklch(0.700 0.140 182);
+  --sidebar-primary-foreground: oklch(0.085 0.025 215);
+  --sidebar-accent:             oklch(0.155 0.032 210);
+  --sidebar-accent-foreground:  oklch(0.940 0.012 185);
+  --sidebar-border:             oklch(0.170 0.030 210);
+  --sidebar-ring:               oklch(0.700 0.120 183);
 }
 
+/* ── Base layer ─────────────────────────────────────────────────── */
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -180,8 +226,129 @@ body {
   html {
     @apply font-sans;
   }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
   button,
   input {
     font: inherit;
   }
 }
+
+/* ── Landing page animations ────────────────────────────────────── */
+/* Use ONLY inside app/(landing)/ — never in dashboard/admin/booking. */
+@keyframes schduled-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
+}
+@keyframes schduled-sheen {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+@keyframes schduled-ping {
+  0%        { transform: scale(1); opacity: 1; }
+  75%, 100% { transform: scale(1.8); opacity: 0; }
+}
+@keyframes schduled-reveal {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes schduled-ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes schduled-text-gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+@keyframes schduled-fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes schduled-scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes schduled-glow-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+@keyframes schduled-faq-open {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-schduled-float         { animation: schduled-float 6s ease infinite; }
+.animate-schduled-sheen         { animation: schduled-sheen 5s linear infinite; }
+.animate-schduled-ping          { animation: schduled-ping 2.4s infinite; }
+.animate-schduled-reveal        { animation: schduled-reveal 0.4s ease-out both; }
+.animate-schduled-ticker        { animation: schduled-ticker 32s linear infinite; }
+.animate-schduled-text-gradient { animation: schduled-text-gradient 4s ease-in-out infinite; background-size: 200% auto; }
+.animate-schduled-fade-up       { animation: schduled-fade-up 0.5s ease-out both; }
+.animate-schduled-scale-in      { animation: schduled-scale-in 0.6s ease-out both; }
+.animate-schduled-glow-pulse    { animation: schduled-glow-pulse 2.5s ease-in-out infinite; }
+
+/* FAQ accordion open animation */
+details[open] .faq-body { animation: schduled-faq-open 0.25s ease-out both; }
+
+/* ── Scroll-driven reveal (CSS animation-timeline: view()) ─────────────────
+   No JS. Elements fade+slide up as they enter the viewport.
+   Use .scroll-reveal on any card/section. Add .sr-d1 / .sr-d2 / .sr-d3 for
+   staggered siblings (each class shifts the view range by ~8% scroll). */
+
+@keyframes schduled-sr-up {
+  from { opacity: 0; transform: translateY(36px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes schduled-sr-left {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes schduled-sr-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.scroll-reveal {
+  animation: schduled-sr-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-timeline: view();
+  animation-range: entry 0% entry 28%;
+}
+/* Stagger siblings in a grid — each shifts the view-range start by ~8% */
+.scroll-reveal.sr-d1 { animation-range: entry 8%  entry 36%; }
+.scroll-reveal.sr-d2 { animation-range: entry 16% entry 44%; }
+.scroll-reveal.sr-d3 { animation-range: entry 24% entry 52%; }
+
+/* Direction variants */
+.scroll-reveal.sr-left  { animation-name: schduled-sr-left; }
+.scroll-reveal.sr-right { animation-name: schduled-sr-right; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-schduled-float,
+  .animate-schduled-sheen,
+  .animate-schduled-ping,
+  .animate-schduled-reveal,
+  .animate-schduled-ticker,
+  .animate-schduled-text-gradient,
+  .animate-schduled-fade-up,
+  .animate-schduled-scale-in,
+  .animate-schduled-glow-pulse {
+    animation: none;
+  }
+  details[open] .faq-body {
+    animation: none;
+  }
+  .scroll-reveal,
+  .scroll-reveal.sr-d1,
+  .scroll-reveal.sr-d2,
+  .scroll-reveal.sr-d3 {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── NProgress route-change bar ─────────────────────────────────────────────── */
+#nprogress .bar { background: var(--primary) !important; }
+#nprogress .peg { box-shadow: 0 0 10px var(--primary), 0 0 5px var(--primary) !important; }
+#nprogress .spinner { display: none !important; }
