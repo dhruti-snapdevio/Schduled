@@ -8,8 +8,8 @@ import { account, session as sessionTable, user, verification } from "@/db/schem
 import { audit } from "@/lib/audit";
 import { requireSession } from "@/lib/authz";
 import { db } from "@/lib/db";
-import { enqueueEmail } from "@/lib/email";
 import { deleteConfirmationTemplate } from "@/lib/email/templates/delete-confirmation";
+import { sendEmailViaSmtp } from "@/lib/smtp/client";
 
 export interface ActionState {
   error?: string;
@@ -197,7 +197,10 @@ export async function sendDeleteCodeAction(): Promise<ActionState> {
       email: freshUser.email,
     });
 
-    await enqueueEmail({
+    // Send directly (not via queue) — OTP codes must arrive immediately,
+    // not wait for the pg-boss worker to pick them up.
+    // When SMTP is not configured, sendEmailViaSmtp() logs to terminal instead.
+    await sendEmailViaSmtp({
       to: freshUser.email,
       subject: `${code} — confirm your account deletion`,
       html,

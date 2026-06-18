@@ -1,8 +1,7 @@
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
-import { Bell, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import { Logo } from "@/components/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
+import { NotificationBell } from "./notification-bell";
 import { SidebarNav } from "./sidebar-nav";
 
 export function AppShell({
@@ -22,40 +21,41 @@ export function AppShell({
     <div className="flex h-screen flex-col overflow-hidden">
       {/* ── Top bar ─────────────────────────────────────────────────── */}
       <header className="h-14 shrink-0 flex items-center justify-between gap-4 px-4 md:px-6 border-b border-border bg-background z-40">
-        <Logo variant="full" size="md" href="/dashboard" />
+        <Logo href="/dashboard" size="md" variant="full" />
 
         <div className="flex items-center gap-2">
           {/* Search input */}
           <div className="relative hidden sm:block">
             <MagnifyingGlass
-              size={15}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              size={15}
             />
             <input
-              type="search"
-              placeholder="Search bookings..."
               className="h-9 w-52 rounded-none border border-border bg-page pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary lg:w-64"
+              placeholder="Search bookings..."
+              type="search"
             />
           </div>
 
           <div className="flex items-center gap-0.5">
-          <Button variant="ghost" size="icon" aria-label="Notifications">
-            <Bell size={18} />
-          </Button>
-          <ThemeToggle />
-          {/* User avatar */}
-          <button
-            type="button"
-            aria-label="Account"
-            className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden bg-primary text-primary-foreground text-xs font-bold transition-opacity hover:opacity-80"
-          >
-            {userImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={userImage} alt="Profile" className="size-full object-cover" />
-            ) : (
-              initials
-            )}
-          </button>
+            <NotificationBell />
+            {/* User avatar */}
+            <button
+              aria-label="Account"
+              className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden bg-primary text-primary-foreground text-xs font-bold transition-opacity hover:opacity-80"
+              type="button"
+            >
+              {userImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  alt="Profile"
+                  className="size-full object-cover"
+                  src={userImage}
+                />
+              ) : (
+                initials
+              )}
+            </button>
           </div>
         </div>
       </header>

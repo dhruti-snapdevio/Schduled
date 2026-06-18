@@ -34,6 +34,8 @@ export const booking = pgTable('booking', {
   rescheduledFromId:   text('rescheduled_from_id'),
   rescheduleCount:     integer('reschedule_count').notNull().default(0),
 
+  calendarEventId: text('calendar_event_id'),
+
   hostNotes: text('host_notes'),
 
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

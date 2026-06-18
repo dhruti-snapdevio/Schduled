@@ -45,27 +45,65 @@ export async function startWorker() {
   await startBossWithRetry();
   await ensureJobQueues(boss);
 
+  // ── Email handlers ─────────────────────────────────────────────────────────
   const { handleEmailSend } = await import("@/lib/worker/handlers/email-send");
-  const { handleEmailOutboxReap } = await import(
-    "@/lib/worker/handlers/email-outbox-reap"
-  );
-  const { handleEmailEventsPrune } = await import(
-    "@/lib/worker/handlers/email-events-prune"
-  );
-  const { handleScaffoldHealthcheck } = await import(
-    "@/lib/worker/handlers/scaffold-healthcheck"
-  );
+  const { handleEmailOutboxReap } = await import("@/lib/worker/handlers/email-outbox-reap");
+  const { handleEmailEventsPrune } = await import("@/lib/worker/handlers/email-events-prune");
+  const { handleScaffoldHealthcheck } = await import("@/lib/worker/handlers/scaffold-healthcheck");
+
+  // ── Calendar handlers ──────────────────────────────────────────────────────
+  const { handleCalendarTokenRefresh } = await import("@/lib/worker/handlers/calendar-token-refresh");
+  const { handleCalendarWrite } = await import("@/lib/worker/handlers/calendar-write");
+  const { handleCalendarCancel } = await import("@/lib/worker/handlers/calendar-cancel");
+  const { handleCalendarUpdate } = await import("@/lib/worker/handlers/calendar-update");
+  const { handleCalendarSync } = await import("@/lib/worker/handlers/calendar-sync");
+  const { handleCalendarDisconnectAlert } = await import("@/lib/worker/handlers/calendar-disconnect-alert");
+
+  // ── Video handlers ─────────────────────────────────────────────────────────
+  const { handleVideoLinkGenerate } = await import("@/lib/worker/handlers/video-link-generate");
+
+  // ── Booking lifecycle handlers ─────────────────────────────────────────────
+  const { handleBookingConfirmation } = await import("@/lib/worker/handlers/booking-confirmation");
+  const { handleBookingReminder24h, handleBookingReminder1h } = await import("@/lib/worker/handlers/booking-reminder");
+  const { handleBookingCancelReminders } = await import("@/lib/worker/handlers/booking-cancel-reminders");
+  const { handleBookingCancellation } = await import("@/lib/worker/handlers/booking-cancellation");
+  const { handleBookingRescheduleReminders } = await import("@/lib/worker/handlers/booking-reschedule-reminders");
+  const { handleBookingRescheduleNotify } = await import("@/lib/worker/handlers/booking-reschedule-notify");
 
   await Promise.all([
-    work(JOB_NAMES.EMAIL_SEND, handleEmailSend),
-    work(JOB_NAMES.EMAIL_OUTBOX_REAP, handleEmailOutboxReap),
-    work(JOB_NAMES.EMAIL_EVENTS_PRUNE, handleEmailEventsPrune),
+    // Email
+    work(JOB_NAMES.EMAIL_SEND,           handleEmailSend),
+    work(JOB_NAMES.EMAIL_OUTBOX_REAP,    handleEmailOutboxReap),
+    work(JOB_NAMES.EMAIL_EVENTS_PRUNE,   handleEmailEventsPrune),
     work(JOB_NAMES.SCAFFOLD_HEALTHCHECK, handleScaffoldHealthcheck),
+
+    // Calendar
+    work(JOB_NAMES.CALENDAR_TOKEN_REFRESH, handleCalendarTokenRefresh),
+    work(JOB_NAMES.CALENDAR_WRITE,         handleCalendarWrite),
+    work(JOB_NAMES.CALENDAR_CANCEL,        handleCalendarCancel),
+    work(JOB_NAMES.CALENDAR_UPDATE,        handleCalendarUpdate),
+    work(JOB_NAMES.CALENDAR_SYNC,              handleCalendarSync),
+    work(JOB_NAMES.CALENDAR_DISCONNECT_ALERT,  handleCalendarDisconnectAlert),
+
+    // Video
+    work(JOB_NAMES.VIDEO_LINK_GENERATE, handleVideoLinkGenerate),
+
+    // Booking lifecycle
+    work(JOB_NAMES.BOOKING_CONFIRMATION,        handleBookingConfirmation),
+    work(JOB_NAMES.BOOKING_REMINDER_24H,        handleBookingReminder24h),
+    work(JOB_NAMES.BOOKING_REMINDER_1H,         handleBookingReminder1h),
+    work(JOB_NAMES.BOOKING_CANCEL_REMINDERS,    handleBookingCancelReminders),
+    work(JOB_NAMES.BOOKING_CANCELLATION,        handleBookingCancellation),
+    work(JOB_NAMES.BOOKING_RESCHEDULE_REMINDERS, handleBookingRescheduleReminders),
+    work(JOB_NAMES.BOOKING_RESCHEDULE_NOTIFY,   handleBookingRescheduleNotify),
   ]);
 
-  await boss.schedule(JOB_NAMES.EMAIL_OUTBOX_REAP, "*/15 * * * *", {});
-  await boss.schedule(JOB_NAMES.EMAIL_EVENTS_PRUNE, "17 3 * * *", {});
+  // ── Cron schedules ─────────────────────────────────────────────────────────
+  await boss.schedule(JOB_NAMES.EMAIL_OUTBOX_REAP,    "*/15 * * * *", {});
+  await boss.schedule(JOB_NAMES.EMAIL_EVENTS_PRUNE,   "17 3 * * *",   {});
   await boss.schedule(JOB_NAMES.SCAFFOLD_HEALTHCHECK, "*/10 * * * *", {});
+  // CALENDAR_SYNC is triggered per-calendar after each booking and on reconnect;
+  // the per-calendar cron is registered dynamically when a calendar connects.
 
   console.log("[worker] handlers registered");
 }

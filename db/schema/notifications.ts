@@ -18,6 +18,21 @@ export const notificationPreference = pgTable('notification_preference', {
   updatedAt:                timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+// In-app notifications shown in the navbar bell dropdown
+export const notification = pgTable('notification', {
+  id:        text('id').primaryKey().$defaultFn(createId),
+  userId:    text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  type:      text('type').notNull(), // booking_created | booking_cancelled | booking_rescheduled
+  title:     text('title').notNull(),
+  body:      text('body'),
+  bookingId: text('booking_id').references(() => booking.id, { onDelete: 'cascade' }),
+  readAt:    timestamp('read_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('notification_user_idx').on(t.userId),
+  index('notification_user_read_idx').on(t.userId, t.readAt),
+])
+
 export const workflowJob = pgTable('workflow_job', {
   id:            text('id').primaryKey().$defaultFn(createId),
   bookingId:     text('booking_id').notNull().references(() => booking.id, { onDelete: 'cascade' }),

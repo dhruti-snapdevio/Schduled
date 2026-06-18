@@ -35,13 +35,15 @@ export const QUEUE_OPTIONS: Record<
 
   // Booking lifecycle
   [JOB_NAMES.VIDEO_LINK_GENERATE]: { expireInSeconds: 60,  policy: "singleton", retryLimit: 2, retryDelay: 30 },
-  [JOB_NAMES.VIDEO_LINK_RETRY]:    { expireInSeconds: 60,  policy: "standard",  retryLimit: 3, retryDelay: 60 },
   [JOB_NAMES.CALENDAR_WRITE]:      { expireInSeconds: 60,  policy: "singleton", retryLimit: 3, retryDelay: 15 },
-  [JOB_NAMES.BOOKING_REMINDER_24H]: { expireInSeconds: 300, policy: "singleton", retryLimit: 2 },
-  [JOB_NAMES.BOOKING_REMINDER_1H]:  { expireInSeconds: 300, policy: "singleton", retryLimit: 2 },
+  [JOB_NAMES.BOOKING_CONFIRMATION]: { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
+  [JOB_NAMES.BOOKING_REMINDER_24H]: { expireInSeconds: 300, policy: "standard", retryLimit: 2 },
+  [JOB_NAMES.BOOKING_REMINDER_1H]:  { expireInSeconds: 300, policy: "standard", retryLimit: 2 },
   [JOB_NAMES.BOOKING_CANCEL_REMINDERS]:    { expireInSeconds: 30, policy: "standard", retryLimit: 2 },
+  [JOB_NAMES.BOOKING_CANCELLATION]:        { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
   [JOB_NAMES.CALENDAR_CANCEL]:             { expireInSeconds: 60, policy: "singleton", retryLimit: 3, retryDelay: 15 },
   [JOB_NAMES.BOOKING_RESCHEDULE_REMINDERS]: { expireInSeconds: 30, policy: "standard", retryLimit: 2 },
+  [JOB_NAMES.BOOKING_RESCHEDULE_NOTIFY]:   { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
   [JOB_NAMES.CALENDAR_UPDATE]:             { expireInSeconds: 60, policy: "singleton", retryLimit: 3, retryDelay: 15 },
 
   // Calendar integrations

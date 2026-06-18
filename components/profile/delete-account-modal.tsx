@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useState, useTransition } from 'react'
+import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import { Trash, WarningCircle, Envelope, CheckCircle, ArrowRight } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,6 +28,8 @@ interface Props {
   email: string
 }
 
+const RESEND_COOLDOWN = 60 // seconds before resend is allowed
+
 export function DeleteAccountModal({ email }: Props) {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(1)
@@ -36,11 +38,33 @@ export function DeleteAccountModal({ email }: Props) {
   const [codeSent, setCodeSent] = useState(false)
   const [sendState, setSendState] = useState<ActionState>({})
   const [isSending, startSending] = useTransition()
+  const [countdown, setCountdown] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const [deleteState, deleteAction, deleting] = useActionState(
     deleteAccountAction,
     {} as ActionState,
   )
+
+  // Start the resend countdown
+  function startCountdown() {
+    setCountdown(RESEND_COOLDOWN)
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) {
+          clearInterval(timerRef.current!)
+          return 0
+        }
+        return c - 1
+      })
+    }, 1000)
+  }
+
+  // Clear timer when modal closes
+  useEffect(() => {
+    if (!open && timerRef.current) clearInterval(timerRef.current)
+  }, [open])
 
   function handleOpen() {
     setOpen(true)
@@ -49,6 +73,7 @@ export function DeleteAccountModal({ email }: Props) {
     setOtherReason('')
     setCodeSent(false)
     setSendState({})
+    setCountdown(0)
   }
 
   function handleClose() {
@@ -60,8 +85,17 @@ export function DeleteAccountModal({ email }: Props) {
     startSending(async () => {
       const result = await sendDeleteCodeAction()
       setSendState(result)
-      if ('success' in result) setCodeSent(true)
+      if ('success' in result) {
+        setCodeSent(true)
+        startCountdown()
+      }
     })
+  }
+
+  function handleResend() {
+    setCodeSent(false)
+    setSendState({})
+    setCountdown(0)
   }
 
   const effectiveReason = reason === 'other'
@@ -210,20 +244,30 @@ export function DeleteAccountModal({ email }: Props) {
                       <div>
                         <p className="text-sm font-semibold text-green-800">Code sent!</p>
                         <p className="text-xs text-green-700 mt-0.5">
-                          Check your inbox at {email}.
+                          Check your inbox at <strong>{email}</strong>.
+                          It expires in 15 minutes.
                         </p>
                       </div>
                     </div>
 
                     <div className="space-y-1.5">
                       <p className="text-xs font-medium text-muted-foreground">Didn&apos;t receive it?</p>
+                      {countdown > 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          Resend available in{' '}
+                          <span className="font-semibold tabular-nums text-foreground">
+                            {countdown}s
+                          </span>
+                        </p>
+                      ) : (
                       <button
                         type="button"
-                        className="text-xs text-primary underline-offset-2 hover:underline disabled:opacity-50"
-                        onClick={() => { setCodeSent(false); setSendState({}) }}
+                        className="text-xs text-primary underline-offset-2 hover:underline"
+                        onClick={handleResend}
                       >
                         Resend code
                       </button>
+                      )}
                     </div>
 
                     <Button
