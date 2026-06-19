@@ -92,6 +92,7 @@ export interface EventTypeFormData {
   locationValue?: string
   hostPhoneNumber?: string
   confirmationNote?: string
+  requiresApproval: boolean
   allowCancellation: boolean
   cancellationCutoffHours: number
   allowRescheduling: boolean
@@ -142,7 +143,7 @@ export async function createEventType(data: EventTypeFormData, initialQuestions?
       locationValue: data.locationValue?.trim() || null,
       hostPhoneNumber: data.hostPhoneNumber?.trim() || null,
       confirmationNote: data.confirmationNote?.trim() || null,
-      requiresApproval: false,
+      requiresApproval: data.requiresApproval,
       position: count,
     })
 
@@ -243,6 +244,7 @@ export async function updateEventType(id: string, data: EventTypeFormData): Prom
         locationValue: data.locationValue?.trim() || null,
         hostPhoneNumber: data.hostPhoneNumber?.trim() || null,
         confirmationNote: data.confirmationNote?.trim() || null,
+        requiresApproval: data.requiresApproval,
         updatedAt: new Date(),
       })
       .where(eq(eventType.id, id))

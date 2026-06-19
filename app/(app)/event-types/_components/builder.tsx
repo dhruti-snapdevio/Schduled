@@ -74,6 +74,7 @@ const schema = z.object({
   locationValue: z.string().max(500).optional(),
   hostPhoneNumber: z.string().max(20).optional(),
   confirmationNote: z.string().max(1000).optional(),
+  requiresApproval: z.boolean(),
   allowCancellation: z.boolean(),
   cancellationCutoffHours: z.number().min(0).max(72),
   allowRescheduling: z.boolean(),
@@ -123,7 +124,7 @@ const TABS = [
 
 // Maps each tab to the form fields it owns — used to jump to the tab with errors
 const TAB_FIELDS: Record<string, (keyof BuilderFormValues)[]> = {
-  general: ["name", "slug", "description", "color", "isActive", "isHidden"],
+  general: ["name", "slug", "description", "color", "isActive", "isHidden", "requiresApproval"],
   availability: [
     "durations",
     "defaultDuration",

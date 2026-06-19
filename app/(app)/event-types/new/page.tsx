@@ -29,6 +29,7 @@ const DEFAULT_VALUES: BuilderFormValues = {
   locationValue:           '',
   hostPhoneNumber:         '',
   confirmationNote:        '',
+  requiresApproval:        false,
   allowCancellation:       true,
   cancellationCutoffHours: 0,
   allowRescheduling:       true,

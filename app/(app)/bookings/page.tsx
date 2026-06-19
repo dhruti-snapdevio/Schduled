@@ -5,13 +5,17 @@ import {
   CalendarBlank,
   CalendarCheck,
   CalendarX,
+  Check,
   Clock,
   EnvelopeSimple,
+  EnvelopeOpen,
+  Hourglass,
   VideoCamera,
   Phone,
   MapPin,
   ArrowCounterClockwise,
   MagnifyingGlass,
+  Sliders,
   X,
 } from '@phosphor-icons/react/dist/ssr'
 import { Button } from '@/components/ui/button'
@@ -23,7 +27,7 @@ import { cn } from '@/lib/utils'
 
 export const metadata = { title: 'Bookings' }
 
-type Tab = 'upcoming' | 'past' | 'cancelled'
+type Tab = 'upcoming' | 'past' | 'cancelled' | 'pending'
 
 function dayLabel(date: Date): string {
   if (isToday(date)) return 'Today'
@@ -54,6 +58,7 @@ const TAB_DOTS: Record<Tab, string> = {
   upcoming:  'bg-primary',
   past:      'bg-muted-foreground/60',
   cancelled: 'bg-destructive',
+  pending:   'bg-amber-500',
 }
 
 export default async function BookingsPage({
@@ -63,13 +68,14 @@ export default async function BookingsPage({
 }) {
   const session = await requireSession()
   const { tab: rawTab, q } = await searchParams
-  const tab: Tab = rawTab === 'past' || rawTab === 'cancelled' ? rawTab : 'upcoming'
+  const tab: Tab =
+    rawTab === 'past' || rawTab === 'cancelled' || rawTab === 'pending' ? rawTab : 'upcoming'
   const search = q?.trim() ?? ''
 
   const now = new Date()
 
   // ── Tab counts ───────────────────────────────────────────────────────────────
-  const [upcomingCount, pastCount, cancelledCount] = await Promise.all([
+  const [upcomingCount, pastCount, cancelledCount, pendingCount] = await Promise.all([
     db.select({ value: count() }).from(booking).where(
       and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), gt(booking.startTime, now))
     ),
@@ -79,12 +85,16 @@ export default async function BookingsPage({
     db.select({ value: count() }).from(booking).where(
       and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'cancelled'))
     ),
+    db.select({ value: count() }).from(booking).where(
+      and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'pending'))
+    ),
   ])
 
   const counts = {
     upcoming:  upcomingCount[0]?.value  ?? 0,
     past:      pastCount[0]?.value      ?? 0,
     cancelled: cancelledCount[0]?.value ?? 0,
+    pending:   pendingCount[0]?.value   ?? 0,
   }
 
   // ── Fetch bookings ───────────────────────────────────────────────────────────
@@ -93,7 +103,9 @@ export default async function BookingsPage({
       ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), gt(booking.startTime, now))
       : tab === 'past'
         ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), lte(booking.endTime, now))
-        : and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'cancelled'))
+        : tab === 'pending'
+          ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'pending'))
+          : and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'cancelled'))
 
   const whereClause = search
     ? and(baseWhere, or(
@@ -115,6 +127,8 @@ export default async function BookingsPage({
       cancelToken:        booking.cancelToken,
       rescheduleToken:    booking.rescheduleToken,
       cancellationReason: booking.cancellationReason,
+      approvalToken:      booking.approvalToken,
+      rejectionReason:    booking.rejectionReason,
       eventName:          eventType.name,
       locationType:       eventType.locationType,
       eventColor:         eventType.color,
@@ -122,11 +136,12 @@ export default async function BookingsPage({
     .from(booking)
     .innerJoin(eventType, eq(booking.eventTypeId, eventType.id))
     .where(whereClause)
-    .orderBy(tab === 'upcoming' ? booking.startTime : desc(booking.startTime))
+    .orderBy(tab === 'upcoming' || tab === 'pending' ? booking.startTime : desc(booking.startTime))
     .limit(50)
 
   const TABS: { key: Tab; label: string }[] = [
     { key: 'upcoming',  label: 'Upcoming' },
+    { key: 'pending',   label: 'Pending' },
     { key: 'past',      label: 'Past' },
     { key: 'cancelled', label: 'Cancelled' },
   ]
@@ -193,6 +208,7 @@ export default async function BookingsPage({
         <div className="space-y-2">
           {bookings.map((b) => {
             const isUpcoming = tab === 'upcoming'
+            const isPending = tab === 'pending'
             const statusMeta = STATUS_STYLES[b.status] ?? STATUS_STYLES.no_show
             const platform = PLATFORM_META[b.locationType ?? 'custom'] ?? PLATFORM_META.custom
             const PlatformIcon = platform.icon
@@ -261,6 +277,13 @@ export default async function BookingsPage({
                         "{b.cancellationReason}"
                       </span>
                     )}
+                    {/* Pending indicator */}
+                    {isPending && (
+                      <span className="flex items-center gap-1 text-amber-600">
+                        <Hourglass size={11} weight="fill" />
+                        Awaiting your review
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -272,7 +295,7 @@ export default async function BookingsPage({
                     {statusMeta.label}
                   </span>
 
-                  {/* Actions — upcoming only */}
+                  {/* Actions — upcoming confirmed bookings */}
                   {isUpcoming && b.status === 'confirmed' && (
                     <div className="flex items-center gap-1">
                       {joinUrl && (
@@ -312,6 +335,33 @@ export default async function BookingsPage({
                       )}
                     </div>
                   )}
+
+                  {/* Actions — pending approval bookings */}
+                  {tab === 'pending' && b.approvalToken && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        asChild
+                        size="sm"
+                        className="h-7 text-xs gap-1 px-2.5 bg-primary hover:bg-primary/90"
+                      >
+                        <Link href={`/booking/review/${b.approvalToken}?action=approve`}>
+                          <Check size={11} weight="bold" />
+                          Approve
+                        </Link>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-1 px-2 border-destructive/40 text-destructive hover:bg-destructive/5 hover:border-destructive"
+                      >
+                        <Link href={`/booking/review/${b.approvalToken}`}>
+                          <X size={11} weight="bold" />
+                          Decline
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -336,7 +386,87 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
     )
   }
 
-  const CONFIG = {
+  if (tab === 'pending') {
+    return (
+      <div className="flex justify-center py-10">
+        <div className="w-full max-w-lg border border-border bg-background overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center gap-3 border-b border-border bg-amber-50/60 px-6 py-5">
+            <span className="flex size-10 shrink-0 items-center justify-center bg-amber-100 text-amber-600">
+              <Hourglass size={20} weight="fill" />
+            </span>
+            <div>
+              <p className="font-semibold text-foreground text-sm">No pending requests</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Booking requests awaiting your approval will appear here.
+              </p>
+            </div>
+          </div>
+
+          {/* How it works */}
+          <div className="px-6 py-5">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+              How approval works
+            </p>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <span className="flex size-7 shrink-0 items-center justify-center bg-primary/10 text-primary text-xs font-bold">
+                  1
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Enable approval on an event type</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Edit any event type → General tab → turn on <strong>Require Approval</strong>.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex size-7 shrink-0 items-center justify-center bg-primary/10 text-primary text-xs font-bold">
+                  2
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Invitee submits a request</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    They book a time slot and see "Awaiting Approval" instead of a confirmation.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex size-7 shrink-0 items-center justify-center bg-primary/10 text-primary text-xs font-bold">
+                  3
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">You approve or decline</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Requests appear here with <strong>Approve</strong> and <strong>Decline</strong> buttons,
+                    or act directly from the email notification you receive.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3 border-t border-border bg-gray-50/50 px-6 py-4">
+            <Button asChild size="sm" className="gap-1.5">
+              <Link href="/event-types">
+                <Sliders size={13} weight="bold" />
+                Go to Event Types
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="gap-1.5">
+              <Link href="/bookings">
+                <EnvelopeOpen size={13} />
+                View all bookings
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const CONFIG: Record<Exclude<Tab, 'pending'>, { icon: React.ElementType; title: string; description: string; cta: string | null; href: string | null }> = {
     upcoming: {
       icon: CalendarBlank,
       title: 'No upcoming bookings',
@@ -360,7 +490,7 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
     },
   }
 
-  const { icon: Icon, title, description, cta, href } = CONFIG[tab]
+  const { icon: Icon, title, description, cta, href } = CONFIG[tab as Exclude<Tab, 'pending'>]
 
   return (
     <div className="flex flex-col items-center py-20 text-center">

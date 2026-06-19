@@ -29,6 +29,13 @@
       "when": 1781757104173,
       "tag": "0003_salty_revanche",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781863509486,
+      "tag": "0004_ambiguous_the_renegades",
+      "breakpoints": true
     }
   ]
 }

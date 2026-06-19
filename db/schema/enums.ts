@@ -47,6 +47,7 @@ export const bookingWindowTypeEnum = pgEnum('booking_window_type', [
 ])
 
 export const bookingStatusEnum = pgEnum('booking_status', [
+  'pending',
   'confirmed',
   'cancelled',
   'rescheduled',

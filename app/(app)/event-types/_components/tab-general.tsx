@@ -322,6 +322,25 @@ export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, e
           </FormItem>
         )}
       />
+
+      {/* ── Require Approval ───────────────────────────────────── */}
+      <FormField
+        control={form.control}
+        name="requiresApproval"
+        render={({ field }) => (
+          <FormItem className="flex items-center justify-between gap-4">
+            <div>
+              <FormLabel className="text-sm font-medium">Require Approval</FormLabel>
+              <FormDescription className="text-xs">
+                Bookings won&apos;t be confirmed until you approve them. You&apos;ll receive an email to review each request.
+              </FormDescription>
+            </div>
+            <FormControl>
+              <Switch checked={field.value} onCheckedChange={field.onChange} />
+            </FormControl>
+          </FormItem>
+        )}
+      />
     </div>
   )
 }

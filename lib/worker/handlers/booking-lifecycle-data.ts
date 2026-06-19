@@ -3,6 +3,7 @@ import { booking, eventType, notificationPreference, user } from "@/db/schema";
 import { db } from "@/lib/db";
 
 export interface BookingLifecycleRow {
+  approvalToken: string | null;
   cancellationReason: string | null;
   cancelToken: string;
   endTime: Date;
@@ -17,6 +18,7 @@ export interface BookingLifecycleRow {
   inviteeEmail: string;
   inviteeName: string;
   inviteeTimezone: string;
+  rejectionReason: string | null;
   rescheduleToken: string;
   startTime: Date;
   status: string;
@@ -39,8 +41,10 @@ export async function loadBookingForLifecycle(
       videoLinkHost: booking.videoLinkHost,
       cancelToken: booking.cancelToken,
       rescheduleToken: booking.rescheduleToken,
+      approvalToken: booking.approvalToken,
       status: booking.status,
       cancellationReason: booking.cancellationReason,
+      rejectionReason: booking.rejectionReason,
       etName: eventType.name,
       etLocationType: eventType.locationType,
       etLocationValue: eventType.locationValue,
