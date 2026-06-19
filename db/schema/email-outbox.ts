@@ -17,11 +17,19 @@ export const emailOutboxStatus = pgEnum("email_outbox_status", [
   "failed",
 ]);
 
+export interface EmailAttachment {
+  filename: string;
+  content: string; // base64-encoded or raw text
+  contentType: string;
+  encoding?: "base64" | "utf8";
+}
+
 export interface EmailOutboxPayload {
-  to: string;
-  subject: string;
+  attachments?: EmailAttachment[];
   html: string;
+  subject: string;
   text?: string;
+  to: string;
 }
 
 export const emailOutbox = pgTable(

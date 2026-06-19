@@ -1,7 +1,15 @@
 import nodemailer from "nodemailer";
 import { env } from "@/lib/env";
 
+export interface SmtpAttachment {
+  content: string;
+  contentType: string;
+  encoding?: "base64" | "utf8";
+  filename: string;
+}
+
 export interface SmtpSendInput {
+  attachments?: SmtpAttachment[];
   html: string;
   idempotencyKey?: string;
   subject: string;
@@ -33,9 +41,11 @@ export async function sendEmailViaSmtp(
     };
   }
 
+  const port = env.SMTP_PORT ?? 587;
   const transporter = nodemailer.createTransport({
     host: env.SMTP_HOST,
-    port: env.SMTP_PORT ?? 587,
+    port,
+    secure: env.SMTP_SECURE ?? port === 465,
     auth: {
       user: env.SMTP_USER,
       pass: env.SMTP_PASS,
@@ -51,6 +61,12 @@ export async function sendEmailViaSmtp(
     headers: input.idempotencyKey
       ? { "X-Idempotency-Key": input.idempotencyKey }
       : undefined,
+    attachments: input.attachments?.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+      contentType: a.contentType,
+      encoding: a.encoding,
+    })),
   });
 
   return {

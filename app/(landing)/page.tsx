@@ -5,6 +5,8 @@ import {
   Bell,
   CalendarBlank,
   CalendarCheck,
+  CaretLeft,
+  CaretRight,
   CheckCircle,
   Clock,
   Globe,
@@ -29,15 +31,13 @@ const LOGOS = ['Google', 'Notion', 'Stripe', 'Figma', 'Vercel', 'Slack', 'Linear
 const STEPS = [
   {
     num: '01',
-    emoji: '⚙️',
     icon: Clock,
     title: 'Set your availability',
     description: 'Choose working hours, buffer times, and connect your calendar. Takes 2 minutes total.',
-    detail: 'Mon–Fri, 9AM–5PM → Auto-blocked when busy',
+    detail: 'Mon–Fri, 9AM–5PM · Auto-blocked when busy',
   },
   {
     num: '02',
-    emoji: '🔗',
     icon: LinkSimple,
     title: 'Share your booking link',
     description: 'You get schduled.com/yourname. Paste it in your email signature, LinkedIn bio, or anywhere.',
@@ -45,7 +45,6 @@ const STEPS = [
   },
   {
     num: '03',
-    emoji: '📅',
     icon: CalendarBlank,
     title: 'Meetings land in your calendar',
     description: 'Invitees pick a slot, fill in their info, and the event appears in both calendars with a video link.',
@@ -62,25 +61,25 @@ const STATS = [
 const TESTIMONIALS = [
   {
     quote: "I replaced Calendly the same day I found Schduled. Cleaner UI, faster setup, and it's genuinely free — no catch.",
-    name: 'Sarah Chen',
+    name: 'A. C.',
     role: 'Product Lead',
-    company: 'Figma',
-    initials: 'SC',
+    company: 'SaaS startup',
+    initials: 'AC',
     color: 'from-teal-500 to-emerald-600',
   },
   {
     quote: "My clients book through my Schduled link and it looks more professional than any tool I've used. And I pay nothing.",
-    name: 'Marcus Williams',
+    name: 'M. W.',
     role: 'Freelance Designer',
-    company: 'Self-employed',
+    company: 'Independent',
     initials: 'MW',
     color: 'from-violet-500 to-indigo-600',
   },
   {
     quote: "The timezone handling alone saves my global team an hour of confusion every single week. Effortless.",
-    name: 'Emma Rodriguez',
+    name: 'E. R.',
     role: 'Operations Lead',
-    company: 'Notion',
+    company: 'Remote-first team',
     initials: 'ER',
     color: 'from-orange-500 to-rose-600',
   },
@@ -250,8 +249,12 @@ export default async function LandingPage() {
                   </a>
                 </div>
 
-                <p className="mt-5 text-xs text-white/30">
-                  ✓ No credit card &nbsp;·&nbsp; ✓ Free forever &nbsp;·&nbsp; ✓ 2-minute setup
+                <p className="mt-5 flex items-center gap-2 text-xs text-white/30">
+                  <CheckCircle size={11} weight="fill" className="text-teal-400/60 shrink-0" /> No credit card
+                  <span className="opacity-40">·</span>
+                  <CheckCircle size={11} weight="fill" className="text-teal-400/60 shrink-0" /> Free forever
+                  <span className="opacity-40">·</span>
+                  <CheckCircle size={11} weight="fill" className="text-teal-400/60 shrink-0" /> 2-minute setup
                 </p>
               </div>
 
@@ -271,8 +274,8 @@ export default async function LandingPage() {
                   <div className="border-b border-white/8 px-4 py-3.5 flex items-center justify-between">
                     <span className="text-sm font-semibold text-white">{MONTH_NAMES[month]} {year}</span>
                     <div className="flex gap-1">
-                      <span className="text-white/30 text-sm">‹</span>
-                      <span className="text-white/30 text-sm">›</span>
+                      <CaretLeft size={14} className="text-white/30" />
+                      <CaretRight size={14} className="text-white/30" />
                     </div>
                   </div>
                   <div className="p-4">
@@ -371,7 +374,7 @@ export default async function LandingPage() {
                       <div className="relative overflow-hidden bg-primary py-3.5 text-center text-sm font-semibold text-primary-foreground">
                         <span className="animate-schduled-sheen pointer-events-none absolute inset-0"
                           style={{ background: 'linear-gradient(105deg,transparent 40%,rgba(255,255,255,.18) 50%,transparent 60%)', backgroundSize: '200% auto' }} />
-                        Confirm booking →
+                        Confirm booking
                       </div>
                     </div>
                   </div>
@@ -650,9 +653,9 @@ export default async function LandingPage() {
             >
               <div className="flex items-center gap-3 border-b border-white/8 bg-white/[0.04] px-4 py-2.5">
                 <div className="flex gap-1.5">
-                  <div className="h-2.5 w-2.5 rounded-full bg-red-500/45" />
-                  <div className="h-2.5 w-2.5 rounded-full bg-amber-500/45" />
-                  <div className="h-2.5 w-2.5 rounded-full bg-green-500/45" />
+                  <div className="h-2 w-2 rounded-full bg-red-500/45" />
+                  <div className="h-2 w-2 rounded-full bg-amber-500/45" />
+                  <div className="h-2 w-2 rounded-full bg-green-500/45" />
                 </div>
                 <div className="flex flex-1 max-w-xs items-center gap-2 border border-white/8 bg-black/25 px-3 py-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-teal-400/55" />
@@ -674,7 +677,7 @@ export default async function LandingPage() {
                     <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/25">Admin</div>
                     <div className="flex items-center gap-2 px-3 py-1.5">
                       <div className="flex h-5 w-5 shrink-0 items-center justify-center bg-primary/30 text-[9px] font-black text-white">DH</div>
-                      <div className="h-2 w-14 rounded-sm bg-white/15" />
+                      <div className="h-2 w-14 bg-white/15" />
                     </div>
                   </div>
                 </div>
@@ -683,7 +686,7 @@ export default async function LandingPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">👋</span>
+                        <Bell size={13} weight="fill" className="text-primary/60" />
                         <div className="h-4 w-44 bg-foreground/12" />
                       </div>
                       <div className="mt-1.5 h-2.5 w-60 bg-foreground/6" />
@@ -752,7 +755,7 @@ export default async function LandingPage() {
                     <div className="relative mb-6">
                       {/* The badge box */}
                       <div className="relative inline-flex h-14 w-14 items-center justify-center border-2 border-border bg-background transition-all duration-300 group-hover:border-primary group-hover:bg-primary/5">
-                        <span className="text-xl leading-none">{step.emoji}</span>
+                        <Icon size={22} weight="duotone" className="text-primary" />
                         {/* Step number chip */}
                         <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center bg-primary text-[9px] font-black text-primary-foreground">
                           {step.num}
@@ -948,8 +951,8 @@ export default async function LandingPage() {
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Smart scheduling for modern professionals. Free forever, open source.</p>
             </div>
             {[
-              { title: 'Product', links: [['Features', '#features'], ['How It Works', '#how-it-works'], ['FAQ', '#faq'], ['Changelog', '/changelog']] },
-              { title: 'Company', links: [['About', '/about'], ['Contact', '/contact'], ['Privacy', '/privacy'], ['Terms', '/terms']] },
+              { title: 'Product', links: [['Features', '#features'], ['How It Works', '#how-it-works'], ['FAQ', '#faq']] },
+              { title: 'Company', links: [['About', '/about'], ['Contact', '/contact'], ['Privacy', '/privacy'], ['Terms', '/terms'], ['Cookies', '/cookies']] },
               { title: 'Social',  links: [['GitHub', 'https://github.com'], ['Twitter / X', 'https://twitter.com'], ['LinkedIn', 'https://linkedin.com']] },
             ].map((col) => (
               <div key={col.title}>

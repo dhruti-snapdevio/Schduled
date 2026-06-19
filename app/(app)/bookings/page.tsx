@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gt, gte, lte } from 'drizzle-orm'
+import { and, count, desc, eq, gt, ilike, lte, or } from 'drizzle-orm'
 import { format, isToday, isTomorrow } from 'date-fns'
 import Link from 'next/link'
 import {
@@ -11,10 +11,10 @@ import {
   Phone,
   MapPin,
   ArrowCounterClockwise,
+  MagnifyingGlass,
   X,
 } from '@phosphor-icons/react/dist/ssr'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { PageHeader } from '@/components/scaffold/page-header'
 import { booking, eventType } from '@/db/schema'
 import { requireSession } from '@/lib/authz'
@@ -31,61 +31,53 @@ function dayLabel(date: Date): string {
   return format(date, 'EEE, MMM d')
 }
 
-const LOCATION_ICON: Record<string, React.ElementType> = {
-  zoom:         VideoCamera,
-  google_meet:  VideoCamera,
-  teams:        VideoCamera,
-  phone:        Phone,
-  in_person:    MapPin,
-  other:        MapPin,
+const PLATFORM_META: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  zoom:                { label: 'Zoom',        color: 'bg-blue-500/10 text-blue-600',   icon: VideoCamera },
+  google_meet:         { label: 'Google Meet', color: 'bg-primary/10 text-primary',     icon: VideoCamera },
+  teams:               { label: 'Teams',       color: 'bg-purple-500/10 text-purple-600', icon: VideoCamera },
+  phone_host_calls:    { label: 'Phone',       color: 'bg-muted text-muted-foreground', icon: Phone },
+  phone_invitee_calls: { label: 'Phone',       color: 'bg-muted text-muted-foreground', icon: Phone },
+  in_person:           { label: 'In-person',   color: 'bg-amber-500/10 text-amber-700', icon: MapPin },
+  invitees_choice:     { label: 'Flexible',    color: 'bg-muted text-muted-foreground', icon: VideoCamera },
+  custom:              { label: 'Online',      color: 'bg-muted text-muted-foreground', icon: VideoCamera },
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  confirmed: 'bg-primary/10 text-primary border border-primary/20',
-  cancelled:  'bg-destructive/10 text-destructive border border-destructive/20',
-  pending:    'bg-amber-500/10 text-amber-700 border border-amber-500/20',
-  no_show:    'bg-muted text-muted-foreground border border-border',
+const STATUS_STYLES: Record<string, { dotClass: string; badge: string; label: string }> = {
+  confirmed: { dotClass: 'bg-primary',          badge: 'bg-primary/10 text-primary',         label: 'Confirmed' },
+  cancelled: { dotClass: 'bg-destructive',       badge: 'bg-destructive/10 text-destructive', label: 'Cancelled' },
+  pending:   { dotClass: 'bg-amber-500',         badge: 'bg-amber-500/10 text-amber-700',     label: 'Pending' },
+  no_show:   { dotClass: 'bg-muted-foreground',  badge: 'bg-muted text-muted-foreground',     label: 'No show' },
+  completed: { dotClass: 'bg-foreground/30',     badge: 'bg-foreground/5 text-muted-foreground', label: 'Completed' },
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  confirmed: 'Confirmed',
-  cancelled:  'Cancelled',
-  pending:    'Pending',
-  no_show:    'No show',
+const TAB_DOTS: Record<Tab, string> = {
+  upcoming:  'bg-primary',
+  past:      'bg-muted-foreground/60',
+  cancelled: 'bg-destructive',
 }
 
 export default async function BookingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; q?: string }>
 }) {
   const session = await requireSession()
-  const { tab: rawTab } = await searchParams
+  const { tab: rawTab, q } = await searchParams
   const tab: Tab = rawTab === 'past' || rawTab === 'cancelled' ? rawTab : 'upcoming'
+  const search = q?.trim() ?? ''
 
   const now = new Date()
 
-  // ── Count each tab for badge display ────────────────────────────────────────
+  // ── Tab counts ───────────────────────────────────────────────────────────────
   const [upcomingCount, pastCount, cancelledCount] = await Promise.all([
     db.select({ value: count() }).from(booking).where(
-      and(
-        eq(booking.hostUserId, session.user.id),
-        eq(booking.status, 'confirmed'),
-        gt(booking.startTime, now),
-      )
+      and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), gt(booking.startTime, now))
     ),
     db.select({ value: count() }).from(booking).where(
-      and(
-        eq(booking.hostUserId, session.user.id),
-        eq(booking.status, 'confirmed'),
-        lte(booking.endTime, now),
-      )
+      and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), lte(booking.endTime, now))
     ),
     db.select({ value: count() }).from(booking).where(
-      and(
-        eq(booking.hostUserId, session.user.id),
-        eq(booking.status, 'cancelled'),
-      )
+      and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'cancelled'))
     ),
   ])
 
@@ -95,48 +87,48 @@ export default async function BookingsPage({
     cancelled: cancelledCount[0]?.value ?? 0,
   }
 
-  // ── Fetch bookings for active tab ────────────────────────────────────────────
-  const whereClause =
+  // ── Fetch bookings ───────────────────────────────────────────────────────────
+  const baseWhere =
     tab === 'upcoming'
       ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), gt(booking.startTime, now))
       : tab === 'past'
         ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), lte(booking.endTime, now))
         : and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'cancelled'))
 
-  const orderBy =
-    tab === 'upcoming'
-      ? booking.startTime          // soonest first
-      : desc(booking.startTime)    // most recent first
+  const whereClause = search
+    ? and(baseWhere, or(
+        ilike(booking.inviteeName, `%${search}%`),
+        ilike(booking.inviteeEmail, `%${search}%`),
+      ))
+    : baseWhere
 
   const bookings = await db
     .select({
-      id:              booking.id,
-      inviteeName:     booking.inviteeName,
-      inviteeEmail:    booking.inviteeEmail,
-      inviteeTimezone: booking.inviteeTimezone,
-      startTime:       booking.startTime,
-      endTime:         booking.endTime,
-      duration:        booking.duration,
-      status:          booking.status,
-      locationValue:   booking.locationValue,
-      cancelToken:     booking.cancelToken,
-      rescheduleToken: booking.rescheduleToken,
-      cancelledAt:     booking.cancelledAt,
+      id:                 booking.id,
+      inviteeName:        booking.inviteeName,
+      inviteeEmail:       booking.inviteeEmail,
+      startTime:          booking.startTime,
+      endTime:            booking.endTime,
+      duration:           booking.duration,
+      status:             booking.status,
+      locationValue:      booking.locationValue,
+      cancelToken:        booking.cancelToken,
+      rescheduleToken:    booking.rescheduleToken,
       cancellationReason: booking.cancellationReason,
-      eventName:       eventType.name,
-      locationType:    eventType.locationType,
-      eventColor:      eventType.color,
+      eventName:          eventType.name,
+      locationType:       eventType.locationType,
+      eventColor:         eventType.color,
     })
     .from(booking)
     .innerJoin(eventType, eq(booking.eventTypeId, eventType.id))
     .where(whereClause)
-    .orderBy(orderBy)
+    .orderBy(tab === 'upcoming' ? booking.startTime : desc(booking.startTime))
     .limit(50)
 
-  const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
-    { key: 'upcoming',  label: 'Upcoming',  icon: Clock },
-    { key: 'past',      label: 'Past',      icon: CalendarCheck },
-    { key: 'cancelled', label: 'Cancelled', icon: CalendarX },
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'upcoming',  label: 'Upcoming' },
+    { key: 'past',      label: 'Past' },
+    { key: 'cancelled', label: 'Cancelled' },
   ]
 
   return (
@@ -147,127 +139,181 @@ export default async function BookingsPage({
         description="View and manage all your upcoming and past bookings."
       />
 
-      {/* ── Tab bar ─────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 border-b border-border mb-6">
-        {TABS.map(({ key, label, icon: Icon }) => (
-          <Link
-            key={key}
-            href={`/bookings?tab=${key}`}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
-              tab === key
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
-            )}
-          >
-            <Icon size={15} weight={tab === key ? 'fill' : 'regular'} />
-            {label}
-            <span className={cn(
-              'ml-1 rounded-full px-1.5 py-0.5 text-xs font-semibold',
-              tab === key ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
-            )}>
-              {counts[key]}
-            </span>
-          </Link>
-        ))}
+      {/* ── Toolbar: pill tabs + search ──────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        {/* Pill tabs */}
+        <div className="flex items-center gap-1.5">
+          {TABS.map(({ key, label }) => (
+            <Link
+              key={key}
+              href={`/bookings?tab=${key}`}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium border transition-all',
+                tab === key
+                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                  : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-primary/40',
+              )}
+            >
+              <span className={cn(
+                'size-2 rounded-full shrink-0',
+                tab === key ? 'bg-white/70' : TAB_DOTS[key],
+              )} />
+              {label}
+              <span className={cn(
+                'text-[11px] font-bold',
+                tab === key ? 'text-white/80' : 'text-muted-foreground',
+              )}>
+                {counts[key]}
+              </span>
+            </Link>
+          ))}
+        </div>
+
+        {/* Search */}
+        <form action="/bookings" method="GET" className="ml-auto relative flex items-center">
+          <input type="hidden" name="tab" value={tab} />
+          <MagnifyingGlass
+            size={14}
+            className="pointer-events-none absolute left-2.5 text-muted-foreground"
+          />
+          <input
+            name="q"
+            defaultValue={search}
+            type="search"
+            placeholder="Search name or email..."
+            className="h-9 w-full sm:w-56 border border-border bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary rounded-none"
+          />
+        </form>
       </div>
 
-      {/* ── Booking list ─────────────────────────────────────────────────── */}
+      {/* ── List ─────────────────────────────────────────────────────────────── */}
       {bookings.length === 0 ? (
-        <EmptyState tab={tab} />
+        <EmptyState tab={tab} hasSearch={!!search} />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {bookings.map((b) => {
-            const LocationIcon = LOCATION_ICON[b.locationType ?? 'other'] ?? MapPin
             const isUpcoming = tab === 'upcoming'
+            const statusMeta = STATUS_STYLES[b.status] ?? STATUS_STYLES.no_show
+            const platform = PLATFORM_META[b.locationType ?? 'custom'] ?? PLATFORM_META.custom
+            const PlatformIcon = platform.icon
+
+            const joinUrl =
+              b.locationValue?.startsWith('http') &&
+              ['zoom', 'google_meet', 'teams', 'custom'].includes(b.locationType ?? '')
+                ? b.locationValue
+                : null
+
+            const joinLabel =
+              b.locationType === 'zoom'        ? 'Open Zoom'
+              : b.locationType === 'google_meet' ? 'Join Meet'
+              : 'Join Meeting'
 
             return (
-              <Card key={b.id}>
-                <CardContent className="p-0">
-                  <div className="flex items-start gap-4 p-5">
-                    {/* Color dot + date column */}
-                    <div className="flex flex-col items-center gap-1 shrink-0 w-14 text-center">
-                      <div
-                        className="size-3 rounded-full mt-1"
-                        style={{ backgroundColor: b.eventColor ?? '#0d9488' }}
-                      />
-                      <p className="text-xs font-semibold text-foreground leading-tight">
-                        {format(b.startTime, 'MMM')}
-                      </p>
-                      <p className="text-2xl font-bold text-foreground leading-none">
-                        {format(b.startTime, 'd')}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(b.startTime, 'EEE')}
-                      </p>
-                    </div>
+              <div
+                key={b.id}
+                className="group relative flex items-stretch border border-border bg-background hover:border-primary/30 hover:shadow-sm hover:-translate-y-px transition-all overflow-hidden"
+              >
+                {/* 3px event color bar */}
+                <div
+                  className="w-[3px] shrink-0"
+                  style={{ backgroundColor: b.eventColor ?? 'var(--primary)' }}
+                />
 
-                    {/* Main content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-foreground truncate">
-                            {b.inviteeName}
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                            {b.eventName}
-                          </p>
-                        </div>
-                        <span className={cn(
-                          'shrink-0 rounded-none px-2 py-0.5 text-xs font-semibold',
-                          STATUS_STYLES[b.status] ?? STATUS_STYLES.no_show,
-                        )}>
-                          {STATUS_LABEL[b.status] ?? b.status}
-                        </span>
-                      </div>
+                {/* Date column */}
+                <div className="flex flex-col items-center justify-center w-[58px] shrink-0 text-center py-3 px-2 border-r border-border/40">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide leading-none">
+                    {format(b.startTime, 'MMM')}
+                  </p>
+                  <p className="text-2xl font-bold text-foreground leading-tight">
+                    {format(b.startTime, 'd')}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground leading-none">
+                    {format(b.startTime, 'EEE')}
+                  </p>
+                </div>
 
-                      {/* Meta row */}
-                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock size={12} />
-                          {dayLabel(b.startTime)} · {format(b.startTime, 'h:mm a')} – {format(b.endTime, 'h:mm a')}
-                          <span className="text-muted-foreground/60">({b.duration} min)</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <EnvelopeSimple size={12} />
-                          {b.inviteeEmail}
-                        </span>
-                        {b.locationValue && (
-                          <span className="flex items-center gap-1">
-                            <LocationIcon size={12} />
-                            {b.locationValue}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Cancellation reason */}
-                      {tab === 'cancelled' && b.cancellationReason && (
-                        <p className="mt-2 text-xs text-muted-foreground border-l-2 border-destructive/30 pl-2">
-                          Reason: {b.cancellationReason}
-                        </p>
-                      )}
-                    </div>
+                {/* Center: content */}
+                <div className="flex-1 min-w-0 py-3 px-4 flex flex-col justify-center">
+                  {/* Name + event name */}
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <p className="font-semibold text-foreground text-sm truncate">{b.inviteeName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{b.eventName}</p>
                   </div>
 
-                  {/* Action row — only for upcoming confirmed bookings */}
+                  {/* Meta row */}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock size={11} />
+                      {dayLabel(b.startTime)} · {format(b.startTime, 'h:mm a')} – {format(b.endTime, 'h:mm a')}
+                    </span>
+                    <span className="flex items-center gap-1 max-w-[180px] sm:max-w-none truncate">
+                      <EnvelopeSimple size={11} className="shrink-0" />
+                      <span className="truncate">{b.inviteeEmail}</span>
+                    </span>
+                    {/* Platform badge */}
+                    <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium', platform.color)}>
+                      <PlatformIcon size={10} weight="fill" />
+                      {platform.label}
+                    </span>
+                    {/* Cancellation reason */}
+                    {tab === 'cancelled' && b.cancellationReason && (
+                      <span className="text-destructive/70 truncate max-w-xs">
+                        "{b.cancellationReason}"
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: status badge + actions */}
+                <div className="flex flex-col items-end justify-center gap-2 px-4 py-3 shrink-0">
+                  {/* Status pill */}
+                  <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold', statusMeta.badge)}>
+                    <span className={cn('size-1.5 rounded-full shrink-0', statusMeta.dotClass)} />
+                    {statusMeta.label}
+                  </span>
+
+                  {/* Actions — upcoming only */}
                   {isUpcoming && b.status === 'confirmed' && (
-                    <div className="border-t border-border px-5 py-3 flex items-center gap-2">
-                      <Button asChild variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-                        <Link href={`/reschedule/${b.rescheduleToken}`}>
-                          <ArrowCounterClockwise size={13} />
-                          Reschedule
-                        </Link>
-                      </Button>
-                      <Button asChild variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-destructive/70 hover:text-destructive hover:bg-destructive/5">
-                        <Link href={`/cancel/${b.cancelToken}`}>
-                          <X size={13} />
-                          Cancel
-                        </Link>
-                      </Button>
+                    <div className="flex items-center gap-1">
+                      {joinUrl && (
+                        <Button asChild size="sm" className="h-7 text-xs gap-1 px-2.5">
+                          <a href={joinUrl} target="_blank" rel="noopener noreferrer">
+                            <VideoCamera size={11} weight="fill" />
+                            {joinLabel}
+                          </a>
+                        </Button>
+                      )}
+                      {b.rescheduleToken && (
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs gap-1 px-2"
+                          title="Reschedule"
+                        >
+                          <Link href={`/reschedule/${b.rescheduleToken}`}>
+                            <ArrowCounterClockwise size={12} />
+                            <span className="hidden lg:inline">Reschedule</span>
+                          </Link>
+                        </Button>
+                      )}
+                      {b.cancelToken && (
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                          title="Cancel"
+                        >
+                          <Link href={`/cancel/${b.cancelToken}`}>
+                            <X size={12} />
+                          </Link>
+                        </Button>
+                      )}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )
           })}
         </div>
@@ -276,38 +322,56 @@ export default async function BookingsPage({
   )
 }
 
-function EmptyState({ tab }: { tab: Tab }) {
+function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
+  if (hasSearch) {
+    return (
+      <div className="flex flex-col items-center py-20 text-center">
+        <MagnifyingGlass size={40} weight="thin" className="mb-3 text-muted-foreground/30" />
+        <p className="font-medium text-foreground">No results found</p>
+        <p className="mt-1 text-sm text-muted-foreground">Try a different name or email address.</p>
+        <Button asChild size="sm" variant="outline" className="mt-4">
+          <Link href={`/bookings?tab=${tab}`}>Clear search</Link>
+        </Button>
+      </div>
+    )
+  }
+
   const CONFIG = {
     upcoming: {
       icon: CalendarBlank,
       title: 'No upcoming bookings',
-      description: 'Share your booking link to start getting meetings.',
+      description: 'Share your booking link and start scheduling.',
+      cta: 'View Event Types',
+      href: '/event-types',
     },
     past: {
       icon: CalendarCheck,
-      title: 'No past bookings',
-      description: 'Completed meetings will appear here.',
+      title: 'No past bookings yet',
+      description: 'Completed meetings will appear here once they pass.',
+      cta: null,
+      href: null,
     },
     cancelled: {
       icon: CalendarX,
       title: 'No cancelled bookings',
       description: 'Cancelled meetings will appear here.',
+      cta: null,
+      href: null,
     },
   }
-  const { icon: Icon, title, description } = CONFIG[tab]
+
+  const { icon: Icon, title, description, cta, href } = CONFIG[tab]
 
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center py-16 text-center">
-        <Icon size={40} weight="thin" className="mb-3 text-muted-foreground/30" />
-        <p className="font-medium text-foreground">{title}</p>
-        <p className="mt-1 max-w-xs text-sm text-muted-foreground">{description}</p>
-        {tab === 'upcoming' && (
-          <Button asChild size="sm" className="mt-5">
-            <Link href="/event-types">View Event Types</Link>
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col items-center py-20 text-center">
+      <Icon size={40} weight="thin" className="mb-3 text-muted-foreground/30" />
+      <p className="font-medium text-foreground">{title}</p>
+      <p className="mt-1 max-w-xs text-sm text-muted-foreground">{description}</p>
+      {cta && href && (
+        <Button asChild size="sm" className="mt-5">
+          <Link href={href}>{cta}</Link>
+        </Button>
+      )}
+    </div>
   )
 }

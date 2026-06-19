@@ -23,11 +23,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .where(eq(user.id, session.user.id))
     .limit(1)
 
+  const isImpersonating = !!session.session.impersonatedBy;
+
   return (
     <AppShell
       email={freshUser?.email ?? session.user.email}
+      userName={freshUser?.name ?? null}
       isAdmin={freshUser?.role === ADMIN_ROLE}
       userImage={freshUser?.image ?? null}
+      isImpersonating={isImpersonating}
+      impersonatedUserName={freshUser?.name ?? null}
     >
       {freshUser && !freshUser.onboardingDone && (
         <OnboardingModal

@@ -171,7 +171,6 @@ body {
   --success-light:      oklch(0.78 0.13 145);
   --warning:            oklch(0.72 0.15 65);
 
-  /* Dark surfaces — teal-ocean darkness */
   --background:         oklch(0.145 0.022 210);
   --foreground:         oklch(0.946 0.012 185);
   --card:               oklch(0.180 0.025 210);
@@ -179,7 +178,6 @@ body {
   --popover:            oklch(0.180 0.025 210);
   --popover-foreground: oklch(0.946 0.012 185);
 
-  /* PRIMARY — slightly lighter teal for dark mode readability */
   --primary:            oklch(0.700 0.120 183);
   --primary-foreground: oklch(0.108 0.032 215);
 
@@ -204,7 +202,6 @@ body {
   --chart-4: oklch(0.60  0.104 184.735);
   --chart-5: oklch(0.511 0.086 186.423);
 
-  /* Sidebar — same deep ocean in dark mode (already dark) */
   --sidebar:                    oklch(0.085 0.025 215);
   --sidebar-foreground:         oklch(0.940 0.012 185);
   --sidebar-primary:            oklch(0.700 0.140 182);
@@ -233,6 +230,31 @@ body {
   input {
     font: inherit;
   }
+}
+
+/* ── No scrollbar (sidebar) — scrollable but bar hidden ─────────── */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Thin scrollbar ─────────────────────────────────────────────── */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 99px;
 }
 
 /* ── Landing page animations ────────────────────────────────────── */

@@ -1,7 +1,10 @@
 import { formatInTimeZone } from "date-fns-tz";
 import type { Job } from "pg-boss";
+import { contact } from "@/db/schema";
+import { db } from "@/lib/db";
 import { enqueueEmail } from "@/lib/email";
 import { bookingEmail } from "@/lib/email/templates/booking-emails";
+import { generateBookingICS } from "@/lib/calendar/ics";
 import { createNotification } from "@/lib/notifications/create";
 import type { BookingConfirmationPayload } from "@/lib/worker/job-types";
 import {
@@ -53,7 +56,7 @@ async function processOne(bookingId: string) {
     reason: null,
   };
 
-  // Invitee confirmation
+  // Invitee confirmation (with ICS calendar attachment)
   if (prefs?.bookingConfirmationEmail !== false) {
     const mail = await bookingEmail({
       ...base,
@@ -63,11 +66,29 @@ async function processOne(bookingId: string) {
       meetLink: b.videoLinkInvitee,
       meetLabel,
     });
+
+    const icsAttachment = generateBookingICS({
+      uid: b.id,
+      title: `${b.etName} with ${b.hostName ?? "your host"}`,
+      description: `${b.etName} meeting via Schduled`,
+      startUtc: new Date(b.startTime),
+      durationMinutes: Math.round(
+        (new Date(b.endTime).getTime() - new Date(b.startTime).getTime()) / 60000
+      ),
+      organizerName: b.hostName ?? "Your host",
+      organizerEmail: b.hostEmail ?? "",
+      attendeeEmail: b.inviteeEmail,
+      attendeeName: b.inviteeName,
+      location: resolveLocationLabel(b.etLocationType, b.etLocationValue),
+      meetUrl: b.videoLinkInvitee ?? undefined,
+    });
+
     await enqueueEmail({
       to: b.inviteeEmail,
       subject: mail.subject,
       html: mail.html,
       text: mail.text,
+      attachments: [icsAttachment],
     });
   }
 
@@ -102,6 +123,17 @@ async function processOne(bookingId: string) {
     body: `${b.inviteeName} booked for ${whenLabel}`,
     bookingId: b.id,
   });
+
+  // Auto-save invitee as a contact for the host.
+  // Unique index on (hostUserId, email) prevents duplicates silently.
+  await db
+    .insert(contact)
+    .values({
+      hostUserId: b.hostUserId,
+      email: b.inviteeEmail,
+      name: b.inviteeName,
+    })
+    .onConflictDoNothing();
 
   console.log(`[booking-confirmation] processed booking ${bookingId}`);
 }

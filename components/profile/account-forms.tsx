@@ -151,7 +151,7 @@ export function AvatarUploadCard({
               JPG, PNG or WebP · max 5 MB · saved at 256×256
             </p>
             {success && (
-              <p className="text-xs font-medium text-green-600">
+              <p className="text-xs font-medium text-primary">
                 Photo updated!
               </p>
             )}

@@ -45,10 +45,10 @@ function NavItem({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors",
+        "flex items-center gap-3 pl-[9px] pr-3 py-2.5 text-sm font-medium transition-colors border-l-[3px]",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-          : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+          ? "border-l-primary bg-primary text-primary-foreground"
+          : "border-l-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
       )}
     >
       <Icon size={17} weight={active ? "fill" : "regular"} />
@@ -59,10 +59,12 @@ function NavItem({
 
 export function SidebarNav({
   email,
+  userName,
   isAdmin,
   userImage,
 }: {
   email: string;
+  userName?: string | null;
   isAdmin: boolean;
   userImage?: string | null;
 }) {
@@ -81,7 +83,7 @@ export function SidebarNav({
             active={
               pathname === href ||
               (href !== "/dashboard" && pathname.startsWith(href + "/")) ||
-              (href === "/settings" && pathname.startsWith("/settings"))
+              (href === "/settings" && pathname.startsWith("/settings") && !pathname.startsWith("/settings/profile"))
             }
           />
         ))}
@@ -105,19 +107,24 @@ export function SidebarNav({
           active={pathname === "/settings/profile"}
         />
 
-        {/* User email row */}
-        <div className="flex items-center gap-2.5 px-3 py-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
+        {/* Profile row */}
+        <div className="flex items-center gap-2.5 px-3 py-2" title={email}>
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold rounded-none">
             {userImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={userImage} alt="Profile" className="size-full object-cover" />
             ) : (
-              email.slice(0, 2).toUpperCase()
+              (userName ?? email).slice(0, 2).toUpperCase()
             )}
           </span>
-          <p className="min-w-0 flex-1 truncate text-xs font-medium text-sidebar-foreground/90 leading-none">
-            {email}
-          </p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-semibold text-sidebar-foreground leading-none">
+              {userName ?? email}
+            </p>
+            <p className="mt-0.5 text-[10px] text-sidebar-foreground/50 leading-none">
+              {isAdmin ? 'Admin' : 'Member'}
+            </p>
+          </div>
         </div>
 
         {/* Sign out */}

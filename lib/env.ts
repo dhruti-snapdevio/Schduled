@@ -16,6 +16,7 @@ const envSchema = z.object({
   // SMTP email
   SMTP_HOST: optionalString,
   SMTP_PORT: z.preprocess((v) => (v ? Number(v) : undefined), z.number().optional()),
+  SMTP_SECURE: z.preprocess((v) => v === 'true' || v === '1', z.boolean().optional()),
   SMTP_USER: optionalString,
   SMTP_PASS: optionalString,
   EMAIL_FROM: optionalString,

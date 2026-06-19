@@ -52,17 +52,15 @@ const LOCATION_OPTIONS: LocationOption[] = [
   {
     value: "phone_host_calls",
     label: "Phone call (you call)",
-    sub: "You call the invitee on their provided phone number.",
+    sub: "You call the invitee. They provide their number when booking.",
     icon: <Phone className="text-primary" size={22} weight="fill" />,
-    comingSoon: true,
   },
   {
     value: "phone_invitee_calls",
     label: "Phone call (they call)",
-    sub: "The invitee calls you.",
+    sub: "The invitee calls you on your phone number.",
     icon: <Phone className="text-primary" size={22} weight="fill" />,
     requiresPhone: true,
-    comingSoon: true,
   },
   {
     value: "in_person",
@@ -72,7 +70,6 @@ const LOCATION_OPTIONS: LocationOption[] = [
     requiresValue: true,
     valuePlaceholder: "e.g. 123 Main St, New York, NY",
     valueLabel: "Location address",
-    comingSoon: true,
   },
   {
     value: "custom",
@@ -82,7 +79,6 @@ const LOCATION_OPTIONS: LocationOption[] = [
     requiresValue: true,
     valuePlaceholder: "e.g. https://meet.example.com/my-room",
     valueLabel: "Custom location",
-    comingSoon: true,
   },
   {
     value: "invitees_choice",

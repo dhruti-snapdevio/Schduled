@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { UserCircle } from '@phosphor-icons/react'
+import { CheckCircle, UserCircle } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -211,8 +211,8 @@ export function StepProfile({ defaultName, defaultUsername, defaultImage, onNext
             </span>
           )}
           {usernameState === 'available' && (
-            <span className="absolute inset-y-0 right-3 flex items-center text-xs font-medium text-green-600">
-              ✓ Available
+            <span className="absolute inset-y-0 right-3 flex items-center gap-1 text-xs font-medium text-primary">
+              <CheckCircle size={13} weight="fill" /> Available
             </span>
           )}
         </div>

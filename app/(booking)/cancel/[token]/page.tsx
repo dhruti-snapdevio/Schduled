@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
-import { booking, eventType, user } from "@/db/schema";
+import { booking, cancellationPolicy, eventType, user } from "@/db/schema";
 import { db } from "@/lib/db";
 import { CancelClient } from "./cancel-client";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function CancelPage({
   params,
@@ -19,6 +24,7 @@ export default async function CancelPage({
       inviteeName: booking.inviteeName,
       inviteeTimezone: booking.inviteeTimezone,
       etName: eventType.name,
+      etId: eventType.id,
       hostName: user.name,
     })
     .from(booking)
@@ -39,14 +45,36 @@ export default async function CancelPage({
     );
   }
 
+  const [policy] = await db
+    .select({
+      allowCancellation: cancellationPolicy.allowCancellation,
+      cutoffHours: cancellationPolicy.cutoffHours,
+      policyText: cancellationPolicy.policyText,
+    })
+    .from(cancellationPolicy)
+    .where(eq(cancellationPolicy.eventTypeId, b.etId))
+    .limit(1);
+
+  const hoursUntil =
+    (new Date(b.startTime).getTime() - Date.now()) / (1000 * 60 * 60);
+
+  const isBlocked =
+    policy?.allowCancellation === false ||
+    (!!policy?.cutoffHours &&
+      policy.cutoffHours > 0 &&
+      hoursUntil < policy.cutoffHours);
+
   return (
     <CancelClient
       alreadyCancelled={b.status === "cancelled"}
+      blockedByPolicy={isBlocked}
+      cutoffHours={policy?.cutoffHours ?? 0}
       eventName={b.etName}
       hostName={b.hostName ?? "your host"}
       inviteeName={b.inviteeName}
       inviteeTimezone={b.inviteeTimezone}
       isPast={new Date(b.startTime).getTime() < Date.now()}
+      policyText={policy?.policyText ?? null}
       startUtc={b.startTime.toISOString()}
       token={token}
     />

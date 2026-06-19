@@ -32,6 +32,11 @@ export const QUEUE_OPTIONS: Record<
     policy: "exclusive",
     retryLimit: 1,
   },
+  [JOB_NAMES.IDEMPOTENCY_KEYS_PRUNE]: {
+    expireInSeconds: 120,
+    policy: "exclusive",
+    retryLimit: 0,
+  },
 
   // Booking lifecycle
   [JOB_NAMES.VIDEO_LINK_GENERATE]: { expireInSeconds: 60,  policy: "singleton", retryLimit: 2, retryDelay: 30 },

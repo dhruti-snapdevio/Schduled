@@ -1,30 +1,41 @@
 'use client'
 
 import { useState } from 'react'
+import { ArrowSquareOut, Check, Info, Plus, X } from '@phosphor-icons/react'
+import Link from 'next/link'
 import type { UseFormReturn } from 'react-hook-form'
 import type { BuilderFormValues, ScheduleOption } from './builder'
-import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+import { FormControl, FormField, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { X, Plus } from '@phosphor-icons/react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 const DURATION_PRESETS = [15, 20, 30, 45, 60, 90, 120]
+const INCREMENT_OPTIONS = [15, 30, 45, 60]
 
 function formatDuration(min: number) {
-  if (min < 60) return `${min} min`
+  if (min < 60) return `${min}m`
   const h = Math.floor(min / 60)
   const m = min % 60
   return m > 0 ? `${h}h ${m}m` : `${h}h`
+}
+
+function InfoTip({ text }: { text: string }) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild type="button">
+          <span className="inline-flex cursor-default text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+            <Info size={13} />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          <p>{text}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
 }
 
 interface TabAvailabilityProps {
@@ -33,338 +44,479 @@ interface TabAvailabilityProps {
 }
 
 export function TabAvailability({ form, schedules }: TabAvailabilityProps) {
-  const [customDuration, setCustomDuration] = useState('')
+  const [customInput, setCustomInput] = useState('')
+  const [showCustom, setShowCustom] = useState(false)
+
   const durations = form.watch('durations')
   const defaultDuration = form.watch('defaultDuration')
+  const increment = form.watch('startTimeIncrement')
+  const maxPerDay = form.watch('maxBookingsPerDay')
+  const scheduleId = form.watch('availabilityScheduleId')
+  const bufferBefore = form.watch('bufferBefore') ?? 0
+  const bufferAfter = form.watch('bufferAfter') ?? 0
 
-  function addDuration(minutes: number) {
-    if (durations.includes(minutes)) return
-    const next = [...durations, minutes].sort((a, b) => a - b)
+  const isUnlimited = maxPerDay === null || maxPerDay === undefined
+
+  const selectedSchedule = schedules.find((s) =>
+    scheduleId ? s.id === scheduleId : s.isDefault
+  ) ?? schedules[0] ?? null
+
+  function addDuration(min: number) {
+    if (durations.includes(min)) return
+    const next = [...durations, min].sort((a, b) => a - b)
     form.setValue('durations', next, { shouldDirty: true })
-    if (next.length === 1) form.setValue('defaultDuration', minutes, { shouldDirty: true })
+    if (next.length === 1) form.setValue('defaultDuration', min, { shouldDirty: true })
   }
 
-  function removeDuration(minutes: number) {
-    const next = durations.filter((d) => d !== minutes)
+  function removeDuration(min: number) {
+    const next = durations.filter((d) => d !== min)
     form.setValue('durations', next, { shouldDirty: true })
-    if (defaultDuration === minutes && next.length > 0) {
+    if (defaultDuration === min && next.length > 0) {
       form.setValue('defaultDuration', next[0], { shouldDirty: true })
     }
   }
 
-  function setDefault(minutes: number) {
-    form.setValue('defaultDuration', minutes, { shouldDirty: true })
+  function setDefault(min: number) {
+    form.setValue('defaultDuration', min, { shouldDirty: true })
   }
 
   function addCustom() {
-    const n = parseInt(customDuration, 10)
+    const n = parseInt(customInput, 10)
     if (!n || n < 5 || n > 480) return
     addDuration(n)
-    setCustomDuration('')
+    setCustomInput('')
+    setShowCustom(false)
   }
+
+  // All chips to render (presets + any custom values not in presets)
+  const customDurations = durations.filter((d) => !DURATION_PRESETS.includes(d)).sort((a, b) => a - b)
+  const allChips = [...DURATION_PRESETS, ...customDurations]
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-base font-semibold">Availability</h2>
-        <p className="text-sm text-muted-foreground mt-1">Control when and how people can book this event.</p>
-      </div>
 
-      <Separator />
-
-      {/* Duration */}
-      <div className="space-y-3">
-        <div>
-          <p className="text-sm font-medium">Duration</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Add one or more durations. Click a duration to set it as default.</p>
+      {/* ── Section 1: Duration ───────────────────────────────────────── */}
+      <div className="border border-border bg-background">
+        <div className="px-5 py-4 border-b border-border/60">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duration</p>
         </div>
 
-        {/* Preset buttons */}
-        <div className="flex flex-wrap gap-2">
-          {DURATION_PRESETS.map((d) => {
-            const selected = durations.includes(d)
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => selected ? removeDuration(d) : addDuration(d)}
-                className={cn(
-                  'h-9 px-3 text-sm border transition',
-                  selected
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border bg-card hover:border-primary hover:bg-muted/50'
-                )}
-              >
-                {formatDuration(d)}
-              </button>
-            )
-          })}
+        <div className="px-5 py-5 space-y-6">
+          {/* Duration chips */}
+          <div>
+            <p className="text-sm font-medium text-foreground mb-4">Meeting Durations</p>
 
-          {/* Custom input */}
-          <div className="flex items-stretch gap-1">
-            <Input
-              type="number"
-              min={5}
-              max={480}
-              placeholder="Custom"
-              className="h-9 w-24 text-sm"
-              value={customDuration}
-              onChange={(e) => setCustomDuration(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom() } }}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-9 w-9 shrink-0"
-              onClick={addCustom}
-            >
-              <Plus size={14} />
-            </Button>
-          </div>
-        </div>
+            <div className="flex flex-wrap gap-x-2 gap-y-7">
+              {allChips.map((d) => {
+                const selected = durations.includes(d)
+                const isDefault = selected && d === defaultDuration
+                return (
+                  <div key={d} className="flex flex-col items-center gap-0.5">
+                    <div
+                      className={cn(
+                        'flex items-center border transition-all',
+                        selected
+                          ? 'bg-primary border-primary text-white'
+                          : 'border-border bg-card text-foreground hover:border-primary/60'
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => selected ? setDefault(d) : addDuration(d)}
+                        className={cn(
+                          'h-8 px-2.5 text-xs font-medium flex items-center gap-1 transition-colors',
+                          selected ? 'text-white' : 'hover:text-primary'
+                        )}
+                      >
+                        {selected && <Check size={11} weight="bold" />}
+                        {formatDuration(d)}
+                      </button>
+                      {selected && durations.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeDuration(d)}
+                          className="h-8 w-6 flex items-center justify-center border-l border-white/20 text-white/70 hover:text-white transition-colors"
+                        >
+                          <X size={10} />
+                        </button>
+                      )}
+                    </div>
+                    {/* Reserve label space so chips align vertically */}
+                    <span className={cn('flex items-center gap-0.5 text-[10px] font-medium whitespace-nowrap', isDefault ? 'text-primary' : 'invisible')}>
+                      <Check size={9} weight="bold" /> Default
+                    </span>
+                  </div>
+                )
+              })}
 
-        {/* Selected durations with default picker */}
-        {durations.length > 0 && (
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Click to set as default duration:</p>
-            <div className="flex flex-wrap gap-2">
-              {[...durations].sort((a, b) => a - b).map((d) => (
-                <div key={d} className="flex items-center gap-1">
+              {/* Add custom */}
+              {showCustom ? (
+                <div className="flex items-center gap-1 self-start mt-0">
+                  <Input
+                    autoFocus
+                    className="h-8 w-20 text-xs px-2"
+                    max={480}
+                    min={5}
+                    placeholder="min"
+                    type="number"
+                    value={customInput}
+                    onChange={(e) => setCustomInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); addCustom() }
+                      if (e.key === 'Escape') { setShowCustom(false); setCustomInput('') }
+                    }}
+                  />
                   <button
                     type="button"
-                    onClick={() => setDefault(d)}
+                    onClick={addCustom}
+                    className="h-8 w-8 flex items-center justify-center border border-primary bg-primary text-white hover:bg-primary/90 transition-colors"
+                  >
+                    <Check size={13} weight="bold" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowCustom(false); setCustomInput('') }}
+                    className="h-8 w-8 flex items-center justify-center border border-border text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowCustom(true)}
+                    className="h-8 px-2.5 text-xs font-medium border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary transition-all flex items-center gap-1"
+                  >
+                    <Plus size={11} />
+                    Custom
+                  </button>
+                  <span className="text-[10px] invisible">x</span>
+                </div>
+              )}
+            </div>
+
+            {form.formState.errors.durations && (
+              <p className="mt-2 text-xs text-destructive">{form.formState.errors.durations.message}</p>
+            )}
+          </div>
+
+          {/* Start time increment */}
+          <div>
+            <p className="text-sm font-medium text-foreground mb-1">Start Time Increment</p>
+            <p className="text-xs text-muted-foreground mb-3">How often available start times appear on your booking page.</p>
+            <div className="flex gap-2">
+              {INCREMENT_OPTIONS.map((n) => {
+                const active = increment === n
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => form.setValue('startTimeIncrement', n, { shouldDirty: true })}
                     className={cn(
-                      'h-8 px-2.5 text-xs border transition',
-                      d === defaultDuration
-                        ? 'border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary'
-                        : 'border-border text-foreground hover:border-primary'
+                      'h-8 px-3 text-xs font-medium border transition-all flex items-center gap-1',
+                      active
+                        ? 'bg-primary border-primary text-white'
+                        : 'border-border bg-card text-foreground hover:border-primary/60 hover:text-primary'
                     )}
                   >
-                    {formatDuration(d)}
-                    {d === defaultDuration && <span className="ml-1.5 text-[10px] uppercase tracking-wide opacity-70">default</span>}
+                    {active && <Check size={11} weight="bold" />}
+                    {n}m
                   </button>
-                  {durations.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeDuration(d)}
-                      className="h-4 w-4 flex items-center justify-center text-muted-foreground hover:text-destructive"
-                    >
-                      <X size={10} />
-                    </button>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
-        )}
-
-        {form.formState.errors.durations && (
-          <p className="text-xs text-destructive">{form.formState.errors.durations.message}</p>
-        )}
+        </div>
       </div>
 
-      <Separator />
-
-      {/* Schedule assignment */}
+      {/* ── Section 2: Schedule ───────────────────────────────────────── */}
       {schedules.length > 0 && (
-        <FormField
-          control={form.control}
-          name="availabilityScheduleId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Availability schedule</FormLabel>
-              <Select
-                value={field.value ?? '__none__'}
-                onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Use default schedule" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="__none__">Use default schedule</SelectItem>
-                  {schedules.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}{s.isDefault ? ' (default)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>Which availability schedule governs this event type.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="border border-border bg-background">
+          <div className="px-5 py-4 border-b border-border/60">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Schedule</p>
+          </div>
+
+          <div className="px-5 py-5 space-y-3">
+            <p className="text-sm font-medium text-foreground">Availability Schedule</p>
+
+            <FormField
+              control={form.control}
+              name="availabilityScheduleId"
+              render={({ field }) => (
+                <div>
+                  <Select
+                    value={field.value ?? '__default__'}
+                    onValueChange={(v) => field.onChange(v === '__default__' ? undefined : v)}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full max-w-xs">
+                        <SelectValue placeholder="Use default schedule" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="__default__">Use default schedule</SelectItem>
+                      {schedules.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}{s.isDefault ? ' (default)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </div>
+              )}
+            />
+
+            {/* Schedule preview */}
+            {selectedSchedule && (
+              <div className="flex items-center justify-between p-3 border border-border bg-muted/30">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{selectedSchedule.name}</p>
+                  {selectedSchedule.summary ? (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {selectedSchedule.summary.days} · {selectedSchedule.summary.time}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-0.5">No windows configured</p>
+                  )}
+                </div>
+                <Link
+                  href="/availability"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                >
+                  Edit Schedule
+                  <ArrowSquareOut size={12} />
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
-      {/* Booking window */}
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="bookingWindow"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Booking window</FormLabel>
-              <FormControl>
-                <div className="flex items-stretch border border-input">
+      {/* ── Section 3: Booking Rules ─────────────────────────────────── */}
+      <div className="border border-border bg-background">
+        <div className="px-5 py-4 border-b border-border/60">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Booking Rules</p>
+        </div>
+
+        <div className="px-5 py-5 space-y-5">
+
+          {/* Booking Window */}
+          <FormField
+            control={form.control}
+            name="bookingWindow"
+            render={({ field }) => (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 w-40 shrink-0">
+                  <span className="text-sm font-medium text-foreground">Booking Window</span>
+                  <InfoTip text="How many days in advance people can book a meeting with you." />
+                </div>
+                <div className="flex items-stretch border border-input w-28">
                   <Input
-                    type="number"
-                    min={1}
+                    className="border-0 shadow-none focus-visible:ring-0 h-8 px-2 text-sm"
                     max={365}
-                    className="border-0 shadow-none focus-visible:ring-0"
-                    {...field}
+                    min={1}
+                    type="number"
+                    value={field.value}
                     onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 60)}
                   />
-                  <span className="flex items-center bg-muted px-3 text-xs text-muted-foreground border-l border-input">
+                  <span className="flex items-center bg-muted px-2.5 text-xs text-muted-foreground border-l border-input shrink-0">
                     days
                   </span>
                 </div>
-              </FormControl>
-              <FormDescription>How far ahead people can book.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </div>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="minimumNotice"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Minimum notice</FormLabel>
-              <FormControl>
-                <div className="flex items-stretch border border-input">
+          {/* Minimum Notice */}
+          <FormField
+            control={form.control}
+            name="minimumNotice"
+            render={({ field }) => (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 w-40 shrink-0">
+                  <span className="text-sm font-medium text-foreground">Minimum Notice</span>
+                  <InfoTip text="Minimum lead time required before someone can book. E.g. 60 min means no same-hour bookings." />
+                </div>
+                <div className="flex items-stretch border border-input w-28">
                   <Input
-                    type="number"
-                    min={0}
+                    className="border-0 shadow-none focus-visible:ring-0 h-8 px-2 text-sm"
                     max={1440}
-                    className="border-0 shadow-none focus-visible:ring-0"
-                    {...field}
+                    min={0}
+                    type="number"
+                    value={field.value}
                     onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
                   />
-                  <span className="flex items-center bg-muted px-3 text-xs text-muted-foreground border-l border-input">
+                  <span className="flex items-center bg-muted px-2.5 text-xs text-muted-foreground border-l border-input shrink-0">
                     min
                   </span>
                 </div>
-              </FormControl>
-              <FormDescription>Minimum lead time for bookings.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </div>
+            )}
+          />
+
+          {/* Buffer Before */}
+          <FormField
+            control={form.control}
+            name="bufferBefore"
+            render={({ field }) => (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 w-40 shrink-0">
+                  <span className="text-sm font-medium text-foreground">Buffer Before</span>
+                  <InfoTip text="Blocked time before each meeting starts, so you can prepare." />
+                </div>
+                <div className="flex items-stretch border border-input w-28">
+                  <Input
+                    className="border-0 shadow-none focus-visible:ring-0 h-8 px-2 text-sm"
+                    max={120}
+                    min={0}
+                    type="number"
+                    value={field.value}
+                    onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
+                  />
+                  <span className="flex items-center bg-muted px-2.5 text-xs text-muted-foreground border-l border-input shrink-0">
+                    min
+                  </span>
+                </div>
+                <FormMessage />
+              </div>
+            )}
+          />
+
+          {/* Buffer After */}
+          <FormField
+            control={form.control}
+            name="bufferAfter"
+            render={({ field }) => (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 w-40 shrink-0">
+                  <span className="text-sm font-medium text-foreground">Buffer After</span>
+                  <InfoTip text="Blocked time after each meeting ends, so you can wrap up." />
+                </div>
+                <div className="flex items-stretch border border-input w-28">
+                  <Input
+                    className="border-0 shadow-none focus-visible:ring-0 h-8 px-2 text-sm"
+                    max={120}
+                    min={0}
+                    type="number"
+                    value={field.value}
+                    onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
+                  />
+                  <span className="flex items-center bg-muted px-2.5 text-xs text-muted-foreground border-l border-input shrink-0">
+                    min
+                  </span>
+                </div>
+                <FormMessage />
+              </div>
+            )}
+          />
+
+          {/* Buffer time visual timeline */}
+          {(bufferBefore > 0 || bufferAfter > 0) && (() => {
+            const meetingMin = defaultDuration || 30
+            const total = bufferBefore + meetingMin + bufferAfter
+            const beforePct = Math.round((bufferBefore / total) * 100)
+            const meetingPct = Math.round((meetingMin / total) * 100)
+            const afterPct = 100 - beforePct - meetingPct
+            return (
+              <div className="pt-1">
+                <p className="mb-2 text-xs font-medium text-muted-foreground">Timeline preview</p>
+                <div className="flex h-8 w-full overflow-hidden text-[10px] font-semibold">
+                  {bufferBefore > 0 && (
+                    <div
+                      style={{ width: `${beforePct}%` }}
+                      className="flex items-center justify-center bg-amber-100 text-amber-700 border border-amber-200 shrink-0"
+                    >
+                      {bufferBefore}m
+                    </div>
+                  )}
+                  <div
+                    style={{ width: `${meetingPct}%` }}
+                    className="flex items-center justify-center bg-primary/15 text-primary border border-primary/30 shrink-0 min-w-0"
+                  >
+                    <span className="truncate px-1">Meeting {meetingMin}m</span>
+                  </div>
+                  {bufferAfter > 0 && (
+                    <div
+                      style={{ width: `${afterPct}%` }}
+                      className="flex items-center justify-center bg-amber-100 text-amber-700 border border-amber-200 shrink-0"
+                    >
+                      {bufferAfter}m
+                    </div>
+                  )}
+                </div>
+                <p className="mt-1.5 text-[11px] text-muted-foreground/70">
+                  {bufferBefore > 0 && bufferAfter > 0
+                    ? `${bufferBefore}m prep + ${meetingMin}m meeting + ${bufferAfter}m wrap-up = ${total}m blocked`
+                    : bufferBefore > 0
+                    ? `${bufferBefore}m prep + ${meetingMin}m meeting = ${total}m blocked`
+                    : `${meetingMin}m meeting + ${bufferAfter}m wrap-up = ${total}m blocked`}
+                </p>
+              </div>
+            )
+          })()}
+
+          <div className="border-t border-border/60 pt-5">
+            {/* Max Bookings Per Day */}
+            <FormField
+              control={form.control}
+              name="maxBookingsPerDay"
+              render={({ field }) => (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium text-foreground">Max Bookings Per Day</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isUnlimited) {
+                        field.onChange(null)
+                      } else {
+                        field.onChange(5)
+                      }
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <div className={cn(
+                      'h-4 w-4 border flex items-center justify-center transition-colors',
+                      isUnlimited ? 'border-primary bg-primary text-white' : 'border-border bg-background'
+                    )}>
+                      {isUnlimited && <Check size={10} weight="bold" />}
+                    </div>
+                    <span className="text-sm text-foreground">Unlimited</span>
+                  </button>
+
+                  {!isUnlimited && (
+                    <div className="flex items-center gap-2 ml-6">
+                      <span className="text-sm text-muted-foreground">Maximum:</span>
+                      <div className="flex items-stretch border border-input w-24">
+                        <Input
+                          className="border-0 shadow-none focus-visible:ring-0 h-8 px-2 text-sm"
+                          max={100}
+                          min={1}
+                          type="number"
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value, 10)
+                            field.onChange(isNaN(n) ? null : n)
+                          }}
+                        />
+                      </div>
+                      <span className="text-sm text-muted-foreground">bookings per day</span>
+                    </div>
+                  )}
+                  <FormMessage />
+                </div>
+              )}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Buffers */}
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="bufferBefore"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Buffer before</FormLabel>
-              <FormControl>
-                <div className="flex items-stretch border border-input">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={120}
-                    className="border-0 shadow-none focus-visible:ring-0"
-                    {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
-                  />
-                  <span className="flex items-center bg-muted px-3 text-xs text-muted-foreground border-l border-input">
-                    min
-                  </span>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="bufferAfter"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Buffer after</FormLabel>
-              <FormControl>
-                <div className="flex items-stretch border border-input">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={120}
-                    className="border-0 shadow-none focus-visible:ring-0"
-                    {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
-                  />
-                  <span className="flex items-center bg-muted px-3 text-xs text-muted-foreground border-l border-input">
-                    min
-                  </span>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
-      {/* Start time increment */}
-      <FormField
-        control={form.control}
-        name="startTimeIncrement"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Start time increment</FormLabel>
-            <Select
-              value={String(field.value)}
-              onValueChange={(v) => field.onChange(parseInt(v, 10))}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {[5, 10, 15, 20, 30, 60].map((n) => (
-                  <SelectItem key={n} value={String(n)}>{n} minutes</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormDescription>How often available start times appear on the booking page.</FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Max bookings per day */}
-      <FormField
-        control={form.control}
-        name="maxBookingsPerDay"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Max bookings per day</FormLabel>
-            <FormControl>
-              <Input
-                type="number"
-                min={1}
-                max={100}
-                placeholder="Unlimited"
-                className="max-w-[160px]"
-                value={field.value ?? ''}
-                onChange={(e) => {
-                  const n = parseInt(e.target.value, 10)
-                  field.onChange(isNaN(n) ? null : n)
-                }}
-              />
-            </FormControl>
-            <FormDescription>Leave empty for unlimited daily bookings.</FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
     </div>
   )
 }

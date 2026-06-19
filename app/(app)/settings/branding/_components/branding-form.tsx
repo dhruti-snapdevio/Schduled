@@ -83,7 +83,6 @@ export function BrandingForm({ displayName, avatarUrl, initials }: BrandingFormP
             </Button>
             <p className="text-xs text-muted-foreground">
               JPG, PNG or WebP · max 2 MB
-              <span className="ml-1 text-amber-600">(upload enabled after S3 setup)</span>
             </p>
           </div>
         </CardContent>

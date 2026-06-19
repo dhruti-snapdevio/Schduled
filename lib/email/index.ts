@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
+import type { EmailAttachment } from "@/db/schema";
 import { emailOutbox } from "@/db/schema";
 import { db } from "@/lib/db";
 import { enqueueJob } from "@/lib/worker/enqueue";
 import { JOB_NAMES } from "@/lib/worker/job-types";
 
 export interface SendEmailOptions {
+  attachments?: EmailAttachment[];
   html: string;
   subject: string;
   text?: string;

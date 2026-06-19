@@ -10,16 +10,22 @@ import {
   availabilityOverride,
   booking,
 } from '@/db/schema'
+import { checkRateLimit, jsonError, rateLimitKey } from '@/lib/api/helpers'
 import { generateSlots } from '@/lib/calendar/slots'
 
 export async function GET(request: Request) {
+  if (!checkRateLimit(rateLimitKey('GET:/api/slots', request), 30, 60_000)) {
+    return jsonError('Too many requests. Please slow down.', 429)
+  }
+
   const { searchParams } = new URL(request.url)
   const username = searchParams.get('username')
   const slug = searchParams.get('slug')
   const date = searchParams.get('date') // YYYY-MM-DD in host TZ
+  const durationParam = searchParams.get('duration')
 
   if (!username || !slug || !date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return NextResponse.json({ error: 'Missing required params' }, { status: 400 })
+    return jsonError('Missing required params', 400)
   }
 
   const [host] = await db
@@ -28,7 +34,7 @@ export async function GET(request: Request) {
     .where(eq(user.username, username))
     .limit(1)
 
-  if (!host) return NextResponse.json({ error: 'Host not found' }, { status: 404 })
+  if (!host) return jsonError('Host not found', 404)
 
   const et = await db.query.eventType.findFirst({
     where: and(
@@ -39,12 +45,19 @@ export async function GET(request: Request) {
     with: { durations: true },
   })
 
-  if (!et) return NextResponse.json({ error: 'Event type not found' }, { status: 404 })
+  if (!et) return jsonError('Event type not found', 404)
 
   const defaultDuration =
     et.durations.find((d) => d.isDefault)?.duration ??
     et.durations[0]?.duration ??
     30
+
+  // Use duration from query param if valid and belongs to this event type
+  const requestedDuration = durationParam ? parseInt(durationParam, 10) : null
+  const durationMinutes =
+    requestedDuration && et.durations.some((d) => d.duration === requestedDuration)
+      ? requestedDuration
+      : defaultDuration
 
   const now = new Date()
 
@@ -128,7 +141,7 @@ export async function GET(request: Request) {
     date,
     timezone: hostTz,
     windows,
-    durationMinutes: defaultDuration,
+    durationMinutes,
     bufferBefore: et.bufferBefore ?? 0,
     bufferAfter: et.bufferAfter ?? 0,
     increment: et.startTimeIncrement ?? 30,

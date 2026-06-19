@@ -12,6 +12,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -30,9 +31,10 @@ import {
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
+import { LivePreview } from "./live-preview";
 import { TabAvailability } from "./tab-availability";
 import { TabCancellation } from "./tab-cancellation";
-import { TabGeneral } from "./tab-general";
+import { TabGeneral, MEETING_TYPES } from "./tab-general";
 import { TabLocation } from "./tab-location";
 import { TabNotifications } from "./tab-notifications";
 import { TabQuestions } from "./tab-questions";
@@ -87,6 +89,7 @@ export interface ScheduleOption {
   id: string;
   isDefault: boolean;
   name: string;
+  summary: { days: string; time: string } | null;
 }
 
 export interface ExistingQuestion {
@@ -97,7 +100,7 @@ export interface ExistingQuestion {
   options: string[] | null;
   placeholder: string | null;
   position: number;
-  type: "short_text" | "long_text" | "phone" | "single_select" | "dropdown";
+  type: "short_text" | "long_text" | "phone" | "single_select" | "multiple_select" | "dropdown";
 }
 
 interface BuilderProps {
@@ -154,8 +157,10 @@ export function EventTypeBuilder({
   questions = [],
   username,
 }: BuilderProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [activeTab, setActiveTab] = useState("general");
+  const [meetingType, setMeetingType] = useState("one_on_one");
   const [pendingQuestions, setPendingQuestions] = useState<ExistingQuestion[]>(
     []
   );
@@ -261,13 +266,16 @@ export function EventTypeBuilder({
 
           {/* Title row */}
           <div className="flex flex-wrap items-center gap-3 px-4 py-4">
+            {/* Initials avatar */}
             <span
               aria-hidden
-              className="h-9 w-9 shrink-0 rounded-full ring-2 ring-inset ring-black/5"
+              className="h-10 w-10 shrink-0 flex items-center justify-center text-white font-bold text-base ring-2 ring-inset ring-black/10"
               style={{ backgroundColor: form.watch("color") || "#0d9488" }}
-            />
+            >
+              {(form.watch("name") || (mode === "create" ? "N" : "E"))[0].toUpperCase()}
+            </span>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="truncate text-lg font-bold text-foreground">
                   {form.watch("name") ||
                     (mode === "create" ? "New Event Type" : "Untitled")}
@@ -283,8 +291,13 @@ export function EventTypeBuilder({
                   {form.watch("isActive") ? "Active" : "Inactive"}
                 </span>
               </div>
+              {/* Event type badge */}
+              <span className="mt-1 inline-block text-[11px] font-medium text-muted-foreground">
+                {MEETING_TYPES.find((m) => m.id === meetingType)?.label ?? "One-on-One"}
+              </span>
             </div>
 
+            {/* Save / Discard always visible in header */}
             <div className="flex shrink-0 items-center gap-2">
               {mode === "edit" && (
                 <Button
@@ -307,12 +320,8 @@ export function EventTypeBuilder({
               >
                 <FloppyDisk size={13} />
                 {isPending
-                  ? mode === "create"
-                    ? "Creating…"
-                    : "Saving…"
-                  : mode === "create"
-                    ? "Create Event Type"
-                    : "Save Changes"}
+                  ? mode === "create" ? "Creating…" : "Saving…"
+                  : mode === "create" ? "Create Event Type" : "Save Changes"}
               </Button>
             </div>
           </div>
@@ -320,11 +329,11 @@ export function EventTypeBuilder({
 
         {/* Tab bar — custom, no Radix Tabs to avoid scroll arrows */}
         <div className="sticky top-0 z-10 -mx-4 md:-mx-6 border-b border-border bg-page px-4 md:px-6 mb-6">
-          <div className="flex">
+          <div className="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {TABS.map((tab) => (
               <button
                 className={cn(
-                  "flex-1 border-b-2 py-3 text-xs font-semibold uppercase tracking-wide whitespace-nowrap transition-colors",
+                  "shrink-0 flex-1 min-w-[80px] border-b-2 py-3 text-xs font-semibold uppercase tracking-wide whitespace-nowrap transition-colors",
                   activeTab === tab.id
                     ? "border-primary text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
@@ -339,71 +348,113 @@ export function EventTypeBuilder({
           </div>
         </div>
 
-        {/* Tab content */}
-        <div className="max-w-2xl">
-          {activeTab === "general" && (
-            <TabGeneral form={form} username={username} />
-          )}
-          {activeTab === "availability" && (
-            <TabAvailability form={form} schedules={schedules} />
-          )}
-          {activeTab === "location" && <TabLocation form={form} />}
-          {activeTab === "questions" && (
-            <TabQuestions
-              eventTypeId={eventTypeId}
-              mode={mode}
-              onPendingChange={setPendingQuestions}
-              pendingQuestions={pendingQuestions}
-              questions={questions}
-            />
-          )}
-          {activeTab === "notifications" && <TabNotifications form={form} />}
-          {activeTab === "cancellation" && <TabCancellation form={form} />}
+        {/* Tab content — General uses two-column layout with live preview */}
+        {activeTab === "general" ? (
+          <div className="flex gap-10 items-start">
+            {/* Left: form — capped so the preview has room */}
+            <div className="flex-1 min-w-0 max-w-2xl">
+              <TabGeneral
+                eventTypeId={eventTypeId}
+                form={form}
+                meetingType={meetingType}
+                onMeetingTypeChange={setMeetingType}
+                username={username}
+              />
+              {/* Prev / Next — sticky three-column nav */}
+              <div className="mt-8 sticky bottom-0 -mx-4 md:-mx-6 px-4 md:px-6 py-3 border-t border-border bg-page flex items-center justify-between">
+                <Button className="gap-1.5" disabled={isFirst} onClick={() => setActiveTab(TABS[tabIndex - 1].id)} size="sm" type="button" variant="outline">
+                  <ArrowLeft size={13} />
+                  {!isFirst ? TABS[tabIndex - 1].label : "Previous"}
+                </Button>
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:block">
+                  {TABS[tabIndex].label}
+                </span>
+                {isLast ? (
+                  <Button className="gap-1.5" disabled={(mode === "edit" && !isDirty) || isPending} size="sm" type="submit">
+                    <FloppyDisk size={13} />
+                    {isPending ? (mode === "create" ? "Creating…" : "Saving…") : (mode === "create" ? "Create Event Type" : "Save Changes")}
+                  </Button>
+                ) : (
+                  <Button className="gap-1.5" onClick={() => setActiveTab(TABS[tabIndex + 1].id)} size="sm" type="button" variant="outline">
+                    {TABS[tabIndex + 1].label}
+                    <ArrowRight size={13} />
+                  </Button>
+                )}
+              </div>
+            </div>
+            {/* Right: live preview */}
+            <div className="w-80 shrink-0 hidden lg:block">
+              <LivePreview form={form} meetingType={meetingType} username={username} />
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-2xl">
+            {activeTab === "availability" && (
+              <TabAvailability form={form} schedules={schedules} />
+            )}
+            {activeTab === "location" && <TabLocation form={form} />}
+            {activeTab === "questions" && (
+              <TabQuestions
+                eventTypeId={eventTypeId}
+                mode={mode}
+                onPendingChange={setPendingQuestions}
+                pendingQuestions={pendingQuestions}
+                questions={questions}
+              />
+            )}
+            {activeTab === "notifications" && <TabNotifications form={form} />}
+            {activeTab === "cancellation" && <TabCancellation form={form} />}
 
-          {/* Prev / Next navigation */}
-          <div className="mt-8 pt-5 border-t border-border flex items-center justify-between">
-            <Button
-              className="gap-1.5"
-              disabled={isFirst}
-              onClick={() => setActiveTab(TABS[tabIndex - 1].id)}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
-              <ArrowLeft size={13} />
-              {isFirst ? "Previous" : TABS[tabIndex - 1].label}
-            </Button>
-
-            {isLast ? (
+            {/* Prev / Next — sticky three-column nav */}
+            <div className="mt-8 sticky bottom-0 -mx-4 md:-mx-6 px-4 md:px-6 py-3 border-t border-border bg-page flex items-center justify-between">
               <Button
                 className="gap-1.5"
-                disabled={(mode === "edit" && !isDirty) || isPending}
-                size="sm"
-                type="submit"
-              >
-                <FloppyDisk size={13} />
-                {isPending
-                  ? mode === "create"
-                    ? "Creating…"
-                    : "Saving…"
-                  : mode === "create"
-                    ? "Create Event Type"
-                    : "Save Changes"}
-              </Button>
-            ) : (
-              <Button
-                className="gap-1.5"
-                onClick={() => setActiveTab(TABS[tabIndex + 1].id)}
+                disabled={isFirst}
+                onClick={() => setActiveTab(TABS[tabIndex - 1].id)}
                 size="sm"
                 type="button"
                 variant="outline"
               >
-                {TABS[tabIndex + 1].label}
-                <ArrowRight size={13} />
+                <ArrowLeft size={13} />
+                {!isFirst ? TABS[tabIndex - 1].label : "Previous"}
               </Button>
-            )}
+
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:block">
+                {TABS[tabIndex].label}
+              </span>
+
+              {isLast ? (
+                <Button
+                  className="gap-1.5"
+                  disabled={(mode === "edit" && !isDirty) || isPending}
+                  size="sm"
+                  type="submit"
+                >
+                  <FloppyDisk size={13} />
+                  {isPending
+                    ? mode === "create"
+                      ? "Creating…"
+                      : "Saving…"
+                    : mode === "create"
+                      ? "Create Event Type"
+                      : "Save Changes"}
+                </Button>
+              ) : (
+                <Button
+                  className="gap-1.5"
+                  onClick={() => setActiveTab(TABS[tabIndex + 1].id)}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  {TABS[tabIndex + 1].label}
+                  <ArrowRight size={13} />
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
       </form>
 
       {/* Post-save success dialog */}
@@ -411,7 +462,7 @@ export function EventTypeBuilder({
         onOpenChange={(open) => {
           if (!open) {
             if (successInfo?.isCreate) {
-              window.location.href = `/event-types/${successInfo.id}`;
+              router.push(`/event-types/${successInfo.id}`);
             } else {
               setSuccessInfo(null);
             }
@@ -469,7 +520,7 @@ export function EventTypeBuilder({
               <button
                 className="inline-flex items-center justify-center h-9 px-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => {
-                  window.location.href = `/event-types/${successInfo.id}`;
+                  router.push(`/event-types/${successInfo.id}`);
                 }}
                 type="button"
               >

@@ -1,6 +1,6 @@
 # Schduled — MVP Implementation Plan
 
-> **Full review date:** 2026-06-18 (re-audited after session 6 — Steps 7, 18, 20, 22, 23 completed; Step 21 mostly complete)
+> **Full review date:** 2026-06-18 (re-audited after session 7 — Steps 18, 21, 24, 25 fully complete; /about + /contact pages added)
 > Based on: all 16 feature docs, architecture.md, design-system.md, database-schema.md,
 > jobs-queues.md, tools-packages.md, pre-development-setup.md, project-structure.md,
 > development-plan.md, MASTER-PLAN.md — AND actual project source code audit.
@@ -10,7 +10,7 @@
 
 ---
 
-## ACTUAL PROJECT STATE (2026-06-18, session 6)
+## ACTUAL PROJECT STATE (2026-06-18, session 7)
 
 ### What Exists ✅
 
@@ -29,7 +29,7 @@
 | Worker handlers — calendar | `calendar-write.ts`, `calendar-cancel.ts`, `calendar-update.ts`, `calendar-sync.ts`, `calendar-token-refresh.ts`, `calendar-disconnect-alert.ts` | ✅ ALL DONE |
 | Worker handlers — video | `video-link-generate.ts` | ✅ Zoom branch real; Google Meet branch uses existing calendar event hangoutLink |
 | Email | `lib/email/index.ts`, `renderer.ts`, `smtp/client.ts` | ✅ nodemailer + react-email |
-| Email templates | `magic-link.ts` ✅, `delete-confirmation.ts` ✅, `booking-emails.ts` ✅ (confirmation/cancellation/reschedule × invitee+host), `reminder-invitee.ts` ✅ | ✅ 8 of 9 done — only `reminder-host.ts` missing |
+| Email templates | `magic-link.ts` ✅, `delete-confirmation.ts` ✅, `booking-emails.ts` ✅, `reminder-invitee.ts` ✅, `reminder-host.ts` ✅ | ✅ ALL 9 DONE |
 | Utilities | `lib/utils.ts`, `lib/audit.ts`, `lib/authz.ts`, `lib/env.ts` | ✅ done |
 | Encryption | `lib/encrypt.ts` | ✅ AES-256-GCM for OAuth tokens |
 | File storage | `lib/storage/index.ts`, `local.ts`, `s3.ts` | ✅ Multi-driver: `local` (default, `public/uploads/`) or `s3` (R2/AWS). `POST /api/upload/avatar` working. |
@@ -40,7 +40,8 @@
 | Notification bell | `components/scaffold/notification-bell.tsx` | ✅ per-item dismiss (X), clear-all, mark-read |
 | Notification API | `app/api/notifications/route.ts`, `[id]/route.ts`, `read/route.ts` | ✅ GET list, DELETE all, DELETE one, POST mark-read |
 | Admin | `components/admin/`, `components/orbit/` | ✅ orbit admin complete |
-| Admin pages | `app/(orbit)/orbit/` — overview, users, email, queues, audit | ✅ orbit admin complete |
+| Admin pages | `app/(orbit)/orbit/` — overview, users, email, queues, audit, settings | ✅ orbit admin complete |
+| Admin user detail | `app/(orbit)/orbit/users/[id]/page.tsx`, `components/orbit/user-detail-actions.tsx` | ✅ ban/unban, impersonate, recent bookings, activity log |
 | Profile | `account-forms.tsx` (AvatarUploadCard + Identity), `sessions-card.tsx`, `delete-account-modal.tsx` | ✅ done |
 | Middleware | `middleware.ts` | ✅ Layer 1 route protection |
 | Route groups | `(landing)/`, `(auth)/`, `(app)/`, `(booking)/`, `(onboarding)/`, `(orbit)/` | ✅ all created |
@@ -71,31 +72,24 @@
 | **Reschedule flow** | `app/(booking)/reschedule/[token]/page.tsx` + `reschedule-client.tsx` | ✅ **COMPLETE** — full rescheduler with new slot picker, API call |
 | **Cancel API** | `app/api/bookings/cancel/route.ts` | ✅ **COMPLETE** |
 | **Reschedule API** | `app/api/bookings/reschedule/route.ts` | ✅ **COMPLETE** |
+| **Legal pages** | `app/(landing)/privacy/page.tsx`, `terms/page.tsx`, `cookies/page.tsx` | ✅ **COMPLETE** — full prose, sidebar TOC, shared LegalShell |
+| **About page** | `app/(landing)/about/page.tsx` | ✅ **COMPLETE** — origin story, values, stats, open-source callout |
+| **Contact page** | `app/(landing)/contact/page.tsx` + `_components/contact-form.tsx`, `app/actions/contact.ts` | ✅ **COMPLETE** — server action form, email via enqueueEmail() |
 
 ### Remaining Critical Issues ⚠️
 
 | Issue | Impact | Fix step |
 |-------|--------|----------|
-| `reminder-host.ts` missing | Host gets no 24h/1h reminder emails before their own meetings | Step 21 follow-up |
-| `lib/calendar/ics.ts` missing | Invitee confirmation email has no ICS calendar attachment | Step 21 follow-up |
-| `pg_advisory_xact_lock` missing | Under high concurrency, two invitees can book the same slot simultaneously | Step 18 follow-up |
-| Idempotency key check missing | Double-submit of booking form could create duplicate bookings | Step 18 follow-up |
-| `settings/login/page.tsx` missing | Plan lists it as one of 9 settings pages — `security` exists but `login` page does not | Step 11 follow-up |
-| Landing legal pages missing | `/privacy`, `/terms`, `/cookies` linked in footer but don't exist | Step 24 follow-up |
-| "Powered by Schduled" watermark | Step 26 requires removal — currently present in `booking-calendar.tsx` | Step 26 |
+| `settings/login/page.tsx` missing | Plan lists it as one of 9 settings pages — `security` exists but `login` does not | Step 11 follow-up |
+| ~~"Powered by Schduled" watermark~~ | ✅ RESOLVED — removed from booking-calendar, confirmation-client, all 3 email components | Step 26 |
+| Impersonation banner missing | When `session.impersonatedBy` exists, no amber banner is shown | Step 25 follow-up |
 
 ### What's Still Missing ❌
 
-- `lib/api/helpers.ts` — rate limiting + typed JSON response
+- `lib/api/helpers.ts` — rate limiting + typed JSON response helpers
 - `lib/validators.ts` — username / email / URL / XSS sanitization
-- `lib/calendar/ics.ts` — ICS file generation (needed for Step 21 email attachments)
-- `reminder-host.ts` — host reminder email template (24h + 1h before meeting)
-- `pg_advisory_xact_lock` in `POST /api/bookings` — double-booking race protection
-- Idempotency key table check in `POST /api/bookings`
-- `/orbit/users/[id]` detail page (ban + impersonate)
-- `/orbit/settings` platform settings page
-- Landing legal pages: `/privacy`, `/terms`, `/cookies`
-- `settings/login` page (connected auth methods — magic link vs Google)
+- `settings/login` page — connected auth methods (magic link vs Google)
+- Impersonation amber banner — show when `session.impersonatedBy` exists
 
 ### Architecture Decisions Made (differs from original plan)
 
@@ -1856,9 +1850,9 @@ app/(booking)/
 
 ---
 
-## STEP 18 — Booking Engine 🔶 MOSTLY DONE
+## STEP 18 — Booking Engine ✅ DONE
 
-> **Status: Mostly complete.** `POST /api/bookings` and `GET /api/slots` both functional. Conflict detection cross-midnight-safe. All 6 post-commit jobs enqueued: VIDEO_LINK_GENERATE, CALENDAR_WRITE, BOOKING_CONFIRMATION (with 20s delay for video events), BOOKING_REMINDER_24H, BOOKING_REMINDER_1H. Missing: `pg_advisory_xact_lock` race protection + idempotency key table check (both low-risk in dev, needed before production launch).
+> **Status: Complete.** `POST /api/bookings` and `GET /api/slots` both functional. Conflict detection cross-midnight-safe. `pg_advisory_xact_lock` race protection added. Idempotency key check (table + 24h window) added. All 6 post-commit jobs enqueued: VIDEO_LINK_GENERATE, CALENDAR_WRITE, BOOKING_CONFIRMATION (with 20s delay for video events), BOOKING_REMINDER_24H, BOOKING_REMINDER_1H.
 
 **Reference:** `docs/features/booking-engine.md`
 
@@ -1932,13 +1926,13 @@ Phase 2 only (do NOT build): `multiple_select`, `number`, `date`, `url`
 
 ---
 
-## STEP 21 — Booking Confirmation + All Email Templates 🔶 MOSTLY DONE
+## STEP 21 — Booking Confirmation + All Email Templates ✅ DONE
 
-> **Status: Mostly complete.** Confirmation page complete. Email templates: 8 of 9 done.
+> **Status: Complete.** Confirmation page complete. All 9 email templates done.
 > - `booking-emails.ts` covers: confirmation (invitee + host), cancellation (invitee + host), reschedule (invitee + host) = 6 templates via one unified component with `variant` + `isInvitee` props
 > - `reminder-invitee.ts` + `reminder-invitee.tsx` ✅ — invitee gets 24h + 1h reminder
-> - ❌ **Still need: `reminder-host.ts`** — host reminder email (24h + 1h before their own meetings)
-> - ❌ **Still need: `lib/calendar/ics.ts`** — proper ICS with TZID for email attachment (currently Add-to-Calendar works via data URI on confirmation page, but email attachment is missing)
+> - `reminder-host.ts` + `reminder-host.tsx` ✅ — host gets 24h + 1h reminder before their own meetings
+> - `lib/calendar/ics.ts` ✅ — ICS with TZID for email attachment (invitee confirmation email)
 
 **Reference:** `docs/features/booking-confirmation.md`, `docs/features/notifications-reminders.md`
 
@@ -2036,33 +2030,41 @@ app/api/bookings/[token]/reschedule/route.ts
 
 ## STEP 24 — Landing Page ✅ DONE
 
-> **Status: Complete.** Full premium redesign: hero (2-column with booking card + calendar widget), trusted-by ticker, features bento grid, stats section, how-it-works (3 steps with connector lines), testimonials (rating bar), FAQ (accordion with animation), CTA, footer. CSS scroll-driven reveal animations on all sections. See `app/(landing)/page.tsx` + `app/globals.css`.
+> **Status: Complete.** Full premium redesign + all legal and marketing pages.
+> - Landing page: hero, ticker, bento grid, stats, how-it-works, testimonials, FAQ, CTA, footer
+> - `/privacy`, `/terms`, `/cookies`: full prose via shared `LegalShell` + sidebar TOC
+> - `/about`: dark hero, origin story timeline, values cards, open-source callout
+> - `/contact`: server-action form via `enqueueEmail()`, channel cards, FAQ link panel
+>
+> See `app/(landing)/page.tsx`, `components/landing/legal-shell.tsx`, `app/actions/contact.ts`.
 
 **Reference:** `docs/features/landing-page.md`
 
 ```
 app/(landing)/
-├── layout.tsx          ← sticky header + footer, no auth required
-├── page.tsx            ← 4 MVP sections
-├── privacy/page.tsx
-├── terms/page.tsx
-└── cookies/page.tsx
+├── layout.tsx                      ← sticky header + footer, no auth required
+├── page.tsx                        ← full premium redesign (scroll animations)
+├── about/page.tsx                  ← origin story, stats, values, OSS callout
+├── contact/page.tsx                ← form + channel cards
+├── contact/_components/contact-form.tsx
+├── privacy/page.tsx                ← 8 TOC sections via LegalShell
+├── terms/page.tsx                  ← 11 TOC sections via LegalShell
+└── cookies/page.tsx                ← 7 TOC sections + cookie table via LegalShell
+components/landing/legal-shell.tsx  ← LegalShell + TocEntry + prose helpers
+app/actions/contact.ts              ← sendContactMessageAction server action
 ```
-
-### 4 MVP sections:
-1. **Hero** — full-viewport, animated product screenshot, primary CTA
-2. **3 Differentiators** — icon + feature cards
-3. **How It Works** — 3 numbered steps
-4. **CTA banner** — `bg-primary` solid teal, no gradient
 
 **Gradients:** Landing page ONLY. Never in dashboard, admin, settings, booking form.
 
 ---
 
-## STEP 25 — Admin Panel (Orbit) — Expand Existing 🔶 PARTIAL
+## STEP 25 — Admin Panel (Orbit) — Expand Existing ✅ DONE
 
-> **Status: Partial.** Overview ✅, users list ✅, email outbox ✅, job queues ✅, audit log ✅.
-> ❌ **Still need:** `/orbit/users/[id]` (detail + ban + impersonate) and `/orbit/settings` (platform settings).
+> **Status: Complete.** Overview ✅, users list ✅, email outbox ✅, job queues ✅, audit log ✅.
+> `/orbit/users/[id]` ✅ — ban/unban, role toggle, impersonate, recent bookings, activity log.
+> `/orbit/settings` ✅ — env var status display (SMTP, Google OAuth, Zoom, pg-boss, security keys).
+> Admin sidebar updated with Settings link + users table has View → link per row.
+> ⚠️ Still missing: amber impersonation banner when `session.impersonatedBy` is set.
 
 **Reference:** `docs/features/admin-panel.md`
 
@@ -2093,18 +2095,24 @@ The `(orbit)` admin already exists with: overview, users list, email outbox, job
 
 ---
 
-## STEP 26 — Open Source Check
+## STEP 26 — Open Source Check ✅ DONE
 
-Quick audit before launch:
-```bash
-grep -r "plan\|billing\|upgrade\|tier\|quota" app/ lib/ --include="*.ts" --include="*.tsx"
-# Result must be zero matches on plan-gate logic
-```
+> **Status: Complete.** All watermarks removed. Audit result: zero SaaS upsell strings in app/lib/components code.
 
-- No `/pricing` page
-- No billing tables in schema
-- No "Powered by Schduled" watermark on booking page
-- Unlimited event types, questions, overrides
+**Removed "Powered by Schduled" from 5 locations:**
+- `app/(booking)/[username]/[eventSlug]/_components/booking-calendar.tsx` — div removed entirely
+- `app/(booking)/confirmed/_components/confirmation-client.tsx` — brand footer div removed
+- `lib/email/components/booking-email.tsx` — replaced with `© Schduled`
+- `lib/email/components/reminder-invitee.tsx` — replaced with `© Schduled`
+- `lib/email/components/reminder-host.tsx` — replaced with `© Schduled`
+
+**Audit results:**
+- ✅ Zero `Powered by` strings remaining
+- ✅ Zero `KROVA` (old brand) references
+- ✅ Zero SaaS upsell strings (`upgrade to`, `go pro`, `unlock`, `subscribe`)
+- ✅ No `/pricing` page
+- ✅ No billing tables in schema
+- ✅ Unlimited event types, questions, overrides — no quota enforcement code
 
 ---
 
@@ -2129,20 +2137,22 @@ grep -r "plan\|billing\|upgrade\|tier\|quota" app/ lib/ --include="*.ts" --inclu
 
 | Item | Done |
 |------|------|
-| `/privacy`, `/terms`, `/cookies` have real legal content | |
-| SMTP: SPF + DKIM + DMARC configured | |
-| Google OAuth consent screen published (not "Testing") | |
-| Zoom Marketplace app published (**submit Day 1 — takes 2–4 weeks!**) | |
-| All env vars set in production | |
-| Worker starts on server boot (pm2 / systemd / Dockerfile) | |
-| S3/R2 bucket NOT publicly accessible — all via presigned URLs | |
-| Rate limiting on POST /api/bookings (10 req/60s) | |
-| Rate limiting on GET /api/slots (30 req/60s) | |
-| DB indexes: booking.host_user_id, booking.start_time, booking.status | |
-| Lighthouse 90+ on public booking page | |
-| Mobile tested: 375px (iPhone SE) + 360px (Galaxy) | |
-| First admin: `UPDATE "user" SET role='admin' WHERE email='your@email.com'` | |
-| `drizzle.config.ts` has `schemaFilter: ['public']` (prevents touching pgboss tables) | ✅ |
+| `/privacy`, `/terms`, `/cookies` have real legal content | ✅ |
+| SMTP: SPF + DKIM + DMARC configured on your sending domain | ☐ |
+| Google OAuth consent screen published (not "Testing") | ☐ |
+| Zoom Marketplace app published (**submit Day 1 — takes 2–4 weeks!**) | ☐ |
+| All production env vars set (DATABASE_URL, APP_SECRET, ENCRYPT_KEY, SMTP_*, GOOGLE_*, ZOOM_*, NEXT_PUBLIC_APP_URL) | ☐ |
+| Worker starts on server boot (`pm2 start npm -- run worker:start` or systemd unit) | ☐ |
+| STORAGE_DRIVER=s3 + S3 bucket NOT publicly accessible (or keep local for VPS) | ☐ |
+| Rate limiting on POST /api/bookings (10/60s) | ✅ |
+| Rate limiting on GET /api/slots (30/60s) | ✅ |
+| Rate limiting on GET /api/available-days, cancel, reschedule, username-check | ✅ |
+| DB indexes: booking_host_start_idx, booking_host_status_idx, token indexes | ✅ |
+| Drizzle config won't touch pgboss tables (pgboss uses own schema — already safe) | ✅ |
+| Cancel policy enforcement (cutoffHours + allowCancellation) wired to cancel page | ✅ |
+| Lighthouse 90+ on public booking page | ☐ |
+| Mobile tested: 375px (iPhone SE) + 360px (Galaxy) | ☐ |
+| First admin: `UPDATE "user" SET role='admin' WHERE email='your@email.com'` | ☐ |
 
 ---
 
@@ -2214,14 +2224,22 @@ import { CalendarIcon } from '@phosphor-icons/react'
 ## BUILD ORDER SUMMARY
 
 ```
-ALREADY DONE ✅ (re-audited 2026-06-17, updated 2026-06-17 session 5):
+ALREADY DONE ✅ (re-audited 2026-06-18, session 7):
   Auth (Better Auth + magic link + admin plugin + 30-day session)
   DB client (Drizzle + postgres)
   ALL DB schema files (enums, auth, profile, event-types, availability,
     calendars, video, bookings, notifications, platform, relations, contacts, job-logs)
   ALL job types defined in lib/worker/job-types.ts (16+ types)
   Worker email handlers (email-send, email-outbox-reap, email-events-prune, scaffold-healthcheck)
+  ALL booking lifecycle handlers (confirmation, cancellation, cancel-reminders, reminder,
+    reschedule-notify, reschedule-reminders) — booking-lifecycle-data.ts (shared data layer)
+  ALL calendar worker handlers (calendar-write, calendar-cancel, calendar-update,
+    calendar-sync, calendar-token-refresh, calendar-disconnect-alert)
+  video-link-generate.ts (Zoom real; Google Meet via calendar event hangoutLink)
+  ALL 9 email templates (magic-link, delete-confirmation, booking-emails ×6, reminder-invitee,
+    reminder-host)
   encrypt.ts (AES-256-GCM)
+  lib/calendar/ics.ts — ICS attachment for invitee confirmation email
   lib/storage/ (local + S3/R2 multi-driver abstraction, avatar upload API)
   ALL Shadcn UI components installed
   ALL common UI components (logo, theme-provider, theme-toggle, page-header,
@@ -2229,12 +2247,16 @@ ALREADY DONE ✅ (re-audited 2026-06-17, updated 2026-06-17 session 5):
   app/globals.css — teal OKLCH palette, Plus Jakarta Sans, scroll animations
   app/layout.tsx — Geist fonts + ThemeProvider + Sonner
   middleware.ts — full route protection Layer 1
-  app-shell.tsx + sidebar-nav.tsx — show real avatar image (from user.image)
-  orbit admin — overview, users, email, queues, audit
+  app-shell.tsx + sidebar-nav.tsx — show real avatar image (from user.image) + notification bell
+  orbit admin — overview, users, email, queues, audit, settings + /orbit/users/[id] detail
+    (ban/unban, impersonate, recent bookings, activity log)
   ALL settings pages — profile, branding, my-link, calendars, integrations,
     communication, contacts, security, cookies (9 pages complete)
   dashboard page — 5 stat cards + hover effects + upcoming + recent + empty states
   landing page — premium full redesign
+  /about — origin story, stats, values, open-source callout
+  /contact — server-action form, channel cards, enqueueEmail() pipeline
+  /privacy, /terms, /cookies — full prose, sidebar TOC, shared LegalShell component
   ALL onboarding steps — 5-step modal, resume-from-step, avatar upload, Google OAuth
   Event type builder — list + new/[id], 6-tab form, full CRUD, questions, durations
   Google Calendar OAuth — initiate + callback, encrypt tokens, store calendar
@@ -2242,11 +2264,16 @@ ALREADY DONE ✅ (re-audited 2026-06-17, updated 2026-06-17 session 5):
   post-auth redirect
   lib/calendar/slots.ts — DST-safe slot generator (buffer, min-notice, dedup)
   GET /api/slots — override-aware, timezone-safe, triple-deduplicated
-  POST /api/bookings — conflict check (cross-midnight safe), insert booking + answers, tokens
+  POST /api/bookings — conflict check (cross-midnight safe), pg_advisory_xact_lock,
+    idempotency key check, insert booking + answers + tokens, enqueues all jobs
   /{username} host profile page — event type cards, avatar, name
-  /{username}/{slug} booking calendar — 3-panel Calendly-style UI (857 lines)
+  /{username}/{slug} booking calendar — 3-panel Calendly-style UI
     (progress bar, quick-pick, hover-scale calendar, 2-step slot selection, custom questions)
   /confirmed — confirmation page (animated icon, meeting card, countdown, add-to-calendar)
+  /bookings — 3-tab Upcoming/Past/Cancelled, grouped by day, cancel/reschedule links
+  /cancel/[token] + /reschedule/[token] — full cancel + reschedule flows with token validation
+  POST /api/bookings/cancel + POST /api/bookings/reschedule — API routes with job enqueuing
+  Notification system — bell + dismiss + clear-all + mark-read + API routes
 
 Step 1   → ✅ globals.css + fonts
 Step 2   → ✅ Renamed KROVA → Schduled
@@ -2273,44 +2300,33 @@ Step 15  → ✅ DONE — Google Calendar OAuth + all 5 worker handlers
              ⚠️  Enable Google Calendar API in GCP console (project 440182203203) — user action
 Step 16  → ✅ lib/calendar/slots.ts — DST-safe slot generator
 Step 17  → ✅ Public booking page — COMPLETE
-Step 18  → 🔶 MOSTLY DONE — POST /api/bookings + GET /api/slots + all 6 post-commit jobs ✅
-             ❌ Still need: pg_advisory_xact_lock + idempotency key check (pre-launch)
+Step 18  → ✅ DONE — POST /api/bookings + GET /api/slots + all 6 post-commit jobs
+             ✅ pg_advisory_xact_lock + idempotency key check added
 Step 19  → ✅ Custom questions — all 9 types collected in booking form + saved to bookingAnswer
 Step 20  → ✅ DONE — Google Meet (via calendar write) + Zoom OAuth full flow
              ⚠️  Zoom app approval takes 2–4 weeks — submit to Zoom marketplace early
-Step 21  → 🔶 MOSTLY DONE — Confirmation page ✅ + 8 of 9 email templates ✅
-             ❌ Still need: reminder-host.ts (host 24h/1h reminder)
-             ❌ Still need: lib/calendar/ics.ts (ICS email attachment for invitee)
+Step 21  → ✅ DONE — Confirmation page + ALL 9 email templates
+             ✅ reminder-host.ts (host 24h/1h reminder)
+             ✅ lib/calendar/ics.ts (ICS attachment for invitee confirmation email)
 Step 22  → ✅ DONE — bookings page: 3-tab Upcoming/Past/Cancelled, grouped by day
 Step 23  → ✅ DONE — Cancel + reschedule: pages, API routes, worker job enqueuing
-Step 24  → ✅ Landing page — premium redesign complete
-             ⚠️  /privacy, /terms, /cookies pages still missing
-Step 25  → 🔶 PARTIAL — overview/users/email/queues/audit ✅
-             ❌ Still need: /orbit/users/[id] detail + /orbit/settings
-Step 26  → ❌ Open source audit
-             ⚠️  "Powered by Schduled" watermark currently in booking-calendar.tsx — remove here
+Step 24  → ✅ DONE — Landing page + /privacy + /terms + /cookies + /about + /contact
+Step 25  → ✅ DONE — overview/users/email/queues/audit/settings + /orbit/users/[id] detail
+             ⚠️  Impersonation amber banner (session.impersonatedBy) still missing
+Step 26  → ✅ DONE — watermark removed (5 locations), open source audit clean
+             ✅ Zero "Powered by" strings, zero SaaS upsell strings, zero KROVA references
 Step 27  → ❌ QA (10 test sequences) + launch checklist
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 NEXT PRIORITY ORDER (pick up here):
 
-  1. Step 21 finish → reminder-host.ts (host 24h/1h reminder email — 1 template)
-                      + lib/calendar/ics.ts (ICS attachment for invitee confirmation email)
+  1. Step 8  → lib/api/helpers.ts (rate limiting) + lib/validators.ts (XSS sanitization)
+               Apply validators to all public API routes (bookings, slots, username-check)
 
-  2. Step 18 harden → pg_advisory_xact_lock (double-booking race protection)
-                      + idempotency key table check (duplicate form submit)
-                      Both needed before any real traffic.
+  2. Step 27 → QA (10 manual test sequences) + pre-launch checklist
 
-  3. Step 25 → /orbit/users/[id] detail page (ban + impersonate)
-               + /orbit/settings (platform settings)
+  4. settings/login page — connect auth methods view (magic link vs Google OAuth)
 
-  4. Step 24 → /privacy, /terms, /cookies legal pages (placeholder content OK for launch)
-
-  5. Step 8  → lib/api/helpers.ts (rate limiting) + lib/validators.ts (XSS sanitization)
-
-  6. Step 26 → Remove "Powered by Schduled" watermark from booking-calendar.tsx
-               Open source audit (grep for plan/billing/upgrade — must be zero)
-
-  7. Step 27 → QA (10 manual test sequences) + pre-launch checklist
+  5. Impersonation banner — amber strip when session.impersonatedBy is set
 ```

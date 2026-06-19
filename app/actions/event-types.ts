@@ -11,6 +11,7 @@ import {
   cancellationPolicy,
   eventTypeQuestion,
   availabilitySchedule,
+  availabilityWindow,
 } from '@/db/schema'
 import { audit } from '@/lib/audit'
 
@@ -408,7 +409,7 @@ export async function duplicateEventType(id: string): Promise<ActionResult<{ id:
 
 export interface QuestionData {
   label: string
-  type: 'short_text' | 'long_text' | 'phone' | 'single_select' | 'dropdown'
+  type: 'short_text' | 'long_text' | 'phone' | 'single_select' | 'multiple_select' | 'dropdown'
   isRequired: boolean
   options?: string[]
   placeholder?: string
@@ -515,10 +516,60 @@ export async function reorderQuestions(eventTypeId: string, ids: string[]): Prom
 
 // ── Availability schedules (for tab select) ───────────────────────────────────
 
+const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
+type DayOfWeek = typeof DAY_ORDER[number]
+const DAY_SHORT: Record<string, string> = {
+  monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu',
+  friday: 'Fri', saturday: 'Sat', sunday: 'Sun',
+}
+
+function fmt12(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 || 12
+  return m === 0 ? `${h12} ${ampm}` : `${h12}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
 export async function listAvailabilitySchedules() {
   const session = await requireSession()
-  return db
+  const schedules = await db
     .select({ id: availabilitySchedule.id, name: availabilitySchedule.name, isDefault: availabilitySchedule.isDefault })
     .from(availabilitySchedule)
     .where(eq(availabilitySchedule.userId, session.user.id))
+
+  if (schedules.length === 0) return []
+
+  const windows = await db
+    .select({
+      scheduleId: availabilityWindow.scheduleId,
+      dayOfWeek: availabilityWindow.dayOfWeek,
+      startTime: availabilityWindow.startTime,
+      endTime: availabilityWindow.endTime,
+    })
+    .from(availabilityWindow)
+    .where(inArray(availabilityWindow.scheduleId, schedules.map((s) => s.id)))
+
+  const bySchedule = new Map<string, typeof windows>()
+  for (const w of windows) {
+    const arr = bySchedule.get(w.scheduleId) ?? []
+    arr.push(w)
+    bySchedule.set(w.scheduleId, arr)
+  }
+
+  return schedules.map((s) => {
+    const wins = bySchedule.get(s.id) ?? []
+    const sortedDays = [...new Set(wins.map((w) => w.dayOfWeek))].sort(
+      (a, b) => DAY_ORDER.indexOf(a as DayOfWeek) - DAY_ORDER.indexOf(b as DayOfWeek)
+    )
+    const isMidF = sortedDays.length === 5 && !sortedDays.includes('saturday') && !sortedDays.includes('sunday')
+    const isAll7 = sortedDays.length === 7
+    const daysStr = sortedDays.length === 0
+      ? null
+      : isMidF ? 'Mon – Fri'
+      : isAll7 ? 'Every day'
+      : sortedDays.map((d) => DAY_SHORT[d] ?? d).join(', ')
+    const first = wins[0]
+    const timeStr = first ? `${fmt12(first.startTime)} – ${fmt12(first.endTime)}` : null
+    return { ...s, summary: daysStr && timeStr ? { days: daysStr, time: timeStr } : null }
+  })
 }

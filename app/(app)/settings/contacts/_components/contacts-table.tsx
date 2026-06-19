@@ -135,15 +135,15 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
       </div>
 
       {/* Table */}
-      <div className="border border-border">
+      <div className="overflow-x-auto border border-border">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Bookings</TableHead>
-              <TableHead>Last booked</TableHead>
-              <TableHead className="w-32">Notes</TableHead>
+              <TableHead className="hidden sm:table-cell">Bookings</TableHead>
+              <TableHead className="hidden md:table-cell">Last booked</TableHead>
+              <TableHead className="hidden lg:table-cell w-32">Notes</TableHead>
               <TableHead className="w-28 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -158,14 +158,14 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
               contacts.map((c) => (
                 <TableRow key={c.email}>
                   <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.email}</TableCell>
-                  <TableCell>{c.booking_count}</TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-muted-foreground text-xs sm:text-sm truncate max-w-[140px] sm:max-w-none">{c.email}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{c.booking_count}</TableCell>
+                  <TableCell className="hidden md:table-cell text-muted-foreground">
                     {c.last_booked_at
                       ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(c.last_booked_at))
                       : '—'}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     {c.notes ? (
                       <span className="line-clamp-1 text-xs text-muted-foreground">{c.notes}</span>
                     ) : (

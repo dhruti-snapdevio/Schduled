@@ -24,6 +24,7 @@ export const JOB_NAMES = {
 
   // ── Platform ─────────────────────────────────────────────────────────
   SCAFFOLD_HEALTHCHECK: "scaffold.healthcheck",
+  IDEMPOTENCY_KEYS_PRUNE: "platform.idempotency-keys-prune",
 } as const;
 
 export type JobName = (typeof JOB_NAMES)[keyof typeof JOB_NAMES];
@@ -111,4 +112,5 @@ export type JobPayloads = {
   [JOB_NAMES.CALENDAR_TOKEN_REFRESH]: CalendarTokenRefreshPayload;
   [JOB_NAMES.CALENDAR_DISCONNECT_ALERT]: CalendarDisconnectAlertPayload;
   [JOB_NAMES.SCAFFOLD_HEALTHCHECK]: Record<string, never>;
+  [JOB_NAMES.IDEMPOTENCY_KEYS_PRUNE]: Record<string, never>;
 };

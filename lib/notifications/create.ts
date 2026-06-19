@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 export type NotificationType =
   | "booking_created"
   | "booking_cancelled"
-  | "booking_rescheduled";
+  | "booking_rescheduled"
+  | "booking_reminder";
 
 export interface CreateNotificationInput {
   body?: string | null;
