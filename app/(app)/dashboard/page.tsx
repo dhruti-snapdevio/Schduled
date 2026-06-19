@@ -1,7 +1,8 @@
 import { and, count, desc, eq, gt, gte, lte } from "drizzle-orm";
-import { format, isToday, isTomorrow, startOfMonth } from "date-fns";
+import { endOfDay, format, isToday, isTomorrow, startOfDay, startOfMonth } from "date-fns";
 import Link from "next/link";
 import {
+  ArrowRight,
   CalendarBlank,
   CalendarCheck,
   CalendarX,
@@ -51,6 +52,7 @@ export default async function DashboardPage() {
     cancelledMonthResult,
     nextMeetingResult,
     activeEventTypesResult,
+    meetingsTodayResult,
   ] = await Promise.all([
     db
       .select({ value: count() })
@@ -144,6 +146,18 @@ export default async function DashboardPage() {
           eq(eventType.isActive, true),
         ),
       ),
+
+    db
+      .select({ value: count() })
+      .from(booking)
+      .where(
+        and(
+          eq(booking.hostUserId, session.user.id),
+          eq(booking.status, "confirmed"),
+          gte(booking.startTime, startOfDay(now)),
+          lte(booking.startTime, endOfDay(now)),
+        ),
+      ),
   ]);
 
   const stats = {
@@ -156,6 +170,7 @@ export default async function DashboardPage() {
     cancelled:          cancelledResult[0]?.value ?? 0,
     cancelledThisMonth: cancelledMonthResult[0]?.value ?? 0,
     activeEventTypes:   activeEventTypesResult[0]?.value ?? 0,
+    meetingsToday:      meetingsTodayResult[0]?.value ?? 0,
   };
 
   const username = freshUser?.username ?? null
@@ -170,6 +185,7 @@ export default async function DashboardPage() {
         startTime: booking.startTime,
         status: booking.status,
         eventName: eventType.name,
+        locationType: eventType.locationType,
       })
       .from(booking)
       .innerJoin(eventType, eq(booking.eventTypeId, eventType.id))
@@ -204,18 +220,55 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* ── Welcome ─────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">
-          👋 Welcome back, {displayName}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your meetings, event types and bookings from one place.
-        </p>
+      {/* ── Welcome + Quick Actions ──────────────────────────────────── */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-foreground">
+            Welcome back, {displayName}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            You have{" "}
+            <span className="font-semibold text-foreground">{stats.upcoming} upcoming meetings</span>
+            {stats.meetingsToday > 0 && (
+              <>, <span className="font-semibold text-foreground">{stats.meetingsToday} today</span></>
+            )}
+            {" "}and{" "}
+            <span className="font-semibold text-foreground">{stats.totalThisMonth} bookings this month</span>.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild>
+            <Link href="/event-types">
+              <Plus size={15} className="mr-1.5" weight="bold" />
+              Create Event
+            </Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/availability">
+              <LinkSimple size={15} className="mr-1.5" />
+              Set Availability
+            </Link>
+          </Button>
+          {bookingUrl ? (
+            <Button asChild variant="secondary">
+              <a href={bookingUrl} target="_blank" rel="noopener noreferrer">
+                <ShareNetwork size={15} className="mr-1.5" />
+                View Booking Page
+              </a>
+            </Button>
+          ) : (
+            <Button asChild variant="secondary">
+              <Link href="/settings/my-link">
+                <ShareNetwork size={15} className="mr-1.5" />
+                Set Up Link
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ── Stat cards ──────────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <StatCard
           label="Event Types"
           value={stats.activeEventTypes}
@@ -276,9 +329,12 @@ export default async function DashboardPage() {
                     <p className="truncate text-sm font-medium">
                       {m.inviteeName}
                     </p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {m.eventName}
-                    </p>
+                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                      <p className="truncate text-xs text-muted-foreground">
+                        {m.eventName}
+                      </p>
+                      <LocationBadge locationType={m.locationType} />
+                    </div>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-xs font-semibold text-foreground">
@@ -333,32 +389,6 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* ── Quick actions ────────────────────────────────────────────── */}
-      <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-ui text-muted-foreground">
-          Quick Actions
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Button asChild>
-            <Link href="/event-types">
-              <Plus size={15} className="mr-1.5" weight="bold" />
-              Create Event
-            </Link>
-          </Button>
-          <Button asChild variant="secondary">
-            <Link href="/settings">
-              <ShareNetwork size={15} className="mr-1.5" />
-              Share Booking Link
-            </Link>
-          </Button>
-          <Button asChild variant="secondary">
-            <Link href="/availability">
-              <LinkSimple size={15} className="mr-1.5" />
-              Set Availability
-            </Link>
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }
@@ -413,9 +443,9 @@ function StatCard({
             {href && (
               <Link
                 href={href}
-                className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
               >
-                Manage →
+                Manage <ArrowRight size={11} weight="bold" />
               </Link>
             )}
           </div>
@@ -446,10 +476,10 @@ function EmptyUpcoming({
         </p>
         {bookingUrl ? (
           <Button asChild size="sm" className="mt-4">
-            <Link href="/event-types">
+            <a href={bookingUrl} target="_blank" rel="noopener noreferrer">
               <LinkSimple size={13} className="mr-1.5" />
-              View Booking Link
-            </Link>
+              View Booking Page
+            </a>
           </Button>
         ) : (
           <Button asChild size="sm" className="mt-4">
@@ -507,21 +537,45 @@ function EmptyBookings({ bookingUrl }: { bookingUrl: string | null }) {
   );
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  confirmed:
-    "bg-primary/10 text-primary border border-primary/20 text-xs font-medium px-2 py-0.5",
-  cancelled:
-    "bg-destructive/10 text-destructive border border-destructive/20 text-xs font-medium px-2 py-0.5",
-  pending:
-    "bg-warning/10 text-warning border border-warning/20 text-xs font-medium px-2 py-0.5",
-  no_show:
-    "bg-muted text-muted-foreground border border-border text-xs font-medium px-2 py-0.5",
+const STATUS_STYLES: Record<string, { badge: string; dotColor: string; label: string }> = {
+  confirmed: { badge: "bg-primary/10 text-primary border border-primary/20 text-xs font-medium px-2.5 py-0.5", dotColor: "bg-primary",       label: "Confirmed" },
+  cancelled: { badge: "bg-red-50 text-red-600 border border-red-200 text-xs font-medium px-2.5 py-0.5",        dotColor: "bg-red-500",        label: "Cancelled" },
+  pending:   { badge: "bg-amber-50 text-amber-600 border border-amber-200 text-xs font-medium px-2.5 py-0.5",  dotColor: "bg-amber-500",      label: "Pending"   },
+  no_show:   { badge: "bg-muted text-muted-foreground border border-border text-xs font-medium px-2.5 py-0.5", dotColor: "bg-muted-foreground", label: "No show" },
 };
 
 function StatusBadge({ status }: { status: string }) {
+  const s = STATUS_STYLES[status] ?? STATUS_STYLES.no_show;
   return (
-    <span className={STATUS_STYLES[status] ?? STATUS_STYLES.no_show}>
-      {status === "no_show" ? "No show" : status}
+    <span className={`inline-flex items-center gap-1.5 ${s.badge}`}>
+      <span className={`size-1.5 shrink-0 rounded-full ${s.dotColor}`} />
+      {s.label}
+    </span>
+  );
+}
+
+const LOCATION_BADGE_STYLES: Record<string, string> = {
+  zoom:               "bg-blue-50 text-blue-600 border border-blue-200",
+  google_meet:        "bg-green-50 text-green-600 border border-green-200",
+  phone_host_calls:   "bg-orange-50 text-orange-600 border border-orange-200",
+  phone_invitee_calls:"bg-orange-50 text-orange-600 border border-orange-200",
+  in_person:          "bg-purple-50 text-purple-600 border border-purple-200",
+};
+const LOCATION_LABEL: Record<string, string> = {
+  zoom: "Zoom",
+  google_meet: "Google Meet",
+  phone_host_calls: "Phone",
+  phone_invitee_calls: "Phone",
+  in_person: "In Person",
+};
+
+function LocationBadge({ locationType }: { locationType: string }) {
+  const style = LOCATION_BADGE_STYLES[locationType];
+  const label = LOCATION_LABEL[locationType];
+  if (!label) return null;
+  return (
+    <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 shrink-0 ${style}`}>
+      {label}
     </span>
   );
 }

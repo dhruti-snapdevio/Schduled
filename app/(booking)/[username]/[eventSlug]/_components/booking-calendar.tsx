@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import {
   addDays,
@@ -55,13 +55,18 @@ interface Question {
   placeholder: string | null
 }
 
+interface DurationOption {
+  duration: number
+  isDefault: boolean
+}
+
 interface EventTypeInfo {
   id: string
   name: string
   slug: string
   description: string | null
   color: string
-  duration: number
+  durations: DurationOption[]
   locationType: string
   bookingWindow: number
   questions: Question[]
@@ -201,9 +206,9 @@ function QuestionInput({
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const ALL_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
-const STEPS = ['Date', 'Time', 'Details', 'Done']
+const STEPS = ['Date', 'Time', 'Details']
 
-const COMMON_TIMEZONES = [
+const BASE_TIMEZONES = [
   'Pacific/Honolulu',
   'America/Anchorage',
   'America/Los_Angeles',
@@ -254,12 +259,21 @@ export function BookingCalendar({
   blockedDates,
   specialDates,
 }: Props) {
-  const [inviteeTz, setInviteeTz] = useState(() => {
+  const defaultDuration =
+    eventType.durations.find((d) => d.isDefault)?.duration ??
+    eventType.durations[0]?.duration ??
+    30
+
+  const [selectedDuration, setSelectedDuration] = useState(defaultDuration)
+  const [commonTimezones] = useState(() => {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
-    // Ensure detected tz is always in the list so the select shows it
-    if (!COMMON_TIMEZONES.includes(detected)) COMMON_TIMEZONES.push(detected)
-    return detected
+    return BASE_TIMEZONES.includes(detected)
+      ? BASE_TIMEZONES
+      : [...BASE_TIMEZONES, detected]
   })
+  const [inviteeTz, setInviteeTz] = useState(() =>
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+  )
   const [step, setStep] = useState<Step>('calendar')
 
   // today is initialised from the server prop then corrected on the client to
@@ -289,7 +303,7 @@ export function BookingCalendar({
       setLoadingDays(true)
       try {
         const res = await fetch(
-          `/api/available-days?username=${host.username}&slug=${eventType.slug}&month=${monthStr}`
+          `/api/available-days?username=${host.username}&slug=${eventType.slug}&month=${monthStr}&duration=${selectedDuration}`
         )
         const data = await res.json()
         setAvailableDatesSet(new Set<string>(data.availableDates ?? []))
@@ -299,17 +313,19 @@ export function BookingCalendar({
         setLoadingDays(false)
       }
     },
-    [host.username, eventType.slug]
+    [host.username, eventType.slug, selectedDuration]
   )
 
   useEffect(() => {
     fetchAvailableDays(month)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [month])
+  }, [month, selectedDuration])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [slots, setSlots] = useState<SlotInfo[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<SlotInfo | null>(null)
+
+  const slotsPanelRef = useRef<HTMLDivElement>(null)
 
   // Form state
   const [name, setName] = useState('')
@@ -324,6 +340,15 @@ export function BookingCalendar({
   const specialSet = new Set(specialDates)
 
   const progressStep = step === 'form' ? 3 : selectedDate ? 2 : 1
+
+  function handleDurationChange(d: number) {
+    setSelectedDuration(d)
+    setSelectedDate(null)
+    setSlots([])
+    setSelectedSlot(null)
+    setStep('calendar')
+    // fetchAvailableDays is triggered by the useEffect watching [month, selectedDuration]
+  }
 
   function isDayAvailable(dateStr: string): boolean {
     if (dateStr < today || dateStr > maxDate) return false
@@ -358,7 +383,7 @@ export function BookingCalendar({
       setSelectedSlot(null)
       try {
         const res = await fetch(
-          `/api/slots?username=${host.username}&slug=${eventType.slug}&date=${date}`
+          `/api/slots?username=${host.username}&slug=${eventType.slug}&date=${date}&duration=${selectedDuration}`
         )
         const data = await res.json()
         const raw: SlotInfo[] = data.slots ?? []
@@ -376,13 +401,17 @@ export function BookingCalendar({
         setLoadingSlots(false)
       }
     },
-    [host.username, eventType.slug]
+    [host.username, eventType.slug, selectedDuration]
   )
 
   function handleDateClick(dateStr: string) {
     if (!isDayAvailable(dateStr)) return
     setSelectedDate(dateStr)
     fetchSlots(dateStr)
+    // On mobile, the slots panel is below the calendar — scroll to it
+    setTimeout(() => {
+      slotsPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
   }
 
   function handleContinue() {
@@ -403,7 +432,7 @@ export function BookingCalendar({
         return
       }
     }
-    const needsPhone = eventType.locationType === 'phone_invitee_calls'
+    const needsPhone = eventType.locationType === 'phone_host_calls'
     if (needsPhone && !phone.trim()) {
       setSubmitError('Phone number is required for this meeting type')
       return
@@ -431,6 +460,7 @@ export function BookingCalendar({
           username: host.username,
           eventSlug: eventType.slug,
           startUtc: selectedSlot.startUtc,
+          duration: selectedDuration,
           name: name.trim(),
           email: email.trim(),
           phone: phone.trim() || undefined,
@@ -452,6 +482,7 @@ export function BookingCalendar({
         cancel: data.cancelToken,
         reschedule: data.rescheduleToken,
         loc: eventType.locationType,
+        ...(data.locationValue ? { locValue: data.locationValue } : {}),
       })
       window.location.href = `/confirmed?${p.toString()}`
     } catch {
@@ -470,7 +501,7 @@ export function BookingCalendar({
 
   const loc = locationMeta(eventType.locationType)
   const hostCompany = [host.jobTitle, host.company].filter(Boolean).join(' @ ')
-  const needsPhone = eventType.locationType === 'phone_invitee_calls'
+  const needsPhone = eventType.locationType === 'phone_host_calls'
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -505,13 +536,13 @@ export function BookingCalendar({
                 <div className="flex items-center gap-1.5 px-1">
                   <div
                     className={cn(
-                      'flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold transition-all',
+                      'flex h-5 w-5 items-center justify-center text-[10px] font-bold transition-all',
                       done && 'bg-primary text-white',
                       active && 'bg-primary text-white ring-[3px] ring-primary/20 ring-offset-1',
                       !done && !active && 'bg-gray-100 text-gray-400'
                     )}
                   >
-                    {done ? '✓' : n}
+                    {done ? <CheckCircle size={10} weight="bold" /> : n}
                   </div>
                   <span
                     className={cn(
@@ -573,11 +604,38 @@ export function BookingCalendar({
                 )}
               </div>
 
+              {/* Duration picker — show chips only if multiple durations */}
+              {eventType.durations.length > 1 ? (
+                <div>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    Duration
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {eventType.durations.map((d) => (
+                      <button
+                        key={d.duration}
+                        type="button"
+                        onClick={() => handleDurationChange(d.duration)}
+                        className={cn(
+                          'inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold border transition-all',
+                          selectedDuration === d.duration
+                            ? 'bg-primary border-primary text-white'
+                            : 'border-gray-200 text-muted-foreground hover:border-primary/50 hover:text-primary',
+                        )}
+                      >
+                        <Clock size={10} className="shrink-0" />
+                        {d.duration} min
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               {/* Meta */}
               <div className="flex flex-col gap-2">
                 <span className="flex items-center gap-2 text-[12px] text-muted-foreground">
                   <Clock size={13} className="shrink-0 text-primary/70" />
-                  {eventType.duration} minutes
+                  {selectedDuration} minutes
                 </span>
                 <span className="flex items-center gap-2 text-[12px] text-muted-foreground">
                   <span className="shrink-0 text-primary/70">{loc.icon}</span>
@@ -609,7 +667,7 @@ export function BookingCalendar({
                     <span
                       key={d}
                       className={cn(
-                        'rounded-sm px-1.5 py-0.5 text-[10px] font-semibold transition-colors',
+                        'px-1.5 py-0.5 text-[10px] font-semibold transition-colors',
                         availableDowSet.has(d)
                           ? 'bg-primary/10 text-primary'
                           : 'bg-gray-100 text-gray-300'
@@ -635,7 +693,7 @@ export function BookingCalendar({
                 <button
                   onClick={() => setMonth((m) => subMonths(m, 1))}
                   disabled={format(month, 'yyyy-MM') <= today.slice(0, 7)}
-                  className="flex h-8 w-8 items-center justify-center text-gray-400 transition-colors hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-11 w-11 items-center justify-center text-gray-400 transition-colors hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <CaretLeft size={14} weight="bold" />
                 </button>
@@ -649,7 +707,7 @@ export function BookingCalendar({
                   disabled={
                     format(addMonths(month, 1), 'yyyy-MM') > maxDate.slice(0, 7)
                   }
-                  className="flex h-8 w-8 items-center justify-center text-gray-400 transition-colors hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-11 w-11 items-center justify-center text-gray-400 transition-colors hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <CaretRight size={14} weight="bold" />
                 </button>
@@ -677,12 +735,12 @@ export function BookingCalendar({
                   const available = inMonth && isDayAvailable(dateStr)
 
                   return (
-                    <div key={dateStr} className="flex items-center justify-center p-0.5">
+                    <div key={dateStr} className="flex items-center justify-center p-1">
                       <button
                         onClick={() => handleDateClick(dateStr)}
                         disabled={!available}
                         className={cn(
-                          'relative flex h-9 w-9 items-center justify-center rounded-full text-[13px] transition-all duration-150',
+                          'relative flex h-9 w-9 items-center justify-center text-[13px] transition-all duration-150',
                           !inMonth && 'invisible pointer-events-none',
                           // Unavailable: grey (ring if it's today so user knows it's today)
                           inMonth && !available && !isToday && 'cursor-default text-gray-200',
@@ -714,8 +772,8 @@ export function BookingCalendar({
                     onChange={(e) => setInviteeTz(e.target.value)}
                     className="flex-1 truncate bg-transparent text-[13px] text-muted-foreground outline-none cursor-pointer group-hover:text-primary transition-colors appearance-none border-none"
                   >
-                    {COMMON_TIMEZONES.map((tz) => (
-                      <option key={tz} value={tz}>{tz.replace('_', ' ')}</option>
+                    {commonTimezones.map((tz) => (
+                      <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
                     ))}
                   </select>
                   <CaretDown size={11} className="shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -726,7 +784,7 @@ export function BookingCalendar({
 
           {/* ── Slots panel ── */}
           {step === 'calendar' && (
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div ref={slotsPanelRef} className="flex flex-1 flex-col overflow-hidden">
               {!selectedDate ? (
                 /* Quick pick — no date selected */
                 <div className="flex flex-1 flex-col justify-center gap-6 p-6">
@@ -939,13 +997,6 @@ export function BookingCalendar({
           )}
         </div>
 
-        {/* Powered by watermark */}
-        <div className="shrink-0 border-t border-gray-100 bg-white px-4 py-2.5 text-right">
-          <span className="text-xs text-gray-400">
-            Powered by{' '}
-            <span className="font-semibold text-primary/60">Schduled</span>
-          </span>
-        </div>
       </div>
     </div>
   )

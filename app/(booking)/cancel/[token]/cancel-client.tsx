@@ -11,11 +11,14 @@ import { useState } from "react";
 
 interface Props {
   alreadyCancelled: boolean;
+  blockedByPolicy: boolean;
+  cutoffHours: number;
   eventName: string;
   hostName: string;
   inviteeName: string;
   inviteeTimezone: string;
   isPast: boolean;
+  policyText: string | null;
   startUtc: string;
   token: string;
 }
@@ -59,11 +62,40 @@ export function CancelClient(props: Props) {
     }
   }
 
+  if (props.blockedByPolicy) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
+        <div className="w-full max-w-md overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+          <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
+            <Warning className="text-amber-500" size={48} weight="fill" />
+            <h1 className="text-lg font-bold text-gray-900">
+              Cancellation not available
+            </h1>
+            {props.policyText ? (
+              <p className="text-sm text-muted-foreground">{props.policyText}</p>
+            ) : props.cutoffHours > 0 ? (
+              <p className="text-sm text-muted-foreground">
+                This booking cannot be cancelled within{" "}
+                <strong>{props.cutoffHours} hours</strong> of the meeting start
+                time. Please contact the host directly.
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                This event type does not allow cancellations. Please contact the
+                host directly.
+              </p>
+            )}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
       <div className="w-full max-w-md overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
         {done ? (
-          <div className="flex flex-col items-center gap-4 px-8 py-12 text-center">
+          <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <CheckCircle className="text-primary" size={48} weight="fill" />
             <h1 className="text-lg font-bold text-gray-900">
               Booking cancelled
@@ -74,7 +106,7 @@ export function CancelClient(props: Props) {
             </p>
           </div>
         ) : props.isPast ? (
-          <div className="flex flex-col items-center gap-4 px-8 py-12 text-center">
+          <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <Warning className="text-amber-500" size={48} weight="fill" />
             <h1 className="text-lg font-bold text-gray-900">
               This booking has passed
@@ -86,13 +118,13 @@ export function CancelClient(props: Props) {
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-3 border-b border-gray-100 bg-[#F8FCFB] px-8 py-6">
+            <div className="flex items-center gap-3 border-b border-gray-100 bg-[#F8FCFB] px-5 sm:px-8 py-6">
               <CalendarX className="text-red-500" size={24} />
               <h1 className="text-base font-bold text-gray-900">
                 Cancel this booking?
               </h1>
             </div>
-            <div className="px-8 py-6">
+            <div className="px-5 sm:px-8 py-6">
               <div className="mb-5 border border-gray-200 bg-[#F8FCFB] p-4">
                 <p className="text-sm font-semibold text-gray-900">
                   {props.eventName}

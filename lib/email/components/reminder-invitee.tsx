@@ -19,6 +19,7 @@ interface Props {
   inviteeTimezone: string
   locationLabel:  string
   meetLink:       string | null
+  meetLabel:      string
   cancelUrl:      string
   rescheduleUrl:  string
   timeUntil:      string   // e.g. "24 hours" or "1 hour"
@@ -41,6 +42,7 @@ export function ReminderInviteeEmail({
   inviteeTimezone,
   locationLabel,
   meetLink,
+  meetLabel,
   cancelUrl,
   rescheduleUrl,
   timeUntil,
@@ -96,7 +98,7 @@ export function ReminderInviteeEmail({
                     textDecoration: 'none',
                   }}
                 >
-                  Join Google Meet
+                  {meetLabel}
                 </a>
               </Section>
             )}
@@ -116,7 +118,7 @@ export function ReminderInviteeEmail({
           {/* Footer */}
           <Section style={{ backgroundColor: bg, padding: '16px 32px', borderTop: `1px solid ${border}` }}>
             <Text style={{ color: text2, fontSize: '12px', margin: 0, textAlign: 'center' }}>
-              Powered by <strong style={{ color: teal }}>Schduled</strong>
+              © Schduled
             </Text>
           </Section>
         </Container>

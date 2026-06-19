@@ -9,7 +9,6 @@ import {
   GoogleLogo,
   Queue,
   Stack,
-  Timer,
   Users,
   Warning,
   XCircle,
@@ -117,7 +116,6 @@ export default async function OrbitPage() {
           icon={<CalendarCheck size={20} weight="duotone" />}
           accent
           subtitle={`${bookingThisMonth?.value ?? 0} bookings this month`}
-          href="/bookings"
         />
         <StatCard
           label="Outbox Emails"
@@ -127,7 +125,7 @@ export default async function OrbitPage() {
         />
         <StatCard
           label="Queue Jobs"
-          value={queues.length}
+          value={queues.reduce((sum, r) => sum + Number(r.count), 0)}
           icon={<Stack size={20} weight="duotone" />}
           href="/orbit/queues"
         />
@@ -249,18 +247,11 @@ export default async function OrbitPage() {
               failText={`${failedEmailCount?.value} failed`}
             />
             <StatusRow
-              label="Database"
+              label="Worker Queues"
               icon={<Queue size={15} weight="bold" />}
-              ok={true}
-              okText="Healthy"
-              failText="Error"
-            />
-            <StatusRow
-              label="Cron Jobs"
-              icon={<Timer size={15} weight="bold" />}
               ok={queuesRunning}
-              okText="Running"
-              failText="Not running"
+              okText="Active"
+              failText="No queues"
             />
           </CardContent>
         </Card>
@@ -343,7 +334,14 @@ function StatCard({
   href?: string;
 }) {
   return (
-    <Card className={accent ? "border-primary/40 bg-primary/[0.04]" : ""}>
+    <Card
+      className={[
+        "transition-all duration-200 hover:shadow-md hover:border-primary/30 hover:scale-[1.02]",
+        accent
+          ? "border-primary/40 bg-primary/[0.04] hover:bg-primary/[0.07]"
+          : "hover:bg-muted/30",
+      ].join(" ")}
+    >
       <CardContent className="px-5 pt-5 pb-4">
         <div className="flex items-start justify-between">
           <div>

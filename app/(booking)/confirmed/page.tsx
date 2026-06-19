@@ -1,4 +1,9 @@
+import type { Metadata } from 'next'
 import { ConfirmationClient } from './_components/confirmation-client'
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export default async function ConfirmedPage({
   searchParams,
@@ -12,6 +17,7 @@ export default async function ConfirmedPage({
     cancel?: string
     reschedule?: string
     loc?: string
+    locValue?: string
   }>
 }) {
   const p = await searchParams
@@ -32,6 +38,7 @@ export default async function ConfirmedPage({
       endUtc={p.end ?? null}
       timezone={p.tz}
       locationType={p.loc ?? 'custom'}
+      locationValue={p.locValue ?? null}
       cancelToken={p.cancel ?? null}
       rescheduleToken={p.reschedule ?? null}
     />

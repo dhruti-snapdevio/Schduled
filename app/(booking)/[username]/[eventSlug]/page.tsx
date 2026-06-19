@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import { and, asc, eq, gte } from 'drizzle-orm'
 import { addDays } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
@@ -12,6 +13,32 @@ import {
   availabilityOverride,
 } from '@/db/schema'
 import { BookingCalendar } from './_components/booking-calendar'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string; eventSlug: string }>
+}): Promise<Metadata> {
+  const { username, eventSlug } = await params
+  const [host] = await db
+    .select({ id: user.id, name: user.name })
+    .from(user)
+    .where(eq(user.username, username))
+    .limit(1)
+  if (!host) return {}
+  const et = await db.query.eventType.findFirst({
+    where: and(eq(eventType.userId, host.id), eq(eventType.slug, eventSlug), eq(eventType.isActive, true)),
+  })
+  if (!et) return {}
+  return {
+    title: `${et.name} with ${host.name}`,
+    description: et.description ?? `Book a ${et.name} with ${host.name}.`,
+    openGraph: {
+      title: `${et.name} with ${host.name}`,
+      description: et.description ?? `Book a ${et.name} with ${host.name} on Schduled.`,
+    },
+  }
+}
 
 export default async function BookingPage({
   params,
@@ -84,10 +111,7 @@ export default async function BookingPage({
   const blockedDates = overrideRows.filter((o) => o.isBlocked).map((o) => o.date)
   const specialDates = overrideRows.filter((o) => !o.isBlocked).map((o) => o.date)
 
-  const duration =
-    et.durations.find((d) => d.isDefault)?.duration ??
-    et.durations[0]?.duration ??
-    30
+  const sortedDurations = [...et.durations].sort((a, b) => a.duration - b.duration)
 
   return (
     <BookingCalendar
@@ -105,7 +129,7 @@ export default async function BookingPage({
         slug: et.slug,
         description: et.description,
         color: et.color ?? '#0d9488',
-        duration,
+        durations: sortedDurations.map((d) => ({ duration: d.duration, isDefault: d.isDefault })),
         locationType: et.locationType,
         bookingWindow: et.bookingWindow ?? 60,
         questions: et.questions.map((q) => ({

@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useEffect, useState } from "react";
-import { CircleNotch } from "@phosphor-icons/react";
+import { CircleNotch, GoogleLogo } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -101,6 +101,7 @@ function AuthFormInner() {
                   type="button"
                   variant="outline"
                 >
+                  <GoogleLogo size={16} weight="bold" className="mr-2" />
                   Continue with Google
                 </Button>
 

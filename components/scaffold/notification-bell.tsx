@@ -6,6 +6,7 @@ import {
   CalendarCheck,
   CalendarX,
   CheckCircle,
+  Clock,
   X,
 } from "@phosphor-icons/react";
 import Link from "next/link";
@@ -29,9 +30,10 @@ interface NotificationItem {
 }
 
 const ICONS: Record<string, React.ReactNode> = {
-  booking_created: <CalendarCheck className="text-primary" size={16} />,
-  booking_cancelled: <CalendarX className="text-red-500" size={16} />,
+  booking_created:    <CalendarCheck className="text-primary" size={16} />,
+  booking_cancelled:  <CalendarX className="text-red-500" size={16} />,
   booking_rescheduled: <ArrowsClockwise className="text-amber-500" size={16} />,
+  booking_reminder:   <Clock className="text-amber-500" size={16} />,
 };
 
 function timeAgo(iso: string): string {
@@ -135,7 +137,7 @@ export function NotificationBell() {
         >
           <Bell size={18} />
           {unread > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center bg-red-500 px-1 text-[9px] font-bold text-white">
               {unread > 9 ? "9+" : unread}
             </span>
           )}
@@ -167,7 +169,7 @@ export function NotificationBell() {
           </div>
         </div>
 
-        <div className="max-h-[360px] overflow-y-auto">
+        <div className="max-h-[304px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
           {loading && items.length === 0 && (
             <p className="px-4 py-8 text-center text-xs text-muted-foreground">
               Loading…
@@ -206,7 +208,7 @@ export function NotificationBell() {
                   </p>
                 </div>
                 {!n.read && (
-                  <span className="mt-1.5 h-2 w-2 shrink-0 self-start rounded-full bg-primary" />
+                  <span className="mt-1.5 h-2 w-2 shrink-0 self-start bg-primary" />
                 )}
               </div>
             );
@@ -228,7 +230,7 @@ export function NotificationBell() {
                 {/* Per-notification dismiss button */}
                 <button
                   aria-label="Dismiss notification"
-                  className="absolute right-2 top-2 hidden items-center justify-center rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground group-hover/item:flex transition-colors"
+                  className="absolute right-2 top-2 hidden items-center justify-center p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground group-hover/item:flex [@media(hover:none)]:flex transition-colors"
                   onClick={() => dismissOne(n.id)}
                   type="button"
                 >

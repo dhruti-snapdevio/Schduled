@@ -1,4 +1,3 @@
-import { eachDayOfInterval } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -9,20 +8,23 @@ import {
   eventType,
   user,
 } from "@/db/schema";
+import { checkRateLimit, jsonError, rateLimitKey } from "@/lib/api/helpers";
 import { generateSlots } from "@/lib/calendar/slots";
 import { db } from "@/lib/db";
 
 export async function GET(request: Request) {
+  if (!checkRateLimit(rateLimitKey("GET:/api/available-days", request), 30, 60_000)) {
+    return jsonError("Too many requests. Please slow down.", 429);
+  }
+
   const { searchParams } = new URL(request.url);
   const username = searchParams.get("username");
   const slug = searchParams.get("slug");
   const month = searchParams.get("month"); // YYYY-MM
+  const durationParam = searchParams.get("duration");
 
   if (!username || !slug || !month || !/^\d{4}-\d{2}$/.test(month)) {
-    return NextResponse.json(
-      { error: "Missing required params" },
-      { status: 400 }
-    );
+    return jsonError("Missing required params", 400);
   }
 
   const [host] = await db
@@ -31,9 +33,7 @@ export async function GET(request: Request) {
     .where(eq(user.username, username))
     .limit(1);
 
-  if (!host) {
-    return NextResponse.json({ error: "Host not found" }, { status: 404 });
-  }
+  if (!host) return jsonError("Host not found", 404);
 
   const et = await db.query.eventType.findFirst({
     where: and(
@@ -44,17 +44,18 @@ export async function GET(request: Request) {
     with: { durations: true },
   });
 
-  if (!et) {
-    return NextResponse.json(
-      { error: "Event type not found" },
-      { status: 404 }
-    );
-  }
+  if (!et) return jsonError("Event type not found", 404);
 
   const defaultDuration =
     et.durations.find((d) => d.isDefault)?.duration ??
     et.durations[0]?.duration ??
     30;
+
+  const requestedDuration = durationParam ? parseInt(durationParam, 10) : null;
+  const durationMinutes =
+    requestedDuration && et.durations.some((d) => d.duration === requestedDuration)
+      ? requestedDuration
+      : defaultDuration;
 
   const schedule = await db.query.availabilitySchedule.findFirst({
     where: et.availabilityScheduleId
@@ -82,15 +83,20 @@ export async function GET(request: Request) {
     "yyyy-MM-dd"
   );
 
-  // Build day list for the requested month
+  // Build day list using UTC-based iteration — local-time Date constructors
+  // shift dates by the server's TZ offset when formatted back in UTC, causing
+  // today and the last day of the month to be skipped on non-UTC servers.
   const [year, mon] = month.split("-").map(Number);
-  const monthStart = new Date(year, mon - 1, 1);
-  const monthEnd = new Date(year, mon - 1 + 1, 0); // last day of month
-  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const daysInMonthCount = new Date(Date.UTC(year, mon, 0)).getUTCDate();
+  const monthPad = String(mon).padStart(2, "0");
+  const daysInMonth: string[] = [];
+  for (let d = 1; d <= daysInMonthCount; d++) {
+    daysInMonth.push(`${year}-${monthPad}-${String(d).padStart(2, "0")}`);
+  }
 
   // Pre-fetch overrides for the whole month
-  const monthFirstDate = `${month}-01`;
-  const monthLastDate = formatInTimeZone(monthEnd, "UTC", "yyyy-MM-dd");
+  const monthFirstDate = daysInMonth[0];
+  const monthLastDate = daysInMonth[daysInMonth.length - 1];
 
   const overrideRows = await db
     .select()
@@ -136,9 +142,7 @@ export async function GET(request: Request) {
 
   const availableDates: string[] = [];
 
-  for (const day of daysInMonth) {
-    const dateStr = formatInTimeZone(day, "UTC", "yyyy-MM-dd");
-
+  for (const dateStr of daysInMonth) {
     if (dateStr < today || dateStr > maxDate) {
       continue;
     }
@@ -189,7 +193,7 @@ export async function GET(request: Request) {
       date: dateStr,
       timezone: hostTz,
       windows,
-      durationMinutes: defaultDuration,
+      durationMinutes,
       bufferBefore: et.bufferBefore ?? 0,
       bufferAfter: et.bufferAfter ?? 0,
       increment: et.startTimeIncrement ?? 30,

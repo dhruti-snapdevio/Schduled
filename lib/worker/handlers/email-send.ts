@@ -37,6 +37,7 @@ async function processEmailSendJob(job: Job<EmailSendPayload>) {
 
   try {
     const result = await sendEmailViaSmtp({
+      attachments: claimed.payload.attachments,
       html: claimed.payload.html,
       idempotencyKey: claimed.idempotencyKey,
       subject: claimed.payload.subject,

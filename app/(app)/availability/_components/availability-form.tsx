@@ -280,7 +280,7 @@ function OverrideDialog({
                   <div key={iso} className="flex flex-col items-center">
                     <button type="button" disabled={isPast} onClick={() => pickDate(iso)}
                       className={cn(
-                        'h-9 w-9 flex items-center justify-center text-sm transition-colors rounded-full',
+                        'h-9 w-9 flex items-center justify-center text-sm transition-colors',
                         isPast && 'text-muted-foreground/40 cursor-not-allowed',
                         !isPast && !isSelected && hasWeekly && 'border border-primary/40 text-primary hover:bg-primary/10',
                         !isPast && !isSelected && !hasWeekly && 'text-muted-foreground hover:bg-muted',
@@ -875,12 +875,12 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
               <div className="flex border border-border overflow-hidden">
                 <button type="button" onClick={() => setViewMode('list')}
                   className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors',
-                    viewMode === 'list' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted')}>
+                    viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted')}>
                   <List size={13} /> List
                 </button>
                 <button type="button" onClick={() => setViewMode('calendar')}
                   className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-l border-border transition-colors',
-                    viewMode === 'calendar' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted')}>
+                    viewMode === 'calendar' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted')}>
                   <CalendarBlank size={13} /> Calendar
                 </button>
               </div>

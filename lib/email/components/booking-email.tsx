@@ -249,7 +249,7 @@ export function BookingEmail(props: BookingEmailProps) {
                 textAlign: "center",
               }}
             >
-              Powered by <strong style={{ color: teal }}>Schduled</strong>
+              © Schduled
             </Text>
           </Section>
         </Container>

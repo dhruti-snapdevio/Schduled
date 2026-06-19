@@ -31,6 +31,7 @@ interface SlotInfo {
 interface Props {
   availableDaysOfWeek: string[];
   currentStartUtc: string;
+  duration: number;
   eventName: string;
   hostName: string;
   inviteeTimezone: string;
@@ -80,7 +81,7 @@ export function RescheduleClient(props: Props) {
       setLoadingDays(true);
       try {
         const res = await fetch(
-          `/api/available-days?username=${props.username}&slug=${props.slug}&month=${format(forMonth, "yyyy-MM")}`
+          `/api/available-days?username=${props.username}&slug=${props.slug}&month=${format(forMonth, "yyyy-MM")}&duration=${props.duration}`
         );
         const data = await res.json();
         setAvailableDates(new Set<string>(data.availableDates ?? []));
@@ -90,7 +91,7 @@ export function RescheduleClient(props: Props) {
         setLoadingDays(false);
       }
     },
-    [props.username, props.slug]
+    [props.username, props.slug, props.duration]
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: refetch available days whenever the visible month changes
@@ -104,7 +105,7 @@ export function RescheduleClient(props: Props) {
     setSelectedSlot(null);
     try {
       const res = await fetch(
-        `/api/slots?username=${props.username}&slug=${props.slug}&date=${date}`
+        `/api/slots?username=${props.username}&slug=${props.slug}&date=${date}&duration=${props.duration}`
       );
       const data = await res.json();
       setSlots(data.slots ?? []);
@@ -256,7 +257,7 @@ export function RescheduleClient(props: Props) {
                   >
                     <button
                       className={cn(
-                        "flex h-9 w-9 items-center justify-center rounded-full text-[13px] transition-all",
+                        "flex h-9 w-9 items-center justify-center text-[13px] transition-all",
                         !inMonth && "invisible pointer-events-none",
                         inMonth && !available && "cursor-default text-gray-200",
                         inMonth &&
@@ -300,7 +301,7 @@ export function RescheduleClient(props: Props) {
                     )}
                   </h3>
                 </div>
-                <div className="max-h-[360px] flex-1 overflow-y-auto p-6">
+                <div className="lg:max-h-[360px] flex-1 overflow-y-auto p-6">
                   {loadingSlots && (
                     <div className="flex flex-col items-center gap-3 pt-8">
                       <Spinner

@@ -45,6 +45,9 @@ export async function startWorker() {
   await startBossWithRetry();
   await ensureJobQueues(boss);
 
+  // ── Platform handlers ──────────────────────────────────────────────────────
+  const { handleIdempotencyKeysPrune } = await import("@/lib/worker/handlers/idempotency-keys-prune");
+
   // ── Email handlers ─────────────────────────────────────────────────────────
   const { handleEmailSend } = await import("@/lib/worker/handlers/email-send");
   const { handleEmailOutboxReap } = await import("@/lib/worker/handlers/email-outbox-reap");
@@ -71,6 +74,9 @@ export async function startWorker() {
   const { handleBookingRescheduleNotify } = await import("@/lib/worker/handlers/booking-reschedule-notify");
 
   await Promise.all([
+    // Platform
+    work(JOB_NAMES.IDEMPOTENCY_KEYS_PRUNE, handleIdempotencyKeysPrune),
+
     // Email
     work(JOB_NAMES.EMAIL_SEND,           handleEmailSend),
     work(JOB_NAMES.EMAIL_OUTBOX_REAP,    handleEmailOutboxReap),
@@ -99,9 +105,10 @@ export async function startWorker() {
   ]);
 
   // ── Cron schedules ─────────────────────────────────────────────────────────
-  await boss.schedule(JOB_NAMES.EMAIL_OUTBOX_REAP,    "*/15 * * * *", {});
-  await boss.schedule(JOB_NAMES.EMAIL_EVENTS_PRUNE,   "17 3 * * *",   {});
-  await boss.schedule(JOB_NAMES.SCAFFOLD_HEALTHCHECK, "*/10 * * * *", {});
+  await boss.schedule(JOB_NAMES.EMAIL_OUTBOX_REAP,       "*/15 * * * *", {});
+  await boss.schedule(JOB_NAMES.EMAIL_EVENTS_PRUNE,      "17 3 * * *",   {});
+  await boss.schedule(JOB_NAMES.SCAFFOLD_HEALTHCHECK,    "*/10 * * * *", {});
+  await boss.schedule(JOB_NAMES.IDEMPOTENCY_KEYS_PRUNE,  "5 4 * * *",    {});
   // CALENDAR_SYNC is triggered per-calendar after each booking and on reconnect;
   // the per-calendar cron is registered dynamically when a calendar connects.
 

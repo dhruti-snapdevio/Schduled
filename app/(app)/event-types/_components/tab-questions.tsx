@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { DotsSixVertical, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
+import { CaretDown, CaretUp, DotsSixVertical, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { addQuestion, updateQuestion, deleteQuestion, reorderQuestions, type QuestionData } from '@/app/actions/event-types'
 import type { ExistingQuestion } from './builder'
@@ -21,11 +21,12 @@ import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 
 const QUESTION_TYPES: { value: QuestionData['type']; label: string; hasOptions: boolean }[] = [
-  { value: 'short_text',    label: 'Short text',     hasOptions: false },
-  { value: 'long_text',     label: 'Long text',      hasOptions: false },
-  { value: 'phone',         label: 'Phone number',   hasOptions: false },
-  { value: 'single_select', label: 'Single select',  hasOptions: true  },
-  { value: 'dropdown',      label: 'Dropdown',       hasOptions: true  },
+  { value: 'short_text',       label: 'Short text',              hasOptions: false },
+  { value: 'long_text',        label: 'Long text',               hasOptions: false },
+  { value: 'phone',            label: 'Phone number',            hasOptions: false },
+  { value: 'single_select',    label: 'Single select (radio)',   hasOptions: true  },
+  { value: 'multiple_select',  label: 'Multiple select (checkboxes)', hasOptions: true  },
+  { value: 'dropdown',         label: 'Dropdown',                hasOptions: true  },
 ]
 
 // Built-in questions that are always present (cannot be deleted)
@@ -214,17 +215,19 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, p
               <div className="flex flex-col gap-0.5">
                 <button
                   type="button"
+                  aria-label="Move question up"
                   onClick={() => moveUp(i)}
                   disabled={i === 0 || isPending}
-                  className="text-[10px] leading-none text-muted-foreground hover:text-foreground disabled:opacity-30"
-                >▲</button>
+                  className="flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30"
+                ><CaretUp size={10} weight="bold" /></button>
                 <DotsSixVertical size={14} className="text-muted-foreground/50" />
                 <button
                   type="button"
+                  aria-label="Move question down"
                   onClick={() => moveDown(i)}
                   disabled={i === displayQuestions.length - 1 || isPending}
-                  className="text-[10px] leading-none text-muted-foreground hover:text-foreground disabled:opacity-30"
-                >▼</button>
+                  className="flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30"
+                ><CaretDown size={10} weight="bold" /></button>
               </div>
               <span className="flex-1 min-w-0">
                 <span className="block text-sm">{q.label}</span>

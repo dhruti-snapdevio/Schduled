@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 export interface BookingLifecycleRow {
   cancellationReason: string | null;
   cancelToken: string;
+  endTime: Date;
   etLocationType: string;
   etLocationValue: string | null;
   etName: string;
@@ -33,6 +34,7 @@ export async function loadBookingForLifecycle(
       inviteeEmail: booking.inviteeEmail,
       inviteeTimezone: booking.inviteeTimezone,
       startTime: booking.startTime,
+      endTime: booking.endTime,
       videoLinkInvitee: booking.videoLinkInvitee,
       videoLinkHost: booking.videoLinkHost,
       cancelToken: booking.cancelToken,

@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
-import { Trash, WarningCircle, Envelope, CheckCircle, ArrowRight } from '@phosphor-icons/react'
+import { Trash, WarningCircle, Envelope, CheckCircle, ArrowRight, X } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -96,6 +96,7 @@ export function DeleteAccountModal({ email }: Props) {
     setCodeSent(false)
     setSendState({})
     setCountdown(0)
+    handleSendCode()
   }
 
   const effectiveReason = reason === 'other'
@@ -161,7 +162,7 @@ export function DeleteAccountModal({ email }: Props) {
                     >
                       <span
                         className={cn(
-                          'h-4 w-4 shrink-0 rounded-full border-2 transition',
+                          'h-4 w-4 shrink-0 border-2 transition',
                           reason === r.value ? 'border-destructive bg-destructive' : 'border-muted-foreground',
                         )}
                       />
@@ -239,11 +240,11 @@ export function DeleteAccountModal({ email }: Props) {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="flex items-start gap-3 border border-green-200 bg-green-50 p-4">
-                      <CheckCircle size={20} weight="fill" className="mt-0.5 shrink-0 text-green-600" />
+                    <div className="flex items-start gap-3 border border-primary/20 bg-primary/[0.06] p-4">
+                      <CheckCircle size={20} weight="fill" className="mt-0.5 shrink-0 text-primary" />
                       <div>
-                        <p className="text-sm font-semibold text-green-800">Code sent!</p>
-                        <p className="text-xs text-green-700 mt-0.5">
+                        <p className="text-sm font-semibold text-foreground">Code sent!</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           Check your inbox at <strong>{email}</strong>.
                           It expires in 15 minutes.
                         </p>
@@ -312,7 +313,7 @@ export function DeleteAccountModal({ email }: Props) {
                     'All active sessions',
                   ].map((item) => (
                     <li key={item} className="flex items-center gap-2 text-muted-foreground">
-                      <span className="text-destructive">✕</span>
+                      <X size={13} weight="bold" className="shrink-0 text-destructive" />
                       {item}
                     </li>
                   ))}

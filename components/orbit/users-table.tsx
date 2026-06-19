@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import Link from "next/link";
+import { ArrowRight, MagnifyingGlass } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
 import { ADMIN_ROLE } from "@/config/platform";
 import { UserRoleForm, UserSuspendForm } from "./user-actions";
@@ -172,14 +173,21 @@ export function UsersTable({
 
                     {/* Actions */}
                     <td className="px-4 py-3">
-                      {isSelf ? (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <UserRoleForm role={u.role} userId={u.id} />
-                          <UserSuspendForm banned={u.banned} userId={u.id} />
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {!isSelf && (
+                          <>
+                            <UserRoleForm role={u.role} userId={u.id} />
+                            <UserSuspendForm banned={u.banned} userId={u.id} />
+                          </>
+                        )}
+                        <Link
+                          href={`/orbit/users/${u.id}`}
+                          className="inline-flex items-center gap-1 rounded-none border border-border px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                        >
+                          View
+                          <ArrowRight size={11} />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 );

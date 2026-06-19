@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { getCurrentSession } from '@/lib/authz'
 import { db } from '@/lib/db'
 import { user } from '@/db/schema'
+import { checkRateLimit, rateLimitKey } from '@/lib/api/helpers'
 
 const RESERVED = new Set([
   'orbit', 'api', 'admin', 'dashboard', 'settings', 'login',
@@ -11,6 +12,10 @@ const RESERVED = new Set([
 ])
 
 export async function GET(req: NextRequest) {
+  if (!checkRateLimit(rateLimitKey('GET:/api/username-check', req), 20, 60_000)) {
+    return NextResponse.json({ available: false, reason: 'Too many requests. Please slow down.' })
+  }
+
   const raw = req.nextUrl.searchParams.get('username')
   if (!raw) {
     return NextResponse.json({ available: false, reason: 'Username is required' })

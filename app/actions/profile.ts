@@ -46,7 +46,7 @@ export async function updateNameAction(
   });
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/profile");
+  revalidatePath("/settings/profile");
   return { success: "Name updated." };
 }
 
@@ -93,7 +93,7 @@ export async function changeEmailAction(
   });
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/profile");
+  revalidatePath("/settings/profile");
   return { success: "Email updated. Use the new email for future sign-ins." };
 }
 
@@ -128,7 +128,7 @@ export async function revokeSessionAction(formData: FormData): Promise<void> {
     entityType: "session",
   });
 
-  revalidatePath("/dashboard/profile");
+  revalidatePath("/settings/profile");
 }
 
 export async function signOutOtherSessionsAction(): Promise<void> {
@@ -158,7 +158,7 @@ export async function signOutOtherSessionsAction(): Promise<void> {
     metadata: { revokedCount: ids.length },
   });
 
-  revalidatePath("/dashboard/profile");
+  revalidatePath("/settings/profile");
 }
 
 // ── Delete account: step 1 — send OTP code to email ─────────────────────────

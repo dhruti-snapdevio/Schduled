@@ -7,6 +7,7 @@ import {
   ChartBar,
   ClockCounterClockwise,
   Envelope,
+  GearSix,
   ShieldCheck,
   SignOut,
   Stack,
@@ -18,18 +19,19 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/orbit",        label: "Overview", icon: ChartBar,              exact: true },
-  { href: "/orbit/users",  label: "Users",    icon: Users,                 exact: false },
-  { href: "/orbit/audit",  label: "Audit",    icon: ClockCounterClockwise, exact: false },
-  { href: "/orbit/queues", label: "Queues",   icon: Stack,                 exact: false },
-  { href: "/orbit/email",  label: "Email",    icon: Envelope,              exact: false },
+  { href: "/orbit",          label: "Overview", icon: ChartBar,              exact: true },
+  { href: "/orbit/users",    label: "Users",    icon: Users,                 exact: false },
+  { href: "/orbit/audit",    label: "Audit",    icon: ClockCounterClockwise, exact: false },
+  { href: "/orbit/queues",   label: "Queues",   icon: Stack,                 exact: false },
+  { href: "/orbit/email",    label: "Email",    icon: Envelope,              exact: false },
+  { href: "/orbit/settings", label: "Settings", icon: GearSix,               exact: false },
 ];
 
 export function AdminSidebar({ email }: { email: string }) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+    <aside className="hidden md:flex h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
       {/* Brand */}
       <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-4">
         <Logo variant="icon" size="sm" href="/orbit" />
@@ -52,13 +54,13 @@ export function AdminSidebar({ email }: { email: string }) {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 border-l-2 px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-3 border-l-[3px] pl-[9px] pr-3 py-2.5 text-sm font-medium transition-colors",
                 active
-                  ? "border-sidebar-foreground bg-sidebar-accent text-sidebar-foreground"
-                  : "border-transparent text-sidebar-foreground/50 hover:border-sidebar-foreground/20 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                  ? "border-l-primary bg-primary text-primary-foreground"
+                  : "border-l-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
               )}
             >
-              <Icon size={16} weight={active ? "fill" : "regular"} />
+              <Icon size={17} weight={active ? "fill" : "regular"} />
               {label}
             </Link>
           );

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { addDays } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { and, eq } from "drizzle-orm";
@@ -5,6 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { availabilitySchedule, booking, eventType, user } from "@/db/schema";
 import { db } from "@/lib/db";
 import { RescheduleClient } from "./reschedule-client";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function ReschedulePage({
   params,
@@ -18,6 +23,7 @@ export default async function ReschedulePage({
       id: booking.id,
       status: booking.status,
       startTime: booking.startTime,
+      duration: booking.duration,
       inviteeTimezone: booking.inviteeTimezone,
       etName: eventType.name,
       etSlug: eventType.slug,
@@ -58,6 +64,18 @@ export default async function ReschedulePage({
     );
   }
 
+  if (b.startTime < new Date()) {
+    return (
+      <main className="mx-auto max-w-lg px-4 py-16">
+        <Card>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            This meeting has already passed and can no longer be rescheduled.
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
   const schedule = await db.query.availabilitySchedule.findFirst({
     where: b.availabilityScheduleId
       ? and(
@@ -87,6 +105,7 @@ export default async function ReschedulePage({
     <RescheduleClient
       availableDaysOfWeek={availableDaysOfWeek}
       currentStartUtc={b.startTime.toISOString()}
+      duration={b.duration ?? 30}
       eventName={b.etName}
       hostName={b.hostName ?? "your host"}
       inviteeTimezone={b.inviteeTimezone}

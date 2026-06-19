@@ -1,0 +1,251 @@
+import Link from "next/link";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  ChatCircle,
+  Clock,
+  EnvelopeSimple,
+  GithubLogo,
+  Question,
+  ShieldCheck,
+} from "@phosphor-icons/react/dist/ssr";
+import { Logo } from "@/components/logo";
+import { ContactForm } from "./_components/contact-form";
+
+export const metadata = {
+  title: "Contact — Schduled",
+  description: "Get in touch with the Schduled team. We're happy to help.",
+};
+
+const DARK_BG: React.CSSProperties = {
+  background: `
+    radial-gradient(circle at top right, rgba(20,184,166,.18) 0%, transparent 55%),
+    radial-gradient(circle at bottom left, rgba(13,148,136,.10) 0%, transparent 55%),
+    linear-gradient(180deg, #081C1C 0%, #041010 100%)
+  `,
+};
+
+const CHANNELS = [
+  {
+    icon: EnvelopeSimple,
+    title: "General Enquiries",
+    description: "Questions about the product, pricing (there isn't any), or anything else.",
+    link: "mailto:hello@schduled.com",
+    linkLabel: "hello@schduled.com",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Privacy & Data",
+    description: "Data requests, account deletion, or concerns about how we handle your information.",
+    link: "mailto:privacy@schduled.com",
+    linkLabel: "privacy@schduled.com",
+  },
+  {
+    icon: GithubLogo,
+    title: "Bug Reports",
+    description: "Found a bug? Open an issue on GitHub. We review every one.",
+    link: "https://github.com",
+    linkLabel: "Open an issue",
+    external: true,
+  },
+];
+
+export default function ContactPage() {
+  return (
+    <div className="min-h-screen bg-background text-foreground antialiased">
+
+      {/* ── Navbar ─────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 border-b border-border/40 bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-8">
+          <Logo variant="full" size="lg" href="/" />
+          <nav className="hidden items-center gap-8 md:flex">
+            {[["Features", "/#features"], ["How It Works", "/#how-it-works"], ["FAQ", "/#faq"]].map(([l, h]) => (
+              <Link key={l} href={h} className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                {l}
+              </Link>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2">
+            <Link href="/login" className="hidden px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">
+              Sign In
+            </Link>
+            <Link href="/login" className="inline-flex items-center gap-1.5 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+              Get Started Free <ArrowRight size={13} weight="bold" />
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <main>
+
+        {/* ── Hero ───────────────────────────────────────────────────────── */}
+        <section className="relative overflow-hidden py-20 sm:py-28" style={DARK_BG}>
+          {/* Glow */}
+          <div className="pointer-events-none absolute right-0 top-0 h-[500px] w-[500px]"
+            style={{ background: "radial-gradient(circle at top right, rgba(20,184,166,.2) 0%, transparent 60%)", filter: "blur(50px)" }} />
+          {/* Grid */}
+          <div className="pointer-events-none absolute inset-0 opacity-[0.03]"
+            style={{ backgroundImage: "linear-gradient(rgba(20,184,166,1) 1px,transparent 1px),linear-gradient(90deg,rgba(20,184,166,1) 1px,transparent 1px)", backgroundSize: "52px 52px" }} />
+
+          <div className="relative mx-auto max-w-4xl px-5 text-center sm:px-8">
+            <div className="mb-7 inline-flex items-center gap-2 border border-teal-600/30 bg-teal-950/60 px-4 py-1.5 text-xs font-semibold text-teal-300">
+              <ChatCircle size={13} weight="bold" />
+              We reply within 2 business days
+            </div>
+            <h1 className="font-black text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
+              Let's talk.
+            </h1>
+            <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-white/50">
+              Have a question, found a bug, or just want to say hi? Pick the right channel below or use the form and we'll get back to you.
+            </p>
+          </div>
+        </section>
+
+        {/* ── Contact channels ───────────────────────────────────────────── */}
+        <section className="py-16 border-b border-border">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8">
+            <div className="grid gap-4 sm:grid-cols-3">
+              {CHANNELS.map((c) => {
+                const Icon = c.icon;
+                return (
+                  <div
+                    key={c.title}
+                    className="group relative overflow-hidden border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-lg"
+                  >
+                    {/* Accent line */}
+                    <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
+
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center bg-primary/10 text-primary">
+                      <Icon size={20} weight="duotone" />
+                    </div>
+                    <p className="mb-1 font-bold text-sm">{c.title}</p>
+                    <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
+                      {c.description}
+                    </p>
+                    <a
+                      href={c.link}
+                      target={c.external ? "_blank" : undefined}
+                      rel={c.external ? "noopener noreferrer" : undefined}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-primary transition-opacity hover:opacity-70"
+                    >
+                      {c.linkLabel}
+                      {c.external && <ArrowUpRight size={12} />}
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Contact form + info ─────────────────────────────────────────── */}
+        <section className="py-20">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8">
+            <div className="grid gap-16 lg:grid-cols-[1fr_400px] lg:items-start">
+
+              {/* Form */}
+              <div>
+                <p className="mb-2 text-xs font-black uppercase tracking-eyebrow text-primary">Send a message</p>
+                <h2 className="mb-8 font-black text-2xl">
+                  Drop us a note and we'll get back to you.
+                </h2>
+                <ContactForm />
+              </div>
+
+              {/* Side info */}
+              <div className="space-y-6">
+                {/* Response time */}
+                <div className="border border-border bg-card p-6">
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center bg-primary/10 text-primary">
+                      <Clock size={18} weight="duotone" />
+                    </div>
+                    <p className="font-bold text-sm">Response Time</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    We aim to respond to all messages within <strong className="text-foreground">2 business days</strong>. Complex issues may take a little longer.
+                  </p>
+                </div>
+
+                {/* FAQ link */}
+                <div className="border border-border bg-card p-6">
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center bg-primary/10 text-primary">
+                      <Question size={18} weight="duotone" />
+                    </div>
+                    <p className="font-bold text-sm">Quick Answers</p>
+                  </div>
+                  <p className="mb-4 text-sm text-muted-foreground leading-relaxed">
+                    Many common questions are already answered in our FAQ — it's worth checking first.
+                  </p>
+                  <Link
+                    href="/#faq"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition-opacity hover:opacity-75"
+                  >
+                    Browse the FAQ
+                    <ArrowRight size={12} weight="bold" />
+                  </Link>
+                </div>
+
+                {/* Teal callout */}
+                <div
+                  className="relative overflow-hidden p-6 bg-gradient-to-br from-primary to-primary/80"
+                >
+                  <div className="pointer-events-none absolute right-0 top-0 h-24 w-24 opacity-20"
+                    style={{ background: "radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%)" }} />
+                  <p className="font-bold text-sm text-white">Schduled is free forever.</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-white/75">
+                    No plans. No hidden charges. No "upgrade to unlock" prompts. If you're here to ask about pricing — the answer is $0.
+                  </p>
+                  <Link
+                    href="/login"
+                    className="mt-4 inline-flex items-center gap-1.5 border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/20"
+                  >
+                    Get started free
+                    <ArrowRight size={12} weight="bold" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      {/* ── Footer ─────────────────────────────────────────────────────── */}
+      <footer className="border-t border-border bg-page">
+        <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <Logo variant="full" size="lg" href="/" />
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Smart scheduling for modern professionals. Free forever, open source.
+              </p>
+            </div>
+            {[
+              { title: "Product", links: [["Features", "/#features"], ["How It Works", "/#how-it-works"], ["FAQ", "/#faq"]] },
+              { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Privacy", "/privacy"], ["Terms", "/terms"], ["Cookies", "/cookies"]] },
+              { title: "Social",  links: [["GitHub", "https://github.com"], ["Twitter / X", "https://twitter.com"], ["LinkedIn", "https://linkedin.com"]] },
+            ].map((col) => (
+              <div key={col.title}>
+                <h4 className="mb-4 text-xs font-black uppercase tracking-eyebrow text-foreground">{col.title}</h4>
+                <ul className="space-y-2.5">
+                  {col.links.map(([label, href]) => (
+                    <li key={label}>
+                      <a href={href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">{label}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="mt-10 border-t border-border pt-6">
+            <p className="text-center text-xs text-muted-foreground">
+              © {new Date().getFullYear()} Schduled. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

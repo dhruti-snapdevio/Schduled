@@ -1,135 +1,238 @@
-import { eq } from 'drizzle-orm'
-import type { Job } from 'pg-boss'
-import { createId } from '@paralleldrive/cuid2'
-import { db } from '@/lib/db'
-import { booking, emailOutbox, eventType, user } from '@/db/schema'
-import { enqueueJob } from '@/lib/worker/enqueue'
-import { type BookingReminderPayload, JOB_NAMES } from '@/lib/worker/job-types'
-import { reminderInviteeTemplate } from '@/lib/email/templates/reminder-invitee'
+import { eq } from "drizzle-orm";
+import type { Job } from "pg-boss";
+import { createId } from "@paralleldrive/cuid2";
+import { formatInTimeZone } from "date-fns-tz";
+import { db } from "@/lib/db";
+import { booking, emailOutbox, eventType, user } from "@/db/schema";
+import { enqueueEmail } from "@/lib/email";
+import { reminderHostTemplate } from "@/lib/email/templates/reminder-host";
+import { reminderInviteeTemplate } from "@/lib/email/templates/reminder-invitee";
+import { createNotification } from "@/lib/notifications/create";
+import { enqueueJob } from "@/lib/worker/enqueue";
+import { type BookingReminderPayload, JOB_NAMES } from "@/lib/worker/job-types";
 
-function resolveLocationLabel(locationType: string, locationValue: string | null): string {
+function resolveLocationLabel(
+  locationType: string,
+  locationValue: string | null
+): string {
   switch (locationType) {
-    case 'google_meet':         return 'Google Meet'
-    case 'zoom':                return 'Zoom'
-    case 'phone_host_calls':    return 'Phone (host will call you)'
-    case 'phone_invitee_calls': return locationValue ? `Call: ${locationValue}` : 'Phone (you call host)'
-    case 'in_person':           return locationValue ?? 'In person (see invite for address)'
-    case 'custom':              return locationValue ?? 'See invite for details'
-    default:                    return locationValue ?? 'See invite for details'
+    case "google_meet":
+      return "Google Meet";
+    case "zoom":
+      return "Zoom";
+    case "phone_host_calls":
+      return "Phone (host will call you)";
+    case "phone_invitee_calls":
+      return locationValue ? `Call: ${locationValue}` : "Phone (you call host)";
+    case "in_person":
+      return locationValue ?? "In person (see invite for address)";
+    case "custom":
+      return locationValue ?? "See invite for details";
+    default:
+      return locationValue ?? "See invite for details";
   }
 }
 
-export async function handleBookingReminder24h(jobs: Job<BookingReminderPayload>[]) {
-  for (const job of jobs) {
-    await processReminder(job, '24 hours')
+function resolveMeetLabel(locationType: string): {
+  inviteeLabel: string;
+  hostLabel: string;
+} {
+  switch (locationType) {
+    case "google_meet":
+      return { inviteeLabel: "Join Google Meet", hostLabel: "Start Google Meet" };
+    case "zoom":
+      return { inviteeLabel: "Join Zoom Meeting", hostLabel: "Start Zoom Meeting" };
+    default:
+      return { inviteeLabel: "Join Meeting", hostLabel: "Start Meeting" };
   }
 }
 
-export async function handleBookingReminder1h(jobs: Job<BookingReminderPayload>[]) {
+export async function handleBookingReminder24h(
+  jobs: Job<BookingReminderPayload>[]
+) {
   for (const job of jobs) {
-    await processReminder(job, '1 hour')
+    await processReminder(job, "24 hours");
+  }
+}
+
+export async function handleBookingReminder1h(
+  jobs: Job<BookingReminderPayload>[]
+) {
+  for (const job of jobs) {
+    await processReminder(job, "1 hour");
   }
 }
 
 async function processReminder(
   job: Job<BookingReminderPayload>,
-  timeUntil: '24 hours' | '1 hour',
+  timeUntil: "24 hours" | "1 hour"
 ) {
-  const { bookingId, bookingStartUtc } = job.data
+  const { bookingId, bookingStartUtc } = job.data;
 
   const [b] = await db
     .select({
-      id:              booking.id,
-      inviteeName:     booking.inviteeName,
-      inviteeEmail:    booking.inviteeEmail,
+      id: booking.id,
+      inviteeName: booking.inviteeName,
+      inviteeEmail: booking.inviteeEmail,
       inviteeTimezone: booking.inviteeTimezone,
-      startTime:       booking.startTime,
+      startTime: booking.startTime,
       videoLinkInvitee: booking.videoLinkInvitee,
-      cancelToken:     booking.cancelToken,
+      videoLinkHost: booking.videoLinkHost,
+      cancelToken: booking.cancelToken,
       rescheduleToken: booking.rescheduleToken,
-      status:          booking.status,
-      etName:          eventType.name,
-      etLocationType:  eventType.locationType,
+      status: booking.status,
+      etName: eventType.name,
+      etLocationType: eventType.locationType,
       etLocationValue: eventType.locationValue,
-      hostName:        user.name,
-      hostTimezone:    user.timezone,
+      hostUserId: user.id,
+      hostName: user.name,
+      hostEmail: user.email,
+      hostTimezone: user.timezone,
     })
     .from(booking)
     .innerJoin(eventType, eq(eventType.id, booking.eventTypeId))
     .innerJoin(user, eq(user.id, booking.hostUserId))
     .where(eq(booking.id, bookingId))
-    .limit(1)
+    .limit(1);
 
   if (!b) {
-    console.warn(`[booking-reminder] booking ${bookingId} not found`)
-    return
+    console.warn(`[booking-reminder] booking ${bookingId} not found`);
+    return;
   }
 
-  if (b.status !== 'confirmed') {
-    console.log(`[booking-reminder] booking ${bookingId} is ${b.status} — skipping`)
-    return
+  if (b.status !== "confirmed") {
+    console.log(
+      `[booking-reminder] booking ${bookingId} is ${b.status} — skipping`
+    );
+    return;
   }
 
-  // Skip if booking was rescheduled to a different time after this reminder was scheduled
-  const scheduledFor = new Date(bookingStartUtc)
-  const actual       = new Date(b.startTime)
-  const drift        = Math.abs(actual.getTime() - scheduledFor.getTime())
+  // Skip if booking was rescheduled after this reminder was enqueued
+  const scheduledFor = new Date(bookingStartUtc);
+  const actual = new Date(b.startTime);
+  const drift = Math.abs(actual.getTime() - scheduledFor.getTime());
   if (drift > 60_000) {
-    console.log(`[booking-reminder] booking ${bookingId} start time drifted ${drift}ms — skipping (rescheduled)`)
-    return
+    console.log(
+      `[booking-reminder] booking ${bookingId} start time drifted ${drift}ms — skipping (rescheduled)`
+    );
+    return;
   }
 
-  const hostTimezone  = b.hostTimezone ?? 'UTC'
-  const locationLabel = resolveLocationLabel(b.etLocationType, b.etLocationValue)
+  const hostTimezone = b.hostTimezone ?? "UTC";
+  const locationLabel = resolveLocationLabel(b.etLocationType, b.etLocationValue);
+  const { inviteeLabel, hostLabel } = resolveMeetLabel(b.etLocationType);
+  const tag = timeUntil === "24 hours" ? "24h" : "1h";
 
-  const { html, text } = await reminderInviteeTemplate({
-    inviteeName:     b.inviteeName,
-    hostName:        b.hostName ?? 'Your host',
-    eventName:       b.etName,
-    startUtc:        new Date(b.startTime),
+  // ── Invitee reminder email ─────────────────────────────────────────────
+  const inviteeMail = await reminderInviteeTemplate({
+    inviteeName: b.inviteeName,
+    hostName: b.hostName ?? "Your host",
+    eventName: b.etName,
+    startUtc: new Date(b.startTime),
     hostTimezone,
     inviteeTimezone: b.inviteeTimezone,
     locationLabel,
-    meetLink:        b.videoLinkInvitee,
-    cancelToken:     b.cancelToken,
+    meetLink: b.videoLinkInvitee,
+    meetLabel: inviteeLabel,
+    cancelToken: b.cancelToken,
     rescheduleToken: b.rescheduleToken,
     timeUntil,
-  })
+  });
 
-  const subject        = `Reminder: ${b.etName} with ${b.hostName ?? 'your host'} in ${timeUntil}`
-  const idempotencyKey = `reminder-${timeUntil === '24 hours' ? '24h' : '1h'}-${bookingId}-${scheduledFor.toISOString()}`
+  const inviteeKey = `reminder-invitee-${tag}-${bookingId}-${scheduledFor.toISOString()}`;
+  await insertAndEnqueueEmail(
+    b.inviteeEmail,
+    `Reminder: ${b.etName} with ${b.hostName ?? "your host"} in ${timeUntil}`,
+    inviteeMail,
+    inviteeKey
+  );
 
-  const newOutboxId = createId()
-  const inserted    = await db.insert(emailOutbox).values({
-    id:             newOutboxId,
-    idempotencyKey,
-    payload:        { to: b.inviteeEmail, subject, html, text },
-    status:         'queued',
-    maxAttempts:    3,
-  }).onConflictDoNothing().returning({ id: emailOutbox.id })
+  // ── Host reminder email ────────────────────────────────────────────────
+  if (b.hostEmail) {
+    // For Zoom use videoLinkHost (start URL); for Google Meet the join link works for host too
+    const startMeetLink = b.videoLinkHost ?? b.videoLinkInvitee;
 
-  let outboxId: string
+    const hostMail = await reminderHostTemplate({
+      hostName: b.hostName ?? "there",
+      inviteeName: b.inviteeName,
+      eventName: b.etName,
+      startUtc: new Date(b.startTime),
+      hostTimezone,
+      inviteeTimezone: b.inviteeTimezone,
+      locationLabel,
+      startMeetLink,
+      meetLabel: hostLabel,
+      timeUntil,
+    });
+
+    const hostKey = `reminder-host-${tag}-${bookingId}-${scheduledFor.toISOString()}`;
+    await insertAndEnqueueEmail(
+      b.hostEmail,
+      `Reminder: ${b.etName} with ${b.inviteeName} in ${timeUntil}`,
+      hostMail,
+      hostKey
+    );
+  }
+
+  // ── Host in-app notification ───────────────────────────────────────────
+  const whenLabel = formatInTimeZone(
+    new Date(b.startTime),
+    hostTimezone,
+    "MMM d 'at' h:mm a"
+  );
+  await createNotification({
+    userId: b.hostUserId,
+    type: "booking_reminder",
+    title: `Reminder: ${b.etName} in ${timeUntil}`,
+    body: `${b.inviteeName} · ${whenLabel}`,
+    bookingId: b.id,
+  });
+
+  console.log(
+    `[booking-reminder] processed ${timeUntil} reminder for booking ${bookingId}`
+  );
+}
+
+/** Insert into email_outbox (idempotent) then enqueue EMAIL_SEND. */
+async function insertAndEnqueueEmail(
+  to: string,
+  subject: string,
+  mail: { html: string; text: string },
+  idempotencyKey: string
+) {
+  const newId = createId();
+  const inserted = await db
+    .insert(emailOutbox)
+    .values({
+      id: newId,
+      idempotencyKey,
+      payload: { to, subject, html: mail.html, text: mail.text },
+      status: "queued",
+      maxAttempts: 3,
+    })
+    .onConflictDoNothing()
+    .returning({ id: emailOutbox.id });
+
+  let outboxId: string;
   if (inserted.length > 0) {
-    outboxId = inserted[0].id
+    outboxId = inserted[0].id;
   } else {
-    // Idempotency key already exists — look up the existing record
     const [existing] = await db
       .select({ id: emailOutbox.id, status: emailOutbox.status })
       .from(emailOutbox)
       .where(eq(emailOutbox.idempotencyKey, idempotencyKey))
-      .limit(1)
+      .limit(1);
     if (!existing) {
-      console.warn(`[booking-reminder] could not find existing outbox row for key ${idempotencyKey}`)
-      return
+      console.warn(
+        `[booking-reminder] could not find existing outbox row for key ${idempotencyKey}`
+      );
+      return;
     }
-    if (existing.status === 'sent') {
-      console.log(`[booking-reminder] reminder already sent for ${idempotencyKey} — skipping`)
-      return
+    if (existing.status === "sent") {
+      return; // already delivered
     }
-    outboxId = existing.id
+    outboxId = existing.id;
   }
 
-  await enqueueJob(JOB_NAMES.EMAIL_SEND, { outboxId })
-
-  console.log(`[booking-reminder] queued ${timeUntil} reminder email for booking ${bookingId}`)
+  await enqueueJob(JOB_NAMES.EMAIL_SEND, { outboxId });
 }

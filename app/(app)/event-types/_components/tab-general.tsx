@@ -1,13 +1,27 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
+import {
+  ArrowsClockwise,
+  Check,
+  CircleNotch,
+  Copy,
+  Link as LinkIcon,
+  Stack,
+  User,
+  Users,
+  Warning,
+} from '@phosphor-icons/react'
+import { toast } from 'sonner'
 import type { BuilderFormValues } from './builder'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? ''
 
 const COLOR_SWATCHES = [
@@ -25,6 +39,13 @@ const COLOR_SWATCHES = [
   '#292524', // dark
 ]
 
+export const MEETING_TYPES = [
+  { id: 'one_on_one', label: 'One-on-One', desc: 'Single invitee', icon: <User size={15} />, disabled: false },
+  { id: 'group', label: 'Group', desc: 'Coming soon', icon: <Users size={15} />, disabled: true },
+  { id: 'round_robin', label: 'Round Robin', desc: 'Coming soon', icon: <ArrowsClockwise size={15} />, disabled: true },
+  { id: 'collective', label: 'Collective', desc: 'Coming soon', icon: <Stack size={15} />, disabled: true },
+]
+
 function slugify(name: string) {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'meeting'
 }
@@ -32,12 +53,16 @@ function slugify(name: string) {
 interface TabGeneralProps {
   form: UseFormReturn<BuilderFormValues>
   username: string | null
+  meetingType: string
+  onMeetingTypeChange: (type: string) => void
+  eventTypeId?: string
 }
 
-export function TabGeneral({ form, username }: TabGeneralProps) {
+export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, eventTypeId }: TabGeneralProps) {
   const name = form.watch('name')
   const slug = form.watch('slug')
   const color = form.watch('color')
+  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
 
   // Auto-generate slug from name (only when slug hasn't been manually edited)
   useEffect(() => {
@@ -47,18 +72,78 @@ export function TabGeneral({ form, username }: TabGeneralProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name])
 
+  // Slug availability check (debounced 600ms)
+  useEffect(() => {
+    if (!slug || slug.length < 1) {
+      setSlugStatus('idle')
+      return
+    }
+    setSlugStatus('checking')
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ slug })
+        if (eventTypeId) params.set('excludeId', eventTypeId)
+        const res = await fetch(`/api/slug-check?${params}`)
+        const data = await res.json()
+        setSlugStatus(data.available ? 'available' : 'taken')
+      } catch {
+        setSlugStatus('idle')
+      }
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [slug, eventTypeId])
+
   const bookingUrl = username ? `${APP_URL}/${username}/${slug}` : null
+  const displayUrl = username
+    ? `${(APP_URL || 'schduled.com').replace(/^https?:\/\//, '')}/${username}/${slug}`
+    : null
+
+  function copyLink() {
+    if (!bookingUrl) return
+    navigator.clipboard.writeText(bookingUrl)
+    toast.success('Link copied!')
+  }
 
   return (
     <div className="space-y-6">
+
+      {/* ── Meeting type selector ───────────────────────────────── */}
       <div>
-        <h2 className="text-base font-semibold">General</h2>
-        <p className="text-sm text-muted-foreground mt-1">Basic details about this event type.</p>
+        <p className="text-sm font-medium mb-3">Event Type</p>
+        <div className="grid grid-cols-2 gap-2">
+          {MEETING_TYPES.map((mt) => (
+            <button
+              key={mt.id}
+              type="button"
+              disabled={mt.disabled}
+              onClick={() => !mt.disabled && onMeetingTypeChange(mt.id)}
+              className={cn(
+                'flex items-start gap-2.5 p-3 border text-left transition-colors',
+                mt.disabled
+                  ? 'border-border opacity-40 cursor-not-allowed'
+                  : meetingType === mt.id
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/40 hover:bg-muted/40'
+              )}
+            >
+              <span className={cn(
+                'mt-0.5 shrink-0',
+                mt.disabled ? 'text-muted-foreground' : meetingType === mt.id ? 'text-primary' : 'text-muted-foreground'
+              )}>
+                {mt.icon}
+              </span>
+              <div>
+                <p className={cn('text-xs font-semibold', mt.disabled ? 'text-muted-foreground' : 'text-foreground')}>{mt.label}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{mt.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       <Separator />
 
-      {/* Name */}
+      {/* ── Event name ─────────────────────────────────────────── */}
       <FormField
         control={form.control}
         name="name"
@@ -73,7 +158,7 @@ export function TabGeneral({ form, username }: TabGeneralProps) {
         )}
       />
 
-      {/* Description */}
+      {/* ── Description ────────────────────────────────────────── */}
       <FormField
         control={form.control}
         name="description"
@@ -96,13 +181,13 @@ export function TabGeneral({ form, username }: TabGeneralProps) {
         )}
       />
 
-      {/* URL slug */}
+      {/* ── Booking URL ────────────────────────────────────────── */}
       <FormField
         control={form.control}
         name="slug"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>URL</FormLabel>
+            <FormLabel>Booking URL</FormLabel>
             <FormControl>
               <div className="flex items-stretch border border-input">
                 {username && (
@@ -111,7 +196,7 @@ export function TabGeneral({ form, username }: TabGeneralProps) {
                   </span>
                 )}
                 <Input
-                  className="border-0 rounded-none shadow-none focus-visible:ring-0"
+                  className="border-0 shadow-none focus-visible:ring-0 flex-1"
                   placeholder="meeting-slug"
                   maxLength={100}
                   {...field}
@@ -120,23 +205,47 @@ export function TabGeneral({ form, username }: TabGeneralProps) {
                     field.onChange(val)
                   }}
                 />
+                {/* Status indicator */}
+                <span className="flex items-center px-2.5 border-l border-input">
+                  {slugStatus === 'checking' && <CircleNotch size={14} className="animate-spin text-muted-foreground" />}
+                  {slugStatus === 'available' && <Check size={14} className="text-green-500" weight="bold" />}
+                  {slugStatus === 'taken' && <Warning size={14} className="text-destructive" weight="fill" />}
+                </span>
               </div>
             </FormControl>
-            {bookingUrl && (
-              <FormDescription className="font-mono text-xs break-all">{bookingUrl}</FormDescription>
+
+            {/* URL preview + copy */}
+            {displayUrl && (
+              <div className="flex items-center justify-between gap-2 mt-1.5 px-3 py-2 bg-muted/50 border border-border">
+                <span className="flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground truncate">
+                  <LinkIcon size={11} />
+                  {displayUrl}
+                </span>
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="shrink-0 flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                >
+                  <Copy size={11} />
+                  Copy
+                </button>
+              </div>
+            )}
+            {slugStatus === 'taken' && (
+              <p className="text-[11px] text-destructive mt-1">This URL is already taken. Try a different slug.</p>
             )}
             <FormMessage />
           </FormItem>
         )}
       />
 
-      {/* Color */}
+      {/* ── Event Color ────────────────────────────────────────── */}
       <FormField
         control={form.control}
         name="color"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Color</FormLabel>
+            <FormLabel>Event Color</FormLabel>
             <FormControl>
               <div className="flex items-center gap-2 flex-wrap">
                 {COLOR_SWATCHES.map((c) => (
@@ -176,7 +285,7 @@ export function TabGeneral({ form, username }: TabGeneralProps) {
 
       <Separator />
 
-      {/* Active toggle */}
+      {/* ── Active toggle ──────────────────────────────────────── */}
       <FormField
         control={form.control}
         name="isActive"
@@ -185,7 +294,7 @@ export function TabGeneral({ form, username }: TabGeneralProps) {
             <div>
               <FormLabel className="text-sm font-medium">Active</FormLabel>
               <FormDescription className="text-xs">
-                Inactive event types are hidden from your booking page.
+                Visible on your booking page when active.
               </FormDescription>
             </div>
             <FormControl>
@@ -195,14 +304,14 @@ export function TabGeneral({ form, username }: TabGeneralProps) {
         )}
       />
 
-      {/* Hidden toggle */}
+      {/* ── Private Event (was "Hide from profile") ────────────── */}
       <FormField
         control={form.control}
         name="isHidden"
         render={({ field }) => (
           <FormItem className="flex items-center justify-between gap-4">
             <div>
-              <FormLabel className="text-sm font-medium">Hide from profile page</FormLabel>
+              <FormLabel className="text-sm font-medium">Private Event</FormLabel>
               <FormDescription className="text-xs">
                 Only people with the direct link can book this event type.
               </FormDescription>

@@ -110,6 +110,15 @@ export function StepAvailability({ onNext, onBack }: StepAvailabilityProps) {
     e.preventDefault()
     setSaving(true)
     setError('')
+    const invalidDay = Object.entries(schedule).find(
+      ([, d]) => d.enabled && d.startTime >= d.endTime
+    )
+    if (invalidDay) {
+      const label = DAYS.find((d) => d.key === invalidDay[0])?.label ?? invalidDay[0]
+      setError(`${label}: end time must be after start time.`)
+      setSaving(false)
+      return
+    }
     const result = await saveAvailabilityStep(schedule)
     setSaving(false)
     if ('error' in result) { setError(result.error); return }
@@ -130,7 +139,7 @@ export function StepAvailability({ onNext, onBack }: StepAvailabilityProps) {
               {/* Day badge */}
               <div
                 className={[
-                  'flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold select-none',
+                  'flex size-8 shrink-0 items-center justify-center text-xs font-bold select-none',
                   day.enabled
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground',
@@ -147,7 +156,7 @@ export function StepAvailability({ onNext, onBack }: StepAvailabilityProps) {
                       value={day.startTime}
                       onChange={(v) => updateTime(key, 'startTime', v)}
                     />
-                    <span className="text-sm text-muted-foreground">–</span>
+                    <span className="text-sm text-muted-foreground">to</span>
                     <TimeSelect
                       value={day.endTime}
                       onChange={(v) => updateTime(key, 'endTime', v)}
@@ -159,7 +168,7 @@ export function StepAvailability({ onNext, onBack }: StepAvailabilityProps) {
                     type="button"
                     onClick={() => toggleDay(key)}
                     aria-label={`Remove ${label}`}
-                    className="shrink-0 rounded-full p-1 text-muted-foreground transition hover:text-foreground hover:bg-muted"
+                    className="shrink-0 p-1 text-muted-foreground transition hover:text-foreground hover:bg-muted"
                   >
                     <X size={15} />
                   </button>
@@ -173,7 +182,7 @@ export function StepAvailability({ onNext, onBack }: StepAvailabilityProps) {
                     type="button"
                     onClick={() => toggleDay(key)}
                     aria-label={`Add hours for ${label}`}
-                    className="shrink-0 rounded-full p-1 text-muted-foreground transition hover:text-foreground hover:bg-muted"
+                    className="shrink-0 p-1 text-muted-foreground transition hover:text-foreground hover:bg-muted"
                   >
                     <Plus size={15} />
                   </button>
