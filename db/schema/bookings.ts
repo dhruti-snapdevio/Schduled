@@ -31,6 +31,9 @@ export const booking = pgTable('booking', {
   cancellationReason:  text('cancellation_reason'),
   cancelledBy:         text('cancelled_by'),
   cancelledAt:         timestamp('cancelled_at', { withTimezone: true }),
+
+  approvalToken:   text('approval_token').unique(),
+  rejectionReason: text('rejection_reason'),
   rescheduledFromId:   text('rescheduled_from_id'),
   rescheduleCount:     integer('reschedule_count').notNull().default(0),
 
@@ -46,6 +49,7 @@ export const booking = pgTable('booking', {
   index('booking_invitee_email_idx').on(t.inviteeEmail),
   index('booking_cancel_token_idx').on(t.cancelToken),
   index('booking_reschedule_token_idx').on(t.rescheduleToken),
+  index('booking_approval_token_idx').on(t.approvalToken),
 ])
 
 export const bookingAnswer = pgTable('booking_answer', {

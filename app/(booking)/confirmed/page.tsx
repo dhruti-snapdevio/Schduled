@@ -18,6 +18,7 @@ export default async function ConfirmedPage({
     reschedule?: string
     loc?: string
     locValue?: string
+    pending?: string
   }>
 }) {
   const p = await searchParams
@@ -41,6 +42,7 @@ export default async function ConfirmedPage({
       locationValue={p.locValue ?? null}
       cancelToken={p.cancel ?? null}
       rescheduleToken={p.reschedule ?? null}
+      isPending={p.pending === '1'}
     />
   )
 }

@@ -13,7 +13,10 @@ export interface SendEmailOptions {
   to: string;
 }
 
-export async function enqueueEmail(options: SendEmailOptions) {
+export async function enqueueEmail(
+  options: SendEmailOptions,
+  jobOptions?: { startAfter?: Date }
+) {
   const [row] = await db
     .insert(emailOutbox)
     .values({
@@ -23,5 +26,5 @@ export async function enqueueEmail(options: SendEmailOptions) {
     })
     .returning({ id: emailOutbox.id });
 
-  await enqueueJob(JOB_NAMES.EMAIL_SEND, { outboxId: row.id });
+  await enqueueJob(JOB_NAMES.EMAIL_SEND, { outboxId: row.id }, jobOptions);
 }

@@ -55,6 +55,11 @@ export const QUEUE_OPTIONS: Record<
   [JOB_NAMES.CALENDAR_SYNC]:             { expireInSeconds: 240, policy: "singleton", retryLimit: 1 },
   [JOB_NAMES.CALENDAR_TOKEN_REFRESH]:    { expireInSeconds: 30,  policy: "singleton", retryLimit: 3, retryDelay: 5 },
   [JOB_NAMES.CALENDAR_DISCONNECT_ALERT]: { expireInSeconds: 60,  policy: "standard",  retryLimit: 2 },
+
+  // Booking approval
+  [JOB_NAMES.BOOKING_APPROVAL_REQUEST]: { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
+  [JOB_NAMES.BOOKING_APPROVED]:         { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
+  [JOB_NAMES.BOOKING_REJECTED]:         { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
 };
 
 export async function ensureJobQueues(boss: PgBoss) {

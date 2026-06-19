@@ -483,6 +483,7 @@ export function BookingCalendar({
         reschedule: data.rescheduleToken,
         loc: eventType.locationType,
         ...(data.locationValue ? { locValue: data.locationValue } : {}),
+        ...(data.isPending ? { pending: '1' } : {}),
       })
       window.location.href = `/confirmed?${p.toString()}`
     } catch {

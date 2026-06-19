@@ -17,6 +17,11 @@ export const JOB_NAMES = {
   BOOKING_RESCHEDULE_NOTIFY: "booking.reschedule-notify",
   CALENDAR_UPDATE: "booking.calendar-update",
 
+  // ── Booking approval ─────────────────────────────────────────────────────
+  BOOKING_APPROVAL_REQUEST: "booking.approval-request",
+  BOOKING_APPROVED: "booking.approved",
+  BOOKING_REJECTED: "booking.rejected",
+
   // ── Calendar integrations ─────────────────────────────────────────────
   CALENDAR_SYNC: "calendar.sync",
   CALENDAR_TOKEN_REFRESH: "calendar.token-refresh",
@@ -93,6 +98,18 @@ export interface CalendarDisconnectAlertPayload {
   userId: string;
 }
 
+export interface BookingApprovalRequestPayload {
+  bookingId: string;
+}
+
+export interface BookingApprovedPayload {
+  bookingId: string;
+}
+
+export interface BookingRejectedPayload {
+  bookingId: string;
+}
+
 export type JobPayloads = {
   [JOB_NAMES.EMAIL_SEND]: EmailSendPayload;
   [JOB_NAMES.EMAIL_OUTBOX_REAP]: Record<string, never>;
@@ -113,4 +130,7 @@ export type JobPayloads = {
   [JOB_NAMES.CALENDAR_DISCONNECT_ALERT]: CalendarDisconnectAlertPayload;
   [JOB_NAMES.SCAFFOLD_HEALTHCHECK]: Record<string, never>;
   [JOB_NAMES.IDEMPOTENCY_KEYS_PRUNE]: Record<string, never>;
+  [JOB_NAMES.BOOKING_APPROVAL_REQUEST]: BookingApprovalRequestPayload;
+  [JOB_NAMES.BOOKING_APPROVED]: BookingApprovedPayload;
+  [JOB_NAMES.BOOKING_REJECTED]: BookingRejectedPayload;
 };

@@ -103,6 +103,7 @@ interface Props {
   locationValue?: string | null
   cancelToken: string | null
   rescheduleToken: string | null
+  isPending?: boolean
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -117,6 +118,7 @@ export function ConfirmationClient({
   locationValue,
   cancelToken,
   rescheduleToken,
+  isPending = false,
 }: Props) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -157,34 +159,67 @@ export function ConfirmationClient({
       <div className="relative z-10 mx-auto w-full max-w-[580px]">
         <div className="flex flex-col items-center gap-5 bg-white px-5 py-8 sm:px-8 shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
 
-          {/* ── Success icon ── */}
+          {/* ── Icon ── */}
           <div
             className={cn(
               'relative transition-all duration-700 ease-out',
               mounted ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
             )}
           >
-            <div className="absolute inset-0 scale-[2.2] rounded-full bg-teal-400/20 blur-2xl" />
-            <CheckCircle
-              size={64}
-              weight="fill"
-              className="relative text-primary drop-shadow-[0_0_14px_rgba(13,148,136,0.50)]"
-            />
+            {isPending ? (
+              <>
+                <div className="absolute inset-0 scale-[2.2] rounded-full bg-amber-400/20 blur-2xl" />
+                <Bell
+                  size={64}
+                  weight="fill"
+                  className="relative text-amber-500 drop-shadow-[0_0_14px_rgba(217,119,6,0.40)]"
+                />
+              </>
+            ) : (
+              <>
+                <div className="absolute inset-0 scale-[2.2] rounded-full bg-teal-400/20 blur-2xl" />
+                <CheckCircle
+                  size={64}
+                  weight="fill"
+                  className="relative text-primary drop-shadow-[0_0_14px_rgba(13,148,136,0.50)]"
+                />
+              </>
+            )}
           </div>
 
           {/* ── Message ── */}
           <div className="text-center">
-            <h1 className="text-[22px] font-bold tracking-tight text-gray-900">
-              You&apos;re Scheduled!
-            </h1>
-            {hostName && (
-              <p className="mt-1 text-[14px] font-medium text-gray-700">
-                Your meeting with <span className="text-primary">{hostName}</span> is confirmed.
-              </p>
+            {isPending ? (
+              <>
+                <h1 className="text-[22px] font-bold tracking-tight text-gray-900">
+                  Request Submitted!
+                </h1>
+                {hostName && (
+                  <p className="mt-1 text-[14px] font-medium text-gray-700">
+                    Your request for{' '}
+                    <span className="text-amber-600">{eventName}</span> with{' '}
+                    <span className="text-primary">{hostName}</span> is awaiting approval.
+                  </p>
+                )}
+                <p className="mt-0.5 text-[13px] text-muted-foreground">
+                  You&apos;ll receive a confirmation email once the host approves your request.
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-[22px] font-bold tracking-tight text-gray-900">
+                  You&apos;re Scheduled!
+                </h1>
+                {hostName && (
+                  <p className="mt-1 text-[14px] font-medium text-gray-700">
+                    Your meeting with <span className="text-primary">{hostName}</span> is confirmed.
+                  </p>
+                )}
+                <p className="mt-0.5 text-[13px] text-muted-foreground">
+                  We&apos;ve sent a calendar invite and meeting details to your email.
+                </p>
+              </>
             )}
-            <p className="mt-0.5 text-[13px] text-muted-foreground">
-              We&apos;ve sent a calendar invite and meeting details to your email.
-            </p>
           </div>
 
           {/* ── Meeting details card ── */}
@@ -235,7 +270,7 @@ export function ConfirmationClient({
           </div>
 
           {/* ── Countdown ── */}
-          {!countdown.started && (
+          {!isPending && !countdown.started && (
             <div className="flex w-full items-center justify-between bg-primary/[0.06] px-5 py-3">
               <div className="flex items-center gap-2 text-primary">
                 <Timer size={15} weight="fill" />
@@ -247,8 +282,8 @@ export function ConfirmationClient({
             </div>
           )}
 
-          {/* ── Add to Calendar ── */}
-          <div className="w-full">
+          {/* ── Add to Calendar — hidden for pending bookings ── */}
+          {!isPending && <div className="w-full">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
               Add to Calendar
             </p>
@@ -302,10 +337,10 @@ export function ConfirmationClient({
                 </a>
               ))}
             </div>
-          </div>
+          </div>}
 
-          {/* ── Reschedule / Cancel ── */}
-          {(rescheduleToken || cancelToken) && (
+          {/* ── Reschedule / Cancel — hidden for pending bookings ── */}
+          {!isPending && (rescheduleToken || cancelToken) && (
             <div className="flex w-full flex-col sm:flex-row gap-3">
               {rescheduleToken && (
                 <Link
@@ -333,16 +368,29 @@ export function ConfirmationClient({
             <p className="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
               What&apos;s Next?
             </p>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2.5">
-                <EnvelopeSimple size={13} weight="fill" className="shrink-0 text-primary/70" />
-                <span className="text-[12px] text-gray-600">Check your email for confirmation</span>
+            {isPending ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2.5">
+                  <Bell size={13} weight="fill" className="shrink-0 text-amber-500" />
+                  <span className="text-[12px] text-gray-600">You&apos;ll receive an email once the host approves your request</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <EnvelopeSimple size={13} weight="fill" className="shrink-0 text-amber-500" />
+                  <span className="text-[12px] text-gray-600">A calendar invite will be sent to you after approval</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2.5">
-                <Bell size={13} weight="fill" className="shrink-0 text-primary/70" />
-                <span className="text-[12px] text-gray-600">You&apos;ll receive reminder emails before the meeting</span>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2.5">
+                  <EnvelopeSimple size={13} weight="fill" className="shrink-0 text-primary/70" />
+                  <span className="text-[12px] text-gray-600">Check your email for confirmation</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Bell size={13} weight="fill" className="shrink-0 text-primary/70" />
+                  <span className="text-[12px] text-gray-600">You&apos;ll receive reminder emails before the meeting</span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
         </div>

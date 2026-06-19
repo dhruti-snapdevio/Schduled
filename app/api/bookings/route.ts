@@ -162,7 +162,7 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(booking.hostUserId, host.id),
-            eq(booking.status, "confirmed"),
+            sql`${booking.status} IN ('confirmed', 'pending')`,
             lte(booking.startTime, dayEndUtc),
             gte(booking.endTime, dayStartUtc)
           )
@@ -181,8 +181,9 @@ export async function POST(request: Request) {
         return { dailyLimit: true } as const;
       }
 
-      const cancelToken    = createId();
+      const cancelToken     = createId();
       const rescheduleToken = createId();
+      const approvalToken   = et.requiresApproval ? createId() : null;
 
       const [newBooking] = await tx
         .insert(booking)
@@ -197,9 +198,10 @@ export async function POST(request: Request) {
           endTime,
           duration,
           locationValue:    et.locationValue,
-          status:           "confirmed",
+          status:           et.requiresApproval ? "pending" : "confirmed",
           cancelToken,
           rescheduleToken,
+          approvalToken,
         })
         .returning();
 
@@ -233,6 +235,7 @@ export async function POST(request: Request) {
         startUtc:       startTime.toISOString(),
         endUtc:         endTime.toISOString(),
         locationValue,
+        isPending:      et.requiresApproval,
       };
 
       await tx
@@ -259,9 +262,10 @@ export async function POST(request: Request) {
 
     // ── Fire async booking lifecycle jobs ────────────────────────────────────
     await enqueueBookingJobs({
-      bookingId:    data.bookingId,
+      bookingId:        data.bookingId,
       startTime,
-      locationType: et.locationType,
+      locationType:     et.locationType,
+      requiresApproval: et.requiresApproval,
     });
 
     return NextResponse.json(data);
@@ -272,15 +276,30 @@ export async function POST(request: Request) {
 }
 
 async function enqueueBookingJobs(opts: {
-  bookingId:    string;
-  startTime:    Date;
-  locationType: string;
+  bookingId:        string;
+  startTime:        Date;
+  locationType:     string;
+  requiresApproval: boolean;
 }) {
-  const { bookingId, startTime, locationType } = opts;
+  const { bookingId, startTime, locationType, requiresApproval } = opts;
   const startUtcIso = startTime.toISOString();
   const now = Date.now();
 
   const jobs: Promise<unknown>[] = [];
+
+  // Pending approval — only send the approval request to the host.
+  // Calendar, video, confirmation emails, and reminders are deferred
+  // until the host approves.
+  if (requiresApproval) {
+    jobs.push(enqueueJob(JOB_NAMES.BOOKING_APPROVAL_REQUEST, { bookingId }));
+    const results = await Promise.allSettled(jobs);
+    for (const r of results) {
+      if (r.status === "rejected") {
+        console.error(`[enqueueBookingJobs] approval job enqueue failed for booking ${bookingId}:`, r.reason);
+      }
+    }
+    return;
+  }
 
   const needsVideoLink = locationType === "google_meet" || locationType === "zoom";
 

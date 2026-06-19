@@ -49,6 +49,7 @@ export default async function EditEventTypePage({ params }: { params: Promise<{ 
     locationValue:           et.locationValue ?? '',
     hostPhoneNumber:         et.hostPhoneNumber ?? '',
     confirmationNote:        et.confirmationNote ?? '',
+    requiresApproval:        et.requiresApproval,
     allowCancellation:       et.cancellationPolicy?.allowCancellation ?? true,
     cancellationCutoffHours: et.cancellationPolicy?.cutoffHours ?? 0,
     allowRescheduling:       et.cancellationPolicy?.allowRescheduling ?? true,
