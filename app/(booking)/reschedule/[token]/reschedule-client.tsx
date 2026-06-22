@@ -166,7 +166,7 @@ export function RescheduleClient(props: Props) {
   if (done) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md bg-white px-8 py-12 text-center shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+        <div className="w-full max-w-md bg-white px-8 py-12 text-center border border-border">
           <CheckCircle
             className="mx-auto text-primary"
             size={48}
@@ -190,7 +190,7 @@ export function RescheduleClient(props: Props) {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-      <div className="w-full max-w-3xl overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+      <div className="w-full max-w-3xl overflow-hidden bg-white border border-border">
         <div className="border-b border-gray-100 bg-[#F8FCFB] px-8 py-5">
           <h1 className="text-base font-bold text-gray-900">
             Reschedule your booking

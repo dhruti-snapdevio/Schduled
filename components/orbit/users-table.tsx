@@ -257,7 +257,7 @@ export function UsersTable({
 
       {/* ── Bulk action toolbar ──────────────────────────────────────── */}
       {selected.size > 0 && (
-        <div className="sticky bottom-0 flex items-center justify-between gap-4 border-t border-primary/20 bg-background px-6 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
+        <div className="sticky bottom-0 flex items-center justify-between gap-4 border-t border-primary/20 bg-background px-6 py-3">
           <p className="text-sm font-medium">
             <span className="text-primary font-bold">{selected.size}</span> user{selected.size !== 1 ? "s" : ""} selected
           </p>

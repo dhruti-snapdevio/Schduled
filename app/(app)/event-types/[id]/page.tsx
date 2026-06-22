@@ -10,7 +10,7 @@ import type { BuilderFormValues, ExistingQuestion } from '../_components/builder
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const et = await getEventType(id)
-  return { title: et ? `Edit: ${et.name}` : 'Event Type' }
+  return { title: et ? `Edit: ${et.name}` : 'Meeting Type' }
 }
 
 export default async function EditEventTypePage({ params }: { params: Promise<{ id: string }> }) {

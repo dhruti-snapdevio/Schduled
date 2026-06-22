@@ -90,14 +90,14 @@ export default async function OrbitPage() {
   return (
     <div className="space-y-8">
       {/* ── Page heading ────────────────────────────────────────────── */}
-      <div className="mb-8 border-b border-border pb-5">
-        <p className="mb-2 text-xs font-bold uppercase tracking-eyebrow text-success">
+      <div className="border-b border-border pb-6">
+        <p className="mb-1.5 text-xs font-bold uppercase tracking-eyebrow text-primary">
           Admin Panel
         </p>
-        <h1 className="font-black text-2xl tracking-normal">
+        <h1 className="font-black text-3xl tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
           Workspace Administration
         </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
+        <p className="mt-2 text-base text-muted-foreground">
           Manage users, bookings, emails and monitor system health.
         </p>
       </div>
@@ -135,10 +135,16 @@ export default async function OrbitPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Users (2/3 width) */}
         <Card className="lg:col-span-2">
-          <CardHeader className="py-4">
-            <CardTitle className="text-base font-semibold">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-border py-4">
+            <CardTitle className="text-sm font-bold uppercase tracking-ui">
               Recent Users
             </CardTitle>
+            <Link
+              href="/orbit/users"
+              className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              View all
+            </Link>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -226,8 +232,8 @@ export default async function OrbitPage() {
 
         {/* System Status (1/3 width) */}
         <Card>
-          <CardHeader className="py-4">
-            <CardTitle className="text-base font-semibold">
+          <CardHeader className="border-b border-border py-4">
+            <CardTitle className="text-sm font-bold uppercase tracking-ui">
               System Status
             </CardTitle>
           </CardHeader>
@@ -259,19 +265,16 @@ export default async function OrbitPage() {
 
       {/* ── Recent Activities ────────────────────────────────────────── */}
       <Card>
-        <CardHeader className="py-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold">
-              Recent Activities
-            </CardTitle>
-            <Link
-              href="/orbit/audit"
-              className="inline-flex items-center gap-1.5 border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
-            >
-              View all
-              <ArrowRight size={13} />
-            </Link>
-          </div>
+        <CardHeader className="flex flex-row items-center justify-between border-b border-border py-4">
+          <CardTitle className="text-sm font-bold uppercase tracking-ui">
+            Recent Activities
+          </CardTitle>
+          <Link
+            href="/orbit/audit"
+            className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+          >
+            View all
+          </Link>
         </CardHeader>
         <CardContent className="p-0">
           {recentActivities.length === 0 ? (
@@ -333,48 +336,53 @@ function StatCard({
   subtitle?: string;
   href?: string;
 }) {
-  return (
+  const inner = (
     <Card
       className={[
-        "transition-all duration-200 hover:shadow-md hover:border-primary/30 hover:scale-[1.02]",
-        accent
-          ? "border-primary/40 bg-primary/[0.04] hover:bg-primary/[0.07]"
-          : "hover:bg-muted/30",
+        "relative overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-primary/60",
+        accent ? "border-primary/40 bg-primary/[0.03]" : "",
       ].join(" ")}
     >
+      {accent && (
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-primary" />
+      )}
       <CardContent className="px-5 pt-5 pb-4">
-        <div className="flex items-start justify-between">
-          <div>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-ui text-muted-foreground">
               {label}
             </p>
-            <p className="mt-1.5 font-heading text-3xl font-bold text-foreground">
+            <p className="mt-2 font-heading text-4xl font-black text-foreground leading-none">
               {value}
             </p>
+            {subtitle && (
+              <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
+            )}
           </div>
-          <span className={accent ? "text-primary" : "text-muted-foreground/60"}>
+          <span
+            className={[
+              "flex h-9 w-9 shrink-0 items-center justify-center",
+              accent ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground/60",
+            ].join(" ")}
+          >
             {icon}
           </span>
         </div>
-        {(subtitle || href) && (
-          <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-3">
-            {subtitle && (
-              <p className="text-xs text-muted-foreground">{subtitle}</p>
-            )}
-            {href && (
-              <Link
-                href={href}
-                className="ml-auto flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-              >
-                View all
-                <ArrowRight size={12} />
-              </Link>
-            )}
+        {href && (
+          <div className="mt-3 border-t border-border/60 pt-3">
+            <Link
+              href={href}
+              className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              View all <ArrowRight size={12} weight="bold" />
+            </Link>
           </div>
         )}
       </CardContent>
     </Card>
   );
+
+  return href ? <Link href={href} className="block">{inner}</Link> : inner;
 }
 
 function StatusRow({

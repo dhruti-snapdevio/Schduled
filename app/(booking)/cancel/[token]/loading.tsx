@@ -1,7 +1,7 @@
 export default function CancelLoading() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-      <div className="w-full max-w-md overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05] animate-pulse">
+      <div className="w-full max-w-md overflow-hidden bg-white border border-border animate-pulse">
         <div className="flex items-center gap-3 border-b border-gray-100 bg-[#F8FCFB] px-6 py-6">
           <div className="h-6 w-6 bg-muted" />
           <div className="h-5 w-36 bg-muted" />

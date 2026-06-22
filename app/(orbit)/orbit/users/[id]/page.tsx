@@ -206,7 +206,7 @@ export default async function OrbitUserDetailPage({
               />
               <StatRow
                 icon={<CalendarDot size={15} />}
-                label="Event Types"
+                label="Meeting Types"
                 value={eventTypeCount?.value ?? 0}
               />
             </CardContent>
@@ -228,11 +228,11 @@ export default async function OrbitUserDetailPage({
         </div>
       </div>
 
-      {/* Event Types */}
+      {/* Meeting Types */}
       <Card>
         <CardHeader className="py-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold">Event Types</CardTitle>
+            <CardTitle className="text-base font-semibold">Meeting Types</CardTitle>
             <span className="text-xs text-muted-foreground">
               {eventTypeCount?.value ?? 0} total
             </span>
@@ -241,7 +241,7 @@ export default async function OrbitUserDetailPage({
         <CardContent className="p-0">
           {userEventTypes.length === 0 ? (
             <p className="px-6 py-8 text-center text-sm text-muted-foreground">
-              No event types yet.
+              No meeting types yet.
             </p>
           ) : (
             <div>

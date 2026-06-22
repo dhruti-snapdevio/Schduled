@@ -216,7 +216,7 @@ const FEATURE_GROUPS = [
   {
     label: 'Scheduling',
     icon: CalendarBlank,
-    items: ['Event Types', 'Availability Rules', 'Booking Limits', 'Buffer Times'],
+    items: ['Meeting Types', 'Availability Rules', 'Booking Limits', 'Buffer Times'],
   },
   {
     label: 'Integrations',
@@ -432,7 +432,6 @@ export default async function LandingPage() {
                   className="hidden w-[240px] shrink-0 border border-white/12 lg:block"
                   style={{
                     background: 'linear-gradient(145deg,#0d201a,#091512)',
-                    boxShadow: '0 0 60px rgba(20,184,166,.18), 0 24px 48px rgba(0,0,0,.65)',
                     animation: 'schduled-float 5s ease-in-out infinite',
                     animationDelay: '0.8s',
                     marginTop: '48px',
@@ -483,7 +482,6 @@ export default async function LandingPage() {
                     className="border border-white/12"
                     style={{
                       background: 'linear-gradient(145deg,#0f2118,#091512)',
-                      boxShadow: '0 0 80px rgba(20,184,166,.28), 0 40px 80px rgba(0,0,0,.7)',
                       animation: 'schduled-float 4s ease-in-out infinite',
                       animationDelay: '0s',
                     }}
@@ -547,7 +545,7 @@ export default async function LandingPage() {
                   {/* Toast */}
                   <div
                     className="mt-3 border border-teal-700/35 bg-teal-950/80 px-4 py-3 backdrop-blur-sm animate-schduled-reveal"
-                    style={{ animationDelay: '900ms', boxShadow: '0 8px 32px rgba(0,0,0,.55)' }}
+                    style={{ animationDelay: '900ms' }}
                   >
                     <div className="flex items-center gap-2.5 text-xs">
                       <CheckCircle size={15} weight="fill" className="text-teal-400 shrink-0" />
@@ -562,7 +560,7 @@ export default async function LandingPage() {
                 {/* Reminder badge */}
                 <div
                   className="hidden lg:block absolute -top-4 -right-4 border border-white/8 bg-white/5 px-4 py-3 backdrop-blur-sm animate-schduled-reveal"
-                  style={{ animationDelay: '1050ms', boxShadow: '0 8px 28px rgba(0,0,0,.4)' }}
+                  style={{ animationDelay: '1050ms' }}
                 >
                   <div className="flex items-center gap-2 text-xs text-white/50">
                     <Bell size={12} className="text-primary/80 shrink-0" />
@@ -612,7 +610,7 @@ export default async function LandingPage() {
                   <div
                     key={s.value}
                     className={`scroll-reveal ${i === 1 ? 'sr-d1' : i === 2 ? 'sr-d2' : ''} group relative overflow-hidden border border-border bg-gradient-to-b from-card to-muted/20 px-8 py-10 text-center transition-all duration-300 hover:-translate-y-[4px] hover:border-primary/50`}
-                    style={{ boxShadow: '0 4px 20px rgba(0,0,0,.06)', ['--hover-shadow' as string]: '0 12px 40px rgba(20,184,166,.12), 0 4px 16px rgba(0,0,0,.12)' }}
+                    style={{}}
                     onMouseEnter={undefined}
                   >
                     {/* Glow overlay on hover */}
@@ -623,7 +621,7 @@ export default async function LandingPage() {
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent opacity-60" />
 
                     <div className="relative">
-                      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center bg-primary/10 text-primary transition-all duration-300 group-hover:bg-primary/20 group-hover:shadow-[0_0_20px_rgba(20,184,166,.2)]">
+                      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center bg-primary/10 text-primary transition-all duration-300 group-hover:bg-primary/20">
                         <Icon size={26} weight="duotone" />
                       </div>
 
@@ -667,7 +665,7 @@ export default async function LandingPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-4">
 
               {/* Video — large icon, rich description */}
-              <div className="scroll-reveal group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60 hover:shadow-2xl">
+              <div className="scroll-reveal group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60">
                 <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 <div className="relative">
@@ -681,7 +679,7 @@ export default async function LandingPage() {
               </div>
 
               {/* Forms */}
-              <div className="scroll-reveal sr-d1 group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60 hover:shadow-2xl">
+              <div className="scroll-reveal sr-d1 group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60">
                 <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 <div className="relative">
@@ -695,7 +693,7 @@ export default async function LandingPage() {
               </div>
 
               {/* Reminders */}
-              <div className="scroll-reveal sr-d2 group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60 hover:shadow-2xl">
+              <div className="scroll-reveal sr-d2 group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60">
                 <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 <div className="relative">
@@ -713,7 +711,7 @@ export default async function LandingPage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
               {/* Calendar sync — LARGE */}
-              <div className="scroll-reveal sr-left group relative overflow-hidden border border-border bg-card p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60 hover:shadow-2xl">
+              <div className="scroll-reveal sr-left group relative overflow-hidden border border-border bg-card p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60">
                 <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 <div className="relative grid gap-6 sm:grid-cols-2 sm:items-center">
@@ -760,7 +758,7 @@ export default async function LandingPage() {
               </div>
 
               {/* Timezone — LARGE */}
-              <div className="scroll-reveal sr-right group relative overflow-hidden border border-border bg-card p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60 hover:shadow-2xl">
+              <div className="scroll-reveal sr-right group relative overflow-hidden border border-border bg-card p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60">
                 <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 <div className="relative grid gap-6 sm:grid-cols-2 sm:items-center">
@@ -817,7 +815,7 @@ export default async function LandingPage() {
               {/* Floating label — Upcoming */}
               <div
                 className="absolute -left-4 top-20 z-10 hidden border border-teal-600/35 bg-teal-950/90 px-3 py-2 backdrop-blur-sm animate-schduled-reveal xl:block"
-                style={{ animationDelay: '300ms', boxShadow: '0 8px 24px rgba(0,0,0,.5)', animation: 'schduled-float 5s ease-in-out 0.5s infinite' }}
+                style={{ animationDelay: '300ms', animation: 'schduled-float 5s ease-in-out 0.5s infinite' }}
               >
                 <p className="text-[10px] font-black uppercase tracking-wider text-teal-400/60">Upcoming</p>
                 <p className="text-lg font-black text-white" style={{ fontFamily: 'var(--font-heading)' }}>10</p>
@@ -827,7 +825,7 @@ export default async function LandingPage() {
               {/* Floating label — Team */}
               <div
                 className="absolute -right-4 top-32 z-10 hidden border border-teal-600/35 bg-teal-950/90 px-3 py-2 backdrop-blur-sm xl:block"
-                style={{ boxShadow: '0 8px 24px rgba(0,0,0,.5)', animation: 'schduled-float 6s ease-in-out 1.2s infinite' }}
+                style={{ animation: 'schduled-float 6s ease-in-out 1.2s infinite' }}
               >
                 <p className="text-[10px] font-black uppercase tracking-wider text-teal-400/60">Team</p>
                 <p className="text-lg font-black text-white" style={{ fontFamily: 'var(--font-heading)' }}>4</p>
@@ -837,7 +835,7 @@ export default async function LandingPage() {
               {/* Floating label — Analytics */}
               <div
                 className="absolute -right-4 bottom-32 z-10 hidden border border-teal-600/35 bg-teal-950/90 px-3 py-2 backdrop-blur-sm xl:block"
-                style={{ boxShadow: '0 8px 24px rgba(0,0,0,.5)', animation: 'schduled-float 7s ease-in-out 2s infinite' }}
+                style={{ animation: 'schduled-float 7s ease-in-out 2s infinite' }}
               >
                 <p className="text-[10px] font-black uppercase tracking-wider text-teal-400/60">Analytics</p>
                 <p className="text-lg font-black text-white" style={{ fontFamily: 'var(--font-heading)' }}>+28%</p>
@@ -847,7 +845,7 @@ export default async function LandingPage() {
               {/* Browser frame */}
               <div
                 className="overflow-hidden border border-white/12"
-                style={{ boxShadow: '0 60px 120px rgba(0,0,0,.75), 0 0 0 1px rgba(20,184,166,.12), 0 0 100px rgba(20,184,166,.12)' }}
+                style={{}}
               >
                 <div className="flex items-center gap-3 border-b border-white/8 bg-white/[0.04] px-4 py-2.5">
                   <div className="flex gap-1.5">
@@ -864,7 +862,7 @@ export default async function LandingPage() {
                 <div className="flex h-[520px] sm:h-[620px]" style={{ background: '#0f1f1a' }}>
                   <div className="hidden w-44 shrink-0 flex-col border-r border-white/8 sm:flex" style={{ background: 'oklch(0.108 0.032 215)' }}>
                     <div className="flex-1 space-y-0.5 px-2 pt-4">
-                      {[['Dashboard',true],['Event Types',false],['Availability',false],['Bookings',false],['Settings',false]].map(([label, active]) => (
+                      {[['Dashboard',true],['Meeting Types',false],['Availability',false],['Bookings',false],['Settings',false]].map(([label, active]) => (
                         <div key={label as string} className={`flex items-center gap-2.5 px-3 py-2 text-xs font-medium ${active ? 'bg-white/10 text-white' : 'text-white/38'}`}>
                           <div className={`h-1 w-1 rounded-full ${active ? 'bg-primary' : 'bg-transparent'}`} />
                           {label}
@@ -951,7 +949,7 @@ export default async function LandingPage() {
                   <div key={step.num} className={`scroll-reveal ${i === 1 ? 'sr-d1' : i === 2 ? 'sr-d2' : ''} group relative transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02]`}>
 
                     <div className="relative mb-6">
-                      <div className="relative inline-flex h-14 w-14 items-center justify-center border-2 border-border bg-background transition-all duration-300 group-hover:border-primary group-hover:bg-primary/5 group-hover:shadow-[0_0_20px_rgba(20,184,166,.15)]">
+                      <div className="relative inline-flex h-14 w-14 items-center justify-center border-2 border-border bg-background transition-all duration-300 group-hover:border-primary group-hover:bg-primary/5">
                         <Icon size={22} weight="duotone" className="text-primary" />
                         <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center bg-primary text-[9px] font-black text-primary-foreground">
                           {step.num}
@@ -1049,7 +1047,7 @@ export default async function LandingPage() {
               </h2>
 
               {/* Rating bar */}
-              <div className="mt-6 inline-flex items-center gap-4 border border-border bg-background px-6 py-3 shadow-sm">
+              <div className="mt-6 inline-flex items-center gap-4 border border-border bg-background px-6 py-3">
                 <div className="flex items-center gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star key={i} size={14} weight="fill" className="text-primary" />
@@ -1066,7 +1064,7 @@ export default async function LandingPage() {
               {TESTIMONIALS.map((t, i) => (
                 <div
                   key={t.name}
-                  className={`scroll-reveal ${i === 1 ? 'sr-d1' : i === 2 ? 'sr-d2' : ''} group relative overflow-hidden border ${t.border} ${t.bg} p-7 transition-all duration-300 hover:-translate-y-1.5 ${t.hover} hover:shadow-xl`}
+                  className={`scroll-reveal ${i === 1 ? 'sr-d1' : i === 2 ? 'sr-d2' : ''} group relative overflow-hidden border ${t.border} ${t.bg} p-7 transition-all duration-300 hover:-translate-y-1.5 ${t.hover}`}
                 >
                   {/* Corner accent */}
                   <div className="absolute right-0 top-0 h-16 w-16 bg-gradient-to-bl from-white/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />

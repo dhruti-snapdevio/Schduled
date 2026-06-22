@@ -1,16 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Globe } from '@phosphor-icons/react'
+import { useEffect, useRef, useState } from 'react'
+import { CaretUpDown, Check, Globe, MagnifyingGlass } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { saveTimezoneStep } from '@/app/actions/onboarding'
 
 interface StepTimezoneProps {
@@ -19,71 +17,65 @@ interface StepTimezoneProps {
 }
 
 const TIMEZONES: { label: string; value: string }[] = [
-  // Americas
-  { label: 'Pacific Time — US & Canada (PT)',           value: 'America/Los_Angeles' },
-  { label: 'Mountain Time — US & Canada (MT)',          value: 'America/Denver' },
-  { label: 'Central Time — US & Canada (CT)',           value: 'America/Chicago' },
-  { label: 'Eastern Time — US & Canada (ET)',           value: 'America/New_York' },
-  { label: 'Atlantic Time — Canada (AT)',               value: 'America/Halifax' },
-  { label: 'Newfoundland Time — Canada (NT)',           value: 'America/St_Johns' },
-  { label: 'São Paulo — Brazil (BRT)',                  value: 'America/Sao_Paulo' },
-  { label: 'Buenos Aires — Argentina (ART)',            value: 'America/Argentina/Buenos_Aires' },
-  { label: 'Bogotá — Colombia (COT)',                   value: 'America/Bogota' },
-  { label: 'Mexico City (CST)',                         value: 'America/Mexico_City' },
-  { label: 'Vancouver — Canada (PT)',                   value: 'America/Vancouver' },
-  { label: 'Toronto — Canada (ET)',                     value: 'America/Toronto' },
-  // Europe
-  { label: 'UTC / Greenwich Mean Time (GMT)',           value: 'UTC' },
-  { label: 'London — UK (GMT/BST)',                     value: 'Europe/London' },
-  { label: 'Dublin — Ireland (GMT/IST)',                value: 'Europe/Dublin' },
-  { label: 'Lisbon — Portugal (WET)',                   value: 'Europe/Lisbon' },
-  { label: 'Paris / Berlin / Rome (CET/CEST)',          value: 'Europe/Paris' },
-  { label: 'Amsterdam / Brussels (CET/CEST)',           value: 'Europe/Amsterdam' },
-  { label: 'Madrid — Spain (CET/CEST)',                 value: 'Europe/Madrid' },
-  { label: 'Stockholm — Sweden (CET/CEST)',             value: 'Europe/Stockholm' },
-  { label: 'Warsaw — Poland (CET/CEST)',                value: 'Europe/Warsaw' },
-  { label: 'Helsinki — Finland (EET/EEST)',             value: 'Europe/Helsinki' },
-  { label: 'Athens — Greece (EET/EEST)',                value: 'Europe/Athens' },
-  { label: 'Kyiv — Ukraine (EET/EEST)',                 value: 'Europe/Kyiv' },
-  { label: 'Istanbul — Turkey (TRT)',                   value: 'Europe/Istanbul' },
-  { label: 'Moscow — Russia (MSK)',                     value: 'Europe/Moscow' },
-  // Africa
-  { label: 'Cairo — Egypt (EET)',                       value: 'Africa/Cairo' },
-  { label: 'Lagos — Nigeria (WAT)',                     value: 'Africa/Lagos' },
-  { label: 'Johannesburg — South Africa (SAST)',        value: 'Africa/Johannesburg' },
-  { label: 'Nairobi — Kenya (EAT)',                     value: 'Africa/Nairobi' },
-  { label: 'Casablanca — Morocco (WET)',                value: 'Africa/Casablanca' },
-  // Middle East
-  { label: 'Dubai — UAE (GST)',                         value: 'Asia/Dubai' },
-  { label: 'Riyadh — Saudi Arabia (AST)',               value: 'Asia/Riyadh' },
-  { label: 'Doha — Qatar (AST)',                        value: 'Asia/Qatar' },
-  { label: 'Kuwait City (AST)',                         value: 'Asia/Kuwait' },
-  { label: 'Baghdad — Iraq (AST)',                      value: 'Asia/Baghdad' },
-  { label: 'Tehran — Iran (IRST)',                      value: 'Asia/Tehran' },
-  // Asia
-  { label: 'Karachi — Pakistan (PKT)',                  value: 'Asia/Karachi' },
-  { label: 'Kolkata — India (IST)',                     value: 'Asia/Kolkata' },
-  { label: 'Dhaka — Bangladesh (BST)',                  value: 'Asia/Dhaka' },
-  { label: 'Colombo — Sri Lanka (IST)',                 value: 'Asia/Colombo' },
-  { label: 'Kathmandu — Nepal (NPT)',                   value: 'Asia/Kathmandu' },
-  { label: 'Almaty — Kazakhstan (ALMT)',                value: 'Asia/Almaty' },
-  { label: 'Bangkok — Thailand (ICT)',                  value: 'Asia/Bangkok' },
-  { label: 'Ho Chi Minh City — Vietnam (ICT)',          value: 'Asia/Ho_Chi_Minh' },
-  { label: 'Jakarta — Indonesia (WIB)',                 value: 'Asia/Jakarta' },
-  { label: 'Singapore / Kuala Lumpur (SGT)',            value: 'Asia/Singapore' },
-  { label: 'Manila — Philippines (PST)',                value: 'Asia/Manila' },
-  { label: 'Shanghai / Beijing — China (CST)',          value: 'Asia/Shanghai' },
-  { label: 'Hong Kong (HKT)',                           value: 'Asia/Hong_Kong' },
-  { label: 'Taipei — Taiwan (CST)',                     value: 'Asia/Taipei' },
-  { label: 'Seoul — South Korea (KST)',                 value: 'Asia/Seoul' },
-  { label: 'Tokyo — Japan (JST)',                       value: 'Asia/Tokyo' },
-  // Oceania
-  { label: 'Perth — Western Australia (AWST)',          value: 'Australia/Perth' },
-  { label: 'Darwin — Northern Territory (ACST)',        value: 'Australia/Darwin' },
   { label: 'Adelaide — South Australia (ACST)',         value: 'Australia/Adelaide' },
-  { label: 'Brisbane — Queensland (AEST)',              value: 'Australia/Brisbane' },
-  { label: 'Sydney / Melbourne (AEST/AEDT)',            value: 'Australia/Sydney' },
+  { label: 'Almaty — Kazakhstan (ALMT)',                value: 'Asia/Almaty' },
+  { label: 'Amsterdam / Brussels (CET/CEST)',           value: 'Europe/Amsterdam' },
+  { label: 'Athens — Greece (EET/EEST)',                value: 'Europe/Athens' },
+  { label: 'Atlantic Time — Canada (AT)',               value: 'America/Halifax' },
   { label: 'Auckland — New Zealand (NZST)',             value: 'Pacific/Auckland' },
+  { label: 'Baghdad — Iraq (AST)',                      value: 'Asia/Baghdad' },
+  { label: 'Bangkok — Thailand (ICT)',                  value: 'Asia/Bangkok' },
+  { label: 'Bogotá — Colombia (COT)',                   value: 'America/Bogota' },
+  { label: 'Brisbane — Queensland (AEST)',              value: 'Australia/Brisbane' },
+  { label: 'Buenos Aires — Argentina (ART)',            value: 'America/Argentina/Buenos_Aires' },
+  { label: 'Cairo — Egypt (EET)',                       value: 'Africa/Cairo' },
+  { label: 'Casablanca — Morocco (WET)',                value: 'Africa/Casablanca' },
+  { label: 'Central Time — US & Canada (CT)',           value: 'America/Chicago' },
+  { label: 'Colombo — Sri Lanka (IST)',                 value: 'Asia/Colombo' },
+  { label: 'Darwin — Northern Territory (ACST)',        value: 'Australia/Darwin' },
+  { label: 'Dhaka — Bangladesh (BST)',                  value: 'Asia/Dhaka' },
+  { label: 'Doha — Qatar (AST)',                        value: 'Asia/Qatar' },
+  { label: 'Dubai — UAE (GST)',                         value: 'Asia/Dubai' },
+  { label: 'Dublin — Ireland (GMT/IST)',                value: 'Europe/Dublin' },
+  { label: 'Eastern Time — US & Canada (ET)',           value: 'America/New_York' },
+  { label: 'Helsinki — Finland (EET/EEST)',             value: 'Europe/Helsinki' },
+  { label: 'Ho Chi Minh City — Vietnam (ICT)',          value: 'Asia/Ho_Chi_Minh' },
+  { label: 'Hong Kong (HKT)',                           value: 'Asia/Hong_Kong' },
+  { label: 'Istanbul — Turkey (TRT)',                   value: 'Europe/Istanbul' },
+  { label: 'Jakarta — Indonesia (WIB)',                 value: 'Asia/Jakarta' },
+  { label: 'Johannesburg — South Africa (SAST)',        value: 'Africa/Johannesburg' },
+  { label: 'Karachi — Pakistan (PKT)',                  value: 'Asia/Karachi' },
+  { label: 'Kathmandu — Nepal (NPT)',                   value: 'Asia/Kathmandu' },
+  { label: 'Kolkata — India (IST)',                     value: 'Asia/Kolkata' },
+  { label: 'Kuwait City (AST)',                         value: 'Asia/Kuwait' },
+  { label: 'Kyiv — Ukraine (EET/EEST)',                 value: 'Europe/Kyiv' },
+  { label: 'Lagos — Nigeria (WAT)',                     value: 'Africa/Lagos' },
+  { label: 'Lisbon — Portugal (WET)',                   value: 'Europe/Lisbon' },
+  { label: 'London — UK (GMT/BST)',                     value: 'Europe/London' },
+  { label: 'Madrid — Spain (CET/CEST)',                 value: 'Europe/Madrid' },
+  { label: 'Manila — Philippines (PST)',                value: 'Asia/Manila' },
+  { label: 'Mexico City (CST)',                         value: 'America/Mexico_City' },
+  { label: 'Moscow — Russia (MSK)',                     value: 'Europe/Moscow' },
+  { label: 'Mountain Time — US & Canada (MT)',          value: 'America/Denver' },
+  { label: 'Nairobi — Kenya (EAT)',                     value: 'Africa/Nairobi' },
+  { label: 'Newfoundland Time — Canada (NT)',           value: 'America/St_Johns' },
+  { label: 'Pacific Time — US & Canada (PT)',           value: 'America/Los_Angeles' },
+  { label: 'Paris / Berlin / Rome (CET/CEST)',          value: 'Europe/Paris' },
+  { label: 'Perth — Western Australia (AWST)',          value: 'Australia/Perth' },
+  { label: 'Riyadh — Saudi Arabia (AST)',               value: 'Asia/Riyadh' },
+  { label: 'São Paulo — Brazil (BRT)',                  value: 'America/Sao_Paulo' },
+  { label: 'Seoul — South Korea (KST)',                 value: 'Asia/Seoul' },
+  { label: 'Shanghai / Beijing — China (CST)',          value: 'Asia/Shanghai' },
+  { label: 'Singapore / Kuala Lumpur (SGT)',            value: 'Asia/Singapore' },
+  { label: 'Stockholm — Sweden (CET/CEST)',             value: 'Europe/Stockholm' },
+  { label: 'Sydney / Melbourne (AEST/AEDT)',            value: 'Australia/Sydney' },
+  { label: 'Taipei — Taiwan (CST)',                     value: 'Asia/Taipei' },
+  { label: 'Tehran — Iran (IRST)',                      value: 'Asia/Tehran' },
+  { label: 'Tokyo — Japan (JST)',                       value: 'Asia/Tokyo' },
+  { label: 'Toronto — Canada (ET)',                     value: 'America/Toronto' },
+  { label: 'UTC / Greenwich Mean Time (GMT)',           value: 'UTC' },
+  { label: 'Vancouver — Canada (PT)',                   value: 'America/Vancouver' },
+  { label: 'Warsaw — Poland (CET/CEST)',                value: 'Europe/Warsaw' },
 ]
 
 function detectBrowserTimezone(): string {
@@ -98,12 +90,31 @@ export function StepTimezone({ onNext, onBack }: StepTimezoneProps) {
   const [timezone, setTimezone] = useState<string>('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const detected = detectBrowserTimezone()
     const match = TIMEZONES.find((tz) => tz.value === detected)
     setTimezone(match ? detected : 'UTC')
   }, [])
+
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => searchRef.current?.focus(), 50)
+    } else {
+      setSearch('')
+    }
+  }, [open])
+
+  const filtered = search.trim()
+    ? TIMEZONES.filter((tz) =>
+        tz.label.toLowerCase().includes(search.toLowerCase())
+      )
+    : TIMEZONES
+
+  const selectedLabel = TIMEZONES.find((tz) => tz.value === timezone)?.label
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -129,20 +140,64 @@ export function StepTimezone({ onNext, onBack }: StepTimezoneProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-1.5">
-        <Label htmlFor="ob-timezone">Timezone</Label>
-        <Select value={timezone} onValueChange={setTimezone}>
-          <SelectTrigger id="ob-timezone" className="w-full">
-            <Globe size={16} className="shrink-0 text-muted-foreground" />
-            <SelectValue placeholder="Select your timezone…" />
-          </SelectTrigger>
-          <SelectContent className="max-h-60 overflow-y-auto" position="popper" sideOffset={4}>
-            {TIMEZONES.map((tz) => (
-              <SelectItem key={tz.value} value={tz.value}>
-                {tz.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label>Timezone</Label>
+
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="flex h-10 w-full items-center gap-2 border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Globe size={16} className="shrink-0 text-muted-foreground" />
+              <span className="flex-1 truncate text-left">
+                {selectedLabel ?? <span className="text-muted-foreground">Select your timezone…</span>}
+              </span>
+              <CaretUpDown size={14} className="shrink-0 text-muted-foreground" />
+            </button>
+          </PopoverTrigger>
+
+          <PopoverContent
+            className="w-[var(--radix-popover-trigger-width)] p-0"
+            align="start"
+            sideOffset={4}
+          >
+            {/* Search input */}
+            <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+              <MagnifyingGlass size={14} className="shrink-0 text-muted-foreground" />
+              <input
+                ref={searchRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search timezone…"
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+              />
+            </div>
+
+            {/* List */}
+            <div className="max-h-56 overflow-y-auto">
+              {filtered.length === 0 ? (
+                <p className="px-3 py-4 text-center text-sm text-muted-foreground">
+                  No timezone found.
+                </p>
+              ) : (
+                filtered.map((tz) => (
+                  <button
+                    key={tz.value}
+                    type="button"
+                    onClick={() => { setTimezone(tz.value); setOpen(false) }}
+                    className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/50 focus:bg-muted/50 focus:outline-none"
+                  >
+                    <span>{tz.label}</span>
+                    {timezone === tz.value && (
+                      <Check size={13} className="shrink-0 text-primary" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {localTime && (

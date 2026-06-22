@@ -61,7 +61,7 @@ export function CommunicationForm({ initial }: CommunicationFormProps) {
             <div key={item.key} className={`flex items-center justify-between gap-4 ${i === 0 ? 'pb-4' : 'py-4'}`}>
               <div>
                 <p className="text-sm font-medium">{item.label}</p>
-                <p className="text-xs text-muted-foreground">{item.desc}</p>
+                <p className="text-sm text-muted-foreground">{item.desc}</p>
               </div>
               <Switch
                 checked={prefs[item.key] as boolean}
@@ -83,7 +83,7 @@ export function CommunicationForm({ initial }: CommunicationFormProps) {
             <div key={item.key} className={`flex items-center justify-between gap-4 ${i === 0 ? 'pb-4' : 'py-4'}`}>
               <div>
                 <p className="text-sm font-medium">{item.label}</p>
-                <p className="text-xs text-muted-foreground">{item.desc}</p>
+                <p className="text-sm text-muted-foreground">{item.desc}</p>
               </div>
               <Switch
                 checked={prefs[item.key] as boolean}

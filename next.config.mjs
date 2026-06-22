@@ -8,9 +8,15 @@ const nextConfig = {
   turbopack: {
     root: resolve(__dirname),
   },
-  // Allow the ngrok tunnel host to load Next.js dev resources (HMR, etc.)
-  // during local Zoom OAuth testing. Safe to leave; only affects `next dev`.
   allowedDevOrigins: ["displace-washhouse-nintendo.ngrok-free.dev"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

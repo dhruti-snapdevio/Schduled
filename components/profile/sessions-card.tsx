@@ -2,7 +2,6 @@ import {
   revokeSessionAction,
   signOutOtherSessionsAction,
 } from "@/app/actions/profile";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,14 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
 
 export interface SessionRow {
@@ -31,9 +22,7 @@ export interface SessionRow {
 }
 
 export function SessionsCard({ sessions }: { sessions: SessionRow[] }) {
-  const otherSessionCount = sessions.filter(
-    (session) => !session.isCurrent
-  ).length;
+  const otherSessionCount = sessions.filter((s) => !s.isCurrent).length;
 
   return (
     <Card>
@@ -52,62 +41,69 @@ export function SessionsCard({ sessions }: { sessions: SessionRow[] }) {
           </form>
         )}
       </CardHeader>
-      <CardContent className="overflow-x-auto p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Session</TableHead>
-              <TableHead>IP</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>Expires</TableHead>
-              <TableHead>Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sessions.map((session) => (
-              <TableRow key={session.id}>
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">
-                        {session.userAgent
-                          ? describeUserAgent(session.userAgent)
-                          : "Unknown device"}
-                      </span>
-                      {session.isCurrent && (
-                        <Badge className="text-success">Current</Badge>
-                      )}
-                    </div>
-                    <span className="max-w-md truncate text-muted-foreground text-xs">
-                      {session.userAgent ?? "No user agent recorded"}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="font-mono text-xs">
-                  {session.ipAddress ?? "-"}
-                </TableCell>
-                <TableCell>{formatDateTime(session.createdAt)}</TableCell>
-                <TableCell>{formatDateTime(session.expiresAt)}</TableCell>
-                <TableCell>
-                  {session.isCurrent ? (
-                    <span className="text-muted-foreground text-sm">Protected</span>
-                  ) : (
-                    <form action={revokeSessionAction}>
-                      <input
-                        name="sessionId"
-                        type="hidden"
-                        value={session.id}
-                      />
-                      <Button type="submit" variant="secondary" size="sm">
-                        Revoke
-                      </Button>
-                    </form>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <CardContent className="p-0">
+        {sessions.map((session, i) => (
+          <div
+            key={session.id}
+            className={`flex items-start justify-between gap-4 px-6 py-4 ${i !== 0 ? "border-t border-border" : ""}`}
+          >
+            {/* Left: device + meta */}
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span
+                  className="truncate text-sm font-semibold"
+                  title={session.userAgent ?? undefined}
+                >
+                  {session.userAgent
+                    ? describeUserAgent(session.userAgent)
+                    : "Unknown device"}
+                </span>
+                {session.isCurrent && (
+                  <span className="shrink-0 rounded-none bg-success/10 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-success">
+                    Current
+                  </span>
+                )}
+              </div>
+
+              <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                {session.ipAddress && (
+                  <span
+                    className="max-w-[160px] truncate font-mono"
+                    title={session.ipAddress}
+                  >
+                    {shortenIp(session.ipAddress)}
+                  </span>
+                )}
+                <span
+                  className="truncate"
+                  title={`Created: ${formatDateTime(session.createdAt)}`}
+                >
+                  Created {formatDateTime(session.createdAt)}
+                </span>
+                <span
+                  className="truncate"
+                  title={`Expires: ${formatDateTime(session.expiresAt)}`}
+                >
+                  Expires {formatDateTime(session.expiresAt)}
+                </span>
+              </div>
+            </div>
+
+            {/* Right: action */}
+            <div className="shrink-0">
+              {session.isCurrent ? (
+                <span className="text-xs text-muted-foreground">Protected</span>
+              ) : (
+                <form action={revokeSessionAction}>
+                  <input name="sessionId" type="hidden" value={session.id} />
+                  <Button type="submit" variant="outline" size="sm" className="text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                    Revoke
+                  </Button>
+                </form>
+              )}
+            </div>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
@@ -136,4 +132,21 @@ function describeUserAgent(userAgent: string) {
             : "";
 
   return os ? `${browser} on ${os}` : browser;
+}
+
+// Shorten IPv6 loopback / all-zeros addresses to a readable form
+function shortenIp(ip: string): string {
+  if (ip === "0000:0000:0000:0000:0000:0000:0000:0000" || ip === "::") return "::1 (localhost)";
+  if (ip === "::1") return "::1 (localhost)";
+  // Collapse consecutive zero groups in full-form IPv6
+  if (ip.includes(":") && !ip.includes("::")) {
+    try {
+      return ip
+        .split(":")
+        .map((g) => g.replace(/^0+/, "") || "0")
+        .join(":")
+        .replace(/(^|:)(0:)+0($|:)/, "::") || ip;
+    } catch { return ip; }
+  }
+  return ip;
 }

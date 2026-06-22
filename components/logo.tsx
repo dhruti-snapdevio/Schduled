@@ -38,11 +38,15 @@ export function Logo({
   const { icon, text } = sizes[size]
 
   const inner = (
-    <span className={cn('flex items-center gap-2 text-primary', className)}>
-      {variant !== 'wordmark' && <LogoMark px={icon} />}
+    <span className={cn('flex items-center gap-2', className)}>
+      {variant !== 'wordmark' && (
+        <span className="text-primary">
+          <LogoMark px={icon} />
+        </span>
+      )}
       {variant !== 'icon' && (
         <span
-          className={cn(text, 'font-semibold tracking-tight text-foreground')}
+          className={cn(text, 'font-semibold tracking-tight text-current')}
           style={{ fontFamily: 'var(--font-jakarta)' }}
         >
           <span className="text-primary">S</span>chduled

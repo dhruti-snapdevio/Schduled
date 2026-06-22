@@ -4,25 +4,33 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const LINKS = [
-  { href: "/settings/profile",       label: "Profile" },
-  { href: "/settings/branding",      label: "Branding" },
-  { href: "/settings/my-link",       label: "My Link" },
-  { href: "/settings/calendars",     label: "Calendars" },
+const PROFILE_LINKS = [
+  { href: "/settings/profile",  label: "Profile" },
+  { href: "/settings/security", label: "Security" },
+  { href: "/settings/login",    label: "Connected Accounts" },
+];
+
+const SETTINGS_LINKS = [
+  { href: "/settings/my-link",       label: "Booking Link" },
+  { href: "/settings/branding",      label: "Public Page" },
+  { href: "/settings/calendars",     label: "Calendar Sync" },
   { href: "/settings/integrations",  label: "Integrations" },
-  { href: "/settings/communication", label: "Communication" },
+  { href: "/settings/communication", label: "Notifications" },
   { href: "/settings/contacts",      label: "Contacts" },
-  { href: "/settings/security",      label: "Security" },
-  { href: "/settings/login",         label: "Login" },
   { href: "/settings/cookies",       label: "Cookies" },
 ];
 
-export function SettingsNav() {
-  const pathname = usePathname();
+const PROFILE_PATHS = ["/settings/profile", "/settings/security", "/settings/login"];
 
+function isProfileSection(pathname: string) {
+  return PROFILE_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
+function NavLinks({ links }: { links: { href: string; label: string }[] }) {
+  const pathname = usePathname();
   return (
     <nav className="flex flex-col gap-0.5">
-      {LINKS.map(({ href, label }) => {
+      {links.map(({ href, label }) => {
         const active = pathname === href || pathname.startsWith(href + "/");
         return (
           <Link
@@ -43,12 +51,19 @@ export function SettingsNav() {
   );
 }
 
+export function SettingsNav() {
+  const pathname = usePathname();
+  const links = isProfileSection(pathname) ? PROFILE_LINKS : SETTINGS_LINKS;
+  return <NavLinks links={links} />;
+}
+
 export function SettingsMobileNav() {
   const pathname = usePathname();
+  const links = isProfileSection(pathname) ? PROFILE_LINKS : SETTINGS_LINKS;
 
   return (
     <nav className="flex overflow-x-auto gap-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-border pb-1">
-      {LINKS.map(({ href, label }) => {
+      {links.map(({ href, label }) => {
         const active = pathname === href || pathname.startsWith(href + "/");
         return (
           <Link

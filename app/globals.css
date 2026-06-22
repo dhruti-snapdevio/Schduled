@@ -396,5 +396,5 @@ details[open] .faq-body { animation: schduled-faq-open 0.25s ease-out both; }
 
 /* ── NProgress route-change bar ─────────────────────────────────────────────── */
 #nprogress .bar { background: var(--primary) !important; }
-#nprogress .peg { box-shadow: 0 0 10px var(--primary), 0 0 5px var(--primary) !important; }
+#nprogress .peg { display: none !important; }
 #nprogress .spinner { display: none !important; }

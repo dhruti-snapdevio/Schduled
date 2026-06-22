@@ -11,7 +11,7 @@ import { Empty } from '@/components/ui/empty'
 import { PageHeader } from '@/components/scaffold/page-header'
 import { EventTypeCard } from './_components/event-type-card'
 
-export const metadata = { title: 'Event Types' }
+export const metadata = { title: 'Meeting Types' }
 
 export default async function EventTypesPage() {
   const session = await requireSession()
@@ -48,13 +48,13 @@ export default async function EventTypesPage() {
     <>
       <PageHeader
         eyebrow="Scheduling"
-        title="Event Types"
-        description="Create meeting templates that people can book with you."
+        title="Meeting Types"
+        description="Create reusable meeting templates that people can book with you."
         action={
           <Button asChild>
             <Link href="/event-types/new">
               <CalendarPlus size={16} />
-              New Event Type
+              New Meeting Type
             </Link>
           </Button>
         }
@@ -63,11 +63,11 @@ export default async function EventTypesPage() {
       {eventTypes.length === 0 ? (
         <Empty
           icon={<CalendarPlus size={24} />}
-          title="No event types yet"
-          description="Create your first event type to start accepting bookings."
+          title="No meeting types yet"
+          description="Create your first meeting type to start accepting bookings."
           action={
             <Button asChild>
-              <Link href="/event-types/new">Create event type</Link>
+              <Link href="/event-types/new">Create meeting type</Link>
             </Button>
           }
         />

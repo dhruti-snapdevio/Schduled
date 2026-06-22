@@ -53,7 +53,7 @@ export default async function SecurityPage() {
             <ShieldCheck size={20} className="shrink-0 text-primary" />
             <div>
               <p className="text-sm font-medium">Magic Link (passwordless)</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 We send a one-time sign-in link to{' '}
                 <strong>{current.user.email}</strong> — no password required.
               </p>

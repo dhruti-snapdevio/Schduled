@@ -516,7 +516,7 @@ export function BookingCalendar({
       </div>
 
       {/* Card */}
-      <div className="relative z-10 mx-auto w-full max-w-[900px] overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05] lg:flex lg:h-full lg:max-h-[680px] lg:flex-col">
+      <div className="relative z-10 mx-auto w-full max-w-[900px] overflow-hidden bg-white border border-border lg:flex lg:h-full lg:max-h-[680px] lg:flex-col">
 
         {/* ── Progress bar ── */}
         <div className="flex items-center justify-center gap-0 border-b border-gray-100 bg-white px-6 py-3">
@@ -572,10 +572,10 @@ export function BookingCalendar({
                   alt={host.name}
                   width={48}
                   height={48}
-                  className="h-12 w-12 rounded-full object-cover ring-2 ring-white shadow-sm"
+                  className="h-12 w-12 rounded-full object-cover ring-2 ring-white"
                 />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-xl font-bold text-white ring-2 ring-white shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-xl font-bold text-white ring-2 ring-white">
                   {host.name.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -754,7 +754,7 @@ export function BookingCalendar({
                             'cursor-pointer font-bold text-primary ring-2 ring-inset ring-primary hover:scale-105',
                           // Selected
                           isSelected &&
-                            'cursor-pointer scale-105 bg-primary font-bold text-white shadow-[0_4px_14px_rgba(13,148,136,0.45)]'
+                            'cursor-pointer scale-105 bg-primary font-bold text-white'
                         )}
                       >
                         {format(day, 'd')}
@@ -873,7 +873,7 @@ export function BookingCalendar({
                               className={cn(
                                 'flex h-11 w-full items-center justify-center gap-2 text-[13px] font-semibold transition-all duration-150',
                                 isChosen
-                                  ? 'scale-[1.01] bg-primary text-white shadow-[0_4px_16px_rgba(13,148,136,0.40)]'
+                                  ? 'scale-[1.01] bg-primary text-white'
                                   : 'border border-gray-200 bg-white text-gray-700 hover:border-primary/60 hover:bg-primary/5 hover:text-primary'
                               )}
                             >
@@ -894,7 +894,7 @@ export function BookingCalendar({
                     <div className="shrink-0 border-t border-gray-100 bg-white p-4">
                       <button
                         onClick={handleContinue}
-                        className="flex h-11 w-full items-center justify-center gap-2 bg-primary text-sm font-bold text-white shadow-[0_4px_14px_rgba(13,148,136,0.35)] transition-all hover:bg-primary/90 hover:shadow-[0_6px_20px_rgba(13,148,136,0.45)]"
+                        className="flex h-11 w-full items-center justify-center gap-2 bg-primary text-sm font-bold text-white transition-all hover:bg-primary/90"
                       >
                         Continue
                         <ArrowRight size={15} weight="bold" />
@@ -981,7 +981,7 @@ export function BookingCalendar({
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="mt-1 flex h-11 w-full items-center justify-center gap-2 bg-primary text-sm font-bold text-white shadow-[0_4px_14px_rgba(13,148,136,0.35)] transition-all hover:bg-primary/90 disabled:opacity-60"
+                    className="mt-1 flex h-11 w-full items-center justify-center gap-2 bg-primary text-sm font-bold text-white transition-all hover:bg-primary/90 disabled:opacity-60"
                   >
                     {submitting ? (
                       <>

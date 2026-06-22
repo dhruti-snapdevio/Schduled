@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import {
   CalendarCheck,
   Check,
@@ -80,13 +80,13 @@ const LOCATION_META: Record<string, {
   text: string
   icon: React.ReactNode
 }> = {
-  zoom:                { label: 'Zoom',              bg: '#EFF6FF', text: '#2563EB', icon: <VideoCamera size={11} weight="fill" /> },
-  google_meet:         { label: 'Google Meet',       bg: '#F0FDF4', text: '#16A34A', icon: <GoogleLogo  size={11} weight="bold"  /> },
-  phone_host_calls:    { label: 'Phone call',        bg: '#F0FDFA', text: '#0D9488', icon: <Phone       size={11} weight="fill" /> },
-  phone_invitee_calls: { label: 'Phone (invitee)',   bg: '#F0FDFA', text: '#0D9488', icon: <Phone       size={11} weight="fill" /> },
-  in_person:           { label: 'In-person',         bg: '#FAF5FF', text: '#9333EA', icon: <MapPin      size={11} weight="fill" /> },
-  custom:              { label: 'Custom',            bg: '#F9FAFB', text: '#6B7280', icon: <Globe       size={11} weight="fill" /> },
-  invitees_choice:     { label: "Invitee's choice",  bg: '#F9FAFB', text: '#6B7280', icon: <Screencast  size={11} weight="fill" /> },
+  zoom:                { label: 'Zoom',              bg: '#EFF6FF', text: '#2563EB', icon: <VideoCamera size={13} weight="fill" /> },
+  google_meet:         { label: 'Google Meet',       bg: '#F0FDF4', text: '#16A34A', icon: <GoogleLogo  size={13} weight="bold"  /> },
+  phone_host_calls:    { label: 'Phone call',        bg: '#F0FDFA', text: '#0D9488', icon: <Phone       size={13} weight="fill" /> },
+  phone_invitee_calls: { label: 'Phone (invitee)',   bg: '#F0FDFA', text: '#0D9488', icon: <Phone       size={13} weight="fill" /> },
+  in_person:           { label: 'In-person',         bg: '#FAF5FF', text: '#9333EA', icon: <MapPin      size={13} weight="fill" /> },
+  custom:              { label: 'Custom',            bg: '#F9FAFB', text: '#6B7280', icon: <Globe       size={13} weight="fill" /> },
+  invitees_choice:     { label: "Invitee's choice",  bg: '#F9FAFB', text: '#6B7280', icon: <Screencast  size={13} weight="fill" /> },
 }
 
 function formatDuration(min: number) {
@@ -111,7 +111,13 @@ export function EventTypeCard({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [copied, setCopied] = useState(false)
+  const [lastBookedLabel, setLastBookedLabel] = useState<string | null>(null)
   const loc = LOCATION_META[locationType] ?? LOCATION_META.custom
+
+  // Compute relative date client-side only to avoid SSR/hydration mismatch (Date.now() differs)
+  useEffect(() => {
+    if (stats?.lastBooked) setLastBookedLabel(relativeDate(stats.lastBooked))
+  }, [stats?.lastBooked])
 
   const bookingUrl = username ? `${APP_URL}/${username}/${slug}` : null
   const displayUrl = username
@@ -155,7 +161,7 @@ export function EventTypeCard({
   return (
     <div className={cn(
       'group flex items-stretch border border-border bg-card',
-      'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/50',
+      'transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50',
       !isActive && 'opacity-60',
     )}>
       {/* Colored left bar — uses the event's chosen color */}
@@ -171,12 +177,12 @@ export function EventTypeCard({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold">{name}</span>
             {isHidden && (
-              <Badge variant="outline" className="text-[10px] py-0 px-1.5 rounded-none font-medium">
+              <Badge variant="outline" className="text-xs py-0 px-1.5 rounded-none font-medium">
                 Hidden
               </Badge>
             )}
             {!isActive && (
-              <Badge variant="secondary" className="text-[10px] py-0 px-1.5 rounded-none font-medium">
+              <Badge variant="secondary" className="text-xs py-0 px-1.5 rounded-none font-medium">
                 Inactive
               </Badge>
             )}
@@ -187,15 +193,15 @@ export function EventTypeCard({
             {sortedDurations.map((d) => (
               <span
                 key={d.duration}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-none text-[11px] font-medium bg-primary/10 text-primary"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary"
               >
-                <Clock size={10} weight="bold" />
+                <Clock size={13} weight="bold" />
                 {formatDuration(d.duration)}
               </span>
             ))}
 
             <span
-              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-none text-[11px] font-medium"
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium"
               style={{ backgroundColor: loc.bg, color: loc.text }}
             >
               {loc.icon}
@@ -205,15 +211,15 @@ export function EventTypeCard({
 
           {/* Booking stats */}
           {stats && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
-                <CalendarCheck size={10} weight="bold" />
-                {stats.countThisMonth} booking{stats.countThisMonth !== 1 ? 's' : ''} this month
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <CalendarCheck size={13} weight="bold" />
+                {stats.countThisMonth} this month
               </span>
-              {stats.lastBooked && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
-                  <Clock size={10} weight="bold" />
-                  Last: {relativeDate(stats.lastBooked)}
+              {lastBookedLabel && (
+                <span className="inline-flex items-center gap-1">
+                  <Clock size={11} weight="bold" />
+                  Last: {lastBookedLabel}
                 </span>
               )}
             </div>
@@ -224,7 +230,7 @@ export function EventTypeCard({
         <div className="flex items-center gap-1 shrink-0">
 
           {/* Toggle + ON/OFF label */}
-          <div className="flex items-center gap-1 mr-1">
+          <div className="flex items-center gap-1.5 mr-1">
             <Switch
               checked={isActive}
               disabled={isPending}
@@ -232,7 +238,7 @@ export function EventTypeCard({
               aria-label={isActive ? 'Deactivate' : 'Activate'}
             />
             <span className={cn(
-              'w-6 text-[10px] font-bold leading-none',
+              'w-7 text-xs font-bold leading-none',
               isActive ? 'text-primary' : 'text-muted-foreground/50',
             )}>
               {isActive ? 'ON' : 'OFF'}
@@ -312,7 +318,7 @@ export function EventTypeCard({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete &ldquo;{name}&rdquo;?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will permanently delete this event type and all associated questions.
+                      This will permanently delete this meeting type and all associated questions.
                       Existing bookings will not be affected.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
