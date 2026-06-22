@@ -27,7 +27,7 @@ export default async function OrbitUsersPage() {
     <div>
       <OrbitPageHeader
         title="User Management"
-        description="Promote admins, suspend accounts, and inspect basic account state."
+        description="Suspend accounts, manage users, and inspect basic account state."
       />
 
       <Card>
