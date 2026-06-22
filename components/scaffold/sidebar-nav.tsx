@@ -8,7 +8,6 @@ import {
   Clock,
   GearSix,
   Lightning,
-  ShieldStar,
   SignOut,
   SquaresFour,
   UserCircle,
@@ -91,14 +90,6 @@ export function SidebarNav({
 
       {/* Bottom section — light-highlight panel so admin/email/signout are clearly visible */}
       <div className="mt-auto border-t border-sidebar-border bg-white/[0.06] px-2 py-2 space-y-0.5">
-        {isAdmin && (
-          <NavItem
-            href="/orbit"
-            label="Admin"
-            icon={ShieldStar}
-            active={pathname.startsWith("/orbit")}
-          />
-        )}
 
         <NavItem
           href="/settings/profile"

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { Logo } from "@/components/logo";
+import { TocNav } from "./toc-nav";
 
 const DARK_BG: React.CSSProperties = {
   background: `
@@ -122,19 +123,7 @@ export function LegalShell({
               <p className="mb-4 text-[10px] font-black uppercase tracking-eyebrow text-muted-foreground/60">
                 On this page
               </p>
-              <nav className="space-y-1">
-                {toc.map((entry) => (
-                  <a
-                    key={entry.id}
-                    href={`#${entry.id}`}
-                    className="group flex items-center gap-2 border-l-2 border-border py-1.5 pl-4 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
-                  >
-                    <span className="transition-transform duration-200 group-hover:translate-x-0.5">
-                      {entry.label}
-                    </span>
-                  </a>
-                ))}
-              </nav>
+              <TocNav toc={toc} />
 
               {/* Back to home */}
               <div className="mt-8 border-t border-border pt-6">
@@ -273,17 +262,17 @@ export function LegalP({ children }: { children: React.ReactNode }) {
 }
 
 export function LegalUl({ children }: { children: React.ReactNode }) {
-  return (
-    <ul className="space-y-2 border-l-2 border-border pl-5">
-      {children}
-    </ul>
-  );
+  return <ul className="space-y-3">{children}</ul>;
 }
 
 export function LegalLi({ children }: { children: React.ReactNode }) {
   return (
-    <li className="relative before:absolute before:-left-[1.2rem] before:top-[0.4em] before:h-1 before:w-1 before:rounded-full before:bg-primary/60">
-      {children}
+    <li className="flex items-start gap-2.5">
+      <span className="mt-[0.38em] flex shrink-0 items-center gap-1">
+        <span className="h-1.5 w-1.5 rounded-full bg-primary/70" />
+        <span className="h-px w-3 bg-primary/35" />
+      </span>
+      <span>{children}</span>
     </li>
   );
 }

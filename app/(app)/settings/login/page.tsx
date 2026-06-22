@@ -52,7 +52,8 @@ export default async function LoginPage() {
     .where(eq(account.userId, session.user.id));
 
   const hasGoogle = accounts.some((a) => a.providerId === "google");
-  const canDisconnectGoogle = hasGoogle && accounts.length > 1;
+  // Magic link is always available as a fallback, so Google can always be safely disconnected
+  const canDisconnectGoogle = hasGoogle;
   const isGoogleEnabled = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 
   return (

@@ -6,6 +6,7 @@ import { createId } from '@paralleldrive/cuid2'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
 import {
+  booking,
   eventType,
   eventTypeDuration,
   cancellationPolicy,
@@ -341,6 +342,7 @@ export async function deleteEventType(id: string): Promise<ActionResult> {
       .limit(1)
     if (!existing) return { error: 'Event type not found' }
 
+    await db.delete(booking).where(eq(booking.eventTypeId, id))
     await db.delete(eventType).where(eq(eventType.id, id))
 
     await audit({
@@ -505,7 +507,9 @@ export async function reorderQuestions(eventTypeId: string, ids: string[]): Prom
 
     await Promise.all(
       ids.map((qid, pos) =>
-        db.update(eventTypeQuestion).set({ position: pos }).where(eq(eventTypeQuestion.id, qid))
+        db.update(eventTypeQuestion).set({ position: pos }).where(
+          and(eq(eventTypeQuestion.id, qid), eq(eventTypeQuestion.eventTypeId, eventTypeId))
+        )
       )
     )
 

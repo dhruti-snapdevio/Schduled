@@ -32,6 +32,9 @@ function AuthFormInner() {
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const rawNext = searchParams.get("next");
+  const safeNext = rawNext?.startsWith("/") ? rawNext : "/post-auth";
+
   useEffect(() => {
     if (session) {
       router.replace("/post-auth");
@@ -51,8 +54,7 @@ function AuthFormInner() {
     setError(null);
     setSubmitting(true);
 
-    const callbackURL = searchParams.get("next") ?? "/post-auth";
-    const result = await signIn.magicLink({ callbackURL, email });
+    const result = await signIn.magicLink({ callbackURL: safeNext, email });
 
     setSubmitting(false);
     if (result.error) {
@@ -97,7 +99,7 @@ function AuthFormInner() {
               <div className="space-y-4">
                 <Button
                   className="w-full"
-                  onClick={() => signIn.social({ provider: "google", callbackURL: "/post-auth" })}
+                  onClick={() => signIn.social({ provider: "google", callbackURL: safeNext })}
                   type="button"
                   variant="outline"
                 >

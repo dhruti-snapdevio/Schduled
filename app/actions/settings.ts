@@ -453,18 +453,18 @@ export async function deleteContact(email: string): Promise<ActionResult> {
 // ── Contacts: paginated query helper (called from page) ───────────────────────
 
 export async function getContacts({
-  userId,
   page = 1,
   pageSize = 20,
   search = "",
   archived = false,
 }: {
-  userId: string;
   page?: number;
   pageSize?: number;
   search?: string;
   archived?: boolean;
-}) {
+} = {}) {
+  const session = await requireSession();
+  const userId = session.user.id;
   const offset = (page - 1) * pageSize;
 
   // Aggregate from booking table, left-join contact for metadata

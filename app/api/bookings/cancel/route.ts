@@ -28,6 +28,7 @@ export async function POST(request: Request) {
         status: booking.status,
         startTime: booking.startTime,
         eventTypeId: booking.eventTypeId,
+        cancelTokenExpiresAt: booking.cancelTokenExpiresAt,
       })
       .from(booking)
       .where(eq(booking.cancelToken, token))
@@ -37,6 +38,10 @@ export async function POST(request: Request) {
 
     if (b.status === "cancelled") {
       return NextResponse.json({ ok: true, alreadyCancelled: true });
+    }
+
+    if (b.cancelTokenExpiresAt && b.cancelTokenExpiresAt.getTime() < Date.now()) {
+      return jsonError("This cancellation link has expired.", 410);
     }
 
     if (new Date(b.startTime).getTime() < Date.now()) {

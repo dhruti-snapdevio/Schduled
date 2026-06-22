@@ -50,7 +50,7 @@ export function CancelClient(props: Props) {
         }),
       });
       const data = await res.json();
-      if (!data.ok) {
+      if (!res.ok) {
         setError(data.error ?? "Could not cancel this booking.");
         return;
       }

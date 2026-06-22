@@ -1,4 +1,7 @@
 import type { Metadata } from 'next'
+import { eq } from 'drizzle-orm'
+import { db } from '@/lib/db'
+import { booking } from '@/db/schema'
 import { ConfirmationClient } from './_components/confirmation-client'
 
 export const metadata: Metadata = {
@@ -31,6 +34,17 @@ export default async function ConfirmedPage({
     )
   }
 
+  // Verify isPending from the DB rather than trusting the URL param
+  let isPending = false
+  if (p.cancel) {
+    const [b] = await db
+      .select({ status: booking.status })
+      .from(booking)
+      .where(eq(booking.cancelToken, p.cancel))
+      .limit(1)
+    isPending = b?.status === 'pending'
+  }
+
   return (
     <ConfirmationClient
       eventName={p.event}
@@ -42,7 +56,7 @@ export default async function ConfirmedPage({
       locationValue={p.locValue ?? null}
       cancelToken={p.cancel ?? null}
       rescheduleToken={p.reschedule ?? null}
-      isPending={p.pending === '1'}
+      isPending={isPending}
     />
   )
 }

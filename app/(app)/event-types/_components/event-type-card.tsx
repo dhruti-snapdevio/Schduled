@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import {
+  CalendarCheck,
   Check,
   Clock,
   Copy,
@@ -202,38 +203,20 @@ export function EventTypeCard({
             </span>
           </div>
 
-          {/* Booking URL */}
-          {isActive && displayUrl && (
-            <div className="flex items-center gap-1.5">
-              <LinkIcon size={11} className="shrink-0 text-muted-foreground/60" />
-              <span className="text-[11px] text-muted-foreground truncate max-w-[260px]">
-                {displayUrl}
-              </span>
-              <button
-                type="button"
-                onClick={copyLink}
-                className={cn(
-                  'shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold transition-colors',
-                  copied
-                    ? 'text-emerald-600'
-                    : 'text-primary hover:underline',
-                )}
-              >
-                {copied ? <Check size={10} weight="bold" /> : <Copy size={10} />}
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-          )}
-
           {/* Booking stats */}
           {stats && (
-            <p className="text-[11px] text-muted-foreground">
-              <span className="font-medium text-foreground">{stats.countThisMonth}</span>
-              {' '}booking{stats.countThisMonth !== 1 ? 's' : ''} this month
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
+                <CalendarCheck size={10} weight="bold" />
+                {stats.countThisMonth} booking{stats.countThisMonth !== 1 ? 's' : ''} this month
+              </span>
               {stats.lastBooked && (
-                <> · Last: <span className="font-medium text-foreground">{relativeDate(stats.lastBooked)}</span></>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
+                  <Clock size={10} weight="bold" />
+                  Last: {relativeDate(stats.lastBooked)}
+                </span>
               )}
-            </p>
+            </div>
           )}
         </div>
 
@@ -264,7 +247,7 @@ export function EventTypeCard({
               onClick={copyLink}
               disabled={!bookingUrl}
               className={cn(
-                'flex h-8 w-8 items-center justify-center transition-all opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 hover:scale-105 disabled:pointer-events-none',
+                'flex h-8 w-8 items-center justify-center transition-all hover:scale-105 disabled:pointer-events-none',
                 copied
                   ? 'text-emerald-600 bg-emerald-50'
                   : 'text-muted-foreground hover:bg-primary/10 hover:text-primary',
@@ -279,7 +262,7 @@ export function EventTypeCard({
             href={`/event-types/${id}`}
             aria-label={`Edit ${name}`}
             title="Edit"
-            className="flex h-8 w-8 items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-all hover:bg-primary/10 hover:text-primary hover:scale-105"
+            className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary hover:scale-105"
           >
             <PencilSimple size={15} />
           </Link>

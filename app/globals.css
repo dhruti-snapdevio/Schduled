@@ -313,6 +313,30 @@ body {
 /* FAQ accordion open animation */
 details[open] .faq-body { animation: schduled-faq-open 0.25s ease-out both; }
 
+/* FAQ open state — teal highlight */
+.faq-item[open] {
+  background: oklch(0.97 0.012 185 / 0.55);
+  border-left: 2px solid var(--primary);
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+.faq-item[open] > summary .faq-q { color: var(--color-primary); }
+
+/* Particle float — gentle drift for hero dots */
+@keyframes schduled-particle {
+  0%   { transform: translateY(0)    translateX(0);   opacity: 0.25; }
+  33%  { transform: translateY(-6px) translateX(3px); opacity: 0.45; }
+  66%  { transform: translateY(4px)  translateX(-3px);opacity: 0.20; }
+  100% { transform: translateY(0)    translateX(0);   opacity: 0.25; }
+}
+.animate-schduled-particle { animation: schduled-particle 8s ease-in-out infinite; }
+
+/* Connector line shimmer */
+@keyframes schduled-connector-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
 /* ── Scroll-driven reveal (CSS animation-timeline: view()) ─────────────────
    No JS. Elements fade+slide up as they enter the viewport.
    Use .scroll-reveal on any card/section. Add .sr-d1 / .sr-d2 / .sr-d3 for

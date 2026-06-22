@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_PREFIXES = [
-  "/api/auth",     // Better Auth handler
-  "/_next",        // Next.js internals
+  "/api/auth",          // Better Auth handler
+  "/api/orbit/verify",  // Admin Google OAuth callback — reads session, no auth gate needed
+  "/_next",             // Next.js internals
   "/favicon",
-  "/cancel/",      // public booking cancel
-  "/reschedule/",  // public booking reschedule
+  "/cancel/",           // public booking cancel
+  "/reschedule/",       // public booking reschedule
 ];
 
 const AUTH_PATHS: string[] = [];  // handled client-side in auth-form via useSession()
@@ -58,11 +59,15 @@ export function middleware(request: NextRequest) {
 
   // Admin routes (role check happens in layout via requireAdmin())
   if (ADMIN_PREFIXES.some((p) => pathname.startsWith(p))) {
+    // Login page is always public
+    if (pathname === "/orbit/login") return NextResponse.next();
+
     if (!hasSession) {
-      const url = new URL("/login", request.url);
-      url.searchParams.set("next", pathname);
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(new URL("/orbit/login", request.url));
     }
+
+    // Session exists but we can't read role from the cookie token in middleware
+    // (role check happens server-side in requireAdmin() inside the orbit layout).
     return NextResponse.next();
   }
 

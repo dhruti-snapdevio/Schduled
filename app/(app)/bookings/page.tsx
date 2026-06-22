@@ -80,7 +80,7 @@ export default async function BookingsPage({
       and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), gt(booking.startTime, now))
     ),
     db.select({ value: count() }).from(booking).where(
-      and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), lte(booking.endTime, now))
+      and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), lte(booking.startTime, now))
     ),
     db.select({ value: count() }).from(booking).where(
       and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'cancelled'))
@@ -102,7 +102,7 @@ export default async function BookingsPage({
     tab === 'upcoming'
       ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), gt(booking.startTime, now))
       : tab === 'past'
-        ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), lte(booking.endTime, now))
+        ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), lte(booking.startTime, now))
         : tab === 'pending'
           ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'pending'))
           : and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'cancelled'))
@@ -466,42 +466,145 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
     )
   }
 
-  const CONFIG: Record<Exclude<Tab, 'pending'>, { icon: React.ElementType; title: string; description: string; cta: string | null; href: string | null }> = {
-    upcoming: {
-      icon: CalendarBlank,
-      title: 'No upcoming bookings',
-      description: 'Share your booking link and start scheduling.',
-      cta: 'View Event Types',
-      href: '/event-types',
-    },
-    past: {
-      icon: CalendarCheck,
-      title: 'No past bookings yet',
-      description: 'Completed meetings will appear here once they pass.',
-      cta: null,
-      href: null,
-    },
-    cancelled: {
-      icon: CalendarX,
-      title: 'No cancelled bookings',
-      description: 'Cancelled meetings will appear here.',
-      cta: null,
-      href: null,
-    },
+  if (tab === 'upcoming') {
+    return (
+      <div className="flex justify-center py-6">
+        <div className="w-full max-w-lg border border-border bg-background overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center gap-3 border-b border-border bg-primary/[0.04] px-6 py-5">
+            <span className="flex size-10 shrink-0 items-center justify-center bg-primary/10 text-primary">
+              <CalendarBlank size={20} weight="duotone" />
+            </span>
+            <div>
+              <p className="font-semibold text-foreground text-sm">No upcoming bookings</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Your confirmed meetings will appear here once people start booking.
+              </p>
+            </div>
+          </div>
+
+          {/* Steps */}
+          <div className="px-6 py-5">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+              Get your first booking
+            </p>
+            <div className="space-y-4">
+              {[
+                {
+                  step: '1',
+                  title: 'Create an event type',
+                  desc: 'Define the meeting length, location, and any custom questions you want to ask.',
+                  href: '/event-types',
+                  cta: 'Go to Event Types',
+                },
+                {
+                  step: '2',
+                  title: 'Share your booking link',
+                  desc: 'Copy your personal link and paste it in your email signature, LinkedIn bio, or Slack profile.',
+                  href: '/settings/my-link',
+                  cta: 'Get your link',
+                },
+                {
+                  step: '3',
+                  title: 'Set your availability',
+                  desc: 'Make sure your working hours are configured so invitees see the right time slots.',
+                  href: '/availability',
+                  cta: 'Set availability',
+                },
+              ].map(({ step, title, desc, href, cta }) => (
+                <div key={step} className="flex items-start gap-3">
+                  <span className="flex size-7 shrink-0 items-center justify-center bg-primary/10 text-primary text-xs font-bold">
+                    {step}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                  </div>
+                  <Button asChild size="sm" variant="outline" className="shrink-0 text-xs h-7 px-2.5">
+                    <Link href={href}>{cta}</Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer CTA */}
+          <div className="flex items-center gap-3 border-t border-border bg-muted/30 px-6 py-4">
+            <Button asChild size="sm" className="gap-1.5">
+              <Link href="/event-types">
+                <CalendarBlank size={13} weight="bold" />
+                Create Event Type
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="gap-1.5">
+              <Link href="/settings/my-link">
+                View my booking page
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
-  const { icon: Icon, title, description, cta, href } = CONFIG[tab as Exclude<Tab, 'pending'>]
+  if (tab === 'past') {
+    return (
+      <div className="flex justify-center py-6">
+        <div className="w-full max-w-lg border border-border bg-background overflow-hidden">
+          <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-6 py-5">
+            <span className="flex size-10 shrink-0 items-center justify-center bg-muted text-muted-foreground">
+              <CalendarCheck size={20} weight="duotone" />
+            </span>
+            <div>
+              <p className="font-semibold text-foreground text-sm">No past bookings yet</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Completed meetings will appear here once they have passed.
+              </p>
+            </div>
+          </div>
+          <div className="px-6 py-5 text-sm text-muted-foreground leading-relaxed">
+            Once you have upcoming bookings confirmed and those meetings pass, they will automatically move here. You can review details, see who attended, and download ICS files.
+          </div>
+          <div className="flex items-center border-t border-border bg-muted/30 px-6 py-4">
+            <Button asChild size="sm" variant="outline" className="gap-1.5">
+              <Link href="/bookings?tab=upcoming">
+                <CalendarBlank size={13} />
+                View upcoming
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
+  // cancelled
   return (
-    <div className="flex flex-col items-center py-20 text-center">
-      <Icon size={40} weight="thin" className="mb-3 text-muted-foreground/30" />
-      <p className="font-medium text-foreground">{title}</p>
-      <p className="mt-1 max-w-xs text-sm text-muted-foreground">{description}</p>
-      {cta && href && (
-        <Button asChild size="sm" className="mt-5">
-          <Link href={href}>{cta}</Link>
-        </Button>
-      )}
+    <div className="flex justify-center py-6">
+      <div className="w-full max-w-lg border border-border bg-background overflow-hidden">
+        <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-6 py-5">
+          <span className="flex size-10 shrink-0 items-center justify-center bg-muted text-muted-foreground">
+            <CalendarX size={20} weight="duotone" />
+          </span>
+          <div>
+            <p className="font-semibold text-foreground text-sm">No cancelled bookings</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Meetings that are cancelled will be logged here for reference.
+            </p>
+          </div>
+        </div>
+        <div className="px-6 py-5 text-sm text-muted-foreground leading-relaxed">
+          When you or an invitee cancels a meeting, it moves here along with the cancellation reason. You can use this history to spot patterns or follow up with invitees.
+        </div>
+        <div className="flex items-center border-t border-border bg-muted/30 px-6 py-4">
+          <Button asChild size="sm" variant="outline" className="gap-1.5">
+            <Link href="/bookings?tab=upcoming">
+              <CalendarBlank size={13} />
+              View upcoming
+            </Link>
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }
