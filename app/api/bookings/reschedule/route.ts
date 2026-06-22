@@ -1,10 +1,15 @@
 import { addMinutes } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
-import { and, eq, gte, lte, ne } from "drizzle-orm";
+import { and, eq, gte, inArray, lte, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { availabilitySchedule, booking, cancellationPolicy, eventType } from "@/db/schema";
-import { db } from "@/lib/db";
+import {
+  availabilitySchedule,
+  booking,
+  cancellationPolicy,
+  eventType,
+} from "@/db/schema";
 import { checkRateLimit, jsonError, rateLimitKey } from "@/lib/api/helpers";
+import { db } from "@/lib/db";
 import { enqueueJob } from "@/lib/worker/enqueue";
 import { JOB_NAMES } from "@/lib/worker/job-types";
 
@@ -15,17 +20,27 @@ interface RescheduleBody {
 
 export async function POST(request: Request) {
   try {
-    if (!checkRateLimit(rateLimitKey("POST:/api/bookings/reschedule", request), 10, 60_000)) {
+    if (
+      !checkRateLimit(
+        rateLimitKey("POST:/api/bookings/reschedule", request),
+        10,
+        60_000
+      )
+    ) {
       return jsonError("Too many requests. Please wait a moment.", 429);
     }
 
     const body: RescheduleBody = await request.json();
     const { token, startUtc } = body;
 
-    if (!token || !startUtc) return jsonError("Missing required fields", 400);
+    if (!token || !startUtc) {
+      return jsonError("Missing required fields", 400);
+    }
 
     const newStart = new Date(startUtc);
-    if (isNaN(newStart.getTime())) return jsonError("Invalid start time", 400);
+    if (isNaN(newStart.getTime())) {
+      return jsonError("Invalid start time", 400);
+    }
 
     const [b] = await db
       .select({
@@ -42,13 +57,18 @@ export async function POST(request: Request) {
       .where(eq(booking.rescheduleToken, token))
       .limit(1);
 
-    if (!b) return jsonError("This reschedule link is invalid.", 404);
+    if (!b) {
+      return jsonError("This reschedule link is invalid.", 404);
+    }
 
     if (b.status === "cancelled") {
       return jsonError("This booking has been cancelled.", 409);
     }
 
-    if (b.rescheduleTokenExpiresAt && b.rescheduleTokenExpiresAt.getTime() < Date.now()) {
+    if (
+      b.rescheduleTokenExpiresAt &&
+      b.rescheduleTokenExpiresAt.getTime() < Date.now()
+    ) {
       return jsonError("This reschedule link has expired.", 410);
     }
 
@@ -59,7 +79,9 @@ export async function POST(request: Request) {
     const et = await db.query.eventType.findFirst({
       where: eq(eventType.id, b.eventTypeId),
     });
-    if (!et) return jsonError("Event type not found", 404);
+    if (!et) {
+      return jsonError("Event type not found", 404);
+    }
 
     // ── maxReschedules check ─────────────────────────────────────────────────
     const [policy] = await db
@@ -109,7 +131,8 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(booking.hostUserId, b.hostUserId),
-          eq(booking.status, "confirmed"),
+          // include pending so a reschedule can't collide with an awaiting-approval slot
+          inArray(booking.status, ["confirmed", "pending"]),
           ne(booking.id, b.id),
           lte(booking.startTime, dayEndUtc),
           gte(booking.endTime, dayStartUtc)
@@ -121,7 +144,10 @@ export async function POST(request: Request) {
         bufferStart < new Date(e.endTime) && bufferEnd > new Date(e.startTime)
     );
     if (hasConflict) {
-      return jsonError("That time is no longer available. Please pick another.", 409);
+      return jsonError(
+        "That time is no longer available. Please pick another.",
+        409
+      );
     }
 
     await db

@@ -5,7 +5,13 @@ import { redirect } from "next/navigation";
 import { audit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 
-export async function logoutAction() {
+// `redirectTo` is bound per call-site so sign-out returns to the surface the
+// user signed out from — the user dashboard goes to /login, the Orbit admin
+// panel goes to /orbit/login — instead of branching on the user's role.
+export async function logoutAction(
+  redirectTo: string = "/login",
+  _formData?: FormData,
+) {
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
   await auth.api.signOut({ headers: requestHeaders });
@@ -27,6 +33,6 @@ export async function logoutAction() {
     });
   }
 
-  const isAdmin = session?.user?.role === "admin";
-  redirect(isAdmin ? "/orbit/login" : "/login");
+  // Only allow internal paths to avoid an open-redirect
+  redirect(redirectTo.startsWith("/") ? redirectTo : "/login");
 }

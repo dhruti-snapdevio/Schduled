@@ -88,7 +88,7 @@ export function AdminSidebar({ email }: { email: string }) {
           </Link>
         </Button>
 
-        <form action={logoutAction}>
+        <form action={logoutAction.bind(null, "/orbit/login")}>
           <Button
             type="submit"
             variant="secondary"

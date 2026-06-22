@@ -1,5 +1,5 @@
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import {
   availabilityOverride,
@@ -13,7 +13,13 @@ import { generateSlots } from "@/lib/calendar/slots";
 import { db } from "@/lib/db";
 
 export async function GET(request: Request) {
-  if (!checkRateLimit(rateLimitKey("GET:/api/available-days", request), 30, 60_000)) {
+  if (
+    !checkRateLimit(
+      rateLimitKey("GET:/api/available-days", request),
+      30,
+      60_000
+    )
+  ) {
     return jsonError("Too many requests. Please slow down.", 429);
   }
 
@@ -33,7 +39,9 @@ export async function GET(request: Request) {
     .where(eq(user.username, username))
     .limit(1);
 
-  if (!host) return jsonError("Host not found", 404);
+  if (!host) {
+    return jsonError("Host not found", 404);
+  }
 
   const et = await db.query.eventType.findFirst({
     where: and(
@@ -44,16 +52,21 @@ export async function GET(request: Request) {
     with: { durations: true },
   });
 
-  if (!et) return jsonError("Event type not found", 404);
+  if (!et) {
+    return jsonError("Event type not found", 404);
+  }
 
   const defaultDuration =
     et.durations.find((d) => d.isDefault)?.duration ??
     et.durations[0]?.duration ??
     30;
 
-  const requestedDuration = durationParam ? parseInt(durationParam, 10) : null;
+  const requestedDuration = durationParam
+    ? Number.parseInt(durationParam, 10)
+    : null;
   const durationMinutes =
-    requestedDuration && et.durations.some((d) => d.duration === requestedDuration)
+    requestedDuration &&
+    et.durations.some((d) => d.duration === requestedDuration)
       ? requestedDuration
       : defaultDuration;
 
@@ -134,7 +147,8 @@ export async function GET(request: Request) {
     .where(
       and(
         eq(booking.hostUserId, host.id),
-        eq(booking.status, "confirmed"),
+        // pending bookings also occupy the day — keep them out of open slots
+        inArray(booking.status, ["confirmed", "pending"]),
         lte(booking.startTime, monthEndUtc),
         gte(booking.endTime, monthStartUtc)
       )

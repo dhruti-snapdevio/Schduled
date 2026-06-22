@@ -33,7 +33,7 @@ export default async function OrbitSettingsPage() {
     process.env.ZOOM_CLIENT_ID && process.env.ZOOM_CLIENT_SECRET
   );
   const appSecretSet = !!process.env.APP_SECRET;
-  const encryptionKeySet = !!process.env.ENCRYPTION_KEY;
+  const encryptionKeySet = !!process.env.ENCRYPT_KEY;
   const databaseUrlSet = !!process.env.DATABASE_URL;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "—";
@@ -42,9 +42,9 @@ export default async function OrbitSettingsPage() {
   return (
     <div>
       <OrbitPageHeader
+        description="Read-only view of environment configuration and feature status."
         eyebrow="Admin"
         title="Platform Settings"
-        description="Read-only view of environment configuration and feature status."
       />
 
       <div className="space-y-6">
@@ -52,13 +52,17 @@ export default async function OrbitSettingsPage() {
         <Card>
           <CardHeader className="py-4">
             <div className="flex items-center gap-2">
-              <GearSix size={16} className="text-muted-foreground" weight="bold" />
+              <GearSix
+                className="text-muted-foreground"
+                size={16}
+                weight="bold"
+              />
               <CardTitle className="text-base font-semibold">General</CardTitle>
             </div>
             <CardDescription>Core platform configuration.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <ConfigRow label="App URL" value={appUrl} mono />
+            <ConfigRow label="App URL" mono value={appUrl} />
             <ConfigRow label="Environment" value={nodeEnv} />
           </CardContent>
         </Card>
@@ -67,45 +71,52 @@ export default async function OrbitSettingsPage() {
         <Card>
           <CardHeader className="py-4">
             <div className="flex items-center gap-2">
-              <Stack size={16} className="text-muted-foreground" weight="bold" />
-              <CardTitle className="text-base font-semibold">Integrations</CardTitle>
+              <Stack
+                className="text-muted-foreground"
+                size={16}
+                weight="bold"
+              />
+              <CardTitle className="text-base font-semibold">
+                Integrations
+              </CardTitle>
             </div>
             <CardDescription>
-              Third-party service connection status based on environment variables.
+              Third-party service connection status based on environment
+              variables.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <StatusRow
+              description="Outbound transactional email via nodemailer"
+              failText="Not configured"
               icon={<Envelope size={15} weight="bold" />}
               label="SMTP / Email"
-              description="Outbound transactional email via nodemailer"
               ok={smtpConfigured}
               okText="Configured"
-              failText="Not configured"
             />
             <StatusRow
+              description="Social sign-in and Google Calendar integration"
+              failText="Not configured"
               icon={<GoogleLogo size={15} weight="bold" />}
               label="Google OAuth + Calendar"
-              description="Social sign-in and Google Calendar integration"
               ok={googleConfigured}
               okText="Configured"
-              failText="Not configured"
             />
             <StatusRow
+              description="Zoom OAuth for automatic meeting creation"
+              failText="Not configured"
               icon={<VideoCamera size={15} weight="bold" />}
               label="Zoom"
-              description="Zoom OAuth for automatic meeting creation"
               ok={zoomConfigured}
               okText="Configured"
-              failText="Not configured"
             />
             <StatusRow
+              description="Background job processing (reminders, emails, calendar)"
+              failText="DATABASE_URL missing"
               icon={<Stack size={15} weight="bold" />}
               label="pg-boss Job Queue"
-              description="Background job processing (reminders, emails, calendar)"
               ok={databaseUrlSet}
               okText="Configured"
-              failText="DATABASE_URL missing"
             />
           </CardContent>
         </Card>
@@ -114,8 +125,10 @@ export default async function OrbitSettingsPage() {
         <Card>
           <CardHeader className="py-4">
             <div className="flex items-center gap-2">
-              <Lock size={16} className="text-muted-foreground" weight="bold" />
-              <CardTitle className="text-base font-semibold">Security</CardTitle>
+              <Lock className="text-muted-foreground" size={16} weight="bold" />
+              <CardTitle className="text-base font-semibold">
+                Security
+              </CardTitle>
             </div>
             <CardDescription>
               Authentication secrets and encryption keys.
@@ -123,20 +136,20 @@ export default async function OrbitSettingsPage() {
           </CardHeader>
           <CardContent className="p-0">
             <StatusRow
+              description="Better Auth session signing key (APP_SECRET)"
+              failText="Not set — CRITICAL"
               icon={<Lock size={15} weight="bold" />}
               label="App Secret"
-              description="Better Auth session signing key (APP_SECRET)"
               ok={appSecretSet}
               okText="Set"
-              failText="Not set — CRITICAL"
             />
             <StatusRow
+              description="AES-GCM key for OAuth token storage (ENCRYPT_KEY)"
+              failText="Not set — CRITICAL"
               icon={<Lock size={15} weight="bold" />}
               label="Encryption Key"
-              description="AES-GCM key for OAuth token storage (ENCRYPTION_KEY)"
               ok={encryptionKeySet}
               okText="Set"
-              failText="Not set — CRITICAL"
             />
           </CardContent>
         </Card>
@@ -157,7 +170,9 @@ function ConfigRow({
   return (
     <div className="flex items-center justify-between border-t border-border px-6 py-3 first:border-0">
       <p className="text-sm font-medium">{label}</p>
-      <p className={`text-sm text-muted-foreground ${mono ? "font-mono text-xs" : ""}`}>
+      <p
+        className={`text-sm text-muted-foreground ${mono ? "font-mono text-xs" : ""}`}
+      >
         {value}
       </p>
     </div>

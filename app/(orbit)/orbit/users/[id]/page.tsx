@@ -1,4 +1,4 @@
-import { count, desc, eq, max } from "drizzle-orm";
+import { count, desc, eq, max, min } from "drizzle-orm";
 import { format, formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,10 +13,12 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { OrbitPageHeader } from "@/components/admin/orbit-page-header";
 import { UserDetailActions } from "@/components/orbit/user-detail-actions";
+import { BookingCancelButton } from "@/components/orbit/booking-cancel-button";
+import { EventTypeDeleteButton } from "@/components/orbit/event-type-delete-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ADMIN_ROLE } from "@/config/platform";
-import { auditLogs, booking, eventType, session, user } from "@/db/schema";
+import { auditLogs, booking, eventType, eventTypeDuration, session, user } from "@/db/schema";
 import { requireAdmin } from "@/lib/authz";
 import { db } from "@/lib/db";
 
@@ -55,6 +57,7 @@ export default async function OrbitUserDetailPage({
     [eventTypeCount],
     [lastSeen],
     recentBookings,
+    userEventTypes,
     recentAudit,
   ] = await Promise.all([
     db.select({ value: count() }).from(booking).where(eq(booking.hostUserId, id)),
@@ -64,13 +67,27 @@ export default async function OrbitUserDetailPage({
       .select({
         id: booking.id,
         inviteeName: booking.inviteeName,
+        inviteeEmail: booking.inviteeEmail,
         startTime: booking.startTime,
         status: booking.status,
       })
       .from(booking)
       .where(eq(booking.hostUserId, id))
       .orderBy(desc(booking.startTime))
-      .limit(5),
+      .limit(20),
+    db
+      .select({
+        id: eventType.id,
+        name: eventType.name,
+        slug: eventType.slug,
+        isActive: eventType.isActive,
+        minDuration: min(eventTypeDuration.duration),
+      })
+      .from(eventType)
+      .leftJoin(eventTypeDuration, eq(eventTypeDuration.eventTypeId, eventType.id))
+      .where(eq(eventType.userId, id))
+      .groupBy(eventType.id)
+      .orderBy(desc(eventType.createdAt)),
     db
       .select()
       .from(auditLogs)
@@ -212,13 +229,58 @@ export default async function OrbitUserDetailPage({
         </div>
       </div>
 
-      {/* Recent Bookings */}
+      {/* Event Types */}
       <Card>
         <CardHeader className="py-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold">Recent Bookings</CardTitle>
+            <CardTitle className="text-base font-semibold">Event Types</CardTitle>
             <span className="text-xs text-muted-foreground">
-              {bookingCount?.value ?? 0} total
+              {eventTypeCount?.value ?? 0} total
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {userEventTypes.length === 0 ? (
+            <p className="px-6 py-8 text-center text-sm text-muted-foreground">
+              No event types yet.
+            </p>
+          ) : (
+            <div>
+              {userEventTypes.map((et) => (
+                <div
+                  key={et.id}
+                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3 first:border-0"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium truncate">{et.name}</p>
+                      <span className={`shrink-0 inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-[10px] font-semibold ${
+                        et.isActive
+                          ? "border-success/25 bg-success/10 text-success"
+                          : "border-border bg-muted text-muted-foreground"
+                      }`}>
+                        {et.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      /{et.slug}{et.minDuration ? ` · ${et.minDuration} min` : ""}
+                    </p>
+                  </div>
+                  <EventTypeDeleteButton eventTypeId={et.id} hostUserId={id} />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Bookings */}
+      <Card>
+        <CardHeader className="py-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">Bookings</CardTitle>
+            <span className="text-xs text-muted-foreground">
+              {bookingCount?.value ?? 0} total · showing last 20
             </span>
           </div>
         </CardHeader>
@@ -232,25 +294,28 @@ export default async function OrbitUserDetailPage({
               {recentBookings.map((b) => (
                 <div
                   key={b.id}
-                  className="flex items-center justify-between border-t border-border px-6 py-3"
+                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3 first:border-0"
                 >
-                  <div>
-                    <p className="text-sm font-medium">{b.inviteeName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(b.startTime, "MMM d, yyyy 'at' h:mm a")}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{b.inviteeName}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {b.inviteeEmail} · {format(b.startTime, "MMM d, yyyy 'at' h:mm a")}
                     </p>
                   </div>
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-none border px-2 py-0.5 text-xs font-semibold capitalize ${
-                      b.status === "confirmed"
-                        ? "border-success/25 bg-success/10 text-success"
-                        : b.status === "cancelled"
-                          ? "border-destructive/25 bg-destructive/10 text-destructive"
-                          : "border-border bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {b.status}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-none border px-2 py-0.5 text-xs font-semibold capitalize ${
+                        b.status === "confirmed"
+                          ? "border-success/25 bg-success/10 text-success"
+                          : b.status === "cancelled"
+                            ? "border-destructive/25 bg-destructive/10 text-destructive"
+                            : "border-border bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {b.status}
+                    </span>
+                    <BookingCancelButton bookingId={b.id} hostUserId={id} status={b.status} />
+                  </div>
                 </div>
               ))}
             </div>

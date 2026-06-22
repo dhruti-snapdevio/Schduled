@@ -118,8 +118,8 @@ export function SidebarNav({
           </div>
         </div>
 
-        {/* Sign out */}
-        <form action={logoutAction}>
+        {/* Sign out — user dashboard returns to the user login */}
+        <form action={logoutAction.bind(null, "/login")}>
           <button
             type="submit"
             className="flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"

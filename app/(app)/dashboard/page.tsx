@@ -1,17 +1,24 @@
-import { and, count, desc, eq, gt, gte, lte } from "drizzle-orm";
-import { endOfDay, format, isToday, isTomorrow, startOfDay, startOfMonth } from "date-fns";
-import Link from "next/link";
 import {
   ArrowRight,
   CalendarBlank,
   CalendarCheck,
-  CalendarX,
   CalendarPlus,
+  CalendarX,
   Clock,
   LinkSimple,
   Plus,
   ShareNetwork,
 } from "@phosphor-icons/react/dist/ssr";
+import {
+  endOfDay,
+  format,
+  isToday,
+  isTomorrow,
+  startOfDay,
+  startOfMonth,
+} from "date-fns";
+import { and, count, desc, eq, gt, gte, lte } from "drizzle-orm";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { booking, eventType, user } from "@/db/schema";
@@ -22,8 +29,12 @@ import { env } from "@/lib/env";
 export const metadata = { title: "Dashboard" };
 
 function dayLabel(date: Date): string {
-  if (isToday(date)) return "Today";
-  if (isTomorrow(date)) return "Tomorrow";
+  if (isToday(date)) {
+    return "Today";
+  }
+  if (isTomorrow(date)) {
+    return "Tomorrow";
+  }
   return format(date, "MMM d");
 }
 
@@ -65,8 +76,8 @@ export default async function DashboardPage() {
       .where(
         and(
           eq(booking.hostUserId, session.user.id),
-          gte(booking.createdAt, monthStart),
-        ),
+          gte(booking.createdAt, monthStart)
+        )
       ),
 
     db
@@ -76,8 +87,19 @@ export default async function DashboardPage() {
         and(
           eq(booking.hostUserId, session.user.id),
           eq(booking.status, "confirmed"),
-          gt(booking.startTime, now),
-        ),
+          gt(booking.startTime, now)
+        )
+      ),
+
+    db
+      .select({ value: count() })
+      .from(booking)
+      .where(
+        and(
+          eq(booking.hostUserId, session.user.id),
+          eq(booking.status, "confirmed"),
+          lte(booking.endTime, now)
+        )
       ),
 
     db
@@ -88,7 +110,8 @@ export default async function DashboardPage() {
           eq(booking.hostUserId, session.user.id),
           eq(booking.status, "confirmed"),
           lte(booking.endTime, now),
-        ),
+          gte(booking.endTime, monthStart)
+        )
       ),
 
     db
@@ -97,20 +120,8 @@ export default async function DashboardPage() {
       .where(
         and(
           eq(booking.hostUserId, session.user.id),
-          eq(booking.status, "confirmed"),
-          lte(booking.endTime, now),
-          gte(booking.endTime, monthStart),
-        ),
-      ),
-
-    db
-      .select({ value: count() })
-      .from(booking)
-      .where(
-        and(
-          eq(booking.hostUserId, session.user.id),
-          eq(booking.status, "cancelled"),
-        ),
+          eq(booking.status, "cancelled")
+        )
       ),
 
     db
@@ -120,8 +131,8 @@ export default async function DashboardPage() {
         and(
           eq(booking.hostUserId, session.user.id),
           eq(booking.status, "cancelled"),
-          gte(booking.createdAt, monthStart),
-        ),
+          gte(booking.createdAt, monthStart)
+        )
       ),
 
     db
@@ -131,8 +142,8 @@ export default async function DashboardPage() {
         and(
           eq(booking.hostUserId, session.user.id),
           eq(booking.status, "confirmed"),
-          gt(booking.startTime, now),
-        ),
+          gt(booking.startTime, now)
+        )
       )
       .orderBy(booking.startTime)
       .limit(1),
@@ -141,10 +152,7 @@ export default async function DashboardPage() {
       .select({ value: count() })
       .from(eventType)
       .where(
-        and(
-          eq(eventType.userId, session.user.id),
-          eq(eventType.isActive, true),
-        ),
+        and(eq(eventType.userId, session.user.id), eq(eventType.isActive, true))
       ),
 
     db
@@ -155,26 +163,26 @@ export default async function DashboardPage() {
           eq(booking.hostUserId, session.user.id),
           eq(booking.status, "confirmed"),
           gte(booking.startTime, startOfDay(now)),
-          lte(booking.startTime, endOfDay(now)),
-        ),
+          lte(booking.startTime, endOfDay(now))
+        )
       ),
   ]);
 
   const stats = {
-    total:              totalResult[0]?.value ?? 0,
-    totalThisMonth:     totalMonthResult[0]?.value ?? 0,
-    upcoming:           upcomingResult[0]?.value ?? 0,
-    nextMeeting:        nextMeetingResult[0] ?? null,
-    completed:          completedResult[0]?.value ?? 0,
+    total: totalResult[0]?.value ?? 0,
+    totalThisMonth: totalMonthResult[0]?.value ?? 0,
+    upcoming: upcomingResult[0]?.value ?? 0,
+    nextMeeting: nextMeetingResult[0] ?? null,
+    completed: completedResult[0]?.value ?? 0,
     completedThisMonth: completedMonthResult[0]?.value ?? 0,
-    cancelled:          cancelledResult[0]?.value ?? 0,
+    cancelled: cancelledResult[0]?.value ?? 0,
     cancelledThisMonth: cancelledMonthResult[0]?.value ?? 0,
-    activeEventTypes:   activeEventTypesResult[0]?.value ?? 0,
-    meetingsToday:      meetingsTodayResult[0]?.value ?? 0,
+    activeEventTypes: activeEventTypesResult[0]?.value ?? 0,
+    meetingsToday: meetingsTodayResult[0]?.value ?? 0,
   };
 
-  const username = freshUser?.username ?? null
-  const bookingUrl = username ? `${env.NEXT_PUBLIC_APP_URL}/${username}` : null
+  const username = freshUser?.username ?? null;
+  const bookingUrl = username ? `${env.NEXT_PUBLIC_APP_URL}/${username}` : null;
 
   // ── Lists ──────────────────────────────────────────────────────────
   const [upcomingMeetings, recentBookings] = await Promise.all([
@@ -193,8 +201,8 @@ export default async function DashboardPage() {
         and(
           eq(booking.hostUserId, session.user.id),
           eq(booking.status, "confirmed"),
-          gt(booking.startTime, now),
-        ),
+          gt(booking.startTime, now)
+        )
       )
       .orderBy(booking.startTime)
       .limit(5),
@@ -228,38 +236,48 @@ export default async function DashboardPage() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             You have{" "}
-            <span className="font-semibold text-foreground">{stats.upcoming} upcoming meetings</span>
+            <span className="font-semibold text-foreground">
+              {stats.upcoming} upcoming meetings
+            </span>
             {stats.meetingsToday > 0 && (
-              <>, <span className="font-semibold text-foreground">{stats.meetingsToday} today</span></>
-            )}
-            {" "}and{" "}
-            <span className="font-semibold text-foreground">{stats.totalThisMonth} bookings this month</span>.
+              <>
+                ,{" "}
+                <span className="font-semibold text-foreground">
+                  {stats.meetingsToday} today
+                </span>
+              </>
+            )}{" "}
+            and{" "}
+            <span className="font-semibold text-foreground">
+              {stats.totalThisMonth} bookings this month
+            </span>
+            .
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild>
             <Link href="/event-types">
-              <Plus size={15} className="mr-1.5" weight="bold" />
+              <Plus className="mr-1.5" size={15} weight="bold" />
               Create Event
             </Link>
           </Button>
           <Button asChild variant="secondary">
             <Link href="/availability">
-              <LinkSimple size={15} className="mr-1.5" />
+              <LinkSimple className="mr-1.5" size={15} />
               Set Availability
             </Link>
           </Button>
           {bookingUrl ? (
             <Button asChild variant="secondary">
-              <a href={bookingUrl} target="_blank" rel="noopener noreferrer">
-                <ShareNetwork size={15} className="mr-1.5" />
+              <a href={bookingUrl} rel="noopener noreferrer" target="_blank">
+                <ShareNetwork className="mr-1.5" size={15} />
                 View Booking Page
               </a>
             </Button>
           ) : (
             <Button asChild variant="secondary">
               <Link href="/settings/my-link">
-                <ShareNetwork size={15} className="mr-1.5" />
+                <ShareNetwork className="mr-1.5" size={15} />
                 Set Up Link
               </Link>
             </Button>
@@ -270,38 +288,38 @@ export default async function DashboardPage() {
       {/* ── Stat cards ──────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <StatCard
-          label="Event Types"
-          value={stats.activeEventTypes}
-          subtitle="Active"
-          icon={<CalendarPlus size={20} weight="duotone" />}
           accent={stats.activeEventTypes > 0 && stats.total === 0}
           href="/event-types"
+          icon={<CalendarPlus size={20} weight="duotone" />}
+          label="Event Types"
+          subtitle="Active"
+          value={stats.activeEventTypes}
         />
         <StatCard
-          label="Total Bookings"
-          value={stats.total}
-          subtitle="All time"
           icon={<CalendarBlank size={20} weight="duotone" />}
+          label="Total Bookings"
           note={`${stats.totalThisMonth} bookings this month`}
+          subtitle="All time"
+          value={stats.total}
         />
         <StatCard
-          label="Upcoming"
-          value={stats.upcoming}
-          subtitle={upcomingSubtitle}
-          icon={<Clock size={20} weight="duotone" />}
           accent={stats.upcoming > 0}
+          icon={<Clock size={20} weight="duotone" />}
+          label="Upcoming"
+          subtitle={upcomingSubtitle}
+          value={stats.upcoming}
         />
         <StatCard
-          label="Completed"
-          value={stats.completed}
-          subtitle={`${stats.completedThisMonth} this month`}
           icon={<CalendarCheck size={20} weight="duotone" />}
+          label="Completed"
+          subtitle={`${stats.completedThisMonth} this month`}
+          value={stats.completed}
         />
         <StatCard
-          label="Cancelled"
-          value={stats.cancelled}
-          subtitle={`${stats.cancelledThisMonth} this month`}
           icon={<CalendarX size={20} weight="duotone" />}
+          label="Cancelled"
+          subtitle={`${stats.cancelledThisMonth} this month`}
+          value={stats.cancelled}
         />
       </div>
 
@@ -312,18 +330,21 @@ export default async function DashboardPage() {
             <CardTitle className="text-base font-semibold">
               Upcoming Meetings
             </CardTitle>
-            <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
+            <Button asChild className="h-7 text-xs" size="sm" variant="ghost">
               <Link href="/bookings">View all</Link>
             </Button>
           </CardHeader>
           <CardContent className="p-0">
             {upcomingMeetings.length === 0 ? (
-              <EmptyUpcoming hasEventTypes={stats.activeEventTypes > 0} bookingUrl={bookingUrl} />
+              <EmptyUpcoming
+                bookingUrl={bookingUrl}
+                hasEventTypes={stats.activeEventTypes > 0}
+              />
             ) : (
               upcomingMeetings.map((m) => (
                 <div
-                  key={m.id}
                   className="flex items-center justify-between gap-4 border-t border-border px-6 py-3"
+                  key={m.id}
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
@@ -355,7 +376,7 @@ export default async function DashboardPage() {
             <CardTitle className="text-base font-semibold">
               Recent Bookings
             </CardTitle>
-            <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
+            <Button asChild className="h-7 text-xs" size="sm" variant="ghost">
               <Link href="/bookings">View all</Link>
             </Button>
           </CardHeader>
@@ -365,8 +386,8 @@ export default async function DashboardPage() {
             ) : (
               recentBookings.map((b) => (
                 <div
-                  key={b.id}
                   className="flex items-center justify-between gap-4 border-t border-border px-6 py-3"
+                  key={b.id}
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
@@ -388,7 +409,6 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
     </div>
   );
 }
@@ -430,20 +450,20 @@ function StatCard({
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
           </div>
-          <span className={accent ? "text-primary" : "text-muted-foreground/60"}>
+          <span
+            className={accent ? "text-primary" : "text-muted-foreground/60"}
+          >
             {icon}
           </span>
         </div>
 
         {(note || href) && (
           <div className="mt-3 border-t border-border pt-3">
-            {note && (
-              <p className="text-xs text-muted-foreground">{note}</p>
-            )}
+            {note && <p className="text-xs text-muted-foreground">{note}</p>}
             {href && (
               <Link
-                href={href}
                 className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                href={href}
               >
                 Manage <ArrowRight size={11} weight="bold" />
               </Link>
@@ -459,54 +479,58 @@ function EmptyUpcoming({
   hasEventTypes,
   bookingUrl,
 }: {
-  hasEventTypes: boolean
-  bookingUrl: string | null
+  hasEventTypes: boolean;
+  bookingUrl: string | null;
 }) {
   if (hasEventTypes) {
     return (
       <div className="flex flex-col items-center px-6 py-10 text-center">
         <ShareNetwork
+          className="mb-3 text-muted-foreground/30"
           size={36}
           weight="thin"
-          className="mb-3 text-muted-foreground/30"
         />
-        <p className="text-sm font-medium text-foreground">No upcoming meetings yet</p>
+        <p className="text-sm font-medium text-foreground">
+          No upcoming meetings yet
+        </p>
         <p className="mt-1 max-w-56 text-xs text-muted-foreground">
           Share your booking link and people can start scheduling with you.
         </p>
         {bookingUrl ? (
-          <Button asChild size="sm" className="mt-4">
-            <a href={bookingUrl} target="_blank" rel="noopener noreferrer">
-              <LinkSimple size={13} className="mr-1.5" />
+          <Button asChild className="mt-4" size="sm">
+            <a href={bookingUrl} rel="noopener noreferrer" target="_blank">
+              <LinkSimple className="mr-1.5" size={13} />
               View Booking Page
             </a>
           </Button>
         ) : (
-          <Button asChild size="sm" className="mt-4">
+          <Button asChild className="mt-4" size="sm">
             <Link href="/event-types">
-              <CalendarPlus size={13} className="mr-1.5" />
+              <CalendarPlus className="mr-1.5" size={13} />
               View Event Types
             </Link>
           </Button>
         )}
       </div>
-    )
+    );
   }
 
   return (
     <div className="flex flex-col items-center px-6 py-10 text-center">
       <CalendarBlank
+        className="mb-3 text-muted-foreground/30"
         size={36}
         weight="thin"
-        className="mb-3 text-muted-foreground/30"
       />
-      <p className="text-sm font-medium text-foreground">No upcoming meetings</p>
+      <p className="text-sm font-medium text-foreground">
+        No upcoming meetings
+      </p>
       <p className="mt-1 max-w-56 text-xs text-muted-foreground">
         Create your first event type and start accepting bookings.
       </p>
-      <Button asChild size="sm" className="mt-4">
+      <Button asChild className="mt-4" size="sm">
         <Link href="/event-types">
-          <Plus size={13} className="mr-1.5" weight="bold" />
+          <Plus className="mr-1.5" size={13} weight="bold" />
           Create Event
         </Link>
       </Button>
@@ -518,9 +542,9 @@ function EmptyBookings({ bookingUrl }: { bookingUrl: string | null }) {
   return (
     <div className="flex flex-col items-center px-6 py-10 text-center">
       <ShareNetwork
+        className="mb-3 text-muted-foreground/30"
         size={36}
         weight="thin"
-        className="mb-3 text-muted-foreground/30"
       />
       <p className="text-sm font-medium text-foreground">No bookings yet</p>
       <p className="mt-1 max-w-56 text-xs text-muted-foreground">
@@ -528,7 +552,7 @@ function EmptyBookings({ bookingUrl }: { bookingUrl: string | null }) {
           ? "Share your booking link to get your first booking."
           : "Create an event type, then share your link to get bookings."}
       </p>
-      <Button asChild size="sm" variant="secondary" className="mt-4">
+      <Button asChild className="mt-4" size="sm" variant="secondary">
         <Link href="/event-types">
           {bookingUrl ? "View Event Types" : "Create Event Type"}
         </Link>
@@ -537,11 +561,34 @@ function EmptyBookings({ bookingUrl }: { bookingUrl: string | null }) {
   );
 }
 
-const STATUS_STYLES: Record<string, { badge: string; dotColor: string; label: string }> = {
-  confirmed: { badge: "bg-primary/10 text-primary border border-primary/20 text-xs font-medium px-2.5 py-0.5", dotColor: "bg-primary",       label: "Confirmed" },
-  cancelled: { badge: "bg-red-50 text-red-600 border border-red-200 text-xs font-medium px-2.5 py-0.5",        dotColor: "bg-red-500",        label: "Cancelled" },
-  pending:   { badge: "bg-amber-50 text-amber-600 border border-amber-200 text-xs font-medium px-2.5 py-0.5",  dotColor: "bg-amber-500",      label: "Pending"   },
-  no_show:   { badge: "bg-muted text-muted-foreground border border-border text-xs font-medium px-2.5 py-0.5", dotColor: "bg-muted-foreground", label: "No show" },
+const STATUS_STYLES: Record<
+  string,
+  { badge: string; dotColor: string; label: string }
+> = {
+  confirmed: {
+    badge:
+      "bg-primary/10 text-primary border border-primary/20 text-xs font-medium px-2.5 py-0.5",
+    dotColor: "bg-primary",
+    label: "Confirmed",
+  },
+  cancelled: {
+    badge:
+      "bg-red-50 text-red-600 border border-red-200 text-xs font-medium px-2.5 py-0.5",
+    dotColor: "bg-red-500",
+    label: "Cancelled",
+  },
+  pending: {
+    badge:
+      "bg-amber-50 text-amber-600 border border-amber-200 text-xs font-medium px-2.5 py-0.5",
+    dotColor: "bg-amber-500",
+    label: "Pending",
+  },
+  no_show: {
+    badge:
+      "bg-muted text-muted-foreground border border-border text-xs font-medium px-2.5 py-0.5",
+    dotColor: "bg-muted-foreground",
+    label: "No show",
+  },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -555,11 +602,11 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 const LOCATION_BADGE_STYLES: Record<string, string> = {
-  zoom:               "bg-blue-50 text-blue-600 border border-blue-200",
-  google_meet:        "bg-green-50 text-green-600 border border-green-200",
-  phone_host_calls:   "bg-orange-50 text-orange-600 border border-orange-200",
-  phone_invitee_calls:"bg-orange-50 text-orange-600 border border-orange-200",
-  in_person:          "bg-purple-50 text-purple-600 border border-purple-200",
+  zoom: "bg-blue-50 text-blue-600 border border-blue-200",
+  google_meet: "bg-green-50 text-green-600 border border-green-200",
+  phone_host_calls: "bg-orange-50 text-orange-600 border border-orange-200",
+  phone_invitee_calls: "bg-orange-50 text-orange-600 border border-orange-200",
+  in_person: "bg-purple-50 text-purple-600 border border-purple-200",
 };
 const LOCATION_LABEL: Record<string, string> = {
   zoom: "Zoom",
@@ -572,9 +619,13 @@ const LOCATION_LABEL: Record<string, string> = {
 function LocationBadge({ locationType }: { locationType: string }) {
   const style = LOCATION_BADGE_STYLES[locationType];
   const label = LOCATION_LABEL[locationType];
-  if (!label) return null;
+  if (!label) {
+    return null;
+  }
   return (
-    <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 shrink-0 ${style}`}>
+    <span
+      className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 shrink-0 ${style}`}
+    >
       {label}
     </span>
   );
