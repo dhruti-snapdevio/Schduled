@@ -1,3 +1,6 @@
+const tabSkeletons = ["tab-1", "tab-2", "tab-3"];
+const bookingRows = ["row-1", "row-2", "row-3", "row-4", "row-5", "row-6"];
+
 export default function BookingsLoading() {
   return (
     <div className="space-y-5 animate-pulse">
@@ -7,8 +10,8 @@ export default function BookingsLoading() {
       {/* Tab pills (3 tabs) + search */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex gap-1.5">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-8 w-20 bg-muted" />
+          {tabSkeletons.map((tab) => (
+            <div className="h-8 w-20 bg-muted" key={tab} />
           ))}
         </div>
         <div className="ml-auto h-9 w-44 bg-muted" />
@@ -16,8 +19,11 @@ export default function BookingsLoading() {
 
       {/* Booking rows */}
       <div className="space-y-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex items-stretch border border-border overflow-hidden">
+        {bookingRows.map((row) => (
+          <div
+            className="flex items-stretch border border-border overflow-hidden"
+            key={row}
+          >
             <div className="w-[3px] bg-muted shrink-0" />
             <div className="w-14 shrink-0 bg-muted/30 flex flex-col items-center justify-center gap-1 py-4">
               <div className="h-3 w-8 bg-muted" />
@@ -36,5 +42,5 @@ export default function BookingsLoading() {
         ))}
       </div>
     </div>
-  )
+  );
 }

@@ -36,6 +36,7 @@ export async function POST(request: Request) {
         hostUserId: booking.hostUserId,
         rescheduleCount: booking.rescheduleCount,
         eventTypeId: booking.eventTypeId,
+        rescheduleTokenExpiresAt: booking.rescheduleTokenExpiresAt,
       })
       .from(booking)
       .where(eq(booking.rescheduleToken, token))
@@ -45,6 +46,10 @@ export async function POST(request: Request) {
 
     if (b.status === "cancelled") {
       return jsonError("This booking has been cancelled.", 409);
+    }
+
+    if (b.rescheduleTokenExpiresAt && b.rescheduleTokenExpiresAt.getTime() < Date.now()) {
+      return jsonError("This reschedule link has expired.", 410);
     }
 
     const previousStartUtc = new Date(b.startTime).toISOString();

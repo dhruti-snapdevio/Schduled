@@ -12,7 +12,7 @@ export default async function ContactsPage({
 }: {
   searchParams: Promise<{ page?: string; q?: string; archived?: string }>
 }) {
-  const session = await requireSession()
+  await requireSession()
   const params  = await searchParams
 
   const page     = Math.max(1, parseInt(params.page ?? '1', 10))
@@ -20,7 +20,6 @@ export default async function ContactsPage({
   const archived = params.archived === '1'
 
   const { contacts, total } = await getContacts({
-    userId:   session.user.id,
     page,
     pageSize: 20,
     search,

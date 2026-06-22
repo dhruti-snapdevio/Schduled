@@ -1,13 +1,13 @@
-# KROVA Scaffold
+# Schduled
 
-KROVA is a lean application scaffold for projects that need a real control-plane backbone from day one:
+Schduled is a smart scheduling platform for modern professionals. Share a booking link, set your availability, and let invitees pick a time — no back-and-forth.
 
 - Next.js App Router UI
-- Postgres and Drizzle
-- Better Auth magic-link login
-- pg-boss worker queues
-- durable email outbox via SMTP (nodemailer)
-- Orbit admin for users, queue state, and email visibility
+- Postgres and Drizzle ORM
+- Better Auth magic-link + Google login
+- pg-boss background worker queues
+- Durable email outbox via SMTP (nodemailer)
+- Orbit admin panel for users, queue state, and email visibility
 
 ## Quick Start
 
@@ -19,7 +19,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Open `http://localhost:3000`, sign in with a magic link, then promote your user:
+Open `http://localhost:3000`, sign in with a magic link, then promote your user to admin:
 
 ```bash
 pnpm make:admin you@example.com
@@ -29,11 +29,11 @@ Without `SMTP_HOST`, `SMTP_USER`, and `SMTP_PASS`, the worker logs emails locall
 
 ## Structure
 
-- `app/` contains the public page, auth page, user dashboard, profile, Orbit admin, and API routes.
-- `db/schema/` contains the scaffold tables.
-- `lib/auth.ts` wires Better Auth magic links.
-- `lib/email/` persists outbound email before enqueueing work.
-- `lib/worker/` owns pg-boss queues and handlers.
-- `components/` contains the small UI kit and scaffold shell.
+- `app/` — public landing, auth, user dashboard, booking pages, Orbit admin, and API routes
+- `db/schema/` — all database table definitions
+- `lib/auth.ts` — Better Auth configuration (magic link + Google OAuth)
+- `lib/email/` — persists outbound email before enqueueing work
+- `lib/worker/` — pg-boss queues and job handlers
+- `components/` — shared UI kit and scaffold shell
 
-See [docs/commands.md](./docs/commands.md) for the command list.
+See [docs/commands.md](./docs/commands.md) for the full command list.

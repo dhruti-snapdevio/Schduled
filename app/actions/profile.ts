@@ -4,7 +4,7 @@ import { and, eq, gt, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createId } from "@paralleldrive/cuid2";
-import { account, session as sessionTable, user, verification } from "@/db/schema";
+import { account, booking, session as sessionTable, user, verification } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { requireSession } from "@/lib/authz";
 import { db } from "@/lib/db";
@@ -282,6 +282,9 @@ export async function deleteAccountAction(
   await db.transaction(async (tx) => {
     await tx.delete(sessionTable).where(eq(sessionTable.userId, freshUser.id));
     await tx.delete(account).where(eq(account.userId, freshUser.id));
+    // booking has NO ACTION on user FK — must delete before user
+    // booking_answer, booking_guest, notification, workflow_job all CASCADE from booking
+    await tx.delete(booking).where(eq(booking.hostUserId, freshUser.id));
     await tx.delete(user).where(eq(user.id, freshUser.id));
   });
 

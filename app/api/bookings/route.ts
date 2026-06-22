@@ -202,6 +202,8 @@ export async function POST(request: Request) {
           cancelToken,
           rescheduleToken,
           approvalToken,
+          cancelTokenExpiresAt:     addHours(endTime, 24),
+          rescheduleTokenExpiresAt: startTime,
         })
         .returning();
 
