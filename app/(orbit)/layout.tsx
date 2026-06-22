@@ -23,7 +23,7 @@ export default async function AdminLayout({
             <Link href="/dashboard" className="text-xs font-medium text-primary hover:underline">
               Dashboard
             </Link>
-            <form action={logoutAction}>
+            <form action={logoutAction.bind(null, "/orbit/login")}>
               <button type="submit" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Sign out
               </button>

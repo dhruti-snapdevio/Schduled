@@ -15,6 +15,20 @@ export async function requireSession() {
   if (!session) {
     redirect("/login");
   }
+
+  // Re-check ban status against the DB on every request. Better Auth only
+  // enforces bans at session *creation*, so without this a suspended user
+  // keeps full access until their (30-day) session naturally expires.
+  const [freshUser] = await db
+    .select({ banned: user.banned })
+    .from(user)
+    .where(eq(user.id, session.user.id))
+    .limit(1);
+
+  if (!freshUser || freshUser.banned) {
+    redirect("/login");
+  }
+
   return session;
 }
 

@@ -1,12 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { Export, FunnelSimple, MagnifyingGlass } from "@phosphor-icons/react";
 import { format, startOfDay, subDays } from "date-fns";
-import {
-  Export,
-  FunnelSimple,
-  MagnifyingGlass,
-} from "@phosphor-icons/react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -26,33 +22,36 @@ export type AuditRow = {
 // ── Action labels ─────────────────────────────────────────────────────────────
 
 const ACTION_LABELS: Record<string, string> = {
-  "auth.magic_link_sent":    "Magic Link Sent",
-  "auth.login":              "User Logged In",
-  "auth.logout":             "User Logged Out",
-  "auth.session_created":    "Session Created",
+  "auth.magic_link_sent": "Magic Link Sent",
+  "auth.login": "User Logged In",
+  "auth.logout": "User Logged Out",
+  "auth.session_created": "Session Created",
   "profile.session_revoked": "Session Revoked",
-  "profile.data_exported":   "Profile Exported",
-  "profile.updated":         "Profile Updated",
-  "profile.password_changed":"Password Changed",
+  "profile.data_exported": "Profile Exported",
+  "profile.updated": "Profile Updated",
+  "profile.password_changed": "Password Changed",
   "orbit.user_role_updated": "Role Updated",
-  "orbit.user_suspended":    "User Suspended",
-  "orbit.user_reactivated":  "User Reactivated",
-  "orbit.impersonation_start":"Impersonation Started",
-  "booking.created":         "Booking Created",
-  "booking.cancelled":       "Booking Cancelled",
-  "booking.rescheduled":     "Booking Rescheduled",
-  "event_type.created":      "Event Type Created",
-  "event_type.updated":      "Event Type Updated",
-  "event_type.deleted":      "Event Type Deleted",
-  "email.sent":              "Email Sent",
-  "email.failed":            "Email Failed",
-  "calendar.connected":      "Calendar Connected",
-  "calendar.disconnected":   "Calendar Disconnected",
-  "video.connected":         "Video Integration Connected",
+  "orbit.user_suspended": "User Suspended",
+  "orbit.user_reactivated": "User Reactivated",
+  "orbit.user_deleted": "User Deleted",
+  "orbit.impersonation_start": "Impersonation Started",
+  "booking.created": "Booking Created",
+  "booking.cancelled": "Booking Cancelled",
+  "booking.rescheduled": "Booking Rescheduled",
+  "event_type.created": "Event Type Created",
+  "event_type.updated": "Event Type Updated",
+  "event_type.deleted": "Event Type Deleted",
+  "email.sent": "Email Sent",
+  "email.failed": "Email Failed",
+  "calendar.connected": "Calendar Connected",
+  "calendar.disconnected": "Calendar Disconnected",
+  "video.connected": "Video Integration Connected",
 };
 
 function getFriendlyLabel(action: string): string {
-  if (ACTION_LABELS[action]) return ACTION_LABELS[action];
+  if (ACTION_LABELS[action]) {
+    return ACTION_LABELS[action];
+  }
   // Fallback: convert "auth.magic_link_sent" → "Magic Link Sent"
   const parts = action.split(".");
   const raw = parts[parts.length - 1] ?? action;
@@ -65,11 +64,14 @@ function getFriendlyLabel(action: string): string {
 // ── Entity badge colours ──────────────────────────────────────────────────────
 
 const ENTITY_STYLES: Record<string, string> = {
-  user:       "bg-blue-500/10 text-blue-600 border-blue-500/25 dark:text-blue-400",
-  session:    "bg-teal-500/10 text-teal-600 border-teal-500/25 dark:text-teal-400",
-  booking:    "bg-violet-500/10 text-violet-600 border-violet-500/25 dark:text-violet-400",
-  event_type: "bg-orange-500/10 text-orange-600 border-orange-500/25 dark:text-orange-400",
-  email:      "bg-amber-500/10 text-amber-600 border-amber-500/25 dark:text-amber-400",
+  user: "bg-blue-500/10 text-blue-600 border-blue-500/25 dark:text-blue-400",
+  session: "bg-teal-500/10 text-teal-600 border-teal-500/25 dark:text-teal-400",
+  booking:
+    "bg-violet-500/10 text-violet-600 border-violet-500/25 dark:text-violet-400",
+  event_type:
+    "bg-orange-500/10 text-orange-600 border-orange-500/25 dark:text-orange-400",
+  email:
+    "bg-amber-500/10 text-amber-600 border-amber-500/25 dark:text-amber-400",
 };
 
 function EntityBadge({ type }: { type: string }) {
@@ -87,15 +89,33 @@ function EntityBadge({ type }: { type: string }) {
 
 // ── Action category filter ────────────────────────────────────────────────────
 
-type ActionCategory = "all" | "auth" | "bookings" | "events" | "emails" | "profile";
+type ActionCategory =
+  | "all"
+  | "auth"
+  | "bookings"
+  | "events"
+  | "emails"
+  | "profile";
 
 function matchesCategory(action: string, cat: ActionCategory): boolean {
-  if (cat === "all") return true;
-  if (cat === "auth")     return action.startsWith("auth.");
-  if (cat === "bookings") return action.startsWith("booking.");
-  if (cat === "events")   return action.startsWith("event_type.");
-  if (cat === "emails")   return action.startsWith("email.");
-  if (cat === "profile")  return action.startsWith("profile.") || action.startsWith("orbit.");
+  if (cat === "all") {
+    return true;
+  }
+  if (cat === "auth") {
+    return action.startsWith("auth.");
+  }
+  if (cat === "bookings") {
+    return action.startsWith("booking.");
+  }
+  if (cat === "events") {
+    return action.startsWith("event_type.");
+  }
+  if (cat === "emails") {
+    return action.startsWith("email.");
+  }
+  if (cat === "profile") {
+    return action.startsWith("profile.") || action.startsWith("orbit.");
+  }
   return true;
 }
 
@@ -106,7 +126,15 @@ type DateRange = "all" | "today" | "week" | "month" | "custom";
 // ── Export ────────────────────────────────────────────────────────────────────
 
 function buildCSV(rows: AuditRow[]): string {
-  const headers = ["Action", "Actor", "Entity Type", "Entity ID", "Description", "IP", "Date"];
+  const headers = [
+    "Action",
+    "Actor",
+    "Entity Type",
+    "Entity ID",
+    "Description",
+    "IP",
+    "Date",
+  ];
   const lines = rows.map((r) => [
     getFriendlyLabel(r.action),
     r.actorEmail ?? "System",
@@ -117,7 +145,9 @@ function buildCSV(rows: AuditRow[]): string {
     format(new Date(r.createdAt), "yyyy-MM-dd HH:mm:ss"),
   ]);
   return [headers, ...lines]
-    .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+    .map((row) =>
+      row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")
+    )
     .join("\n");
 }
 
@@ -134,16 +164,16 @@ function downloadBlob(content: string, filename: string, mime: string) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function AuditTable({ logs }: { logs: AuditRow[] }) {
-  const [search,       setSearch]       = useState("");
-  const [actionCat,   setActionCat]    = useState<ActionCategory>("all");
+  const [search, setSearch] = useState("");
+  const [actionCat, setActionCat] = useState<ActionCategory>("all");
   const [entityFilter, setEntityFilter] = useState("all");
-  const [dateRange,    setDateRange]    = useState<DateRange>("all");
-  const [customFrom,   setCustomFrom]   = useState("");
-  const [customTo,     setCustomTo]     = useState("");
+  const [dateRange, setDateRange] = useState<DateRange>("all");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
 
   const entityTypes = useMemo(
     () => ["all", ...Array.from(new Set(logs.map((l) => l.entityType)))],
-    [logs],
+    [logs]
   );
 
   const filtered = useMemo(() => {
@@ -159,23 +189,39 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
           (log.actorEmail ?? "").toLowerCase().includes(q) ||
           (log.entityType ?? "").toLowerCase().includes(q) ||
           (log.description ?? "").toLowerCase().includes(q);
-        if (!matchSearch) return false;
+        if (!matchSearch) {
+          return false;
+        }
       }
 
       // Action category
-      if (!matchesCategory(log.action, actionCat)) return false;
+      if (!matchesCategory(log.action, actionCat)) {
+        return false;
+      }
 
       // Entity type
-      if (entityFilter !== "all" && log.entityType !== entityFilter) return false;
+      if (entityFilter !== "all" && log.entityType !== entityFilter) {
+        return false;
+      }
 
       // Date range
       const created = new Date(log.createdAt);
-      if (dateRange === "today"  && created < startOfDay(now)) return false;
-      if (dateRange === "week"   && created < subDays(now, 7))  return false;
-      if (dateRange === "month"  && created < subDays(now, 30)) return false;
+      if (dateRange === "today" && created < startOfDay(now)) {
+        return false;
+      }
+      if (dateRange === "week" && created < subDays(now, 7)) {
+        return false;
+      }
+      if (dateRange === "month" && created < subDays(now, 30)) {
+        return false;
+      }
       if (dateRange === "custom") {
-        if (customFrom && created < new Date(customFrom)) return false;
-        if (customTo   && created > new Date(customTo + "T23:59:59")) return false;
+        if (customFrom && created < new Date(customFrom)) {
+          return false;
+        }
+        if (customTo && created > new Date(customTo + "T23:59:59")) {
+          return false;
+        }
       }
 
       return true;
@@ -185,7 +231,11 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
   const todayStamp = format(new Date(), "yyyy-MM-dd");
 
   function handleExportCSV() {
-    downloadBlob(buildCSV(filtered), `audit-logs-${todayStamp}.csv`, "text/csv");
+    downloadBlob(
+      buildCSV(filtered),
+      `audit-logs-${todayStamp}.csv`,
+      "text/csv"
+    );
   }
 
   function handleExportJSON() {
@@ -199,7 +249,11 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
       ip: (r.metadata?.ip as string) ?? null,
       timestamp: r.createdAt,
     }));
-    downloadBlob(JSON.stringify(data, null, 2), `audit-logs-${todayStamp}.json`, "application/json");
+    downloadBlob(
+      JSON.stringify(data, null, 2),
+      `audit-logs-${todayStamp}.json`,
+      "application/json"
+    );
   }
 
   return (
@@ -211,23 +265,23 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
           {/* Search */}
           <div className="relative">
             <MagnifyingGlass
-              size={14}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              size={14}
             />
             <input
-              type="search"
-              placeholder="Search action, user or entity..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
               className="h-9 w-64 rounded-none border border-border bg-page pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search action, user or entity..."
+              type="search"
+              value={search}
             />
           </div>
 
           {/* Action category */}
           <select
-            value={actionCat}
-            onChange={(e) => setActionCat(e.target.value as ActionCategory)}
             className="h-9 rounded-none border border-border bg-page px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            onChange={(e) => setActionCat(e.target.value as ActionCategory)}
+            value={actionCat}
           >
             <option value="all">All Actions</option>
             <option value="auth">Authentication</option>
@@ -239,9 +293,9 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
 
           {/* Entity type */}
           <select
-            value={entityFilter}
-            onChange={(e) => setEntityFilter(e.target.value)}
             className="h-9 rounded-none border border-border bg-page px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            onChange={(e) => setEntityFilter(e.target.value)}
+            value={entityFilter}
           >
             {entityTypes.map((t) => (
               <option key={t} value={t}>
@@ -252,9 +306,9 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
 
           {/* Date range */}
           <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value as DateRange)}
             className="h-9 rounded-none border border-border bg-page px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            onChange={(e) => setDateRange(e.target.value as DateRange)}
+            value={dateRange}
           >
             <option value="all">All Time</option>
             <option value="today">Today</option>
@@ -267,19 +321,19 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
         {/* Right: export buttons */}
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
-            size="sm"
             className="h-9 gap-1.5 text-xs"
             onClick={handleExportCSV}
+            size="sm"
+            variant="outline"
           >
             <Export size={14} />
             Export CSV
           </Button>
           <Button
-            variant="outline"
-            size="sm"
             className="h-9 gap-1.5 text-xs"
             onClick={handleExportJSON}
+            size="sm"
+            variant="outline"
           >
             <Export size={14} />
             Export JSON
@@ -290,23 +344,23 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
       {/* Custom date range inputs */}
       {dateRange === "custom" && (
         <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-4 py-3">
-          <FunnelSimple size={14} className="text-muted-foreground" />
+          <FunnelSimple className="text-muted-foreground" size={14} />
           <label className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">From</span>
             <input
+              className="h-8 rounded-none border border-border bg-background px-2 text-sm focus:border-primary focus:outline-none"
+              onChange={(e) => setCustomFrom(e.target.value)}
               type="date"
               value={customFrom}
-              onChange={(e) => setCustomFrom(e.target.value)}
-              className="h-8 rounded-none border border-border bg-background px-2 text-sm focus:border-primary focus:outline-none"
             />
           </label>
           <label className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">To</span>
             <input
+              className="h-8 rounded-none border border-border bg-background px-2 text-sm focus:border-primary focus:outline-none"
+              onChange={(e) => setCustomTo(e.target.value)}
               type="date"
               value={customTo}
-              onChange={(e) => setCustomTo(e.target.value)}
-              className="h-8 rounded-none border border-border bg-background px-2 text-sm focus:border-primary focus:outline-none"
             />
           </label>
         </div>
@@ -338,8 +392,8 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
             {filtered.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
                   className="px-6 py-12 text-center text-sm text-muted-foreground"
+                  colSpan={5}
                 >
                   No audit logs match your filters.
                 </td>
@@ -347,8 +401,8 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
             ) : (
               filtered.map((log) => (
                 <tr
-                  key={log.id}
                   className="border-b border-border transition-colors hover:bg-muted/20 last:border-0"
+                  key={log.id}
                 >
                   {/* Action */}
                   <td className="px-6 py-3">
@@ -403,7 +457,7 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
       {/* Row count */}
       <div className="border-t border-border px-6 py-3">
         <p className="text-xs text-muted-foreground">
-          {filtered.length} of {logs.length} log{logs.length !== 1 ? "s" : ""}
+          {filtered.length} of {logs.length} log{logs.length === 1 ? "" : "s"}
         </p>
       </div>
     </div>
