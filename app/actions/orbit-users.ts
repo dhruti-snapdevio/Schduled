@@ -3,41 +3,10 @@
 import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ADMIN_ROLE, USER_ROLE } from "@/config/platform";
 import { account, booking, eventType, session as sessionTable, user } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/authz";
 import { db } from "@/lib/db";
-
-export async function setUserRoleAction(formData: FormData): Promise<void> {
-  const admin = await requireAdmin();
-  const userId = String(formData.get("userId") ?? "");
-  const role = String(formData.get("role") ?? USER_ROLE);
-
-  if (![ADMIN_ROLE, USER_ROLE].includes(role)) {
-    return;
-  }
-  if (userId === admin.user.id && role !== ADMIN_ROLE) {
-    return;
-  }
-
-  await db
-    .update(user)
-    .set({ role, updatedAt: new Date() })
-    .where(eq(user.id, userId));
-
-  await audit({
-    action: "orbit.user_role_updated",
-    actorEmail: admin.user.email,
-    actorId: admin.user.id,
-    description: `Updated user role to ${role}`,
-    entityId: userId,
-    entityType: "user",
-    metadata: { role },
-  });
-
-  revalidatePath("/orbit/users");
-}
 
 export async function toggleUserBanAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin();

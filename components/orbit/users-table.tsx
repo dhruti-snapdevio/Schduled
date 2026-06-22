@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { ArrowRight, MagnifyingGlass, Trash, ProhibitInset } from "@phosphor-icons/react";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ADMIN_ROLE } from "@/config/platform";
 import { bulkBanUsersAction, bulkDeleteUsersAction } from "@/app/actions/orbit-users";
-import { UserRoleForm, UserSuspendForm } from "./user-actions";
+import { UserSuspendForm } from "./user-actions";
 
 type UserRow = {
   id: string;
@@ -228,10 +228,7 @@ export function UsersTable({
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {!isSelf && (
-                          <>
-                            <UserRoleForm role={u.role} userId={u.id} />
-                            <UserSuspendForm banned={u.banned} userId={u.id} />
-                          </>
+                          <UserSuspendForm banned={u.banned} userId={u.id} />
                         )}
                         <Link
                           href={`/orbit/users/${u.id}`}

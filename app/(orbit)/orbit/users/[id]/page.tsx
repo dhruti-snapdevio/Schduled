@@ -220,7 +220,6 @@ export default async function OrbitUserDetailPage({
               <CardContent>
                 <UserDetailActions
                   userId={profile.id}
-                  role={profile.role}
                   banned={profile.banned}
                 />
               </CardContent>

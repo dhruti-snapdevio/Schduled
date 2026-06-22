@@ -8,6 +8,7 @@ import {
   Clock,
   GearSix,
   Lightning,
+  ShieldCheck,
   SignOut,
   SquaresFour,
   UserCircle,
@@ -117,6 +118,16 @@ export function SidebarNav({
             </p>
           </div>
         </div>
+
+        {/* Admin panel shortcut — only visible to admins */}
+        {isAdmin && (
+          <NavItem
+            href="/orbit"
+            label="Admin Panel"
+            icon={ShieldCheck}
+            active={pathname.startsWith("/orbit")}
+          />
+        )}
 
         {/* Sign out — user dashboard returns to the user login */}
         <form action={logoutAction.bind(null, "/login")}>

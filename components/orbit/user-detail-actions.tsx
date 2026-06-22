@@ -4,27 +4,22 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   deleteUserAction,
-  setUserRoleAction,
   toggleUserBanAction,
 } from "@/app/actions/orbit-users";
 import { Button } from "@/components/ui/button";
-import { ADMIN_ROLE, USER_ROLE } from "@/config/platform";
 import { authClient } from "@/lib/auth-client";
 
 export function UserDetailActions({
   userId,
-  role,
   banned,
 }: {
   userId: string;
-  role: string | null;
   banned: boolean;
 }) {
   const router = useRouter();
   const [impersonating, setImpersonating] = useState(false);
   const [impersonateError, setImpersonateError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const isAdmin = role === ADMIN_ROLE;
 
   async function handleImpersonate() {
     setImpersonating(true);
@@ -42,24 +37,6 @@ export function UserDetailActions({
 
   return (
     <div className="space-y-2">
-      {/* Role toggle */}
-      <form action={setUserRoleAction}>
-        <input name="userId" type="hidden" value={userId} />
-        <input
-          name="role"
-          type="hidden"
-          value={isAdmin ? USER_ROLE : ADMIN_ROLE}
-        />
-        <Button
-          className="w-full justify-start text-xs"
-          size="sm"
-          type="submit"
-          variant={isAdmin ? "destructive" : "outline"}
-        >
-          {isAdmin ? "Remove Admin" : "Make Admin"}
-        </Button>
-      </form>
-
       {/* Ban / Unban */}
       <form action={toggleUserBanAction}>
         <input name="userId" type="hidden" value={userId} />
