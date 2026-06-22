@@ -32,7 +32,7 @@ interface LivePreviewProps {
 }
 
 export function LivePreview({ form, username, meetingType }: LivePreviewProps) {
-  const name = form.watch('name') || 'Event Name'
+  const name = form.watch('name') || 'Meeting Name'
   const description = form.watch('description')
   const color = form.watch('color') || '#0d9488'
   const slug = form.watch('slug') || 'meeting'
@@ -64,7 +64,7 @@ export function LivePreview({ form, username, meetingType }: LivePreviewProps) {
       </div>
 
       {/* Booking card mockup */}
-      <div className="border border-border bg-card overflow-hidden shadow-sm">
+      <div className="border border-border bg-card overflow-hidden">
         {/* Color accent bar */}
         <div className="h-1 w-full" style={{ backgroundColor: color }} />
 

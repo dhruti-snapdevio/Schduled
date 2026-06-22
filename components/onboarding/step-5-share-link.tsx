@@ -115,7 +115,7 @@ export function StepShareLink({ username, onBack }: StepShareLinkProps) {
         {[
           'Your profile and timezone are saved',
           'Your default availability is set',
-          'A 30-minute event type is ready to book',
+          'A 30-minute meeting type is ready to book',
         ].map((item) => (
           <li key={item} className="flex items-center gap-2">
             <CheckCircle size={15} weight="fill" className="shrink-0 text-primary" />
@@ -130,7 +130,7 @@ export function StepShareLink({ username, onBack }: StepShareLinkProps) {
         <Button className="w-full" onClick={handleFinish} disabled={finishing}>
           {finishing ? 'Setting things up…' : (
             <span className="flex items-center gap-2">
-              Go to my Event Types <ArrowRight size={16} />
+              Go to my Meeting Types <ArrowRight size={16} />
             </span>
           )}
         </Button>

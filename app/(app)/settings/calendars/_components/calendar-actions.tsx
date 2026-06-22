@@ -46,7 +46,7 @@ export function CalendarActions({ calendar, connectUrl }: CalendarActionsProps) 
       {/* Info */}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{calendar.accountEmail}</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {calendar.calendarName ?? 'Google Calendar'}
           {calendar.isWriteTarget && ' · write target'}
           {calendar.isConflictCheck && ' · conflict check'}

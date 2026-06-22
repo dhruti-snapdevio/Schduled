@@ -35,15 +35,15 @@ function IntegrationRow({
 }: IntegrationRowProps) {
   return (
     <div className="flex items-center gap-4 py-5">
-      <div className="flex size-10 shrink-0 items-center justify-center bg-muted">
+      <div className="flex size-12 shrink-0 items-center justify-center border border-border bg-muted/50">
         {icon}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-medium">{name}</p>
+          <p className="text-sm font-semibold">{name}</p>
           {badge}
         </div>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
       </div>
       {action}
     </div>

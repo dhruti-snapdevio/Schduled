@@ -36,7 +36,7 @@ export default async function AdminLoginPage({
 
         {/* Brand mark */}
         <div className="mb-7 flex flex-col items-center gap-2">
-          <span className="flex size-12 items-center justify-center bg-primary text-primary-foreground shadow-[0_0_24px_rgba(20,184,166,.35)]">
+          <span className="flex size-12 items-center justify-center bg-primary text-primary-foreground">
             <ShieldCheck size={24} weight="fill" />
           </span>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">

@@ -77,7 +77,7 @@ export function CookiePreferences() {
             <div key={item.key} className={`flex items-start justify-between gap-4 ${i === 0 ? 'pb-4' : 'py-4'}`}>
               <div className="flex-1">
                 <p className="text-sm font-medium">{item.label}</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{item.desc}</p>
+                <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
               </div>
               <Switch
                 checked={item.value}

@@ -229,9 +229,10 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* ── Welcome + Quick Actions ──────────────────────────────────── */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">
+          <p className="text-xs font-bold uppercase tracking-eyebrow text-primary mb-1">Dashboard</p>
+          <h1 className="font-heading text-3xl font-black text-foreground tracking-tight">
             Welcome back, {displayName}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -258,7 +259,7 @@ export default async function DashboardPage() {
           <Button asChild>
             <Link href="/event-types">
               <Plus className="mr-1.5" size={15} weight="bold" />
-              Create Event
+              Create Meeting Type
             </Link>
           </Button>
           <Button asChild variant="secondary">
@@ -271,13 +272,13 @@ export default async function DashboardPage() {
             <Button asChild variant="secondary">
               <a href={bookingUrl} rel="noopener noreferrer" target="_blank">
                 <ShareNetwork className="mr-1.5" size={15} />
-                View Booking Page
+                My Booking Page
               </a>
             </Button>
           ) : (
             <Button asChild variant="secondary">
               <Link href="/settings/my-link">
-                <ShareNetwork className="mr-1.5" size={15} />
+                <LinkSimple className="mr-1.5" size={15} />
                 Set Up Link
               </Link>
             </Button>
@@ -291,7 +292,7 @@ export default async function DashboardPage() {
           accent={stats.activeEventTypes > 0 && stats.total === 0}
           href="/event-types"
           icon={<CalendarPlus size={20} weight="duotone" />}
-          label="Event Types"
+          label="Meeting Types"
           subtitle="Active"
           value={stats.activeEventTypes}
         />
@@ -326,10 +327,17 @@ export default async function DashboardPage() {
       {/* ── Upcoming meetings + Recent bookings ─────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between py-4">
-            <CardTitle className="text-base font-semibold">
-              Upcoming Meetings
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between border-b border-border py-4">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm font-bold uppercase tracking-ui">
+                Upcoming Meetings
+              </CardTitle>
+              {upcomingMeetings.length > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center bg-primary/10 px-1.5 text-xs font-bold text-primary">
+                  {upcomingMeetings.length}
+                </span>
+              )}
+            </div>
             <Button asChild className="h-7 text-xs" size="sm" variant="ghost">
               <Link href="/bookings">View all</Link>
             </Button>
@@ -342,40 +350,48 @@ export default async function DashboardPage() {
               />
             ) : (
               upcomingMeetings.map((m) => (
-                <div
-                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3"
+                <Link
                   key={m.id}
+                  href="/bookings"
+                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3.5 transition-colors hover:bg-muted/40 group"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">
+                    <p className="truncate text-sm font-semibold group-hover:text-primary transition-colors">
                       {m.inviteeName}
                     </p>
-                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                      <p className="truncate text-xs text-muted-foreground">
+                    <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <p className="truncate text-sm text-muted-foreground">
                         {m.eventName}
                       </p>
                       <LocationBadge locationType={m.locationType} />
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-xs font-semibold text-foreground">
+                    <p className="text-sm font-semibold text-foreground">
                       {dayLabel(m.startTime)}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       {format(m.startTime, "h:mm a")}
                     </p>
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between py-4">
-            <CardTitle className="text-base font-semibold">
-              Recent Bookings
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between border-b border-border py-4">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm font-bold uppercase tracking-ui">
+                Recent Bookings
+              </CardTitle>
+              {recentBookings.length > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center bg-muted px-1.5 text-xs font-bold text-muted-foreground">
+                  {recentBookings.length}
+                </span>
+              )}
+            </div>
             <Button asChild className="h-7 text-xs" size="sm" variant="ghost">
               <Link href="/bookings">View all</Link>
             </Button>
@@ -385,25 +401,26 @@ export default async function DashboardPage() {
               <EmptyBookings bookingUrl={bookingUrl} />
             ) : (
               recentBookings.map((b) => (
-                <div
-                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3"
+                <Link
                   key={b.id}
+                  href="/bookings"
+                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3.5 transition-colors hover:bg-muted/40 group"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">
+                    <p className="truncate text-sm font-semibold group-hover:text-primary transition-colors">
                       {b.inviteeName}
                     </p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
                       {b.eventName}
                     </p>
                   </div>
                   <div className="shrink-0 flex flex-col items-end gap-1.5">
                     <StatusBadge status={b.status} />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       {dayLabel(b.createdAt)}
                     </p>
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </CardContent>
@@ -432,26 +449,32 @@ function StatCard({
   note?: string;
   href?: string;
 }) {
-  return (
+  const inner = (
     <Card
       className={[
-        "transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-primary/60",
-        accent ? "border-primary/40 bg-primary/[0.04]" : "",
+        "relative overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-primary/60",
+        accent ? "border-primary/40 bg-primary/[0.03]" : "",
       ].join(" ")}
     >
+      {accent && (
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-primary" />
+      )}
       <CardContent className="px-5 pt-5 pb-4">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-ui text-muted-foreground">
               {label}
             </p>
-            <p className="mt-1.5 font-heading text-3xl font-bold text-foreground">
+            <p className="mt-2 font-heading text-4xl font-black text-foreground leading-none">
               {value}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
           </div>
           <span
-            className={accent ? "text-primary" : "text-muted-foreground/60"}
+            className={[
+              "flex h-9 w-9 shrink-0 items-center justify-center",
+              accent ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground/60",
+            ].join(" ")}
           >
             {icon}
           </span>
@@ -459,13 +482,13 @@ function StatCard({
 
         {(note || href) && (
           <div className="mt-3 border-t border-border pt-3">
-            {note && <p className="text-xs text-muted-foreground">{note}</p>}
+            {note && <p className="text-sm text-muted-foreground">{note}</p>}
             {href && (
               <Link
-                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
                 href={href}
               >
-                Manage <ArrowRight size={11} weight="bold" />
+                Manage <ArrowRight size={14} weight="bold" />
               </Link>
             )}
           </div>
@@ -473,6 +496,8 @@ function StatCard({
       </CardContent>
     </Card>
   );
+
+  return href ? <Link href={href} className="block">{inner}</Link> : inner;
 }
 
 function EmptyUpcoming({
@@ -484,30 +509,28 @@ function EmptyUpcoming({
 }) {
   if (hasEventTypes) {
     return (
-      <div className="flex flex-col items-center px-6 py-10 text-center">
-        <ShareNetwork
-          className="mb-3 text-muted-foreground/30"
-          size={36}
-          weight="thin"
-        />
-        <p className="text-sm font-medium text-foreground">
-          No upcoming meetings yet
+      <div className="flex flex-col items-center px-8 py-12 text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center bg-primary/10">
+          <ShareNetwork className="text-primary/60" size={28} weight="duotone" />
+        </div>
+        <p className="text-base font-semibold text-foreground">
+          Your calendar is clear
         </p>
-        <p className="mt-1 max-w-56 text-xs text-muted-foreground">
-          Share your booking link and people can start scheduling with you.
+        <p className="mt-1.5 max-w-xs text-sm text-muted-foreground">
+          Share your booking link and let people pick a time that works.
         </p>
         {bookingUrl ? (
-          <Button asChild className="mt-4" size="sm">
+          <Button asChild className="mt-5" size="sm">
             <a href={bookingUrl} rel="noopener noreferrer" target="_blank">
-              <LinkSimple className="mr-1.5" size={13} />
-              View Booking Page
+              <LinkSimple className="mr-1.5" size={15} />
+              Open Booking Page
             </a>
           </Button>
         ) : (
-          <Button asChild className="mt-4" size="sm">
+          <Button asChild className="mt-5" size="sm">
             <Link href="/event-types">
-              <CalendarPlus className="mr-1.5" size={13} />
-              View Event Types
+              <CalendarPlus className="mr-1.5" size={15} />
+              View Meeting Types
             </Link>
           </Button>
         )}
@@ -516,22 +539,20 @@ function EmptyUpcoming({
   }
 
   return (
-    <div className="flex flex-col items-center px-6 py-10 text-center">
-      <CalendarBlank
-        className="mb-3 text-muted-foreground/30"
-        size={36}
-        weight="thin"
-      />
-      <p className="text-sm font-medium text-foreground">
-        No upcoming meetings
+    <div className="flex flex-col items-center px-8 py-12 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center bg-muted">
+        <CalendarBlank className="text-muted-foreground/40" size={28} weight="duotone" />
+      </div>
+      <p className="text-base font-semibold text-foreground">
+        No meeting types yet
       </p>
-      <p className="mt-1 max-w-56 text-xs text-muted-foreground">
-        Create your first event type and start accepting bookings.
+      <p className="mt-1.5 max-w-xs text-sm text-muted-foreground">
+        Create a meeting type and share your link to start getting bookings.
       </p>
-      <Button asChild className="mt-4" size="sm">
+      <Button asChild className="mt-5" size="sm">
         <Link href="/event-types">
-          <Plus className="mr-1.5" size={13} weight="bold" />
-          Create Event
+          <Plus className="mr-1.5" size={15} weight="bold" />
+          Create Meeting Type
         </Link>
       </Button>
     </div>
@@ -540,21 +561,19 @@ function EmptyUpcoming({
 
 function EmptyBookings({ bookingUrl }: { bookingUrl: string | null }) {
   return (
-    <div className="flex flex-col items-center px-6 py-10 text-center">
-      <ShareNetwork
-        className="mb-3 text-muted-foreground/30"
-        size={36}
-        weight="thin"
-      />
-      <p className="text-sm font-medium text-foreground">No bookings yet</p>
-      <p className="mt-1 max-w-56 text-xs text-muted-foreground">
+    <div className="flex flex-col items-center px-8 py-12 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center bg-muted">
+        <CalendarCheck className="text-muted-foreground/40" size={28} weight="duotone" />
+      </div>
+      <p className="text-base font-semibold text-foreground">No bookings yet</p>
+      <p className="mt-1.5 max-w-xs text-sm text-muted-foreground">
         {bookingUrl
-          ? "Share your booking link to get your first booking."
-          : "Create an event type, then share your link to get bookings."}
+          ? "Share your booking page link and your first booking will show up here."
+          : "Create a meeting type, then share your link to receive bookings."}
       </p>
-      <Button asChild className="mt-4" size="sm" variant="secondary">
+      <Button asChild className="mt-5" size="sm" variant="secondary">
         <Link href="/event-types">
-          {bookingUrl ? "View Event Types" : "Create Event Type"}
+          {bookingUrl ? "View Meeting Types" : "Create Meeting Type"}
         </Link>
       </Button>
     </div>

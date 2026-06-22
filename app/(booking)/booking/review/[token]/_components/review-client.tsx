@@ -117,7 +117,7 @@ export function ReviewClient(props: Props) {
   if (autoApproving && view === "main") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+        <div className="w-full max-w-md overflow-hidden bg-white border border-border">
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-14 text-center">
             <Spinner className="animate-spin text-primary" size={40} />
             <p className="text-sm font-medium text-gray-700">Approving booking…</p>
@@ -130,7 +130,7 @@ export function ReviewClient(props: Props) {
   if (props.isPast) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+        <div className="w-full max-w-md overflow-hidden bg-white border border-border">
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <Warning className="text-amber-500" size={48} weight="fill" />
             <h1 className="text-lg font-bold text-gray-900">This booking has passed</h1>
@@ -146,7 +146,7 @@ export function ReviewClient(props: Props) {
   if (view === "approved") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+        <div className="w-full max-w-md overflow-hidden bg-white border border-border">
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <CheckCircle className="text-primary" size={48} weight="fill" />
             <h1 className="text-lg font-bold text-gray-900">Booking approved</h1>
@@ -163,7 +163,7 @@ export function ReviewClient(props: Props) {
   if (view === "rejected") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+        <div className="w-full max-w-md overflow-hidden bg-white border border-border">
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <CheckCircle className="text-gray-400" size={48} weight="fill" />
             <h1 className="text-lg font-bold text-gray-900">Booking declined</h1>
@@ -180,7 +180,7 @@ export function ReviewClient(props: Props) {
   if (view === "reject") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+        <div className="w-full max-w-md overflow-hidden bg-white border border-border">
           <div className="flex items-center gap-3 border-b border-gray-100 bg-[#F8FCFB] px-5 sm:px-8 py-6">
             <X className="text-red-500" size={24} weight="bold" />
             <h1 className="text-base font-bold text-gray-900">Decline this booking?</h1>
@@ -238,7 +238,7 @@ export function ReviewClient(props: Props) {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-      <div className="w-full max-w-md overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+      <div className="w-full max-w-md overflow-hidden bg-white border border-border">
         <div className="flex items-center gap-3 border-b border-gray-100 bg-[#F8FCFB] px-5 sm:px-8 py-6">
           <span className="flex size-7 items-center justify-center bg-amber-100 text-amber-600">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">

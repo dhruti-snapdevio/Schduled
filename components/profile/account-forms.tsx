@@ -265,7 +265,7 @@ export function DeleteAccountForm({ email }: { email: string }) {
       <CardHeader>
         <CardTitle className="text-destructive">Delete Account</CardTitle>
         <CardDescription>
-          Permanently delete your account, sessions, event types, and all connected
+          Permanently delete your account, sessions, meeting types, and all connected
           data. Audit records remain for operator history. This cannot be undone.
         </CardDescription>
       </CardHeader>

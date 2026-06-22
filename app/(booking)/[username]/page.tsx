@@ -85,10 +85,10 @@ export default async function HostProfilePage({
             alt={host.name}
             width={72}
             height={72}
-            className="h-[72px] w-[72px] rounded-full object-cover ring-2 ring-white shadow-md"
+            className="h-[72px] w-[72px] rounded-full object-cover ring-2 ring-white"
           />
         ) : (
-          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primary text-2xl font-semibold text-primary-foreground shadow-md">
+          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primary text-2xl font-semibold text-primary-foreground">
             {host.name.charAt(0).toUpperCase()}
           </div>
         )}
@@ -104,7 +104,7 @@ export default async function HostProfilePage({
       </header>
 
       {eventTypes.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground">No event types available.</p>
+        <p className="text-center text-sm text-muted-foreground">No meeting types available.</p>
       ) : (
         <div className="flex flex-col gap-2">
           {eventTypes.map((et) => {

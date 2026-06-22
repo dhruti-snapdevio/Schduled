@@ -157,7 +157,7 @@ export function ConfirmationClient({
       </div>
 
       <div className="relative z-10 mx-auto w-full max-w-[580px]">
-        <div className="flex flex-col items-center gap-5 bg-white px-5 py-8 sm:px-8 shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+        <div className="flex flex-col items-center gap-5 bg-white px-5 py-8 sm:px-8 border border-border">
 
           {/* ── Icon ── */}
           <div
@@ -172,7 +172,7 @@ export function ConfirmationClient({
                 <Bell
                   size={64}
                   weight="fill"
-                  className="relative text-amber-500 drop-shadow-[0_0_14px_rgba(217,119,6,0.40)]"
+                  className="relative text-amber-500"
                 />
               </>
             ) : (
@@ -181,7 +181,7 @@ export function ConfirmationClient({
                 <CheckCircle
                   size={64}
                   weight="fill"
-                  className="relative text-primary drop-shadow-[0_0_14px_rgba(13,148,136,0.50)]"
+                  className="relative text-primary"
                 />
               </>
             )}
@@ -330,7 +330,7 @@ export function ConfirmationClient({
                   download={download}
                   target={download ? undefined : '_blank'}
                   rel={download ? undefined : 'noopener noreferrer'}
-                  className="flex items-center gap-2 border border-gray-200 px-3 py-2.5 text-[12px] font-medium text-gray-600 transition-all hover:border-primary/40 hover:bg-primary/[0.05] hover:text-primary hover:shadow-[0_2px_8px_rgba(13,148,136,0.12)]"
+                  className="flex items-center gap-2 border border-gray-200 px-3 py-2.5 text-[12px] font-medium text-gray-600 transition-all hover:border-primary/40 hover:bg-primary/[0.05] hover:text-primary"
                 >
                   {icon}
                   {label}

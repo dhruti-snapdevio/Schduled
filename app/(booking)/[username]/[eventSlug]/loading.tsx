@@ -1,7 +1,7 @@
 export default function BookingPageLoading() {
   return (
     <div className="relative min-h-screen bg-[#F3F7F6] p-4 md:p-6 lg:flex lg:h-screen lg:items-center lg:p-8">
-      <div className="mx-auto w-full max-w-[900px] overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05] lg:flex lg:h-full lg:max-h-[680px] lg:flex-col">
+      <div className="mx-auto w-full max-w-[900px] overflow-hidden bg-white border border-border lg:flex lg:h-full lg:max-h-[680px] lg:flex-col">
 
         {/* Progress bar skeleton */}
         <div className="flex items-center justify-center gap-0 border-b border-gray-100 bg-white px-6 py-3">

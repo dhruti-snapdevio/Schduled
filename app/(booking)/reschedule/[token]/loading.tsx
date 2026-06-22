@@ -1,7 +1,7 @@
 export default function RescheduleLoading() {
   return (
     <div className="relative min-h-screen bg-[#F3F7F6] p-4 md:p-6 lg:flex lg:h-screen lg:items-center lg:p-8 animate-pulse">
-      <div className="mx-auto w-full max-w-[900px] bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05] lg:flex lg:max-h-[640px]">
+      <div className="mx-auto w-full max-w-[900px] bg-white border border-border lg:flex lg:max-h-[640px]">
         <div className="flex flex-col lg:flex-row flex-1">
           {/* Left info panel */}
           <div className="lg:w-[230px] border-b lg:border-b-0 lg:border-r border-gray-100 p-6 space-y-4">

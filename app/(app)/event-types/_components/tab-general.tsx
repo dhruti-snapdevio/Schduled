@@ -109,7 +109,7 @@ export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, e
 
       {/* ── Meeting type selector ───────────────────────────────── */}
       <div>
-        <p className="text-sm font-medium mb-3">Event Type</p>
+        <p className="text-sm font-medium mb-3">Meeting Type</p>
         <div className="grid grid-cols-2 gap-2">
           {MEETING_TYPES.map((mt) => (
             <button
@@ -218,7 +218,7 @@ export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, e
             {displayUrl && (
               <div className="flex items-center justify-between gap-2 mt-1.5 px-3 py-2 bg-muted/50 border border-border">
                 <span className="flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground truncate">
-                  <LinkIcon size={11} />
+                  <LinkIcon size={13} />
                   {displayUrl}
                 </span>
                 <button
@@ -226,7 +226,7 @@ export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, e
                   onClick={copyLink}
                   className="shrink-0 flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
                 >
-                  <Copy size={11} />
+                  <Copy size={13} />
                   Copy
                 </button>
               </div>
@@ -313,7 +313,7 @@ export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, e
             <div>
               <FormLabel className="text-sm font-medium">Private Event</FormLabel>
               <FormDescription className="text-xs">
-                Only people with the direct link can book this event type.
+                Only people with the direct link can book this meeting type.
               </FormDescription>
             </div>
             <FormControl>

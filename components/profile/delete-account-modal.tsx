@@ -307,7 +307,7 @@ export function DeleteAccountModal({ email }: Props) {
                 <ul className="space-y-1.5 text-sm">
                   {[
                     'Your profile and account settings',
-                    'All event types you created',
+                    'All meeting types you created',
                     'Your availability schedules',
                     'All connected calendars',
                     'All active sessions',

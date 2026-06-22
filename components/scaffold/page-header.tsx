@@ -12,10 +12,10 @@ export function PageHeader({
   action?:      ReactNode
 }) {
   return (
-    <div className="mb-6 flex items-start justify-between gap-4">
+    <div className="mb-8 flex items-start justify-between gap-4 border-b border-border pb-6">
       <div>
         {eyebrow && (
-          <p className="mb-2 font-bold text-xs text-primary uppercase tracking-eyebrow">
+          <p className="mb-1.5 font-bold text-xs text-primary uppercase tracking-eyebrow">
             {eyebrow}
           </p>
         )}
@@ -23,12 +23,12 @@ export function PageHeader({
           {title}
         </h1>
         {description && (
-          <p className="mt-2 max-w-2xl text-muted-foreground text-sm leading-relaxed">
+          <p className="mt-2 max-w-2xl text-muted-foreground text-base leading-relaxed">
             {description}
           </p>
         )}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="shrink-0 pt-0.5">{action}</div>}
     </div>
   )
 }

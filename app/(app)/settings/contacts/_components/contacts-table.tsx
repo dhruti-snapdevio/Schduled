@@ -158,7 +158,7 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
               contacts.map((c) => (
                 <TableRow key={c.email}>
                   <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell className="text-muted-foreground text-xs sm:text-sm truncate max-w-[140px] sm:max-w-none">{c.email}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm truncate max-w-[140px] sm:max-w-none">{c.email}</TableCell>
                   <TableCell className="hidden sm:table-cell">{c.booking_count}</TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">
                     {c.last_booked_at
@@ -167,7 +167,7 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
                     {c.notes ? (
-                      <span className="line-clamp-1 text-xs text-muted-foreground">{c.notes}</span>
+                      <span className="line-clamp-1 text-sm text-muted-foreground">{c.notes}</span>
                     ) : (
                       <span className="text-xs text-muted-foreground/40">—</span>
                     )}

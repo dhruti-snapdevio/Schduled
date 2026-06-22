@@ -233,7 +233,7 @@ export async function completeOnboarding(): Promise<ActionResult> {
           userId: session.user.id,
           name: '30-Minute Meeting',
           slug: '30-min',
-          locationType: 'zoom',
+          locationType: 'google_meet',
           color: '#0d9488',
           isActive: true,
           minimumNotice: 60,

@@ -114,11 +114,11 @@ interface BuilderProps {
 }
 
 const TABS = [
-  { id: "general", label: "General" },
-  { id: "availability", label: "Availability" },
+  { id: "general", label: "Details" },
+  { id: "availability", label: "Scheduling" },
   { id: "location", label: "Location" },
-  { id: "questions", label: "Questions" },
-  { id: "notifications", label: "Notifications" },
+  { id: "questions", label: "Booking Form" },
+  { id: "notifications", label: "Confirmations" },
   { id: "cancellation", label: "Cancellation" },
 ];
 
@@ -255,12 +255,12 @@ export function EventTypeBuilder({
               href="/event-types"
             >
               <ArrowLeft size={13} />
-              Event Types
+              Meeting Types
             </Link>
             <CaretRight className="text-muted-foreground/50" size={11} />
             <span className="truncate font-medium text-foreground">
               {mode === "create"
-                ? "New Event Type"
+                ? "New Meeting Type"
                 : form.watch("name") || "Edit"}
             </span>
           </div>
@@ -279,7 +279,7 @@ export function EventTypeBuilder({
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="truncate text-lg font-bold text-foreground">
                   {form.watch("name") ||
-                    (mode === "create" ? "New Event Type" : "Untitled")}
+                    (mode === "create" ? "New Meeting Type" : "Untitled")}
                 </h1>
                 <span
                   className={cn(
@@ -322,7 +322,7 @@ export function EventTypeBuilder({
                 <FloppyDisk size={13} />
                 {isPending
                   ? mode === "create" ? "Creating…" : "Saving…"
-                  : mode === "create" ? "Create Event Type" : "Save Changes"}
+                  : mode === "create" ? "Create Meeting Type" : "Save Changes"}
               </Button>
             </div>
           </div>
@@ -373,7 +373,7 @@ export function EventTypeBuilder({
                 {isLast ? (
                   <Button className="gap-1.5" disabled={(mode === "edit" && !isDirty) || isPending} size="sm" type="submit">
                     <FloppyDisk size={13} />
-                    {isPending ? (mode === "create" ? "Creating…" : "Saving…") : (mode === "create" ? "Create Event Type" : "Save Changes")}
+                    {isPending ? (mode === "create" ? "Creating…" : "Saving…") : (mode === "create" ? "Create Meeting Type" : "Save Changes")}
                   </Button>
                 ) : (
                   <Button className="gap-1.5" onClick={() => setActiveTab(TABS[tabIndex + 1].id)} size="sm" type="button" variant="outline">
@@ -437,7 +437,7 @@ export function EventTypeBuilder({
                       ? "Creating…"
                       : "Saving…"
                     : mode === "create"
-                      ? "Create Event Type"
+                      ? "Create Meeting Type"
                       : "Save Changes"}
                 </Button>
               ) : (
@@ -472,9 +472,9 @@ export function EventTypeBuilder({
         open={!!successInfo}
       >
         <DialogContent className="sm:max-w-sm">
-          <DialogTitle className="sr-only">Event type saved</DialogTitle>
+          <DialogTitle className="sr-only">Meeting type saved</DialogTitle>
           <DialogDescription className="sr-only">
-            Your event type has been saved successfully.
+            Your meeting type has been saved successfully.
           </DialogDescription>
 
           <div className="flex flex-col items-center gap-4 py-2">
@@ -484,7 +484,7 @@ export function EventTypeBuilder({
             <div className="text-center">
               <p className="font-semibold text-base">
                 {successInfo?.isCreate
-                  ? "Event type created!"
+                  ? "Meeting type created!"
                   : "Changes saved!"}
               </p>
               <p className="mt-1 text-sm text-muted-foreground truncate max-w-[260px]">

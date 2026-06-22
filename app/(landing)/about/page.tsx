@@ -283,7 +283,7 @@ export default function AboutPage() {
                 return (
                   <div
                     key={v.title}
-                    className="group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:shadow-xl"
+                    className="group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50"
                   >
                     {/* Top accent line */}
                     <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
@@ -338,7 +338,7 @@ export default function AboutPage() {
               {/* Code snippet visual */}
               <div
                 className="border border-white/10 font-mono text-xs"
-                style={{ background: "linear-gradient(145deg,#0d1f1a,#091512)", boxShadow: "0 0 60px rgba(20,184,166,.12), 0 24px 48px rgba(0,0,0,.6)" }}
+                style={{ background: "linear-gradient(145deg,#0d1f1a,#091512)" }}
               >
                 <div className="flex items-center gap-2 border-b border-white/8 px-4 py-2.5">
                   <div className="flex gap-1.5">

@@ -165,7 +165,7 @@ export default async function BookingsPage({
               className={cn(
                 'inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium border transition-all',
                 tab === key
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                  ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-primary/40',
               )}
             >
@@ -227,7 +227,7 @@ export default async function BookingsPage({
             return (
               <div
                 key={b.id}
-                className="group relative flex items-stretch border border-border bg-background hover:border-primary/30 hover:shadow-sm hover:-translate-y-px transition-all overflow-hidden"
+                className="group relative flex items-stretch border border-border bg-background hover:border-primary/30 hover:-translate-y-px transition-all overflow-hidden"
               >
                 {/* 3px event color bar */}
                 <div
@@ -237,13 +237,13 @@ export default async function BookingsPage({
 
                 {/* Date column */}
                 <div className="flex flex-col items-center justify-center w-[58px] shrink-0 text-center py-3 px-2 border-r border-border/40">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide leading-none">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide leading-none">
                     {format(b.startTime, 'MMM')}
                   </p>
                   <p className="text-2xl font-bold text-foreground leading-tight">
                     {format(b.startTime, 'd')}
                   </p>
-                  <p className="text-[10px] text-muted-foreground leading-none">
+                  <p className="text-xs text-muted-foreground leading-none">
                     {format(b.startTime, 'EEE')}
                   </p>
                 </div>
@@ -252,23 +252,23 @@ export default async function BookingsPage({
                 <div className="flex-1 min-w-0 py-3 px-4 flex flex-col justify-center">
                   {/* Name + event name */}
                   <div className="flex items-baseline gap-2 min-w-0">
-                    <p className="font-semibold text-foreground text-sm truncate">{b.inviteeName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{b.eventName}</p>
+                    <p className="font-semibold text-foreground text-base truncate">{b.inviteeName}</p>
+                    <p className="text-sm text-muted-foreground truncate">{b.eventName}</p>
                   </div>
 
                   {/* Meta row */}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <Clock size={11} />
+                      <Clock size={13} />
                       {dayLabel(b.startTime)} · {format(b.startTime, 'h:mm a')} – {format(b.endTime, 'h:mm a')}
                     </span>
                     <span className="flex items-center gap-1 max-w-[180px] sm:max-w-none truncate">
-                      <EnvelopeSimple size={11} className="shrink-0" />
+                      <EnvelopeSimple size={13} className="shrink-0" />
                       <span className="truncate">{b.inviteeEmail}</span>
                     </span>
                     {/* Platform badge */}
-                    <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium', platform.color)}>
-                      <PlatformIcon size={10} weight="fill" />
+                    <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium', platform.color)}>
+                      <PlatformIcon size={12} weight="fill" />
                       {platform.label}
                     </span>
                     {/* Cancellation reason */}
@@ -280,7 +280,7 @@ export default async function BookingsPage({
                     {/* Pending indicator */}
                     {isPending && (
                       <span className="flex items-center gap-1 text-amber-600">
-                        <Hourglass size={11} weight="fill" />
+                        <Hourglass size={13} weight="fill" />
                         Awaiting your review
                       </span>
                     )}
@@ -301,7 +301,7 @@ export default async function BookingsPage({
                       {joinUrl && (
                         <Button asChild size="sm" className="h-7 text-xs gap-1 px-2.5">
                           <a href={joinUrl} target="_blank" rel="noopener noreferrer">
-                            <VideoCamera size={11} weight="fill" />
+                            <VideoCamera size={13} weight="fill" />
                             {joinLabel}
                           </a>
                         </Button>
@@ -315,7 +315,7 @@ export default async function BookingsPage({
                           title="Reschedule"
                         >
                           <Link href={`/reschedule/${b.rescheduleToken}`}>
-                            <ArrowCounterClockwise size={12} />
+                            <ArrowCounterClockwise size={14} />
                             <span className="hidden lg:inline">Reschedule</span>
                           </Link>
                         </Button>
@@ -329,7 +329,7 @@ export default async function BookingsPage({
                           title="Cancel"
                         >
                           <Link href={`/cancel/${b.cancelToken}`}>
-                            <X size={12} />
+                            <X size={14} />
                           </Link>
                         </Button>
                       )}
@@ -345,7 +345,7 @@ export default async function BookingsPage({
                         className="h-7 text-xs gap-1 px-2.5 bg-primary hover:bg-primary/90"
                       >
                         <Link href={`/booking/review/${b.approvalToken}?action=approve`}>
-                          <Check size={11} weight="bold" />
+                          <Check size={13} weight="bold" />
                           Approve
                         </Link>
                       </Button>
@@ -356,7 +356,7 @@ export default async function BookingsPage({
                         className="h-7 text-xs gap-1 px-2 border-destructive/40 text-destructive hover:bg-destructive/5 hover:border-destructive"
                       >
                         <Link href={`/booking/review/${b.approvalToken}`}>
-                          <X size={11} weight="bold" />
+                          <X size={13} weight="bold" />
                           Decline
                         </Link>
                       </Button>
@@ -414,9 +414,9 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
                   1
                 </span>
                 <div>
-                  <p className="text-sm font-medium text-foreground">Enable approval on an event type</p>
+                  <p className="text-sm font-medium text-foreground">Enable approval on a meeting type</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Edit any event type → General tab → turn on <strong>Require Approval</strong>.
+                    Edit any meeting type → Details tab → turn on <strong>Require Approval</strong>.
                   </p>
                 </div>
               </div>
@@ -450,8 +450,8 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
           <div className="flex items-center gap-3 border-t border-border bg-gray-50/50 px-6 py-4">
             <Button asChild size="sm" className="gap-1.5">
               <Link href="/event-types">
-                <Sliders size={13} weight="bold" />
-                Go to Event Types
+                <Sliders size={15} weight="bold" />
+                Go to Meeting Types
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline" className="gap-1.5">
@@ -476,8 +476,8 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
               <CalendarBlank size={20} weight="duotone" />
             </span>
             <div>
-              <p className="font-semibold text-foreground text-sm">No upcoming bookings</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="font-semibold text-foreground text-base">No upcoming bookings</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
                 Your confirmed meetings will appear here once people start booking.
               </p>
             </div>
@@ -485,17 +485,17 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
 
           {/* Steps */}
           <div className="px-6 py-5">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
               Get your first booking
             </p>
             <div className="space-y-4">
               {[
                 {
                   step: '1',
-                  title: 'Create an event type',
+                  title: 'Create a meeting type',
                   desc: 'Define the meeting length, location, and any custom questions you want to ask.',
                   href: '/event-types',
-                  cta: 'Go to Event Types',
+                  cta: 'Go to Meeting Types',
                 },
                 {
                   step: '2',
@@ -517,8 +517,8 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
                     {step}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                    <p className="text-sm font-semibold text-foreground">{title}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">{desc}</p>
                   </div>
                   <Button asChild size="sm" variant="outline" className="shrink-0 text-xs h-7 px-2.5">
                     <Link href={href}>{cta}</Link>
@@ -532,8 +532,8 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
           <div className="flex items-center gap-3 border-t border-border bg-muted/30 px-6 py-4">
             <Button asChild size="sm" className="gap-1.5">
               <Link href="/event-types">
-                <CalendarBlank size={13} weight="bold" />
-                Create Event Type
+                <CalendarBlank size={15} weight="bold" />
+                Create Meeting Type
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline" className="gap-1.5">
@@ -568,7 +568,7 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
           <div className="flex items-center border-t border-border bg-muted/30 px-6 py-4">
             <Button asChild size="sm" variant="outline" className="gap-1.5">
               <Link href="/bookings?tab=upcoming">
-                <CalendarBlank size={13} />
+                <CalendarBlank size={15} />
                 View upcoming
               </Link>
             </Button>

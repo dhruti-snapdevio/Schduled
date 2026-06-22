@@ -65,7 +65,7 @@ export function CancelClient(props: Props) {
   if (props.blockedByPolicy) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+        <div className="w-full max-w-md overflow-hidden bg-white border border-border">
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <Warning className="text-amber-500" size={48} weight="fill" />
             <h1 className="text-lg font-bold text-gray-900">
@@ -81,7 +81,7 @@ export function CancelClient(props: Props) {
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                This event type does not allow cancellations. Please contact the
+                This meeting type does not allow cancellations. Please contact the
                 host directly.
               </p>
             )}
@@ -93,7 +93,7 @@ export function CancelClient(props: Props) {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-      <div className="w-full max-w-md overflow-hidden bg-white shadow-[0_4px_40px_rgba(0,0,0,0.09)] ring-1 ring-black/[0.05]">
+      <div className="w-full max-w-md overflow-hidden bg-white border border-border">
         {done ? (
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <CheckCircle className="text-primary" size={48} weight="fill" />

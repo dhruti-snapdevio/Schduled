@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
-import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ImpersonationBanner } from "./impersonation-banner";
 import { MobileNav } from "./mobile-nav";
@@ -25,17 +24,29 @@ export function AppShell({
   isImpersonating?: boolean;
   impersonatedUserName?: string | null;
 }) {
-  const initials = (userName ?? email).slice(0, 2).toUpperCase();
-
   return (
-    /* h-dvh = dynamic viewport height — accounts for mobile browser chrome (address bar, bottom bar) */
-    <div className="flex h-dvh flex-col overflow-hidden">
-      {/* ── Top bar ─────────────────────────────────────────────────── */}
-      <header className="h-14 shrink-0 flex items-center justify-between gap-3 px-4 md:px-6 border-b border-border bg-background z-40">
-        <Logo href="/dashboard" size="md" variant="full" />
+    <div className="flex h-dvh overflow-hidden">
 
-        <div className="flex items-center gap-2 min-w-0">
-          {/* Search — navigates to /bookings?q= on submit */}
+      {/* ── Full-height sidebar — desktop only ───────────────────────── */}
+      <aside className="hidden md:flex w-60 shrink-0 flex-col bg-sidebar border-r border-sidebar-border overflow-y-auto no-scrollbar">
+        <SidebarNav
+          email={email}
+          userName={userName}
+          isAdmin={isAdmin}
+          userImage={userImage}
+        />
+      </aside>
+
+      {/* ── Right side: top bar + content ────────────────────────────── */}
+      <div className="flex flex-1 min-w-0 flex-col overflow-hidden">
+
+        {/* Impersonation banner */}
+        {isImpersonating && (
+          <ImpersonationBanner userName={impersonatedUserName ?? email} />
+        )}
+
+        {/* Top bar — spans only the content area */}
+        <header className="h-14 shrink-0 flex items-center justify-between gap-3 px-4 md:px-6 border-b border-border bg-background z-40">
           <form action="/bookings" method="GET" className="relative hidden sm:block">
             <MagnifyingGlass
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
@@ -49,10 +60,9 @@ export function AppShell({
             />
           </form>
 
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-0.5 ml-auto">
             <ThemeToggle />
             <NotificationBell />
-            {/* Avatar — links to profile settings */}
             <Link
               href="/settings/profile"
               aria-label="Profile settings"
@@ -60,35 +70,19 @@ export function AppShell({
             >
               {userImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  alt="Profile"
-                  className="size-full object-cover"
-                  src={userImage}
-                />
+                <img alt="Profile" className="size-full object-cover" src={userImage} />
               ) : (
-                initials
+                (userName ?? email).slice(0, 2).toUpperCase()
               )}
             </Link>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* ── Impersonation banner ─────────────────────────────────────── */}
-      {isImpersonating && (
-        <ImpersonationBanner userName={impersonatedUserName ?? email} />
-      )}
-
-      {/* ── Body: sidebar + content ──────────────────────────────────── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Left sidebar — desktop only */}
-        <aside className="hidden md:flex w-60 shrink-0 flex-col bg-sidebar border-r border-sidebar-border overflow-y-auto no-scrollbar">
-          <SidebarNav email={email} userName={userName} isAdmin={isAdmin} userImage={userImage} />
-        </aside>
-
-        {/* Page content — overflow-x-hidden stops horizontal scrollbar from builder tab bar's negative margins */}
-        {/* pb-16 on mobile gives room for the fixed bottom nav */}
+        {/* Page content */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-page pb-16 md:pb-0">
-          <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-8">{children}</div>
+          <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-8">
+            {children}
+          </div>
         </main>
       </div>
 
