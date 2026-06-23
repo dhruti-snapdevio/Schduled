@@ -213,7 +213,7 @@ export function RescheduleClient(props: Props) {
               >
                 <CaretLeft size={14} weight="bold" />
               </button>
-              <span className="text-[13px] font-semibold text-gray-700">
+              <span className="text-sm font-semibold text-gray-700">
                 {format(month, "MMMM yyyy")}
               </span>
               <button
@@ -257,7 +257,7 @@ export function RescheduleClient(props: Props) {
                   >
                     <button
                       className={cn(
-                        "flex h-9 w-9 items-center justify-center text-[13px] transition-all",
+                        "flex h-9 w-9 items-center justify-center text-sm transition-all",
                         !inMonth && "invisible pointer-events-none",
                         inMonth && !available && "cursor-default text-gray-200",
                         inMonth &&
@@ -308,13 +308,13 @@ export function RescheduleClient(props: Props) {
                         className="animate-spin text-primary"
                         size={22}
                       />
-                      <p className="text-[12px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Loading times…
                       </p>
                     </div>
                   )}
                   {!loadingSlots && slots.length === 0 && (
-                    <p className="pt-8 text-center text-[13px] text-muted-foreground">
+                    <p className="pt-8 text-center text-sm text-muted-foreground">
                       No times available. Try another date.
                     </p>
                   )}
@@ -326,7 +326,7 @@ export function RescheduleClient(props: Props) {
                         return (
                           <button
                             className={cn(
-                              "flex h-11 w-full items-center justify-center gap-2 text-[13px] font-semibold transition-all",
+                              "flex h-11 w-full items-center justify-center gap-2 text-sm font-semibold transition-all",
                               isChosen
                                 ? "bg-primary text-white"
                                 : "border border-gray-200 bg-white text-gray-700 hover:border-primary/60 hover:bg-primary/5 hover:text-primary"
@@ -350,7 +350,7 @@ export function RescheduleClient(props: Props) {
                   )}
                 </div>
                 {error && (
-                  <p className="px-6 pb-2 text-[12px] text-destructive">
+                  <p className="px-6 pb-2 text-xs text-destructive">
                     {error}
                   </p>
                 )}

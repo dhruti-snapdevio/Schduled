@@ -8,6 +8,16 @@ import type { ExistingQuestion } from './builder'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -53,6 +63,7 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, p
   const displayQuestions = mode === 'create' ? pendingQuestions : questions
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<ExistingQuestion | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [form, setForm] = useState(blankForm())
   const [isPending, startTransition] = useTransition()
 
@@ -249,7 +260,7 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, p
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 text-destructive/70 hover:text-destructive"
-                onClick={() => handleDelete(q.id)}
+                onClick={() => setDeleteConfirmId(q.id)}
                 disabled={isPending}
                 type="button"
               >
@@ -336,6 +347,30 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, p
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete question confirmation */}
+      <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this question?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This question will be permanently removed from the booking form and cannot be recovered.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (deleteConfirmId) handleDelete(deleteConfirmId);
+                setDeleteConfirmId(null);
+              }}
+            >
+              Remove question
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

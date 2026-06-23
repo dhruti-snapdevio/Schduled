@@ -35,7 +35,7 @@ export function LivePreview({ form, username, meetingType }: LivePreviewProps) {
   const name = form.watch('name') || 'Meeting Name'
   const description = form.watch('description')
   const color = form.watch('color') || '#0d9488'
-  const slug = form.watch('slug') || 'meeting'
+  const slug = form.watch('slug') || 'your-meeting'
   const durations = form.watch('durations') ?? []
   const locationType = form.watch('locationType') || 'zoom'
   const isActive = form.watch('isActive')

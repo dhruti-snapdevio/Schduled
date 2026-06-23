@@ -91,15 +91,17 @@ export default async function OrbitPage() {
     <div className="space-y-8">
       {/* ── Page heading ────────────────────────────────────────────── */}
       <div className="border-b border-border pb-6">
-        <p className="mb-1.5 text-xs font-bold uppercase tracking-eyebrow text-primary">
-          Admin Panel
-        </p>
-        <h1 className="font-black text-3xl tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
-          Workspace Administration
-        </h1>
-        <p className="mt-2 text-base text-muted-foreground">
-          Manage users, bookings, emails and monitor system health.
-        </p>
+        <div className="border-l-[3px] border-l-primary pl-4">
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-eyebrow text-primary">
+            Admin Panel
+          </p>
+          <h1 className="font-black text-4xl tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
+            Workspace Administration
+          </h1>
+          <p className="mt-2 text-base text-muted-foreground">
+            Manage users, bookings, emails and monitor system health.
+          </p>
+        </div>
       </div>
 
       {/* ── Stat cards ──────────────────────────────────────────────── */}

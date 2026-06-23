@@ -149,7 +149,7 @@ export function NotificationBell() {
           <div className="flex items-center gap-2">
             {unread > 0 && (
               <button
-                className="flex items-center gap-1 text-[11px] text-primary hover:underline"
+                className="flex items-center gap-1 text-xs text-primary hover:underline"
                 onClick={markAllRead}
                 type="button"
               >
@@ -159,7 +159,7 @@ export function NotificationBell() {
             )}
             {items.length > 0 && (
               <button
-                className="text-[11px] text-muted-foreground hover:text-destructive hover:underline transition-colors"
+                className="text-xs text-muted-foreground hover:text-destructive hover:underline transition-colors"
                 onClick={clearAll}
                 type="button"
               >
@@ -195,15 +195,15 @@ export function NotificationBell() {
                   {ICONS[n.type] ?? <Bell size={16} />}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-foreground">
+                  <p className="truncate text-sm font-medium text-foreground">
                     {n.title}
                   </p>
                   {n.body && (
-                    <p className="mt-0.5 text-[12px] text-muted-foreground">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       {n.body}
                     </p>
                   )}
-                  <p className="mt-1 text-[10px] text-muted-foreground/70">
+                  <p className="mt-1 text-xs text-muted-foreground/60">
                     {timeAgo(n.createdAt)}
                   </p>
                 </div>

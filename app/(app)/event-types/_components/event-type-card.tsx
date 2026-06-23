@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import {
+  ArrowSquareOut,
   CalendarCheck,
   Check,
   Clock,
@@ -70,6 +71,8 @@ interface EventTypeCardProps {
   durations: Duration[]
   username: string | null
   stats?: EventTypeStats
+  isSelected?: boolean
+  onSelect?: (id: string, selected: boolean) => void
 }
 
 // ── Location meta ────────────────────────────────────────────────────────────
@@ -107,6 +110,7 @@ function relativeDate(date: Date): string {
 
 export function EventTypeCard({
   id, name, slug, color, locationType, isActive, isHidden, durations, username, stats,
+  isSelected = false, onSelect,
 }: EventTypeCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -114,15 +118,12 @@ export function EventTypeCard({
   const [lastBookedLabel, setLastBookedLabel] = useState<string | null>(null)
   const loc = LOCATION_META[locationType] ?? LOCATION_META.custom
 
-  // Compute relative date client-side only to avoid SSR/hydration mismatch (Date.now() differs)
+  // Compute relative date client-side only to avoid SSR/hydration mismatch
   useEffect(() => {
     if (stats?.lastBooked) setLastBookedLabel(relativeDate(stats.lastBooked))
   }, [stats?.lastBooked])
 
   const bookingUrl = username ? `${APP_URL}/${username}/${slug}` : null
-  const displayUrl = username
-    ? `${APP_URL.replace(/^https?:\/\//, '')}/${username}/${slug}`
-    : null
 
   function handleToggle(checked: boolean) {
     startTransition(async () => {
@@ -136,7 +137,7 @@ export function EventTypeCard({
     startTransition(async () => {
       const res = await duplicateEventType(id)
       if ('error' in res) toast.error(res.error)
-      else { toast.success('Event type duplicated'); router.refresh() }
+      else { toast.success('Meeting type duplicated'); router.refresh() }
     })
   }
 
@@ -144,7 +145,7 @@ export function EventTypeCard({
     startTransition(async () => {
       const res = await deleteEventType(id)
       if ('error' in res) toast.error(res.error)
-      else { toast.success('Event type deleted'); router.refresh() }
+      else { toast.success('Meeting type deleted'); router.refresh() }
     })
   }
 
@@ -157,21 +158,35 @@ export function EventTypeCard({
   }
 
   const sortedDurations = [...durations].sort((a, b) => a.duration - b.duration)
+  const durationLabel = sortedDurations.map((d) => formatDuration(d.duration)).join(' / ')
 
   return (
     <div className={cn(
-      'group flex items-stretch border border-border bg-card',
-      'transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50',
+      'group flex items-stretch border bg-card transition-all duration-200',
+      isSelected
+        ? 'border-primary bg-primary/[0.03]'
+        : 'border-border hover:border-primary/40',
       !isActive && 'opacity-60',
     )}>
-      {/* Colored left bar — uses the event's chosen color */}
+      {/* Colored left bar */}
       <div className="w-1 shrink-0" style={{ backgroundColor: color || 'var(--primary)' }} />
 
+      {/* Checkbox area */}
+      <div className="flex items-center pl-4 pr-2">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={(e) => onSelect?.(id, e.target.checked)}
+          className="h-4 w-4 cursor-pointer accent-[color:var(--primary)]"
+          aria-label={`Select ${name}`}
+        />
+      </div>
+
       {/* Card body */}
-      <div className="flex flex-1 items-center gap-4 px-4 py-3.5 min-w-0">
+      <div className="flex flex-1 items-center gap-4 pr-4 py-3.5 min-w-0">
 
         {/* ── Left: info ──────────────────────────────────────────── */}
-        <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex-1 min-w-0 space-y-1">
 
           {/* Name + status badges */}
           <div className="flex items-center gap-2 flex-wrap">
@@ -188,20 +203,16 @@ export function EventTypeCard({
             )}
           </div>
 
-          {/* Duration pills + provider badge */}
+          {/* Inline meta: duration pill + location badge */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            {sortedDurations.map((d) => (
-              <span
-                key={d.duration}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary"
-              >
-                <Clock size={13} weight="bold" />
-                {formatDuration(d.duration)}
+            {durationLabel && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary">
+                <Clock size={12} weight="bold" />
+                {durationLabel}
               </span>
-            ))}
-
+            )}
             <span
-              className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium"
+              className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium"
               style={{ backgroundColor: loc.bg, color: loc.text }}
             >
               {loc.icon}
@@ -213,7 +224,7 @@ export function EventTypeCard({
           {stats && (
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
-                <CalendarCheck size={13} weight="bold" />
+                <CalendarCheck size={12} weight="bold" />
                 {stats.countThisMonth} this month
               </span>
               {lastBookedLabel && (
@@ -272,6 +283,20 @@ export function EventTypeCard({
           >
             <PencilSimple size={15} />
           </Link>
+
+          {/* Open booking page */}
+          {bookingUrl && (
+            <a
+              href={bookingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open booking page for ${name}`}
+              title="Open booking page"
+              className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary hover:scale-105"
+            >
+              <ArrowSquareOut size={15} />
+            </a>
+          )}
 
           {/* ⋮ More */}
           <DropdownMenu>

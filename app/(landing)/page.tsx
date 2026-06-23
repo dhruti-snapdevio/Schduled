@@ -11,16 +11,17 @@ import {
   CheckCircle,
   Clock,
   Code,
-  DiscordLogo,
-  GithubLogo,
+  FacebookLogo,
   Globe,
+  InstagramLogo,
   Lightning,
   LinkedinLogo,
   LinkSimple,
   ShieldCheck,
   Star,
-  TwitterLogo,
   VideoCamera,
+  XLogo,
+  YoutubeLogo,
 } from '@phosphor-icons/react/dist/ssr'
 import { Logo } from '@/components/logo'
 import { getCurrentSession } from '@/lib/authz'
@@ -1202,18 +1203,19 @@ export default async function LandingPage() {
               {/* Social icons */}
               <div className="mt-5 flex items-center gap-3">
                 {[
-                  { icon: TwitterLogo,  href: 'https://twitter.com',  label: 'Twitter' },
-                  { icon: LinkedinLogo, href: 'https://linkedin.com', label: 'LinkedIn' },
-                  { icon: GithubLogo,   href: 'https://github.com',   label: 'GitHub' },
-                  { icon: DiscordLogo,  href: 'https://discord.com',  label: 'Discord' },
+                  { icon: XLogo,         href: 'https://twitter.com',   label: 'X' },
+                  { icon: LinkedinLogo,  href: 'https://linkedin.com',  label: 'LinkedIn' },
+                  { icon: FacebookLogo,  href: 'https://facebook.com',  label: 'Facebook' },
+                  { icon: InstagramLogo, href: 'https://instagram.com', label: 'Instagram' },
+                  { icon: YoutubeLogo,   href: 'https://youtube.com',   label: 'YouTube' },
                 ].map(({ icon: Icon, href, label }) => (
                   <a
                     key={label}
                     href={href}
                     aria-label={label}
-                    className="flex h-8 w-8 items-center justify-center border border-border text-muted-foreground transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                    className="flex h-9 w-9 items-center justify-center border border-border text-muted-foreground transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
                   >
-                    <Icon size={15} weight="fill" />
+                    <Icon size={18} weight="fill" />
                   </a>
                 ))}
               </div>

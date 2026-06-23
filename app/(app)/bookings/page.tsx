@@ -175,7 +175,7 @@ export default async function BookingsPage({
               )} />
               {label}
               <span className={cn(
-                'text-[11px] font-bold',
+                'text-xs font-bold',
                 tab === key ? 'text-white/80' : 'text-muted-foreground',
               )}>
                 {counts[key]}
@@ -290,7 +290,7 @@ export default async function BookingsPage({
                 {/* Right: status badge + actions */}
                 <div className="flex flex-col items-end justify-center gap-2 px-4 py-3 shrink-0">
                   {/* Status pill */}
-                  <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold', statusMeta.badge)}>
+                  <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold', statusMeta.badge)}>
                     <span className={cn('size-1.5 rounded-full shrink-0', statusMeta.dotClass)} />
                     {statusMeta.label}
                   </span>
@@ -405,7 +405,7 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
 
           {/* How it works */}
           <div className="px-6 py-5">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
               How approval works
             </p>
             <div className="space-y-4">

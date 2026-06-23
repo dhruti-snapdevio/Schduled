@@ -133,13 +133,13 @@ export function CancelClient(props: Props) {
                   with {props.hostName}
                 </p>
                 <p className="mt-2 text-xs text-gray-600">{when}</p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {props.inviteeTimezone}
                 </p>
               </div>
 
               <label
-                className="mb-1.5 block text-[11px] font-semibold text-gray-600"
+                className="mb-1.5 block text-xs font-semibold text-gray-600"
                 htmlFor="cancel-reason"
               >
                 Reason (optional)
@@ -154,7 +154,7 @@ export function CancelClient(props: Props) {
               />
 
               {error && (
-                <p className="mt-3 text-[12px] text-destructive">{error}</p>
+                <p className="mt-3 text-xs text-destructive">{error}</p>
               )}
 
               <button

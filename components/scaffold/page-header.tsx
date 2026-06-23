@@ -13,7 +13,7 @@ export function PageHeader({
 }) {
   return (
     <div className="mb-8 flex items-start justify-between gap-4 border-b border-border pb-6">
-      <div>
+      <div className="border-l-[3px] border-l-primary pl-4">
         {eyebrow && (
           <p className="mb-1.5 font-bold text-xs text-primary uppercase tracking-eyebrow">
             {eyebrow}
