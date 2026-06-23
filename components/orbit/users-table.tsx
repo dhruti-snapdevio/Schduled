@@ -32,6 +32,7 @@ export function UsersTable({
   const [filter, setFilter]       = useState<Filter>("all");
   const [selected, setSelected]   = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmSuspend, setConfirmSuspend] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const filtered = users.filter((u) => {
@@ -70,9 +71,11 @@ export function UsersTable({
   }
 
   function handleBulkSuspend() {
+    if (!confirmSuspend) { setConfirmSuspend(true); return; }
     startTransition(async () => {
       await bulkBanUsersAction(buildFormData());
       setSelected(new Set());
+      setConfirmSuspend(false);
     });
   }
 
@@ -267,22 +270,46 @@ export function UsersTable({
               variant="ghost"
               size="sm"
               className="text-xs"
-              onClick={() => { setSelected(new Set()); setConfirmDelete(false); }}
+              onClick={() => { setSelected(new Set()); setConfirmDelete(false); setConfirmSuspend(false); }}
               disabled={isPending}
             >
               Clear
             </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={handleBulkSuspend}
-              disabled={isPending}
-            >
-              <ProhibitInset size={13} />
-              Suspend {selected.size}
-            </Button>
+            {confirmSuspend ? (
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs text-destructive font-medium">Suspend {selected.size} account{selected.size > 1 ? "s" : ""}?</p>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="text-xs"
+                  onClick={handleBulkSuspend}
+                  disabled={isPending}
+                >
+                  {isPending ? "Suspending…" : "Yes, suspend"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setConfirmSuspend(false)}
+                  disabled={isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={handleBulkSuspend}
+                disabled={isPending}
+              >
+                <ProhibitInset size={13} />
+                Suspend {selected.size}
+              </Button>
+            )}
 
             {confirmDelete ? (
               <div className="flex items-center gap-1.5">

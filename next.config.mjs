@@ -5,6 +5,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      { source: '/settings', destination: '/settings/my-link', permanent: true },
+    ]
+  },
   turbopack: {
     root: resolve(__dirname),
   },

@@ -9,7 +9,7 @@ import { booking, user } from '@/db/schema'
 import { Button } from '@/components/ui/button'
 import { Empty } from '@/components/ui/empty'
 import { PageHeader } from '@/components/scaffold/page-header'
-import { EventTypeCard } from './_components/event-type-card'
+import { EventTypeList } from './_components/event-type-list'
 
 export const metadata = { title: 'Meeting Types' }
 
@@ -72,23 +72,11 @@ export default async function EventTypesPage() {
           }
         />
       ) : (
-        <div className="space-y-2">
-          {eventTypes.map((et) => (
-            <EventTypeCard
-              key={et.id}
-              id={et.id}
-              name={et.name}
-              slug={et.slug}
-              color={et.color}
-              locationType={et.locationType}
-              isActive={et.isActive}
-              isHidden={et.isHidden}
-              durations={et.durations}
-              username={username}
-              stats={statsMap.get(et.id)}
-            />
-          ))}
-        </div>
+        <EventTypeList
+          eventTypes={eventTypes}
+          username={username}
+          statsMap={statsMap}
+        />
       )}
     </>
   )

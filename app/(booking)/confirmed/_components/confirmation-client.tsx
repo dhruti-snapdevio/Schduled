@@ -201,7 +201,7 @@ export function ConfirmationClient({
                     <span className="text-primary">{hostName}</span> is awaiting approval.
                   </p>
                 )}
-                <p className="mt-0.5 text-[13px] text-muted-foreground">
+                <p className="mt-0.5 text-sm text-muted-foreground">
                   You&apos;ll receive a confirmation email once the host approves your request.
                 </p>
               </>
@@ -215,7 +215,7 @@ export function ConfirmationClient({
                     Your meeting with <span className="text-primary">{hostName}</span> is confirmed.
                   </p>
                 )}
-                <p className="mt-0.5 text-[13px] text-muted-foreground">
+                <p className="mt-0.5 text-sm text-muted-foreground">
                   We&apos;ve sent a calendar invite and meeting details to your email.
                 </p>
               </>
@@ -225,28 +225,28 @@ export function ConfirmationClient({
           {/* ── Meeting details card ── */}
           <div className="w-full border border-gray-100 bg-[#F8FCFB]">
             <div className="border-b border-gray-100 px-5 py-2.5">
-              <p className="text-[13px] font-bold text-gray-900">{eventName}</p>
+              <p className="text-sm font-bold text-gray-900">{eventName}</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 px-5 py-3.5">
               {hostName && (
                 <div className="flex items-center gap-2">
                   <UserCircle size={14} className="shrink-0 text-muted-foreground" />
-                  <span className="truncate text-[12px] text-gray-700">{hostName}</span>
+                  <span className="truncate text-xs text-gray-700">{hostName}</span>
                 </div>
               )}
               <div className="flex items-center gap-2">
                 <CalendarBlank size={14} className="shrink-0 text-muted-foreground" />
-                <span className="truncate text-[12px] text-gray-700">{dateLine}</span>
+                <span className="truncate text-xs text-gray-700">{dateLine}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock size={14} className="shrink-0 text-muted-foreground" />
-                <span className="text-[12px] text-gray-700">
+                <span className="text-xs text-gray-700">
                   {startTime}{endTime ? ` – ${endTime}` : ''}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn('shrink-0', loc.color)}>{loc.icon}</span>
-                <span className={cn('text-[12px] font-medium', loc.color)}>{loc.label}</span>
+                <span className={cn('text-xs font-medium', loc.color)}>{loc.label}</span>
               </div>
               {locationValue && (
                 <div className="col-span-2 flex items-start gap-2">
@@ -257,12 +257,12 @@ export function ConfirmationClient({
                   ) : (
                     <LinkIcon size={14} className="mt-0.5 shrink-0 text-muted-foreground" />
                   )}
-                  <span className="break-all text-[12px] text-gray-700">{locationValue}</span>
+                  <span className="break-all text-xs text-gray-700">{locationValue}</span>
                 </div>
               )}
               <div className="col-span-2 flex items-center gap-2">
                 <Globe size={14} className="shrink-0 text-muted-foreground" />
-                <span className="text-[12px] text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {timezone} · {tzLabel}
                 </span>
               </div>
@@ -274,7 +274,7 @@ export function ConfirmationClient({
             <div className="flex w-full items-center justify-between bg-primary/[0.06] px-5 py-3">
               <div className="flex items-center gap-2 text-primary">
                 <Timer size={15} weight="fill" />
-                <span className="text-[13px] font-semibold">Meeting starts in</span>
+                <span className="text-sm font-semibold">Meeting starts in</span>
               </div>
               <span className="text-[17px] font-bold tracking-tight text-primary">
                 {countdownLabel}
@@ -330,7 +330,7 @@ export function ConfirmationClient({
                   download={download}
                   target={download ? undefined : '_blank'}
                   rel={download ? undefined : 'noopener noreferrer'}
-                  className="flex items-center gap-2 border border-gray-200 px-3 py-2.5 text-[12px] font-medium text-gray-600 transition-all hover:border-primary/40 hover:bg-primary/[0.05] hover:text-primary"
+                  className="flex items-center gap-2 border border-gray-200 px-3 py-2.5 text-xs font-medium text-gray-600 transition-all hover:border-primary/40 hover:bg-primary/[0.05] hover:text-primary"
                 >
                   {icon}
                   {label}
@@ -345,7 +345,7 @@ export function ConfirmationClient({
               {rescheduleToken && (
                 <Link
                   href={`/reschedule/${rescheduleToken}`}
-                  className="flex flex-1 h-10 items-center justify-center gap-1.5 border border-primary text-[13px] font-semibold text-primary transition-all hover:bg-primary hover:text-white"
+                  className="flex flex-1 h-10 items-center justify-center gap-1.5 border border-primary text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-white"
                 >
                   <ArrowsClockwise size={13} />
                   Reschedule
@@ -354,7 +354,7 @@ export function ConfirmationClient({
               {cancelToken && (
                 <Link
                   href={`/cancel/${cancelToken}`}
-                  className="flex flex-1 h-10 items-center justify-center gap-1.5 border border-red-300 text-[13px] font-semibold text-red-400 transition-all hover:bg-red-50 hover:border-red-400 hover:text-red-600"
+                  className="flex flex-1 h-10 items-center justify-center gap-1.5 border border-red-300 text-sm font-semibold text-red-400 transition-all hover:bg-red-50 hover:border-red-400 hover:text-red-600"
                 >
                   <X size={13} />
                   Cancel Event
@@ -372,22 +372,22 @@ export function ConfirmationClient({
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2.5">
                   <Bell size={13} weight="fill" className="shrink-0 text-amber-500" />
-                  <span className="text-[12px] text-gray-600">You&apos;ll receive an email once the host approves your request</span>
+                  <span className="text-xs text-gray-600">You&apos;ll receive an email once the host approves your request</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <EnvelopeSimple size={13} weight="fill" className="shrink-0 text-amber-500" />
-                  <span className="text-[12px] text-gray-600">A calendar invite will be sent to you after approval</span>
+                  <span className="text-xs text-gray-600">A calendar invite will be sent to you after approval</span>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2.5">
                   <EnvelopeSimple size={13} weight="fill" className="shrink-0 text-primary/70" />
-                  <span className="text-[12px] text-gray-600">Check your email for confirmation</span>
+                  <span className="text-xs text-gray-600">Check your email for confirmation</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Bell size={13} weight="fill" className="shrink-0 text-primary/70" />
-                  <span className="text-[12px] text-gray-600">You&apos;ll receive reminder emails before the meeting</span>
+                  <span className="text-xs text-gray-600">You&apos;ll receive reminder emails before the meeting</span>
                 </div>
               </div>
             )}

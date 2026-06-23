@@ -1,11 +1,22 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import {
   deleteUserAction,
   toggleUserBanAction,
 } from "@/app/actions/orbit-users";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
@@ -20,6 +31,7 @@ export function UserDetailActions({
   const [impersonating, setImpersonating] = useState(false);
   const [impersonateError, setImpersonateError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [, startTransition] = useTransition();
 
   async function handleImpersonate() {
     setImpersonating(true);
@@ -38,18 +50,44 @@ export function UserDetailActions({
   return (
     <div className="space-y-2">
       {/* Ban / Unban */}
-      <form action={toggleUserBanAction}>
-        <input name="userId" type="hidden" value={userId} />
-        <input name="banned" type="hidden" value={String(!banned)} />
-        <Button
-          className="w-full justify-start text-xs"
-          size="sm"
-          type="submit"
-          variant={banned ? "secondary" : "outline"}
-        >
-          {banned ? "Reactivate Account" : "Suspend Account"}
-        </Button>
-      </form>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            className="w-full justify-start text-xs"
+            size="sm"
+            type="button"
+            variant={banned ? "secondary" : "outline"}
+          >
+            {banned ? "Reactivate Account" : "Suspend Account"}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {banned ? "Reactivate this account?" : "Suspend this account?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {banned
+                ? "The user will be able to sign in and access their account again."
+                : "The user will be immediately signed out and unable to access their account until reactivated."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant={banned ? "default" : "destructive"}
+              onClick={() => {
+                const fd = new FormData();
+                fd.append("userId", userId);
+                fd.append("banned", String(!banned));
+                startTransition(() => toggleUserBanAction(fd));
+              }}
+            >
+              {banned ? "Reactivate" : "Suspend"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Impersonate */}
       <Button

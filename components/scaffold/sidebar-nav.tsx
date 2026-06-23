@@ -81,21 +81,20 @@ export function SidebarNav({
 
       {/* ── Main nav ─────────────────────────────────────────────────── */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto no-scrollbar px-2 py-3">
-        {NAV_LINKS.map(({ href, label, icon }) => (
-          <NavItem
-            key={href}
-            href={href}
-            label={label}
-            icon={icon}
-            active={
-              pathname === href ||
-              (href !== "/dashboard" && pathname.startsWith(href + "/")) ||
-              (href === "/settings" &&
-                pathname.startsWith("/settings") &&
-                !pathname.startsWith("/settings/profile"))
-            }
-          />
-        ))}
+        {NAV_LINKS.map(({ href, label, icon }) => {
+          const isProfileSection =
+            pathname.startsWith("/settings/profile") ||
+            pathname.startsWith("/settings/security") ||
+            pathname.startsWith("/settings/login")
+          const active =
+            href === "/settings"
+              ? pathname.startsWith("/settings") && !isProfileSection
+              : pathname === href ||
+                (href !== "/dashboard" && pathname.startsWith(href + "/"))
+          return (
+            <NavItem key={href} href={href} label={label} icon={icon} active={active} />
+          )
+        })}
       </nav>
 
       {/* ── Bottom section ───────────────────────────────────────────── */}
@@ -106,7 +105,11 @@ export function SidebarNav({
           href="/settings/profile"
           label="Profile"
           icon={UserCircle}
-          active={pathname === "/settings/profile"}
+          active={
+            pathname.startsWith("/settings/profile") ||
+            pathname.startsWith("/settings/security") ||
+            pathname.startsWith("/settings/login")
+          }
         />
 
         {/* Admin panel shortcut */}

@@ -361,6 +361,39 @@ export async function deleteEventType(id: string): Promise<ActionResult> {
   }
 }
 
+// ── Bulk delete ───────────────────────────────────────────────────────────────
+
+export async function bulkDeleteEventTypes(ids: string[]): Promise<ActionResult> {
+  if (!ids.length) return { ok: true }
+  try {
+    const session = await requireSession()
+    await db.delete(booking).where(inArray(booking.eventTypeId, ids))
+    await db.delete(eventType).where(
+      and(inArray(eventType.id, ids), eq(eventType.userId, session.user.id))
+    )
+    revalidatePath('/event-types')
+    return { ok: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+// ── Bulk toggle ───────────────────────────────────────────────────────────────
+
+export async function bulkToggleEventTypes(ids: string[], isActive: boolean): Promise<ActionResult> {
+  if (!ids.length) return { ok: true }
+  try {
+    const session = await requireSession()
+    await db.update(eventType)
+      .set({ isActive, updatedAt: new Date() })
+      .where(and(inArray(eventType.id, ids), eq(eventType.userId, session.user.id)))
+    revalidatePath('/event-types')
+    return { ok: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
 // ── Duplicate ─────────────────────────────────────────────────────────────────
 
 export async function duplicateEventType(id: string): Promise<ActionResult<{ id: string }>> {

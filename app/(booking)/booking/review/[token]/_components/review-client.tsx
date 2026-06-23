@@ -108,7 +108,7 @@ export function ReviewClient(props: Props) {
         with {props.inviteeName} ({props.inviteeEmail})
       </p>
       <p className="mt-2 text-xs text-gray-600">{when}</p>
-      <p className="text-[11px] text-muted-foreground">{props.hostTimezone}</p>
+      <p className="text-xs text-muted-foreground">{props.hostTimezone}</p>
       <p className="mt-1 text-xs text-gray-600">{props.locationLabel}</p>
     </div>
   );
@@ -189,7 +189,7 @@ export function ReviewClient(props: Props) {
             <BookingCard />
 
             <label
-              className="mb-1.5 block text-[11px] font-semibold text-gray-600"
+              className="mb-1.5 block text-xs font-semibold text-gray-600"
               htmlFor="reject-reason"
             >
               Reason for declining (optional)
@@ -203,7 +203,7 @@ export function ReviewClient(props: Props) {
               value={reason}
             />
 
-            {error && <p className="mt-3 text-[12px] text-destructive">{error}</p>}
+            {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 
             <div className="mt-5 flex gap-3">
               <button
@@ -256,7 +256,7 @@ export function ReviewClient(props: Props) {
 
           <BookingCard />
 
-          {error && <p className="mb-4 text-[12px] text-destructive">{error}</p>}
+          {error && <p className="mb-4 text-xs text-destructive">{error}</p>}
 
           <div className="flex gap-3">
             <button

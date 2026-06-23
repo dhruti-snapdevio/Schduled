@@ -47,7 +47,7 @@ export const MEETING_TYPES = [
 ]
 
 function slugify(name: string) {
-  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'meeting'
+  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
 interface TabGeneralProps {
@@ -93,8 +93,8 @@ export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, e
     return () => clearTimeout(timer)
   }, [slug, eventTypeId])
 
-  const bookingUrl = username ? `${APP_URL}/${username}/${slug}` : null
-  const displayUrl = username
+  const bookingUrl = username && slug ? `${APP_URL}/${username}/${slug}` : null
+  const displayUrl = username && slug
     ? `${(APP_URL || 'schduled.com').replace(/^https?:\/\//, '')}/${username}/${slug}`
     : null
 
@@ -197,7 +197,7 @@ export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, e
                 )}
                 <Input
                   className="border-0 shadow-none focus-visible:ring-0 flex-1"
-                  placeholder="meeting-slug"
+                  placeholder="e.g. 30-min-meeting"
                   maxLength={100}
                   {...field}
                   onChange={(e) => {

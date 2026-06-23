@@ -643,7 +643,7 @@ function LocationBadge({ locationType }: { locationType: string }) {
   }
   return (
     <span
-      className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 shrink-0 ${style}`}
+      className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 shrink-0 ${style}`}
     >
       {label}
     </span>

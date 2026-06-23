@@ -106,7 +106,7 @@ function FormField({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-semibold text-gray-600">
+      <label className="text-xs font-semibold text-gray-600">
         {label}
         {required && <span className="ml-0.5 text-destructive">*</span>}
       </label>
@@ -163,7 +163,7 @@ function QuestionInput({
           return (
             <label
               key={opt}
-              className="flex cursor-pointer items-center gap-2 text-[13px] text-gray-700"
+              className="flex cursor-pointer items-center gap-2 text-sm text-gray-700"
             >
               <input
                 type="checkbox"
@@ -537,7 +537,7 @@ export function BookingCalendar({
                 <div className="flex items-center gap-1.5 px-1">
                   <div
                     className={cn(
-                      'flex h-5 w-5 items-center justify-center text-[10px] font-bold transition-all',
+                      'flex h-5 w-5 items-center justify-center text-xs font-bold transition-all',
                       done && 'bg-primary text-white',
                       active && 'bg-primary text-white ring-[3px] ring-primary/20 ring-offset-1',
                       !done && !active && 'bg-gray-100 text-gray-400'
@@ -547,7 +547,7 @@ export function BookingCalendar({
                   </div>
                   <span
                     className={cn(
-                      'hidden text-[11px] font-medium sm:block',
+                      'hidden text-xs font-medium sm:block',
                       active ? 'text-primary' : done ? 'text-primary/60' : 'text-gray-400'
                     )}
                   >
