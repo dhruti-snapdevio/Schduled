@@ -4,6 +4,13 @@ import { Export, FunnelSimple, MagnifyingGlass } from "@phosphor-icons/react";
 import { format, startOfDay, subDays } from "date-fns";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -61,28 +68,15 @@ function getFriendlyLabel(action: string): string {
     .join(" ");
 }
 
-// ── Entity badge colours ──────────────────────────────────────────────────────
-
-const ENTITY_STYLES: Record<string, string> = {
-  user: "bg-blue-500/10 text-blue-600 border-blue-500/25 dark:text-blue-400",
-  session: "bg-teal-500/10 text-teal-600 border-teal-500/25 dark:text-teal-400",
-  booking:
-    "bg-violet-500/10 text-violet-600 border-violet-500/25 dark:text-violet-400",
-  event_type:
-    "bg-orange-500/10 text-orange-600 border-orange-500/25 dark:text-orange-400",
-  email:
-    "bg-amber-500/10 text-amber-600 border-amber-500/25 dark:text-amber-400",
-};
+// ── Entity badge ───────────────────────────────────────────────────────────────
+// One cohesive, on-brand neutral style for every entity type. The label text
+// itself ("USER", "EVENT TYPE") carries the meaning — no need for a clashing
+// rainbow of colours.
 
 function EntityBadge({ type }: { type: string }) {
-  const cls =
-    ENTITY_STYLES[type.toLowerCase()] ??
-    "bg-muted text-muted-foreground border-border";
   return (
-    <span
-      className={`inline-flex items-center rounded-none border px-2 py-0.5 text-xs font-semibold uppercase tracking-ui ${cls}`}
-    >
-      {type}
+    <span className="inline-flex items-center rounded-none border border-border bg-muted px-2 py-0.5 text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+      {type.replace(/_/g, " ")}
     </span>
   );
 }
@@ -278,44 +272,41 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
           </div>
 
           {/* Action category */}
-          <select
-            className="h-9 rounded-none border border-border bg-page px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            onChange={(e) => setActionCat(e.target.value as ActionCategory)}
-            value={actionCat}
-          >
-            <option value="all">All Actions</option>
-            <option value="auth">Authentication</option>
-            <option value="bookings">Bookings</option>
-            <option value="events">Events</option>
-            <option value="emails">Emails</option>
-            <option value="profile">Profile</option>
-          </select>
+          <Select onValueChange={(v) => setActionCat(v as ActionCategory)} value={actionCat}>
+            <SelectTrigger className="h-9 w-40 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Actions</SelectItem>
+              <SelectItem value="auth">Authentication</SelectItem>
+              <SelectItem value="bookings">Bookings</SelectItem>
+              <SelectItem value="events">Events</SelectItem>
+              <SelectItem value="emails">Emails</SelectItem>
+              <SelectItem value="profile">Profile</SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* Entity type */}
-          <select
-            className="h-9 rounded-none border border-border bg-page px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            onChange={(e) => setEntityFilter(e.target.value)}
-            value={entityFilter}
-          >
-            {entityTypes.map((t) => (
-              <option key={t} value={t}>
-                {t === "all" ? "All Entities" : t.toUpperCase()}
-              </option>
-            ))}
-          </select>
+          <Select onValueChange={(v) => setEntityFilter(v)} value={entityFilter}>
+            <SelectTrigger className="h-9 w-40 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {entityTypes.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t === "all" ? "All Entities" : t.replace(/_/g, " ").toUpperCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {/* Date range */}
-          <select
-            className="h-9 rounded-none border border-border bg-page px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            onChange={(e) => setDateRange(e.target.value as DateRange)}
-            value={dateRange}
-          >
-            <option value="all">All Time</option>
-            <option value="today">Today</option>
-            <option value="week">Last 7 Days</option>
-            <option value="month">Last 30 Days</option>
-            <option value="custom">Custom Range</option>
-          </select>
+          <Select onValueChange={(v) => setDateRange(v as DateRange)} value={dateRange}>
+            <SelectTrigger className="h-9 w-40 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">Last 7 Days</SelectItem>
+              <SelectItem value="month">Last 30 Days</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Right: export buttons */}
@@ -381,9 +372,6 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
                 Entity
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
-                IP
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                 Date
               </th>
             </tr>
@@ -393,7 +381,7 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
               <tr>
                 <td
                   className="px-6 py-12 text-center text-sm text-muted-foreground"
-                  colSpan={5}
+                  colSpan={4}
                 >
                   No audit logs match your filters.
                 </td>
@@ -408,9 +396,6 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
                   <td className="px-6 py-3">
                     <p className="text-sm font-medium">
                       {getFriendlyLabel(log.action)}
-                    </p>
-                    <p className="mt-0.5 font-mono text-xs text-muted-foreground/60">
-                      {log.action}
                     </p>
                   </td>
 
@@ -433,11 +418,6 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
                         {log.entityId}
                       </p>
                     )}
-                  </td>
-
-                  {/* IP */}
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {(log.metadata?.ip as string) ?? "—"}
                   </td>
 
                   {/* Date */}

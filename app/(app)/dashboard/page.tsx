@@ -286,11 +286,47 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* ── Next meeting focal strip ─────────────────────────────────── */}
+      {upcomingMeetings[0] && (
+        <Link
+          href="/bookings"
+          className="group flex flex-wrap items-center gap-4 border border-primary/30 bg-primary/[0.04] px-5 py-4 transition-colors hover:bg-primary/[0.07]"
+        >
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center bg-primary text-primary-foreground">
+            <Clock size={22} weight="duotone" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold uppercase tracking-ui text-primary">
+              Your next meeting
+            </p>
+            <p className="mt-0.5 truncate text-sm">
+              <span className="font-semibold text-foreground">
+                {upcomingMeetings[0].inviteeName}
+              </span>
+              <span className="text-muted-foreground">
+                {" · "}
+                {upcomingMeetings[0].eventName}
+              </span>
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-sm font-bold text-foreground">
+              {dayLabel(upcomingMeetings[0].startTime)}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {format(upcomingMeetings[0].startTime, "h:mm a")}
+            </p>
+          </div>
+          <span className="ml-1 hidden shrink-0 items-center gap-1 text-sm font-medium text-primary transition-transform group-hover:translate-x-0.5 sm:inline-flex">
+            View <ArrowRight size={14} weight="bold" />
+          </span>
+        </Link>
+      )}
+
       {/* ── Stat cards ──────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <StatCard
           accent={stats.activeEventTypes > 0 && stats.total === 0}
-          href="/event-types"
           icon={<CalendarPlus size={20} weight="duotone" />}
           label="Meeting Types"
           subtitle="Active"
@@ -348,12 +384,16 @@ export default async function DashboardPage() {
                 bookingUrl={bookingUrl}
                 hasEventTypes={stats.activeEventTypes > 0}
               />
+            ) : upcomingMeetings.length === 1 ? (
+              <div className="px-6 py-8 text-center text-sm text-muted-foreground">
+                Your next meeting is shown above.
+              </div>
             ) : (
-              upcomingMeetings.map((m) => (
+              upcomingMeetings.slice(1).map((m) => (
                 <Link
                   key={m.id}
                   href="/bookings"
-                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3.5 transition-colors hover:bg-muted/40 group"
+                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3.5 transition-colors duration-150 hover:bg-primary/[0.02] group"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold group-hover:text-primary transition-colors">
@@ -404,7 +444,7 @@ export default async function DashboardPage() {
                 <Link
                   key={b.id}
                   href="/bookings"
-                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3.5 transition-colors hover:bg-muted/40 group"
+                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3.5 transition-colors duration-150 hover:bg-primary/[0.02] group"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold group-hover:text-primary transition-colors">
@@ -439,7 +479,6 @@ function StatCard({
   icon,
   accent = false,
   note,
-  href,
 }: {
   label: string;
   value: number;
@@ -447,57 +486,54 @@ function StatCard({
   icon: React.ReactNode;
   accent?: boolean;
   note?: string;
-  href?: string;
 }) {
-  const inner = (
+  return (
     <Card
       className={[
-        "relative overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-primary/60",
+        "group relative overflow-hidden transition-all duration-200",
+        "hover:border-primary/60 hover:bg-primary/[0.025]",
         accent ? "border-primary/40 bg-primary/[0.03]" : "",
       ].join(" ")}
     >
-      {accent && (
-        <div className="absolute inset-x-0 top-0 h-[3px] bg-primary" />
-      )}
+      {/* Top accent bar — always visible for accent cards, sweeps in on hover for others */}
+      <div
+        className={[
+          "absolute inset-x-0 top-0 h-[3px] bg-primary origin-left transition-transform duration-300 ease-out",
+          accent ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100",
+        ].join(" ")}
+      />
+
       <CardContent className="px-5 pt-5 pb-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-ui text-muted-foreground">
               {label}
             </p>
-            <p className="mt-2 font-heading text-4xl font-black text-foreground leading-none">
+            <p className="mt-2 font-heading text-4xl font-black leading-none transition-colors duration-200 text-foreground group-hover:text-primary">
               {value}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
           </div>
           <span
             className={[
-              "flex h-9 w-9 shrink-0 items-center justify-center",
-              accent ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground/60",
+              "flex h-9 w-9 shrink-0 items-center justify-center transition-all duration-200",
+              accent
+                ? "bg-primary/10 text-primary"
+                : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary",
             ].join(" ")}
           >
             {icon}
           </span>
         </div>
 
-        {(note || href) && (
+        {note && (
           <div className="mt-3 border-t border-border pt-3">
-            {note && <p className="text-sm text-muted-foreground">{note}</p>}
-            {href && (
-              <Link
-                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-                href={href}
-              >
-                Manage <ArrowRight size={14} weight="bold" />
-              </Link>
-            )}
+            <p className="text-sm text-muted-foreground">{note}</p>
           </div>
         )}
       </CardContent>
     </Card>
   );
-
-  return href ? <Link href={href} className="block">{inner}</Link> : inner;
 }
 
 function EmptyUpcoming({

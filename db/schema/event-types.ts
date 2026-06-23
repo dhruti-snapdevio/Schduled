@@ -24,8 +24,9 @@ export const eventType = pgTable('event_type', {
   bufferAfter:            integer('buffer_after').default(0),
   maxBookingsPerDay:      integer('max_bookings_per_day'),
   startTimeIncrement:     integer('start_time_increment').default(30),
-  requiresApproval:       boolean('requires_approval').notNull().default(false),
-  confirmationNote:       text('confirmation_note'),
+  requiresApproval:            boolean('requires_approval').notNull().default(false),
+  requiresEmailVerification:   boolean('requires_email_verification').notNull().default(false),
+  confirmationNote:            text('confirmation_note'),
   createdAt:              timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt:              timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [

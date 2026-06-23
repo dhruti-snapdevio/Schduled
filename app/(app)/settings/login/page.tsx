@@ -36,7 +36,7 @@ function LoginRow({ icon, name, description, badge, action }: LoginRowProps) {
           <p className="text-sm font-medium">{name}</p>
           {badge}
         </div>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>
@@ -59,8 +59,8 @@ export default async function LoginPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Settings"
-        title="Login"
+        eyebrow="Profile"
+        title="Connected Accounts"
         description="Manage how you sign in to your account."
       />
 
@@ -79,7 +79,7 @@ export default async function LoginPage() {
             description={`A sign-in link is sent to ${session.user.email} — no password required.`}
             badge={
               <Badge
-                className="text-[var(--success-foreground)]"
+                className="text-emerald-600"
                 variant="secondary"
               >
                 Active
@@ -99,7 +99,7 @@ export default async function LoginPage() {
             badge={
               hasGoogle ? (
                 <Badge
-                  className="text-[var(--success-foreground)]"
+                  className="text-emerald-600"
                   variant="secondary"
                 >
                   Connected
@@ -115,7 +115,7 @@ export default async function LoginPage() {
                   canDisconnect={canDisconnectGoogle}
                 />
               ) : (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   Requires setup
                 </span>
               )

@@ -92,7 +92,8 @@ export async function saveProfileStep(data: {
     })
 
     return { ok: true, username }
-  } catch {
+  } catch (err) {
+    console.error('[onboarding] saveNameStep', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -115,7 +116,8 @@ export async function saveTimezoneStep(timezone: string): Promise<ActionResult> 
       .where(eq(user.id, session.user.id))
 
     return { ok: true }
-  } catch {
+  } catch (err) {
+    console.error('[onboarding] saveTimezoneStep', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -186,7 +188,8 @@ export async function saveAvailabilityStep(
     })
 
     return { ok: true }
-  } catch {
+  } catch (err) {
+    console.error('[onboarding] saveAvailabilityStep', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -201,7 +204,8 @@ export async function skipCalendarStep(): Promise<ActionResult> {
       .set({ onboardingStep: 4, updatedAt: new Date() })
       .where(eq(user.id, session.user.id))
     return { ok: true }
-  } catch {
+  } catch (err) {
+    console.error('[onboarding] skipCalendarStep', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }

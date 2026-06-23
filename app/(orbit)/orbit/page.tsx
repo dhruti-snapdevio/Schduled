@@ -7,8 +7,10 @@ import {
   CheckCircle,
   Envelope,
   GoogleLogo,
+  PencilSimple,
   Queue,
   Stack,
+  Trash,
   Users,
   Warning,
   XCircle,
@@ -84,8 +86,12 @@ export default async function OrbitPage() {
   const googleConfigured = !!(
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
   );
-  const emailHealthy = (failedEmailCount?.value ?? 0) === 0;
+  const failedEmails = failedEmailCount?.value ?? 0;
+  const emailHealthy = failedEmails === 0;
   const queuesRunning = queues.length > 0;
+  const failedJobs = queues
+    .filter((r) => r.state === "failed")
+    .reduce((sum, r) => sum + Number(r.count), 0);
 
   return (
     <div className="space-y-8">
@@ -124,12 +130,14 @@ export default async function OrbitPage() {
           value={emailCount?.value ?? 0}
           icon={<Envelope size={20} weight="duotone" />}
           href="/orbit/email"
+          alert={failedEmails > 0 ? `${failedEmails} failed` : undefined}
         />
         <StatCard
           label="Queue Jobs"
           value={queues.reduce((sum, r) => sum + Number(r.count), 0)}
           icon={<Stack size={20} weight="duotone" />}
           href="/orbit/queues"
+          alert={failedJobs > 0 ? `${failedJobs} failed` : undefined}
         />
       </div>
 
@@ -285,14 +293,16 @@ export default async function OrbitPage() {
             </p>
           ) : (
             <div>
-              {recentActivities.map((log) => (
+              {recentActivities.map((log) => {
+                const visual = activityVisual(log.action);
+                return (
                 <div
                   key={log.id}
                   className="flex items-center justify-between gap-4 border-t border-border px-6 py-3"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-primary/10 text-primary">
-                      <ActivityIcon action={log.action} />
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center ${visual.cls}`}>
+                      {visual.icon}
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium capitalize">
@@ -312,7 +322,8 @@ export default async function OrbitPage() {
                     </p>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -330,6 +341,7 @@ function StatCard({
   accent = false,
   subtitle,
   href,
+  alert,
 }: {
   label: string;
   value: number;
@@ -337,6 +349,7 @@ function StatCard({
   accent?: boolean;
   subtitle?: string;
   href?: string;
+  alert?: string;
 }) {
   const inner = (
     <Card
@@ -360,6 +373,12 @@ function StatCard({
             {subtitle && (
               <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
             )}
+            {alert && (
+              <p className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-destructive">
+                <Warning size={13} weight="fill" />
+                {alert}
+              </p>
+            )}
           </div>
           <span
             className={[
@@ -372,19 +391,16 @@ function StatCard({
         </div>
         {href && (
           <div className="mt-3 border-t border-border/60 pt-3">
-            <Link
-              href={href}
-              className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-            >
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors group-hover:text-primary/80">
               View all <ArrowRight size={12} weight="bold" />
-            </Link>
+            </span>
           </div>
         )}
       </CardContent>
     </Card>
   );
 
-  return href ? <Link href={href} className="block">{inner}</Link> : inner;
+  return href ? <Link href={href} className="group block">{inner}</Link> : inner;
 }
 
 function StatusRow({
@@ -428,10 +444,26 @@ function formatAction(action: string): string {
   return action.replace(/[._]/g, " ");
 }
 
-function ActivityIcon({ action }: { action: string }) {
-  if (action.includes("user"))    return <Users size={14} />;
-  if (action.includes("booking")) return <CalendarCheck size={14} />;
-  if (action.includes("email"))   return <Envelope size={14} />;
-  if (action.includes("event"))   return <Warning size={14} />;
-  return <CheckCircle size={14} />;
+// Semantic icon + colour per action — positive (green), negative/neutral
+// (muted), destructive (red), failure (amber). Order matters: check
+// "deactivat"/"disconnect" before "activat"/"connect" (substring overlap).
+function activityVisual(action: string): { icon: React.ReactNode; cls: string } {
+  const a = action.toLowerCase();
+  if (a.includes("delete"))
+    return { icon: <Trash size={14} weight="fill" />, cls: "bg-destructive/10 text-destructive" };
+  if (a.includes("fail"))
+    return { icon: <Warning size={14} weight="fill" />, cls: "bg-amber-500/10 text-amber-600" };
+  if (a.includes("deactivat") || a.includes("disconnect") || a.includes("suspend") || a.includes("revoke"))
+    return { icon: <XCircle size={14} weight="fill" />, cls: "bg-muted text-muted-foreground" };
+  if (a.includes("creat") || a.includes("activat") || a.includes("connect") || a.includes("reactivat"))
+    return { icon: <CheckCircle size={14} weight="fill" />, cls: "bg-success/10 text-success" };
+  if (a.includes("updat"))
+    return { icon: <PencilSimple size={14} />, cls: "bg-primary/10 text-primary" };
+  if (a.includes("user"))
+    return { icon: <Users size={14} />, cls: "bg-primary/10 text-primary" };
+  if (a.includes("booking"))
+    return { icon: <CalendarCheck size={14} />, cls: "bg-primary/10 text-primary" };
+  if (a.includes("email"))
+    return { icon: <Envelope size={14} />, cls: "bg-primary/10 text-primary" };
+  return { icon: <CheckCircle size={14} />, cls: "bg-primary/10 text-primary" };
 }

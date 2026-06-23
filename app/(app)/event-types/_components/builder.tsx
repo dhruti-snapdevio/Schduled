@@ -13,7 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -179,6 +179,14 @@ export function EventTypeBuilder({
 
   const isDirty = form.formState.isDirty;
   const tabIndex = TABS.findIndex((t) => t.id === activeTab);
+
+  // Warn before closing/refreshing when there are unsaved changes
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
   const isFirst = tabIndex === 0;
   const isLast = tabIndex === TABS.length - 1;
 
@@ -283,7 +291,7 @@ export function EventTypeBuilder({
                 </h1>
                 <span
                   className={cn(
-                    "shrink-0 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                    "shrink-0 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide",
                     form.watch("isActive")
                       ? "bg-primary/10 text-primary"
                       : "bg-muted text-muted-foreground"
@@ -293,7 +301,7 @@ export function EventTypeBuilder({
                 </span>
               </div>
               {/* Event type badge */}
-              <span className="mt-1 inline-block text-[11px] font-medium text-muted-foreground">
+              <span className="mt-1 inline-block text-xs font-medium text-muted-foreground">
                 {MEETING_TYPES.find((m) => m.id === meetingType)?.label ?? "One-on-One"}
               </span>
             </div>
@@ -349,11 +357,11 @@ export function EventTypeBuilder({
           </div>
         </div>
 
-        {/* Tab content — General uses two-column layout with live preview */}
-        {activeTab === "general" ? (
-          <div className="flex gap-10 items-start">
-            {/* Left: form — capped so the preview has room */}
-            <div className="flex-1 min-w-0 max-w-2xl">
+        {/* Tab content — two-column layout on all tabs */}
+        <div className="flex gap-10 items-start">
+          {/* Left: form content */}
+          <div className="flex-1 min-w-0 max-w-3xl">
+            {activeTab === "general" && (
               <TabGeneral
                 eventTypeId={eventTypeId}
                 form={form}
@@ -361,35 +369,7 @@ export function EventTypeBuilder({
                 onMeetingTypeChange={setMeetingType}
                 username={username}
               />
-              {/* Prev / Next — sticky three-column nav */}
-              <div className="mt-8 sticky bottom-0 -mx-4 md:-mx-6 px-4 md:px-6 py-3 border-t border-border bg-page flex items-center justify-between">
-                <Button className="gap-1.5" disabled={isFirst} onClick={() => setActiveTab(TABS[tabIndex - 1].id)} size="sm" type="button" variant="outline">
-                  <ArrowLeft size={13} />
-                  {!isFirst ? TABS[tabIndex - 1].label : "Previous"}
-                </Button>
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:block">
-                  {TABS[tabIndex].label}
-                </span>
-                {isLast ? (
-                  <Button className="gap-1.5" disabled={(mode === "edit" && !isDirty) || isPending} size="sm" type="submit">
-                    <FloppyDisk size={13} />
-                    {isPending ? (mode === "create" ? "Creating…" : "Saving…") : (mode === "create" ? "Create Meeting Type" : "Save Changes")}
-                  </Button>
-                ) : (
-                  <Button className="gap-1.5" onClick={() => setActiveTab(TABS[tabIndex + 1].id)} size="sm" type="button" variant="outline">
-                    {TABS[tabIndex + 1].label}
-                    <ArrowRight size={13} />
-                  </Button>
-                )}
-              </div>
-            </div>
-            {/* Right: live preview */}
-            <div className="w-80 shrink-0 hidden lg:block">
-              <LivePreview form={form} meetingType={meetingType} username={username} />
-            </div>
-          </div>
-        ) : (
-          <div className="max-w-2xl">
+            )}
             {activeTab === "availability" && (
               <TabAvailability form={form} schedules={schedules} />
             )}
@@ -411,7 +391,7 @@ export function EventTypeBuilder({
               <Button
                 className="gap-1.5"
                 disabled={isFirst}
-                onClick={() => setActiveTab(TABS[tabIndex - 1].id)}
+                onClick={(e) => { e.preventDefault(); setActiveTab(TABS[tabIndex - 1].id); }}
                 size="sm"
                 type="button"
                 variant="outline"
@@ -443,7 +423,7 @@ export function EventTypeBuilder({
               ) : (
                 <Button
                   className="gap-1.5"
-                  onClick={() => setActiveTab(TABS[tabIndex + 1].id)}
+                  onClick={(e) => { e.preventDefault(); setActiveTab(TABS[tabIndex + 1].id); }}
                   size="sm"
                   type="button"
                   variant="outline"
@@ -454,7 +434,12 @@ export function EventTypeBuilder({
               )}
             </div>
           </div>
-        )}
+
+          {/* Right: live preview — always visible on large screens */}
+          <div className="w-80 shrink-0 hidden lg:block">
+            <LivePreview form={form} meetingType={meetingType} username={username} />
+          </div>
+        </div>
 
       </form>
 

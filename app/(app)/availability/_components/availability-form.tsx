@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useTransition, useMemo } from 'react'
+import { useEffect, useState, useTransition, useMemo } from 'react'
 import { toast } from 'sonner'
 import {
-  ArrowLeft, ArrowRight, ArrowSquareOut,
+  ArrowLeft, ArrowRight, ArrowsClockwise, ArrowSquareOut,
   CalendarBlank, CalendarCheck, CaretDown, CheckCircle,
   Clock, FloppyDisk, Globe, List, Plus, Trash, X,
 } from '@phosphor-icons/react'
@@ -23,16 +23,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { TimeCombobox } from '@/components/ui/time-combobox'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
 // ── Time helpers ──────────────────────────────────────────────────────────────
-
-const TIMES = Array.from({ length: 48 }, (_, i) => {
-  const h = Math.floor(i / 2).toString().padStart(2, '0')
-  const m = i % 2 === 0 ? '00' : '30'
-  return `${h}:${m}`
-})
 
 function fmt12(t: string): string {
   const [h, m] = t.split(':').map(Number)
@@ -176,14 +172,7 @@ const EMPTY_GRID: WeekGrid = {
 
 function TimeSelect({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-9 w-[120px] text-sm" aria-label={label}>
-        <SelectValue>{fmt12(value)}</SelectValue>
-      </SelectTrigger>
-      <SelectContent position="popper" side="bottom" sideOffset={4} className="w-[120px]" style={{ maxHeight: '220px' }}>
-        {TIMES.map((t) => <SelectItem key={t} value={t} className="text-sm">{fmt12(t)}</SelectItem>)}
-      </SelectContent>
-    </Select>
+    <TimeCombobox value={value} onChange={onChange} format={fmt12} label={label} />
   )
 }
 
@@ -238,12 +227,16 @@ function OverrideDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
-      <DialogContent className="sm:max-w-sm p-0 gap-0 overflow-hidden max-h-[90vh] flex flex-col">
+      <DialogContent showCloseButton={false} className="sm:max-w-sm p-0 gap-0 overflow-visible max-h-[90vh] flex flex-col">
         <DialogTitle className="sr-only">Set date-specific hours</DialogTitle>
         <DialogDescription className="sr-only">Choose a date and set custom availability hours</DialogDescription>
 
-        <div className="px-5 pt-5 pb-3 border-b border-border">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
           <p className="font-semibold text-sm">Select the date(s) you want to assign specific hours</p>
+          <DialogClose className="flex h-7 w-7 shrink-0 items-center justify-center bg-secondary text-muted-foreground transition-colors hover:text-foreground">
+            <X size={15} />
+            <span className="sr-only">Close</span>
+          </DialogClose>
         </div>
 
         <div className="overflow-y-auto flex-1">
@@ -350,19 +343,113 @@ function OverrideDialog({
   )
 }
 
+// ── Weekday (recurring) dialog ──────────────────────────────────────────────────
+// Edits the WEEKLY recurring hours for one day-of-week — i.e. "Edit all Wednesdays".
+
+function WeekdayDialog({
+  open, onClose, dow, weekGrid, onApply, isPending,
+}: {
+  open: boolean
+  onClose: () => void
+  dow: DayOfWeek | null
+  weekGrid: WeekGrid
+  onApply: (dow: DayOfWeek, slots: TimeSlot[]) => void
+  isPending: boolean
+}) {
+  const label = DAYS.find((d) => d.key === dow)?.label ?? ''
+  const [slots, setSlots] = useState<TimeSlot[]>([{ startTime: '09:00', endTime: '17:00' }])
+  const [isBlocked, setIsBlocked] = useState(false)
+
+  // Sync the slot editor to the selected weekday whenever the dialog opens
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-sync only on open/dow change
+  useEffect(() => {
+    if (!open || !dow) return
+    const ws = weekGrid[dow]
+    setIsBlocked(ws.length === 0)
+    setSlots(ws.length > 0 ? ws.map((s) => ({ ...s })) : [{ startTime: '09:00', endTime: '17:00' }])
+  }, [open, dow])
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent showCloseButton={false} className="sm:max-w-sm p-0 gap-0 overflow-visible">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <DialogTitle className="text-base font-bold">
+            {label} availability
+          </DialogTitle>
+          <DialogClose className="flex h-7 w-7 shrink-0 items-center justify-center bg-secondary text-muted-foreground transition-colors hover:text-foreground">
+            <X size={15} />
+            <span className="sr-only">Close</span>
+          </DialogClose>
+        </div>
+        <DialogDescription className="sr-only">
+          Edit your recurring weekly hours for every {label}
+        </DialogDescription>
+
+        <div className="px-5 py-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">What hours are you available?</p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Unavailable</span>
+              <Switch checked={isBlocked} onCheckedChange={setIsBlocked} />
+            </div>
+          </div>
+
+          {!isBlocked && (
+            <div className="space-y-2">
+              {slots.map((slot, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <TimeSelect value={slot.startTime} onChange={(v) => setSlots((p) => p.map((s, idx) => idx === i ? { ...s, startTime: v } : s))} />
+                  <span className="text-sm text-muted-foreground">-</span>
+                  <TimeSelect value={slot.endTime} onChange={(v) => setSlots((p) => p.map((s, idx) => idx === i ? { ...s, endTime: v } : s))} />
+                  {slots.length > 1 && (
+                    <button type="button" onClick={() => setSlots((p) => p.filter((_, idx) => idx !== i))}
+                      className="p-1 text-muted-foreground hover:text-destructive transition-colors">
+                      <X size={14} />
+                    </button>
+                  )}
+                  {i === slots.length - 1 && (
+                    <button type="button"
+                      onClick={() => setSlots((p) => [...p, { startTime: '09:00', endTime: '17:00' }])}
+                      className="h-9 w-9 flex items-center justify-center border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors shrink-0"
+                      aria-label="Add interval">
+                      <Plus size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {isBlocked && <p className="text-sm text-muted-foreground">Every {label} will be marked unavailable.</p>}
+        </div>
+
+        <div className="border-t border-border px-5 py-3 flex justify-end gap-2 bg-background">
+          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" disabled={isPending || !dow}
+            onClick={() => dow && onApply(dow, isBlocked ? [] : slots)}>
+            {isPending ? 'Saving…' : 'Apply'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ── Full calendar grid ────────────────────────────────────────────────────────
 
-function FullCalendarView({ grid, overrides, currentTz, onTzClick, onDateClick }: {
+function FullCalendarView({ grid, overrides, currentTz, onTzClick, onEditDate, onEditWeekday }: {
   grid: WeekGrid
   overrides: OverrideData[]
   currentTz: string
   onTzClick: () => void
-  onDateClick: (date: string) => void
+  onEditDate: (date: string) => void
+  onEditWeekday: (dow: DayOfWeek) => void
 }) {
   const [cursor, setCursor] = useState(() => {
     const d = new Date()
     return { year: d.getFullYear(), month: d.getMonth() }
   })
+  const [menuDate, setMenuDate] = useState<string | null>(null)
   const overrideMap = useMemo(() => {
     const m = new Map<string, OverrideData>()
     for (const o of overrides) m.set(o.date, o)
@@ -419,24 +506,25 @@ function FullCalendarView({ grid, overrides, currentTz, onTzClick, onDateClick }
             const isPast = iso < today
             const override = overrideMap.get(iso)
             const dow = DAY_MAP[new Date(year, month, day).getDay()]
+            const weekdayLabel = DAYS.find((d) => d.key === dow)?.label ?? ''
             const weeklySlots = grid[dow]
             const displaySlots = override
               ? (override.isBlocked ? [] : override.slots)
               : weeklySlots
 
-            return (
-              <button key={iso} type="button" onClick={() => !isPast && onDateClick(iso)} disabled={isPast}
-                className={cn(
-                  'border-r border-border last:border-r-0 p-2 text-left transition-colors group',
-                  isPast ? 'bg-muted/10 cursor-default' : 'hover:bg-primary/5 cursor-pointer',
-                  isToday && 'border-t-2 border-t-primary',
-                  override && !isPast && 'bg-primary/5',
-                )}>
+            const cellInner = (
+              <>
                 <div className="flex items-start justify-between mb-1">
                   <span className={cn('text-sm leading-none',
                     isToday ? 'font-bold text-primary' : isPast ? 'text-muted-foreground/40' : 'text-foreground'
                   )}>{day}</span>
-                  {override && !isPast && <CalendarCheck size={11} className="text-primary mt-0.5" />}
+                  {!isPast && (
+                    override
+                      ? <CalendarCheck size={12} className="text-primary mt-0.5" weight="fill" />
+                      : weeklySlots.length > 0
+                        ? <ArrowsClockwise size={12} className="text-muted-foreground/35 mt-0.5 transition-colors group-hover:text-primary/60" />
+                        : null
+                  )}
                 </div>
                 <div className="space-y-0.5">
                   {displaySlots.map((s, i) => (
@@ -446,7 +534,46 @@ function FullCalendarView({ grid, overrides, currentTz, onTzClick, onDateClick }
                   ))}
                   {override?.isBlocked && <p className="text-[11px] text-destructive/60">Unavailable</p>}
                 </div>
-              </button>
+              </>
+            )
+
+            // Past days are read-only — no menu
+            if (isPast) {
+              return (
+                <div key={iso} className="border-r border-border last:border-r-0 bg-muted/10 p-2 text-left cursor-default">
+                  {cellInner}
+                </div>
+              )
+            }
+
+            return (
+              <Popover key={iso} open={menuDate === iso} onOpenChange={(o) => setMenuDate(o ? iso : null)}>
+                <PopoverTrigger asChild>
+                  <button type="button"
+                    className={cn(
+                      'border-r border-border last:border-r-0 p-2 text-left transition-colors group hover:bg-primary/5 cursor-pointer w-full',
+                      isToday && 'border-t-2 border-t-primary',
+                      override && 'bg-primary/5',
+                      menuDate === iso && 'bg-primary/10',
+                    )}>
+                    {cellInner}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" sideOffset={4} className="w-56 gap-0 p-1">
+                  <button type="button"
+                    onClick={() => { setMenuDate(null); onEditDate(iso) }}
+                    className="flex w-full items-center gap-2.5 px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-muted">
+                    <CalendarBlank size={15} className="shrink-0 text-muted-foreground" />
+                    Edit date
+                  </button>
+                  <button type="button"
+                    onClick={() => { setMenuDate(null); onEditWeekday(dow) }}
+                    className="flex w-full items-center gap-2.5 px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-muted">
+                    <ArrowsClockwise size={15} className="shrink-0 text-muted-foreground" />
+                    Edit all <span className="font-semibold">{weekdayLabel}s</span>
+                  </button>
+                </PopoverContent>
+              </Popover>
             )
           })}
         </div>
@@ -476,6 +603,9 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogDate, setDialogDate] = useState(todayISO())
+
+  const [weekdayDialogOpen, setWeekdayDialogOpen] = useState(false)
+  const [weekdayDow, setWeekdayDow] = useState<DayOfWeek | null>(null)
 
   const [tzDialogOpen, setTzDialogOpen] = useState(false)
   const [tzSearch, setTzSearch] = useState('')
@@ -578,21 +708,62 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
     setDialogOpen(true)
   }
 
+  // ── Weekday (recurring) editing from the calendar ────────────────────────────
+  function openWeekdayDialog(dow: DayOfWeek) {
+    setWeekdayDow(dow)
+    setWeekdayDialogOpen(true)
+  }
+
+  function handleApplyWeekday(dow: DayOfWeek, slots: TimeSlot[]) {
+    // Update the weekly grid for this day-of-week, then persist the schedule.
+    const nextGrid: WeekGrid = { ...grid, [dow]: slots }
+    setGrid(nextGrid)
+    setWeekdayDialogOpen(false)
+    startTransition(async () => {
+      const name = scheduleName
+      let id = scheduleId
+      if (!id) {
+        const res = await createDefaultSchedule()
+        if ('error' in res) { toast.error(res.error); return }
+        id = res.id
+        setScheduleId(id)
+      }
+      const res = await updateAvailabilitySchedule(id, name, nextGrid)
+      if ('error' in res) { toast.error(res.error); return }
+      setScheduleEdited(false)
+      toast.success(`${DAYS.find((d) => d.key === dow)?.label ?? 'Day'} hours updated`)
+    })
+  }
+
   function handleHolidayToggle(date: string, block: boolean) {
+    // Optimistic update — apply immediately so the switch doesn't flicker back
+    setOverrides((prev) => {
+      if (block) {
+        const without = prev.filter((o) => o.date !== date)
+        return [...without, { date, isBlocked: true, slots: [], reason: null }]
+          .sort((a, b) => a.date.localeCompare(b.date))
+      }
+      return prev.filter((o) => o.date !== date)
+    })
+
     startTransition(async () => {
       if (block) {
         const res = await addAvailabilityOverride({ date, isBlocked: true, slots: [] })
-        if ('error' in res) { toast.error(res.error); return }
-        setOverrides((prev) => {
-          const without = prev.filter((o) => o.date !== date)
-          return [...without, { date, isBlocked: true, slots: [], reason: null }]
-            .sort((a, b) => a.date.localeCompare(b.date))
-        })
+        if ('error' in res) {
+          setOverrides((prev) => prev.filter((o) => o.date !== date)) // revert
+          toast.error(res.error); return
+        }
         toast.success('Holiday marked as unavailable')
       } else {
         const res = await deleteAvailabilityOverride(date)
-        if ('error' in res) { toast.error(res.error); return }
-        setOverrides((prev) => prev.filter((o) => o.date !== date))
+        if ('error' in res) {
+          setOverrides((prev) => { // revert
+            const without = prev.filter((o) => o.date !== date)
+            return [...without, { date, isBlocked: true, slots: [], reason: null }]
+              .sort((a, b) => a.date.localeCompare(b.date))
+          })
+          toast.error(res.error); return
+        }
         toast.success('Holiday override removed')
       }
     })
@@ -600,26 +771,34 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
 
   function handleAllHolidaysToggle(enable: boolean) {
     const holidays = HOLIDAYS[holidayCountry] ?? []
+
+    // Optimistic update first
+    setOverrides((prev) => {
+      const dates = new Set(holidays.map((h) => h.date))
+      if (enable) {
+        const without = prev.filter((o) => !dates.has(o.date))
+        return [...without, ...holidays.map((h) => ({ date: h.date, isBlocked: true, slots: [], reason: null }))]
+          .sort((a, b) => a.date.localeCompare(b.date))
+      }
+      return prev.filter((o) => !dates.has(o.date))
+    })
+
     startTransition(async () => {
       if (enable) {
         for (const h of holidays) {
           if (!overrideMap.get(h.date)?.isBlocked) {
-            await addAvailabilityOverride({ date: h.date, isBlocked: true, slots: [] })
+            const res = await addAvailabilityOverride({ date: h.date, isBlocked: true, slots: [] })
+            if ('error' in res) { toast.error(res.error); return }
           }
         }
-        setOverrides((prev) => {
-          const dates = new Set(holidays.map((h) => h.date))
-          const without = prev.filter((o) => !dates.has(o.date))
-          return [...without, ...holidays.map((h) => ({ date: h.date, isBlocked: true, slots: [], reason: null }))]
-            .sort((a, b) => a.date.localeCompare(b.date))
-        })
         toast.success('All holidays blocked')
       } else {
         for (const h of holidays) {
-          if (overrideMap.has(h.date)) await deleteAvailabilityOverride(h.date)
+          if (overrideMap.has(h.date)) {
+            const res = await deleteAvailabilityOverride(h.date)
+            if ('error' in res) { toast.error(res.error); return }
+          }
         }
-        const dates = new Set(holidays.map((h) => h.date))
-        setOverrides((prev) => prev.filter((o) => !dates.has(o.date)))
         toast.success('All holiday overrides removed')
       }
     })
@@ -831,8 +1010,7 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
                         </SelectContent>
                       </Select>
                     </div>
-                    <Switch checked={allBlocked} disabled={isPending}
-                      onCheckedChange={handleAllHolidaysToggle} />
+                    <Switch checked={allBlocked} onCheckedChange={handleAllHolidaysToggle} />
                   </div>
 
                   <div className="border border-t-0 border-border">
@@ -845,7 +1023,7 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
                             <p className="text-sm font-medium">{h.name}</p>
                             <p className="text-xs text-muted-foreground">{fmtDate(h.date)}</p>
                           </div>
-                          <Switch checked={isBlocked} disabled={isPending}
+                          <Switch checked={isBlocked}
                             onCheckedChange={(checked) => handleHolidayToggle(h.date, checked)} />
                         </div>
                       )
@@ -896,7 +1074,8 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
             <FullCalendarView
               grid={grid} overrides={overrides} currentTz={currentTz}
               onTzClick={() => setTzDialogOpen(true)}
-              onDateClick={(date) => openDialog(date)}
+              onEditDate={(date) => openDialog(date)}
+              onEditWeekday={(dow) => openWeekdayDialog(dow)}
             />
           )}
 
@@ -920,13 +1099,14 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
                     const enabled = slots.length > 0
 
                     return (
-                      <div key={key} className="flex items-start gap-3 py-2 border-b border-border/50 last:border-b-0">
+                      <div key={key} className={cn("flex gap-3 py-2 border-b border-border/50 last:border-b-0", enabled ? "items-start" : "items-center")}>
                         {/* Day letter badge — click to toggle */}
                         <button type="button" onClick={() => setDay(key, !enabled)}
                           title={enabled ? `Disable ${label}` : `Enable ${label}`}
                           className={cn(
-                            'flex size-7 shrink-0 items-center justify-center text-xs font-bold select-none transition-colors mt-1',
-                            enabled ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted-foreground/20'
+                            'flex size-7 shrink-0 items-center justify-center text-xs font-bold select-none transition-colors',
+                            enabled ? 'mt-1' : '',
+                            enabled ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted-foreground/20'
                           )}>
                           {letter}
                         </button>
@@ -935,19 +1115,9 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
                           <div className="flex flex-col gap-1.5 flex-1">
                             {slots.map((slot, i) => (
                               <div key={i} className="flex items-center gap-1.5">
-                                <Select value={slot.startTime} onValueChange={(v) => updateSlot(key, i, 'startTime', v)}>
-                                  <SelectTrigger className="h-9 w-[105px] text-sm"><SelectValue>{fmt12(slot.startTime)}</SelectValue></SelectTrigger>
-                                  <SelectContent position="popper" side="bottom" sideOffset={4} className="w-[120px]" style={{ maxHeight: '220px' }}>
-                                    {TIMES.map((t) => <SelectItem key={t} value={t} className="text-sm">{fmt12(t)}</SelectItem>)}
-                                  </SelectContent>
-                                </Select>
+                                <TimeCombobox value={slot.startTime} onChange={(v) => updateSlot(key, i, 'startTime', v)} format={fmt12} triggerClassName="w-[105px]" />
                                 <span className="text-muted-foreground text-xs shrink-0">-</span>
-                                <Select value={slot.endTime} onValueChange={(v) => updateSlot(key, i, 'endTime', v)}>
-                                  <SelectTrigger className="h-9 w-[105px] text-sm"><SelectValue>{fmt12(slot.endTime)}</SelectValue></SelectTrigger>
-                                  <SelectContent position="popper" side="bottom" sideOffset={4} className="w-[120px]" style={{ maxHeight: '220px' }}>
-                                    {TIMES.map((t) => <SelectItem key={t} value={t} className="text-sm">{fmt12(t)}</SelectItem>)}
-                                  </SelectContent>
-                                </Select>
+                                <TimeCombobox value={slot.endTime} onChange={(v) => updateSlot(key, i, 'endTime', v)} format={fmt12} triggerClassName="w-[105px]" />
                                 {/* Remove slot — only when there are multiple slots */}
                                 {slots.length > 1 && (
                                   <button type="button" onClick={() => removeSlot(key, i)}
@@ -966,7 +1136,7 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
                             ))}
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2 flex-1 mt-1">
+                          <div className="flex items-center gap-2 flex-1">
                             <span className="text-sm text-muted-foreground">Unavailable</span>
                             <button type="button" onClick={() => setDay(key, true)}
                               className="p-0.5 text-muted-foreground hover:text-primary transition-colors" title={`Add hours for ${label}`}>
@@ -1033,11 +1203,18 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
         </div>
       )}
 
-      {/* Override dialog */}
+      {/* Override dialog — date-specific hours ("Edit date") */}
       <OverrideDialog
         open={dialogOpen} onClose={() => setDialogOpen(false)}
         defaultDate={dialogDate} weekGrid={grid} overrideMap={overrideMap}
         onApply={handleApplyOverride} isPending={isPending}
+      />
+
+      {/* Weekday dialog — recurring weekly hours ("Edit all Wednesdays") */}
+      <WeekdayDialog
+        open={weekdayDialogOpen} onClose={() => setWeekdayDialogOpen(false)}
+        dow={weekdayDow} weekGrid={grid}
+        onApply={handleApplyWeekday} isPending={isPending}
       />
 
       {/* Timezone dialog */}

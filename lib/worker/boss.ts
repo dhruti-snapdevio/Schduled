@@ -59,7 +59,8 @@ export async function startWorker() {
   const { handleCalendarWrite } = await import("@/lib/worker/handlers/calendar-write");
   const { handleCalendarCancel } = await import("@/lib/worker/handlers/calendar-cancel");
   const { handleCalendarUpdate } = await import("@/lib/worker/handlers/calendar-update");
-  const { handleCalendarSync } = await import("@/lib/worker/handlers/calendar-sync");
+  const { handleCalendarSync }        = await import("@/lib/worker/handlers/calendar-sync");
+  const { handleCalendarSyncAll }     = await import("@/lib/worker/handlers/calendar-sync-all");
   const { handleCalendarDisconnectAlert } = await import("@/lib/worker/handlers/calendar-disconnect-alert");
 
   // ── Video handlers ─────────────────────────────────────────────────────────
@@ -94,6 +95,7 @@ export async function startWorker() {
     work(JOB_NAMES.CALENDAR_CANCEL,        handleCalendarCancel),
     work(JOB_NAMES.CALENDAR_UPDATE,        handleCalendarUpdate),
     work(JOB_NAMES.CALENDAR_SYNC,              handleCalendarSync),
+    work(JOB_NAMES.CALENDAR_SYNC_ALL,          handleCalendarSyncAll),
     work(JOB_NAMES.CALENDAR_DISCONNECT_ALERT,  handleCalendarDisconnectAlert),
 
     // Video
@@ -119,8 +121,7 @@ export async function startWorker() {
   await boss.schedule(JOB_NAMES.EMAIL_EVENTS_PRUNE,      "17 3 * * *",   {});
   await boss.schedule(JOB_NAMES.SCAFFOLD_HEALTHCHECK,    "*/10 * * * *", {});
   await boss.schedule(JOB_NAMES.IDEMPOTENCY_KEYS_PRUNE,  "5 4 * * *",    {});
-  // CALENDAR_SYNC is triggered per-calendar after each booking and on reconnect;
-  // the per-calendar cron is registered dynamically when a calendar connects.
+  await boss.schedule(JOB_NAMES.CALENDAR_SYNC_ALL,       "*/20 * * * *", {});
 
   console.log("[worker] handlers registered");
 }

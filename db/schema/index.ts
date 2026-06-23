@@ -17,6 +17,7 @@ export * from "@/db/schema/calendars";
 export * from "@/db/schema/video";
 export * from "@/db/schema/bookings";
 export * from "@/db/schema/notifications";
+export * from "@/db/schema/security";
 export * from "@/db/schema/platform";
 
 // Relations (after all tables to avoid circular imports)

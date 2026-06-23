@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeft,
   ArrowRight,
   CaretLeft,
   CaretRight,
@@ -8,6 +9,7 @@ import {
   Clock,
   Spinner,
 } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
 import {
   addMonths,
   eachDayOfInterval,
@@ -46,6 +48,7 @@ const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DATE_FMT = "EEE, MMM d 'at' h:mm a";
 
 export function RescheduleClient(props: Props) {
+  const router = useRouter();
   const [inviteeTz] = useState(
     () =>
       Intl.DateTimeFormat().resolvedOptions().timeZone || props.inviteeTimezone
@@ -192,6 +195,14 @@ export function RescheduleClient(props: Props) {
     <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
       <div className="w-full max-w-3xl overflow-hidden bg-white border border-border">
         <div className="border-b border-gray-100 bg-[#F8FCFB] px-8 py-5">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="mb-4 inline-flex items-center gap-2 border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-600 transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+          >
+            <ArrowLeft size={14} />
+            Back
+          </button>
           <h1 className="text-base font-bold text-gray-900">
             Reschedule your booking
           </h1>

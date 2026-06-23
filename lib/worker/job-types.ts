@@ -30,6 +30,7 @@ export const JOB_NAMES = {
   // ── Platform ─────────────────────────────────────────────────────────
   SCAFFOLD_HEALTHCHECK: "scaffold.healthcheck",
   IDEMPOTENCY_KEYS_PRUNE: "platform.idempotency-keys-prune",
+  CALENDAR_SYNC_ALL: "calendar.sync-all",
 } as const;
 
 export type JobName = (typeof JOB_NAMES)[keyof typeof JOB_NAMES];
@@ -133,4 +134,5 @@ export type JobPayloads = {
   [JOB_NAMES.BOOKING_APPROVAL_REQUEST]: BookingApprovalRequestPayload;
   [JOB_NAMES.BOOKING_APPROVED]: BookingApprovedPayload;
   [JOB_NAMES.BOOKING_REJECTED]: BookingRejectedPayload;
+  [JOB_NAMES.CALENDAR_SYNC_ALL]: Record<string, never>;
 };

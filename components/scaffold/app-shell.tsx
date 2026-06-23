@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { GlobalSearch } from "./global-search";
 import { ImpersonationBanner } from "./impersonation-banner";
 import { MobileNav } from "./mobile-nav";
 import { NotificationBell } from "./notification-bell";
@@ -47,18 +47,7 @@ export function AppShell({
 
         {/* Top bar — spans only the content area */}
         <header className="h-14 shrink-0 flex items-center justify-between gap-3 px-4 md:px-6 border-b border-border bg-background z-40">
-          <form action="/bookings" method="GET" className="relative hidden sm:block">
-            <MagnifyingGlass
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              size={15}
-            />
-            <input
-              name="q"
-              className="h-9 w-48 md:w-72 lg:w-[340px] rounded-none border border-border bg-page pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-              placeholder="Search bookings, meetings..."
-              type="search"
-            />
-          </form>
+          <GlobalSearch />
 
           <div className="flex items-center gap-0.5 ml-auto">
             <ThemeToggle />
@@ -79,7 +68,7 @@ export function AppShell({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-page pb-16 md:pb-0">
+        <main className="flex-1 overflow-y-auto bg-page pb-16 md:pb-0" style={{ overflowX: 'clip' }}>
           <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-8">
             {children}
           </div>

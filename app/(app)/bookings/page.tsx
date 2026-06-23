@@ -20,6 +20,7 @@ import {
 } from '@phosphor-icons/react/dist/ssr'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/scaffold/page-header'
+import { BookingsSearch } from './_components/bookings-search'
 import { booking, eventType } from '@/db/schema'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
@@ -184,21 +185,8 @@ export default async function BookingsPage({
           ))}
         </div>
 
-        {/* Search */}
-        <form action="/bookings" method="GET" className="ml-auto relative flex items-center">
-          <input type="hidden" name="tab" value={tab} />
-          <MagnifyingGlass
-            size={14}
-            className="pointer-events-none absolute left-2.5 text-muted-foreground"
-          />
-          <input
-            name="q"
-            defaultValue={search}
-            type="search"
-            placeholder="Search name or email..."
-            className="h-9 w-full sm:w-56 border border-border bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary rounded-none"
-          />
-        </form>
+        {/* Search — debounced, updates URL as you type */}
+        <BookingsSearch tab={tab} />
       </div>
 
       {/* ── List ─────────────────────────────────────────────────────────────── */}
@@ -227,7 +215,7 @@ export default async function BookingsPage({
             return (
               <div
                 key={b.id}
-                className="group relative flex items-stretch border border-border bg-background hover:border-primary/30 hover:-translate-y-px transition-all overflow-hidden"
+                className="group relative flex items-stretch border border-border bg-background transition-all duration-150 hover:border-primary/40 hover:bg-primary/[0.02] overflow-hidden"
               >
                 {/* 3px event color bar */}
                 <div
@@ -252,7 +240,7 @@ export default async function BookingsPage({
                 <div className="flex-1 min-w-0 py-3 px-4 flex flex-col justify-center">
                   {/* Name + event name */}
                   <div className="flex items-baseline gap-2 min-w-0">
-                    <p className="font-semibold text-foreground text-base truncate">{b.inviteeName}</p>
+                    <p className="font-semibold text-foreground text-base truncate transition-colors duration-150 group-hover:text-primary">{b.inviteeName}</p>
                     <p className="text-sm text-muted-foreground truncate">{b.eventName}</p>
                   </div>
 
@@ -447,7 +435,7 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 border-t border-border bg-gray-50/50 px-6 py-4">
+          <div className="flex items-center gap-3 border-t border-border bg-muted/30 px-6 py-4">
             <Button asChild size="sm" className="gap-1.5">
               <Link href="/event-types">
                 <Sliders size={15} weight="bold" />
