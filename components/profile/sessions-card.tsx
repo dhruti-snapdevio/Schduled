@@ -78,7 +78,7 @@ export function SessionsCard({ sessions }: { sessions: SessionRow[] }) {
           {sessions.map((session, i) => (
             <div
               key={session.id}
-              className={`flex items-start justify-between gap-4 px-6 py-4 ${i !== 0 ? "border-t border-border" : ""}`}
+              className={`flex items-start justify-between gap-4 px-6 py-4 transition-colors duration-150 hover:bg-muted/40 ${i !== 0 ? "border-t border-border" : ""}`}
             >
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">

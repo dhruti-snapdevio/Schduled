@@ -3,7 +3,7 @@ import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import type { ReactNode } from "react";
-import { NavProgress } from "@/components/nav-progress";
+import { GlobalRouteLoader } from "@/components/global-route-loader";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from "@/config/platform";
 import { cn } from "@/lib/utils";
@@ -34,7 +34,7 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
-          <NavProgress />
+          <GlobalRouteLoader />
           {children}
         </ThemeProvider>
       </body>

@@ -47,7 +47,7 @@ export default async function OrbitSettingsPage() {
         title="Platform Settings"
       />
 
-      <div className="space-y-6">
+      <div className="max-w-4xl space-y-5">
         {/* General */}
         <Card>
           <CardHeader className="py-4">

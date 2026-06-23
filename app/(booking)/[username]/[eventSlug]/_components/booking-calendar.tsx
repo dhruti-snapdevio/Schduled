@@ -106,7 +106,7 @@ function FormField({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold text-gray-600">
+      <label className="text-sm font-semibold text-gray-600">
         {label}
         {required && <span className="ml-0.5 text-destructive">*</span>}
       </label>
@@ -334,6 +334,40 @@ export function BookingCalendar({
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [prefilled, setPrefilled] = useState(false)
+
+  // Return-booker pre-fill: debounce email → lookup contact
+  useEffect(() => {
+    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    if (!isValidEmail) { setPrefilled(false); return }
+
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/contact-lookup?username=${encodeURIComponent(host.username)}&email=${encodeURIComponent(email)}`,
+          { signal: controller.signal }
+        )
+        const data = await res.json()
+        if (data.found) {
+          if (data.name  && !name)  setName(data.name)
+          if (data.phone && !phone) setPhone(data.phone)
+          setPrefilled(true)
+        } else {
+          setPrefilled(false)
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
+        // silently ignore — pre-fill is best-effort
+      }
+    }, 600)
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email])
 
   const availableDowSet = new Set(availableDaysOfWeek)
   const blockedSet = new Set(blockedDates)
@@ -433,9 +467,16 @@ export function BookingCalendar({
       }
     }
     const needsPhone = eventType.locationType === 'phone_host_calls'
-    if (needsPhone && !phone.trim()) {
-      setSubmitError('Phone number is required for this meeting type')
-      return
+    if (needsPhone) {
+      if (!phone.trim()) {
+        setSubmitError('Phone number is required for this meeting type')
+        return
+      }
+      const digits = phone.replace(/\D/g, '')
+      if (digits.length < 7 || digits.length > 15) {
+        setSubmitError('Please enter a valid phone number (7–15 digits)')
+        return
+      }
     }
 
     setSubmitting(true)
@@ -495,6 +536,20 @@ export function BookingCalendar({
 
   // ── Calendar grid data ─────────────────────────────────────────────────────
 
+  if (availableDaysOfWeek.length === 0 && specialDates.length === 0) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
+        <div className="w-full max-w-sm border border-border bg-card p-8 text-center">
+          <CalendarBlank size={40} className="mx-auto mb-4 text-muted-foreground/40" />
+          <h2 className="text-base font-semibold text-foreground">{host.name} isn&apos;t available right now</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            This booking page is not currently accepting new meetings. Please check back later or contact the host directly.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const calendarDays = eachDayOfInterval({
     start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
     end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
@@ -507,12 +562,12 @@ export function BookingCalendar({
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="relative min-h-screen bg-[#F3F7F6] p-4 md:p-6 lg:flex lg:h-screen lg:items-center lg:overflow-hidden lg:p-8">
+    <div className="relative min-h-screen bg-background p-4 md:p-6 lg:flex lg:h-screen lg:items-center lg:overflow-hidden lg:p-8">
 
       {/* Decorative blur circles */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute right-[8%] top-[6%] h-80 w-80 rounded-full bg-teal-400/[0.09] blur-[90px]" />
-        <div className="absolute left-[4%] bottom-[15%] h-60 w-60 rounded-full bg-teal-300/[0.07] blur-[70px]" />
+        <div className="absolute right-[8%] top-[6%] h-80 w-80 bg-teal-400/[0.09] blur-[90px]" />
+        <div className="absolute left-[4%] bottom-[15%] h-60 w-60 bg-teal-300/[0.07] blur-[70px]" />
       </div>
 
       {/* Card */}
@@ -562,7 +617,7 @@ export function BookingCalendar({
         <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
 
           {/* ── Left info panel ── */}
-          <div className="flex shrink-0 flex-col gap-0 border-b border-gray-100 bg-[#F8FCFB] lg:w-[230px] lg:border-b-0 lg:border-r lg:overflow-y-auto">
+          <div className="flex shrink-0 flex-col gap-0 border-b border-gray-100 bg-card lg:w-[230px] lg:border-b-0 lg:border-r lg:overflow-y-auto">
             <div className="flex flex-col gap-5 p-6">
 
               {/* Avatar */}
@@ -582,10 +637,13 @@ export function BookingCalendar({
 
               {/* Host identity */}
               <div>
-                <p className="text-[11px] font-medium text-muted-foreground">{host.name}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  Meeting with
+                </p>
+                <p className="mt-0.5 text-sm font-bold text-gray-900">{host.name}</p>
                 {hostCompany && (
-                  <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground/70">
-                    <Briefcase size={10} className="shrink-0" />
+                  <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                    <Briefcase size={11} className="shrink-0" />
                     {hostCompany}
                   </p>
                 )}
@@ -608,7 +666,7 @@ export function BookingCalendar({
               {/* Duration picker — show chips only if multiple durations */}
               {eventType.durations.length > 1 ? (
                 <div>
-                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                     Duration
                   </p>
                   <div className="flex flex-wrap gap-1.5">
@@ -618,7 +676,7 @@ export function BookingCalendar({
                         type="button"
                         onClick={() => handleDurationChange(d.duration)}
                         className={cn(
-                          'inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold border transition-all',
+                          'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border transition-all',
                           selectedDuration === d.duration
                             ? 'bg-primary border-primary text-white'
                             : 'border-gray-200 text-muted-foreground hover:border-primary/50 hover:text-primary',
@@ -660,7 +718,7 @@ export function BookingCalendar({
 
               {/* Available days chips */}
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                   Available
                 </p>
                 <div className="flex flex-wrap gap-1">
@@ -668,7 +726,7 @@ export function BookingCalendar({
                     <span
                       key={d}
                       className={cn(
-                        'px-1.5 py-0.5 text-[10px] font-semibold transition-colors',
+                        'px-1.5 py-0.5 text-xs font-semibold transition-colors',
                         availableDowSet.has(d)
                           ? 'bg-primary/10 text-primary'
                           : 'bg-gray-100 text-gray-300'
@@ -813,7 +871,7 @@ export function BookingCalendar({
 
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <div className="h-px flex-1 bg-gray-100" />
-                    <span className="text-[11px]">or pick from calendar</span>
+                    <span className="text-xs">or pick from calendar</span>
                     <div className="h-px flex-1 bg-gray-100" />
                   </div>
 
@@ -826,7 +884,7 @@ export function BookingCalendar({
                 /* Slot list */
                 <div className="flex flex-1 flex-col overflow-hidden">
                   <div className="shrink-0 border-b border-gray-100 px-6 py-4">
-                    <p className="text-[11px] font-medium text-muted-foreground">
+                    <p className="text-xs font-medium text-muted-foreground">
                       {formatInTimeZone(
                         new Date(`${selectedDate}T12:00:00Z`),
                         inviteeTz,
@@ -879,7 +937,7 @@ export function BookingCalendar({
                             >
                               {isChosen && <CheckCircle size={14} weight="fill" />}
                               {start}
-                              <span className={cn('text-[11px] font-normal', isChosen ? 'text-white/70' : 'text-muted-foreground')}>
+                              <span className={cn('text-xs font-normal', isChosen ? 'text-white/70' : 'text-muted-foreground')}>
                                 – {end}
                               </span>
                             </button>
@@ -942,11 +1000,16 @@ export function BookingCalendar({
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => { setEmail(e.target.value); setPrefilled(false) }}
                       required
                       placeholder="you@example.com"
                       className={`${inputCls} h-9`}
                     />
+                    {prefilled && (
+                      <p className="mt-1 text-sm text-primary font-medium">
+                        Welcome back! We filled in your details from a previous booking.
+                      </p>
+                    )}
                   </FormField>
 
                   {(() => {

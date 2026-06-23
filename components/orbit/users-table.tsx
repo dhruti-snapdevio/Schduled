@@ -6,6 +6,13 @@ import Link from "next/link";
 import { ArrowRight, MagnifyingGlass, Trash, ProhibitInset } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ADMIN_ROLE } from "@/config/platform";
 import { bulkBanUsersAction, bulkDeleteUsersAction } from "@/app/actions/orbit-users";
 import { UserSuspendForm } from "./user-actions";
@@ -51,6 +58,9 @@ export function UsersTable({
 
   const selectableIds = filtered.filter((u) => u.id !== currentUserId).map((u) => u.id);
   const allSelected   = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
+
+  const adminCount     = users.filter((u) => u.role === ADMIN_ROLE).length;
+  const suspendedCount = users.filter((u) => u.banned).length;
 
   function toggleAll() {
     if (allSelected) {
@@ -106,16 +116,29 @@ export function UsersTable({
           />
         </div>
 
-        <select
+        <Select
           value={filter}
-          onChange={(e) => { setFilter(e.target.value as Filter); setSelected(new Set()); }}
-          className="h-9 rounded-none border border-border bg-page px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          onValueChange={(v) => { setFilter(v as Filter); setSelected(new Set()); }}
         >
-          <option value="all">All Users</option>
-          <option value="active">Active</option>
-          <option value="admins">Admins</option>
-          <option value="suspended">Suspended</option>
-        </select>
+          <SelectTrigger className="h-9 w-40 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Users</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="admins">Admins</SelectItem>
+            <SelectItem value="suspended">Suspended</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* ── Summary strip ───────────────────────────────────────────── */}
+      <div className="flex items-center gap-2.5 border-b border-border px-4 py-2 text-xs text-muted-foreground">
+        <span><strong className="font-semibold text-foreground">{users.length}</strong> total</span>
+        <span className="text-border">·</span>
+        <span><strong className="font-semibold text-foreground">{adminCount}</strong> admin{adminCount !== 1 ? "s" : ""}</span>
+        <span className="text-border">·</span>
+        <span><strong className="font-semibold text-foreground">{suspendedCount}</strong> suspended</span>
       </div>
 
       {/* ── Table ───────────────────────────────────────────────────── */}

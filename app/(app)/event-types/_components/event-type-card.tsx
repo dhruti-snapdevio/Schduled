@@ -18,6 +18,7 @@ import {
   GoogleLogo,
   Screencast,
   Trash,
+  User,
   VideoCamera,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
@@ -60,12 +61,20 @@ export interface EventTypeStats {
   lastBooked: Date | null
 }
 
+const MEETING_TYPE_LABEL: Record<string, string> = {
+  one_on_one:   'One-on-One',
+  group:        'Group',
+  round_robin:  'Round Robin',
+  collective:   'Collective',
+}
+
 interface EventTypeCardProps {
   id: string
   name: string
   slug: string
   color?: string | null
   locationType: string
+  meetingType?: string
   isActive: boolean
   isHidden: boolean
   durations: Duration[]
@@ -109,13 +118,14 @@ function relativeDate(date: Date): string {
 }
 
 export function EventTypeCard({
-  id, name, slug, color, locationType, isActive, isHidden, durations, username, stats,
+  id, name, slug, color, locationType, meetingType = 'one_on_one', isActive, isHidden, durations, username, stats,
   isSelected = false, onSelect,
 }: EventTypeCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [copied, setCopied] = useState(false)
   const [lastBookedLabel, setLastBookedLabel] = useState<string | null>(null)
+  const [isHovered, setIsHovered] = useState(false)
   const loc = LOCATION_META[locationType] ?? LOCATION_META.custom
 
   // Compute relative date client-side only to avoid SSR/hydration mismatch
@@ -160,16 +170,32 @@ export function EventTypeCard({
   const sortedDurations = [...durations].sort((a, b) => a.duration - b.duration)
   const durationLabel = sortedDurations.map((d) => formatDuration(d.duration)).join(' / ')
 
+  const cardColor = color || 'var(--primary)'
+  const isActive_ = isSelected || isHovered
+
+  const cardStyle: React.CSSProperties = isActive_
+    ? {
+        borderColor: cardColor,
+        backgroundColor: `color-mix(in srgb, ${cardColor} ${isSelected ? 4 : 2}%, transparent)`,
+      }
+    : {}
+
   return (
-    <div className={cn(
-      'group flex items-stretch border bg-card transition-all duration-200',
-      isSelected
-        ? 'border-primary bg-primary/[0.03]'
-        : 'border-border hover:border-primary/40',
-      !isActive && 'opacity-60',
-    )}>
-      {/* Colored left bar */}
-      <div className="w-1 shrink-0" style={{ backgroundColor: color || 'var(--primary)' }} />
+    <div
+      className={cn(
+        'group flex items-stretch border bg-card transition-all duration-200',
+        !isActive_ && 'border-border',
+        !isActive && 'opacity-60',
+      )}
+      style={cardStyle}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Colored left bar — thicker when selected or hovered */}
+      <div
+        className={cn('shrink-0 transition-all duration-200', isActive_ ? 'w-1.5' : 'w-1')}
+        style={{ backgroundColor: cardColor }}
+      />
 
       {/* Checkbox area */}
       <div className="flex items-center pl-4 pr-2">
@@ -177,7 +203,8 @@ export function EventTypeCard({
           type="checkbox"
           checked={isSelected}
           onChange={(e) => onSelect?.(id, e.target.checked)}
-          className="h-4 w-4 cursor-pointer accent-[color:var(--primary)]"
+          className="h-4 w-4 cursor-pointer"
+          style={{ accentColor: cardColor }}
           aria-label={`Select ${name}`}
         />
       </div>
@@ -190,7 +217,10 @@ export function EventTypeCard({
 
           {/* Name + status badges */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold">{name}</span>
+            <span
+              className="text-sm font-semibold transition-colors duration-150"
+              style={isActive_ ? { color: cardColor } : undefined}
+            >{name}</span>
             {isHidden && (
               <Badge variant="outline" className="text-xs py-0 px-1.5 rounded-none font-medium">
                 Hidden
@@ -203,8 +233,12 @@ export function EventTypeCard({
             )}
           </div>
 
-          {/* Inline meta: duration pill + location badge */}
+          {/* Inline meta: meeting type + duration pill + location badge */}
           <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
+              <User size={12} weight="bold" />
+              {MEETING_TYPE_LABEL[meetingType] ?? 'One-on-One'}
+            </span>
             {durationLabel && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary">
                 <Clock size={12} weight="bold" />
@@ -284,8 +318,8 @@ export function EventTypeCard({
             <PencilSimple size={15} />
           </Link>
 
-          {/* Open booking page */}
-          {bookingUrl && (
+          {/* Open booking page — only when active; an inactive link 404s */}
+          {isActive && bookingUrl && (
             <a
               href={bookingUrl}
               target="_blank"

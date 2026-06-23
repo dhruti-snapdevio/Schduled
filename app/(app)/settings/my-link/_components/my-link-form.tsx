@@ -66,7 +66,7 @@ export function MyLinkForm({ currentUsername, appUrl }: MyLinkFormProps) {
   }
 
   const borderColor =
-    avail === 'available' ? 'border-[var(--success-foreground)]' :
+    avail === 'available' ? 'border-emerald-600' :
     avail === 'taken' || avail === 'invalid' ? 'border-destructive' : ''
 
   const availText =
@@ -76,7 +76,7 @@ export function MyLinkForm({ currentUsername, appUrl }: MyLinkFormProps) {
     avail === 'invalid'   ? 'Must be at least 3 characters' : null
 
   const availColor =
-    avail === 'available' ? 'text-[var(--success-foreground)]' : 'text-destructive'
+    avail === 'available' ? 'text-emerald-600' : 'text-destructive'
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -93,7 +93,7 @@ export function MyLinkForm({ currentUsername, appUrl }: MyLinkFormProps) {
             <Link size={16} className="shrink-0 text-muted-foreground" />
             <span className="flex-1 truncate text-sm font-mono">{bookingUrl}</span>
             <Button type="button" variant="ghost" size="icon-sm" onClick={handleCopy}>
-              {copied ? <Check size={15} className="text-[var(--success-foreground)]" /> : <Copy size={15} />}
+              {copied ? <Check size={15} className="text-emerald-600" /> : <Copy size={15} />}
             </Button>
           </div>
         </CardContent>
@@ -132,7 +132,7 @@ export function MyLinkForm({ currentUsername, appUrl }: MyLinkFormProps) {
           </div>
 
           {message && (
-            <div className={`flex items-center gap-2 text-sm ${message.type === 'ok' ? 'text-[var(--success-foreground)]' : 'text-destructive'}`}>
+            <div className={`flex items-center gap-2 text-sm ${message.type === 'ok' ? 'text-emerald-600' : 'text-destructive'}`}>
               {message.type === 'error' && <Warning size={15} />}
               {message.text}
             </div>

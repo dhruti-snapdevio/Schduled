@@ -202,15 +202,15 @@ function WorkerStatusCard({ status }: { status: WorkerStatus }) {
     },
     idle: {
       label:   "Idle",
-      textCls: "text-amber-600 dark:text-amber-400",
-      dotCls:  "bg-amber-500",
-      cardCls: "border-amber-500/30 bg-amber-500/[0.03]",
+      textCls: "text-primary",
+      dotCls:  "bg-primary",
+      cardCls: "border-primary/30 bg-primary/[0.03]",
     },
     stopped: {
       label:   "Stopped",
-      textCls: "text-muted-foreground",
-      dotCls:  "bg-muted-foreground/50",
-      cardCls: "",
+      textCls: "text-destructive",
+      dotCls:  "bg-destructive",
+      cardCls: "border-destructive/30 bg-destructive/[0.03]",
     },
   }[status];
 

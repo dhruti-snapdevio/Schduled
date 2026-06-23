@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { AppShell } from '@/components/scaffold/app-shell'
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal'
+import { GuidedTour } from '@/components/tour/guided-tour'
 import { ADMIN_ROLE } from '@/config/platform'
 import { user } from '@/db/schema'
 import { requireSession } from '@/lib/authz'
@@ -41,6 +42,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           onboardingStep={freshUser.onboardingStep ?? 0}
           userImage={freshUser.image ?? null}
         />
+      )}
+      {freshUser?.onboardingDone && (
+        <GuidedTour userId={session.user.id} />
       )}
       {children}
     </AppShell>

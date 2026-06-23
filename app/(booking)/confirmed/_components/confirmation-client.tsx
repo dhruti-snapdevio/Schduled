@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatInTimeZone } from 'date-fns-tz'
 import {
+  ArrowLeft,
   CheckCircle,
   CalendarBlank,
   Clock,
@@ -120,6 +122,7 @@ export function ConfirmationClient({
   rescheduleToken,
   isPending = false,
 }: Props) {
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
@@ -159,6 +162,18 @@ export function ConfirmationClient({
       <div className="relative z-10 mx-auto w-full max-w-[580px]">
         <div className="flex flex-col items-center gap-5 bg-white px-5 py-8 sm:px-8 border border-border">
 
+          {/* Back button — top-left inside the card */}
+          <div className="w-full">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="inline-flex items-center gap-2 border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-600 transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+            >
+              <ArrowLeft size={14} />
+              Back
+            </button>
+          </div>
+
           {/* ── Icon ── */}
           <div
             className={cn(
@@ -191,11 +206,11 @@ export function ConfirmationClient({
           <div className="text-center">
             {isPending ? (
               <>
-                <h1 className="text-[22px] font-bold tracking-tight text-gray-900">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
                   Request Submitted!
                 </h1>
                 {hostName && (
-                  <p className="mt-1 text-[14px] font-medium text-gray-700">
+                  <p className="mt-1 text-sm font-medium text-gray-700">
                     Your request for{' '}
                     <span className="text-amber-600">{eventName}</span> with{' '}
                     <span className="text-primary">{hostName}</span> is awaiting approval.
@@ -207,11 +222,11 @@ export function ConfirmationClient({
               </>
             ) : (
               <>
-                <h1 className="text-[22px] font-bold tracking-tight text-gray-900">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
                   You&apos;re Scheduled!
                 </h1>
                 {hostName && (
-                  <p className="mt-1 text-[14px] font-medium text-gray-700">
+                  <p className="mt-1 text-sm font-medium text-gray-700">
                     Your meeting with <span className="text-primary">{hostName}</span> is confirmed.
                   </p>
                 )}

@@ -4,11 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { CaretUpDown, Check, Globe, MagnifyingGlass } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import { saveTimezoneStep } from '@/app/actions/onboarding'
 
 interface StepTimezoneProps {
@@ -92,7 +87,9 @@ export function StepTimezone({ onNext, onBack }: StepTimezoneProps) {
   const [error, setError] = useState('')
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const detected = detectBrowserTimezone()
@@ -100,18 +97,44 @@ export function StepTimezone({ onNext, onBack }: StepTimezoneProps) {
     setTimezone(match ? detected : 'UTC')
   }, [])
 
+  // Focus search input when dropdown opens
   useEffect(() => {
     if (open) {
-      setTimeout(() => searchRef.current?.focus(), 50)
+      setTimeout(() => searchRef.current?.focus(), 30)
     } else {
       setSearch('')
     }
   }, [open])
 
+  // Close on click outside
+  useEffect(() => {
+    function handleOutside(e: MouseEvent | TouchEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleOutside)
+      document.addEventListener('touchstart', handleOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('touchstart', handleOutside)
+    }
+  }, [open])
+
+  // Scroll selected item into view when opening
+  useEffect(() => {
+    if (open && listRef.current && timezone) {
+      const selected = listRef.current.querySelector('[data-selected="true"]') as HTMLElement | null
+      if (selected) {
+        selected.scrollIntoView({ block: 'center' })
+      }
+    }
+  }, [open, timezone])
+
   const filtered = search.trim()
-    ? TIMEZONES.filter((tz) =>
-        tz.label.toLowerCase().includes(search.toLowerCase())
-      )
+    ? TIMEZONES.filter((tz) => tz.label.toLowerCase().includes(search.toLowerCase()))
     : TIMEZONES
 
   const selectedLabel = TIMEZONES.find((tz) => tz.value === timezone)?.label
@@ -142,62 +165,67 @@ export function StepTimezone({ onNext, onBack }: StepTimezoneProps) {
       <div className="space-y-1.5">
         <Label>Timezone</Label>
 
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="flex h-10 w-full items-center gap-2 border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Globe size={16} className="shrink-0 text-muted-foreground" />
-              <span className="flex-1 truncate text-left">
-                {selectedLabel ?? <span className="text-muted-foreground">Select your timezone…</span>}
-              </span>
-              <CaretUpDown size={14} className="shrink-0 text-muted-foreground" />
-            </button>
-          </PopoverTrigger>
-
-          <PopoverContent
-            className="w-[var(--radix-popover-trigger-width)] p-0"
-            align="start"
-            sideOffset={4}
+        {/* Custom dropdown — avoids Radix DismissableLayer swallowing scroll events */}
+        <div ref={containerRef} className="relative">
+          {/* Trigger */}
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="flex h-10 w-full items-center gap-2 border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           >
-            {/* Search input */}
-            <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-              <MagnifyingGlass size={14} className="shrink-0 text-muted-foreground" />
-              <input
-                ref={searchRef}
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search timezone…"
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-              />
-            </div>
+            <Globe size={16} className="shrink-0 text-muted-foreground" />
+            <span className="flex-1 truncate text-left">
+              {selectedLabel ?? <span className="text-muted-foreground">Select your timezone…</span>}
+            </span>
+            <CaretUpDown size={14} className="shrink-0 text-muted-foreground" />
+          </button>
 
-            {/* List */}
-            <div className="max-h-56 overflow-y-auto">
-              {filtered.length === 0 ? (
-                <p className="px-3 py-4 text-center text-sm text-muted-foreground">
-                  No timezone found.
-                </p>
-              ) : (
-                filtered.map((tz) => (
-                  <button
-                    key={tz.value}
-                    type="button"
-                    onClick={() => { setTimezone(tz.value); setOpen(false) }}
-                    className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/50 focus:bg-muted/50 focus:outline-none"
-                  >
-                    <span>{tz.label}</span>
-                    {timezone === tz.value && (
-                      <Check size={13} className="shrink-0 text-primary" />
-                    )}
-                  </button>
-                ))
-              )}
+          {/* Dropdown panel */}
+          {open && (
+            <div className="absolute left-0 right-0 top-full z-50 mt-1 border border-border bg-background ring-1 ring-foreground/10">
+              {/* Search */}
+              <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+                <MagnifyingGlass size={14} className="shrink-0 text-muted-foreground" />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search timezone…"
+                  className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                />
+              </div>
+
+              {/* Scrollable list — native overflow, no Radix interference */}
+              <div
+                ref={listRef}
+                className="max-h-60 overflow-y-auto overscroll-contain"
+                style={{ WebkitOverflowScrolling: 'touch' }}
+              >
+                {filtered.length === 0 ? (
+                  <p className="px-3 py-4 text-center text-sm text-muted-foreground">
+                    No timezone found.
+                  </p>
+                ) : (
+                  filtered.map((tz) => (
+                    <button
+                      key={tz.value}
+                      type="button"
+                      data-selected={timezone === tz.value}
+                      onClick={() => { setTimezone(tz.value); setOpen(false) }}
+                      className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm hover:bg-muted/50 focus:bg-muted/50 focus:outline-none"
+                    >
+                      <span>{tz.label}</span>
+                      {timezone === tz.value && (
+                        <Check size={13} weight="bold" className="shrink-0 text-primary" />
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
-          </PopoverContent>
-        </Popover>
+          )}
+        </div>
       </div>
 
       {localTime && (

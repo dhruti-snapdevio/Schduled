@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { asc, and, eq } from 'drizzle-orm'
-import { Clock, VideoCamera, Phone, MapPin, Globe } from '@phosphor-icons/react/dist/ssr'
+import { Clock, VideoCamera, Phone, MapPin, Globe, CaretRight, CalendarBlank } from '@phosphor-icons/react/dist/ssr'
 import { db } from '@/lib/db'
 import { user, userProfile, eventType } from '@/db/schema'
 
@@ -58,6 +58,7 @@ export default async function HostProfilePage({
       image: user.image,
       jobTitle: userProfile.jobTitle,
       company: userProfile.company,
+      bio: userProfile.bio,
     })
     .from(user)
     .leftJoin(userProfile, eq(userProfile.userId, user.id))
@@ -101,10 +102,25 @@ export default async function HostProfilePage({
           )}
           <p className="mt-1 text-xs text-muted-foreground/50">@{username}</p>
         </div>
+        {host.bio && (
+          <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+            {host.bio}
+          </p>
+        )}
       </header>
 
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Select a meeting type
+      </p>
+
       {eventTypes.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground">No meeting types available.</p>
+        <div className="flex flex-col items-center gap-3 border border-dashed border-border py-16 text-center">
+          <CalendarBlank size={36} weight="duotone" className="text-muted-foreground/40" />
+          <p className="text-sm font-semibold text-foreground">No meeting types available</p>
+          <p className="max-w-xs text-sm text-muted-foreground">
+            {host.name.split(' ')[0]} hasn&apos;t published any meeting types yet. Check back soon.
+          </p>
+        </div>
       ) : (
         <div className="flex flex-col gap-2">
           {eventTypes.map((et) => {
@@ -138,19 +154,24 @@ export default async function HostProfilePage({
                     {sortedDurations.map((d) => (
                       <span
                         key={d.duration}
-                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground"
                       >
-                        <Clock size={11} />
+                        <Clock size={12} />
                         {d.duration} min
                       </span>
                     ))}
                     {/* Location badge */}
-                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       {locIcon}
                       {locLabel}
                     </span>
                   </div>
                 </div>
+                <CaretRight
+                  size={16}
+                  weight="bold"
+                  className="shrink-0 text-muted-foreground/30 transition-all group-hover:translate-x-0.5 group-hover:text-primary"
+                />
               </Link>
             )
           })}

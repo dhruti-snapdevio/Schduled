@@ -52,6 +52,7 @@ export const QUEUE_OPTIONS: Record<
   [JOB_NAMES.CALENDAR_UPDATE]:             { expireInSeconds: 60, policy: "singleton", retryLimit: 3, retryDelay: 15 },
 
   // Calendar integrations
+  [JOB_NAMES.CALENDAR_SYNC_ALL]:         { expireInSeconds: 120, policy: "exclusive", retryLimit: 0 },
   [JOB_NAMES.CALENDAR_SYNC]:             { expireInSeconds: 240, policy: "singleton", retryLimit: 1 },
   [JOB_NAMES.CALENDAR_TOKEN_REFRESH]:    { expireInSeconds: 30,  policy: "singleton", retryLimit: 3, retryDelay: 5 },
   [JOB_NAMES.CALENDAR_DISCONNECT_ALERT]: { expireInSeconds: 60,  policy: "standard",  retryLimit: 2 },

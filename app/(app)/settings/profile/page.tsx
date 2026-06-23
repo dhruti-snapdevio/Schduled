@@ -23,9 +23,9 @@ export default async function ProfilePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Account"
-        title="Profile Settings"
-        description="Manage identity and account data."
+        eyebrow="Profile"
+        title="Profile"
+        description="Manage your identity and account data."
       />
 
       <AvatarUploadCard

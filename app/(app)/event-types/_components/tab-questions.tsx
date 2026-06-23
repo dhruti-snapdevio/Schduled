@@ -218,6 +218,11 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, p
       </div>
 
       {/* Custom questions */}
+      {displayQuestions.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No custom questions added. Invitees will only be asked for their name and email.
+        </p>
+      )}
       {displayQuestions.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Custom questions</p>

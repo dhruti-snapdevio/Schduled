@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
-import { Archive, ArrowCounterClockwise, Note, Trash } from '@phosphor-icons/react'
+import { Archive, ArrowCounterClockwise, MagnifyingGlass, Note, Spinner, Trash } from '@phosphor-icons/react'
 import {
   archiveContact,
   deleteContact,
@@ -66,7 +66,10 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
       else params.set(k, v)
     })
     params.set('page', '1')
-    router.push(`/settings/contacts?${params.toString()}`)
+    // replace (not push) so each keystroke-search doesn't pollute history
+    startTransition(() => {
+      router.replace(`/settings/contacts?${params.toString()}`, { scroll: false })
+    })
   }
 
   function changePage(p: number) {
@@ -115,16 +118,23 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
-        <Input
-          placeholder="Search by name or email…"
-          defaultValue={search}
-          className="max-w-xs"
-          onChange={(e) => {
-            const val = e.target.value
-            if (searchDebounce.current) clearTimeout(searchDebounce.current)
-            searchDebounce.current = setTimeout(() => push({ q: val || null }), 400)
-          }}
-        />
+        <div className="relative flex items-center max-w-xs w-full">
+          {isPending ? (
+            <Spinner size={14} className="pointer-events-none absolute left-2.5 animate-spin text-primary" />
+          ) : (
+            <MagnifyingGlass size={14} className="pointer-events-none absolute left-2.5 text-muted-foreground" />
+          )}
+          <Input
+            placeholder="Search by name or email…"
+            defaultValue={search}
+            className="pl-8"
+            onChange={(e) => {
+              const val = e.target.value
+              if (searchDebounce.current) clearTimeout(searchDebounce.current)
+              searchDebounce.current = setTimeout(() => push({ q: val || null }), 350)
+            }}
+          />
+        </div>
         <Button
           variant={archived ? 'default' : 'outline'}
           size="sm"
@@ -156,7 +166,7 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
               </TableRow>
             ) : (
               contacts.map((c) => (
-                <TableRow key={c.email}>
+                <TableRow key={c.email} className="transition-colors duration-150 hover:bg-primary/[0.02]">
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell className="text-muted-foreground text-sm truncate max-w-[140px] sm:max-w-none">{c.email}</TableCell>
                   <TableCell className="hidden sm:table-cell">{c.booking_count}</TableCell>

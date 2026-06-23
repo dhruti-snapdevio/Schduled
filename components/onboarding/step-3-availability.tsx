@@ -3,21 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Plus, X, Globe } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { TimeCombobox } from '@/components/ui/time-combobox'
 import { saveAvailabilityStep } from '@/app/actions/onboarding'
-
-// 30-min increments stored as HH:mm (24h), displayed as 12h
-const TIMES = Array.from({ length: 48 }, (_, i) => {
-  const h = Math.floor(i / 2).toString().padStart(2, '0')
-  const m = i % 2 === 0 ? '00' : '30'
-  return `${h}:${m}`
-})
 
 function fmt12(t: string): string {
   const [h, m] = t.split(':').map(Number)
@@ -69,18 +56,7 @@ function TimeSelect({
   onChange: (v: string) => void
 }) {
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-9 w-[92px] text-sm px-3">
-        <SelectValue>{fmt12(value)}</SelectValue>
-      </SelectTrigger>
-      <SelectContent className="max-h-52">
-        {TIMES.map((t) => (
-          <SelectItem key={t} value={t} className="text-sm">
-            {fmt12(t)}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <TimeCombobox value={value} onChange={onChange} format={fmt12} triggerClassName="w-[92px]" />
   )
 }
 

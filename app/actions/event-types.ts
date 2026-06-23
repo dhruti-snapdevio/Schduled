@@ -198,7 +198,8 @@ export async function createEventType(data: EventTypeFormData, initialQuestions?
 
     revalidatePath('/event-types')
     return { ok: true, id, slug }
-  } catch {
+  } catch (err) {
+    console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -295,7 +296,8 @@ export async function updateEventType(id: string, data: EventTypeFormData): Prom
     revalidatePath('/event-types')
     revalidatePath(`/event-types/${id}`)
     return { ok: true }
-  } catch {
+  } catch (err) {
+    console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -325,7 +327,8 @@ export async function toggleEventTypeActive(id: string, isActive: boolean): Prom
 
     revalidatePath('/event-types')
     return { ok: true }
-  } catch {
+  } catch (err) {
+    console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -356,7 +359,8 @@ export async function deleteEventType(id: string): Promise<ActionResult> {
 
     revalidatePath('/event-types')
     return { ok: true }
-  } catch {
+  } catch (err) {
+    console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -373,7 +377,8 @@ export async function bulkDeleteEventTypes(ids: string[]): Promise<ActionResult>
     )
     revalidatePath('/event-types')
     return { ok: true }
-  } catch {
+  } catch (err) {
+    console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -389,7 +394,8 @@ export async function bulkToggleEventTypes(ids: string[], isActive: boolean): Pr
       .where(and(inArray(eventType.id, ids), eq(eventType.userId, session.user.id)))
     revalidatePath('/event-types')
     return { ok: true }
-  } catch {
+  } catch (err) {
+    console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -437,7 +443,8 @@ export async function duplicateEventType(id: string): Promise<ActionResult<{ id:
 
     revalidatePath('/event-types')
     return { ok: true, id: newId }
-  } catch {
+  } catch (err) {
+    console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -482,7 +489,8 @@ export async function addQuestion(eventTypeId: string, data: QuestionData): Prom
 
     revalidatePath(`/event-types/${eventTypeId}`)
     return { ok: true, id }
-  } catch {
+  } catch (err) {
+    console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -506,7 +514,8 @@ export async function updateQuestion(id: string, data: QuestionData): Promise<Ac
 
     revalidatePath(`/event-types/${question.eventType.id}`)
     return { ok: true }
-  } catch {
+  } catch (err) {
+    console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -523,7 +532,8 @@ export async function deleteQuestion(id: string): Promise<ActionResult> {
     await db.delete(eventTypeQuestion).where(eq(eventTypeQuestion.id, id))
     revalidatePath(`/event-types/${question.eventType.id}`)
     return { ok: true }
-  } catch {
+  } catch (err) {
+    console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }
@@ -548,7 +558,8 @@ export async function reorderQuestions(eventTypeId: string, ids: string[]): Prom
 
     revalidatePath(`/event-types/${eventTypeId}`)
     return { ok: true }
-  } catch {
+  } catch (err) {
+    console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
   }
 }

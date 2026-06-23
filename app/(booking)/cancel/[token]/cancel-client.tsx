@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  ArrowLeft,
   CalendarX,
   CheckCircle,
   Spinner,
   Warning,
 } from "@phosphor-icons/react";
 import { formatInTimeZone } from "date-fns-tz";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface Props {
@@ -26,6 +28,7 @@ interface Props {
 const DATE_FMT = "EEEE, MMMM d, yyyy 'at' h:mm a";
 
 export function CancelClient(props: Props) {
+  const router = useRouter();
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(props.alreadyCancelled);
@@ -118,11 +121,21 @@ export function CancelClient(props: Props) {
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-3 border-b border-gray-100 bg-[#F8FCFB] px-5 sm:px-8 py-6">
-              <CalendarX className="text-red-500" size={24} />
-              <h1 className="text-base font-bold text-gray-900">
-                Cancel this booking?
-              </h1>
+            <div className="border-b border-gray-100 bg-[#F8FCFB] px-5 sm:px-8 py-5">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="mb-4 inline-flex items-center gap-2 border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-600 transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+              >
+                <ArrowLeft size={14} />
+                Back
+              </button>
+              <div className="flex items-center gap-3">
+                <CalendarX className="text-red-500" size={24} />
+                <h1 className="text-base font-bold text-gray-900">
+                  Cancel this booking?
+                </h1>
+              </div>
             </div>
             <div className="px-5 sm:px-8 py-6">
               <div className="mb-5 border border-gray-200 bg-[#F8FCFB] p-4">
