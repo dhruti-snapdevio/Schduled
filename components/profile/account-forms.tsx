@@ -1,11 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import { useRef, useState } from "react";
 import { useActionState } from "react";
 import { UserCircle } from "@phosphor-icons/react";
+import { useAvatar } from "@/components/avatar-context";
 import {
   type ActionState,
   changeEmailAction,
+  removeAvatarAction,
   updateNameAction,
 } from "@/app/actions/profile";
 import { DeleteAccountModal } from "@/components/profile/delete-account-modal";
@@ -23,26 +26,18 @@ const initialState: ActionState = {};
 
 export function AvatarUploadCard({
   currentImageUrl,
-  name,
 }: {
   currentImageUrl?: string | null;
-  name: string;
 }) {
   const [preview, setPreview] = useState<string | null>(
     currentImageUrl ?? null
   );
   const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const initials = name
-    .trim()
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const { setUrl } = useAvatar();
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -79,8 +74,9 @@ export function AvatarUploadCard({
         setError(data.error ?? "Upload failed. Please try again.");
         setPreview(currentImageUrl ?? null);
       } else {
-        // Bust the browser cache so the new image is shown immediately
-        setPreview(`${data.url}?t=${new Date().getTime()}`);
+        const busted = `${data.url}?t=${new Date().getTime()}`;
+        setPreview(busted);
+        setUrl(busted);
         setSuccess(true);
       }
     } catch {
@@ -106,20 +102,11 @@ export function AvatarUploadCard({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="group relative size-20 shrink-0 overflow-hidden rounded-full border-2 border-dashed border-border bg-muted transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+            className="group relative size-20 shrink-0 overflow-hidden border-2 border-dashed border-border bg-muted transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
             aria-label="Upload profile photo"
           >
             {preview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={preview}
-                alt="Profile photo"
-                className="size-full object-cover"
-              />
-            ) : initials ? (
-              <span className="flex size-full items-center justify-center text-2xl font-semibold text-primary">
-                {initials}
-              </span>
+              <Image fill unoptimized src={preview} alt="Profile photo" className="object-cover" sizes="80px" />
             ) : (
               <UserCircle size={40} className="m-auto text-muted-foreground" />
             )}
@@ -143,16 +130,49 @@ export function AvatarUploadCard({
             onChange={handleFileChange}
           />
 
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-foreground">
-              Click the photo to upload a new one
-            </p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploading || removing}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploading ? "Uploading…" : "Change photo"}
+              </Button>
+              {preview && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={uploading || removing}
+                  className="text-destructive hover:bg-destructive/5 hover:text-destructive"
+                  onClick={async () => {
+                    setRemoving(true)
+                    setError("")
+                    setSuccess(false)
+                    const res = await removeAvatarAction()
+                    setRemoving(false)
+                    if (res.error) {
+                      setError(res.error)
+                    } else {
+                      setPreview(null)
+                      setUrl(null)
+                      setSuccess(true)
+                    }
+                  }}
+                >
+                  {removing ? "Removing…" : "Remove"}
+                </Button>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
               JPG, PNG or WebP · max 5 MB · saved at 256×256
             </p>
             {success && (
               <p className="text-xs font-medium text-primary">
-                Photo updated!
+                {preview ? "Photo updated!" : "Photo removed."}
               </p>
             )}
             {error && <p className="text-xs text-destructive">{error}</p>}

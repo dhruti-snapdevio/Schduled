@@ -4,7 +4,7 @@ import { and, eq, gte } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
-import { user, availabilitySchedule, availabilityWindow, availabilityOverride } from '@/db/schema'
+import { user, availabilitySchedule, availabilityWindow, availabilityOverride, meetingLimit } from '@/db/schema'
 import { audit } from '@/lib/audit'
 
 type ActionResult<T = Record<never, never>> = { error: string } | ({ ok: true } & T)
@@ -315,6 +315,87 @@ export async function deleteAvailabilityOverride(date: string): Promise<ActionRe
       entityId: session.user.id,
       description: `Removed availability override for ${date}`,
     })
+
+    revalidatePath('/availability')
+    return { ok: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+// ── Meeting Limits ────────────────────────────────────────────────────────────
+
+export type MeetingLimitPeriod = 'day' | 'week' | 'month'
+
+export interface MeetingLimitRow {
+  id: string
+  period: MeetingLimitPeriod
+  count: number
+}
+
+export async function getMeetingLimits(): Promise<MeetingLimitRow[]> {
+  const session = await requireSession()
+  return db
+    .select({ id: meetingLimit.id, period: meetingLimit.period, count: meetingLimit.count })
+    .from(meetingLimit)
+    .where(eq(meetingLimit.userId, session.user.id))
+    .orderBy(meetingLimit.createdAt)
+}
+
+export async function addMeetingLimit(
+  period: MeetingLimitPeriod,
+  count: number,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const session = await requireSession()
+
+    if (!['day', 'week', 'month'].includes(period)) return { error: 'Invalid period.' }
+    if (!Number.isInteger(count) || count < 1 || count > 999) return { error: 'Count must be between 1 and 999.' }
+
+    const existing = await db
+      .select({ id: meetingLimit.id })
+      .from(meetingLimit)
+      .where(and(eq(meetingLimit.userId, session.user.id), eq(meetingLimit.period, period)))
+
+    if (existing.length > 0) return { error: `A ${period}ly limit already exists. Remove it first.` }
+
+    const [row] = await db
+      .insert(meetingLimit)
+      .values({ userId: session.user.id, period, count })
+      .returning({ id: meetingLimit.id })
+
+    revalidatePath('/availability')
+    return { ok: true, id: row.id }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+export async function removeMeetingLimit(id: string): Promise<ActionResult> {
+  try {
+    const session = await requireSession()
+
+    await db
+      .delete(meetingLimit)
+      .where(and(eq(meetingLimit.id, id), eq(meetingLimit.userId, session.user.id)))
+
+    revalidatePath('/availability')
+    return { ok: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+export async function updateMeetingLimit(id: string, count: number): Promise<ActionResult> {
+  try {
+    const session = await requireSession()
+
+    if (!Number.isInteger(count) || count < 1 || count > 999) return { error: 'Count must be between 1 and 999.' }
+
+    await db
+      .update(meetingLimit)
+      .set({ count })
+      .where(and(eq(meetingLimit.id, id), eq(meetingLimit.userId, session.user.id)))
 
     revalidatePath('/availability')
     return { ok: true }

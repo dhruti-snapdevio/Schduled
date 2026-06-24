@@ -366,13 +366,13 @@ export default async function LandingPage() {
 
                 {/* 3 premium micro-badges */}
                 <div className="mb-8 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 border border-teal-600/30 bg-teal-950/70 px-3 py-1 text-[11px] font-semibold text-teal-300 backdrop-blur-sm">
+                  <span className="inline-flex items-center gap-1.5 border border-teal-600/30 bg-teal-950/70 px-3 py-1 text-xs font-semibold text-teal-300 backdrop-blur-sm">
                     <Lightning size={10} weight="fill" /> No credit card required
                   </span>
-                  <span className="inline-flex items-center gap-1.5 border border-teal-600/30 bg-teal-950/70 px-3 py-1 text-[11px] font-semibold text-teal-300 backdrop-blur-sm">
+                  <span className="inline-flex items-center gap-1.5 border border-teal-600/30 bg-teal-950/70 px-3 py-1 text-xs font-semibold text-teal-300 backdrop-blur-sm">
                     <Code size={10} weight="bold" /> Open Source
                   </span>
-                  <span className="inline-flex items-center gap-1.5 border border-teal-600/30 bg-teal-950/70 px-3 py-1 text-[11px] font-semibold text-teal-300 backdrop-blur-sm">
+                  <span className="inline-flex items-center gap-1.5 border border-teal-600/30 bg-teal-950/70 px-3 py-1 text-xs font-semibold text-teal-300 backdrop-blur-sm">
                     <Globe size={10} weight="duotone" /> Timezone Smart
                   </span>
                 </div>
@@ -448,7 +448,7 @@ export default async function LandingPage() {
                   <div className="p-4">
                     <div className="mb-2 grid grid-cols-7 text-center">
                       {['M','T','W','T','F','S','S'].map((d, i) => (
-                        <span key={i} className="text-[10px] font-bold text-white/25">{d}</span>
+                        <span key={i} className="text-2xs font-bold text-white/25">{d}</span>
                       ))}
                     </div>
                     {calGrid.map((week, wi) => (
@@ -494,7 +494,7 @@ export default async function LandingPage() {
                           <p className="font-semibold text-white">Jane Smith</p>
                           <p className="text-xs text-white/40">Discovery Call · 30 min</p>
                         </div>
-                        <div className="ml-auto flex items-center gap-1 text-[10px] text-teal-400/60">
+                        <div className="ml-auto flex items-center gap-1 text-2xs text-teal-400/60">
                           <span className="relative flex h-1.5 w-1.5">
                             <span className="absolute inline-flex h-full w-full animate-schduled-ping bg-teal-400 opacity-60" />
                             <span className="relative inline-flex h-1.5 w-1.5 bg-teal-400" />
@@ -509,7 +509,7 @@ export default async function LandingPage() {
                     </div>
 
                     <div className="px-6 py-5">
-                      <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-white/25">Select a time</p>
+                      <p className="mb-3 text-2xs font-bold uppercase tracking-widest text-white/25">Select a time</p>
                       <div className="space-y-2">
                         {[
                           { t: '09:00 AM', sel: false, fade: false },
@@ -578,7 +578,7 @@ export default async function LandingPage() {
 
         {/* ─── TRUSTED BY ──────────────────────────────────────────────────────── */}
         <section className="border-y border-border bg-background py-7">
-          <p className="mb-6 text-center text-[11px] font-black uppercase tracking-[0.22em] text-foreground/50">
+          <p className="mb-6 text-center text-xs font-black uppercase tracking-[0.22em] text-foreground/50">
             Trusted by teams at
           </p>
           <div className="relative overflow-hidden">
@@ -600,7 +600,7 @@ export default async function LandingPage() {
         {/* ─── STATS ───────────────────────────────────────────────────────────── */}
         <section className="py-24">
           <div className="mx-auto max-w-5xl px-5 sm:px-8">
-            <p className="scroll-reveal mb-12 text-center text-[10px] font-black uppercase tracking-[0.22em] text-muted-foreground/50">
+            <p className="scroll-reveal mb-12 text-center text-xs font-black uppercase tracking-[0.22em] text-muted-foreground/50">
               Why people choose Schduled
             </p>
 
@@ -670,7 +670,7 @@ export default async function LandingPage() {
                 <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 <div className="relative">
-                  <span className="mb-2 inline-block text-[10px] font-black uppercase tracking-eyebrow text-primary/60">Video</span>
+                  <span className="mb-2 inline-block text-xs font-black uppercase tracking-eyebrow text-primary/60">Video</span>
                   <div className="mb-4 flex h-12 w-12 items-center justify-center bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
                     <VideoCamera size={24} weight="duotone" />
                   </div>
@@ -684,7 +684,7 @@ export default async function LandingPage() {
                 <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 <div className="relative">
-                  <span className="mb-2 inline-block text-[10px] font-black uppercase tracking-eyebrow text-primary/60">Forms</span>
+                  <span className="mb-2 inline-block text-xs font-black uppercase tracking-eyebrow text-primary/60">Forms</span>
                   <div className="mb-4 flex h-12 w-12 items-center justify-center bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
                     <Lightning size={24} weight="duotone" />
                   </div>
@@ -698,7 +698,7 @@ export default async function LandingPage() {
                 <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 <div className="relative">
-                  <span className="mb-2 inline-block text-[10px] font-black uppercase tracking-eyebrow text-primary/60">Reminders</span>
+                  <span className="mb-2 inline-block text-xs font-black uppercase tracking-eyebrow text-primary/60">Reminders</span>
                   <div className="mb-4 flex h-12 w-12 items-center justify-center bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
                     <Bell size={24} weight="duotone" />
                   </div>
@@ -717,7 +717,7 @@ export default async function LandingPage() {
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 <div className="relative grid gap-6 sm:grid-cols-2 sm:items-center">
                   <div>
-                    <span className="mb-2 inline-block text-[10px] font-black uppercase tracking-eyebrow text-primary/60">Calendar</span>
+                    <span className="mb-2 inline-block text-xs font-black uppercase tracking-eyebrow text-primary/60">Calendar</span>
                     <h3 className="mb-3 text-xl font-bold leading-tight">Calendar sync that actually works</h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">
                       Connect Google Calendar. Your busy blocks are read in real time and hidden instantly from your booking page. Zero double-bookings, ever.
@@ -736,7 +736,7 @@ export default async function LandingPage() {
                         const d = Math.min(featStart + i, daysInMonth)
                         const isBusy = d === featBusyDay
                         return (
-                          <span key={i} className={`mt-1 inline-flex h-6 w-6 items-center justify-center text-[10px] ${isBusy ? 'bg-muted text-muted-foreground/40 line-through' : 'text-foreground/60'}`}>
+                          <span key={i} className={`mt-1 inline-flex h-6 w-6 items-center justify-center text-2xs ${isBusy ? 'bg-muted text-muted-foreground/40 line-through' : 'text-foreground/60'}`}>
                             {d}
                           </span>
                         )
@@ -745,14 +745,14 @@ export default async function LandingPage() {
                         const d = Math.min(featStart + 6 + i, daysInMonth)
                         const isAvail = d === featAvailDay
                         return (
-                          <span key={i} className={`mt-1 inline-flex h-6 w-6 items-center justify-center text-[10px] font-bold ${isAvail ? 'bg-primary text-primary-foreground' : 'text-foreground/60'}`}>
+                          <span key={i} className={`mt-1 inline-flex h-6 w-6 items-center justify-center text-2xs font-bold ${isAvail ? 'bg-primary text-primary-foreground' : 'text-foreground/60'}`}>
                             {d}
                           </span>
                         )
                       })}
                     </div>
                     <div className="border-t border-border px-4 py-2">
-                      <p className="text-[10px] text-muted-foreground">{todayDayName} {MONTH_SHORT[month]} {today} · Busy (blocked)</p>
+                      <p className="text-2xs text-muted-foreground">{todayDayName} {MONTH_SHORT[month]} {today} · Busy (blocked)</p>
                     </div>
                   </div>
                 </div>
@@ -764,7 +764,7 @@ export default async function LandingPage() {
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 <div className="relative grid gap-6 sm:grid-cols-2 sm:items-center">
                   <div>
-                    <span className="mb-2 inline-block text-[10px] font-black uppercase tracking-eyebrow text-primary/60">Timezone</span>
+                    <span className="mb-2 inline-block text-xs font-black uppercase tracking-eyebrow text-primary/60">Timezone</span>
                     <h3 className="mb-3 text-xl font-bold leading-tight">Timezone-aware for everyone</h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">
                       Invitees see slots in their own timezone automatically. You see them in yours. No &ldquo;what time is that for me?&rdquo; emails ever again.
@@ -818,9 +818,9 @@ export default async function LandingPage() {
                 className="absolute -left-4 top-20 z-10 hidden border border-teal-600/35 bg-teal-950/90 px-3 py-2 backdrop-blur-sm animate-schduled-reveal xl:block"
                 style={{ animationDelay: '300ms', animation: 'schduled-float 5s ease-in-out 0.5s infinite' }}
               >
-                <p className="text-[10px] font-black uppercase tracking-wider text-teal-400/60">Upcoming</p>
+                <p className="text-2xs font-black uppercase tracking-wider text-teal-400/60">Upcoming</p>
                 <p className="text-lg font-black text-white" style={{ fontFamily: 'var(--font-heading)' }}>10</p>
-                <p className="text-[10px] text-white/40">meetings this week</p>
+                <p className="text-2xs text-white/40">meetings this week</p>
               </div>
 
               {/* Floating label — Team */}
@@ -828,9 +828,9 @@ export default async function LandingPage() {
                 className="absolute -right-4 top-32 z-10 hidden border border-teal-600/35 bg-teal-950/90 px-3 py-2 backdrop-blur-sm xl:block"
                 style={{ animation: 'schduled-float 6s ease-in-out 1.2s infinite' }}
               >
-                <p className="text-[10px] font-black uppercase tracking-wider text-teal-400/60">Team</p>
+                <p className="text-2xs font-black uppercase tracking-wider text-teal-400/60">Team</p>
                 <p className="text-lg font-black text-white" style={{ fontFamily: 'var(--font-heading)' }}>4</p>
-                <p className="text-[10px] text-white/40">active members</p>
+                <p className="text-2xs text-white/40">active members</p>
               </div>
 
               {/* Floating label — Analytics */}
@@ -838,9 +838,9 @@ export default async function LandingPage() {
                 className="absolute -right-4 bottom-32 z-10 hidden border border-teal-600/35 bg-teal-950/90 px-3 py-2 backdrop-blur-sm xl:block"
                 style={{ animation: 'schduled-float 7s ease-in-out 2s infinite' }}
               >
-                <p className="text-[10px] font-black uppercase tracking-wider text-teal-400/60">Analytics</p>
+                <p className="text-2xs font-black uppercase tracking-wider text-teal-400/60">Analytics</p>
                 <p className="text-lg font-black text-white" style={{ fontFamily: 'var(--font-heading)' }}>+28%</p>
-                <p className="text-[10px] text-white/40">bookings this month</p>
+                <p className="text-2xs text-white/40">bookings this month</p>
               </div>
 
               {/* Browser frame */}
@@ -856,7 +856,7 @@ export default async function LandingPage() {
                   </div>
                   <div className="flex flex-1 max-w-xs items-center gap-2 border border-white/8 bg-black/25 px-3 py-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-teal-400/55" />
-                    <span className="font-mono text-[11px] text-white/30">app.schduled.com/dashboard</span>
+                    <span className="font-mono text-xs text-white/30">app.schduled.com/dashboard</span>
                   </div>
                 </div>
 
@@ -871,7 +871,7 @@ export default async function LandingPage() {
                       ))}
                     </div>
                     <div className="border-t border-white/8 bg-white/[0.05] px-2 py-3 space-y-1">
-                      <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/25">Admin</div>
+                      <div className="px-3 py-1 text-2xs font-semibold uppercase tracking-wider text-white/25">Admin</div>
                       <div className="flex items-center gap-2 px-3 py-1.5">
                         <div className="flex h-5 w-5 shrink-0 items-center justify-center bg-primary/30 text-[9px] font-black text-white">DH</div>
                         <div className="h-2 w-14 bg-white/15" />
@@ -906,11 +906,11 @@ export default async function LandingPage() {
                       ].map((card) => (
                         <div key={card.title} className="border border-border bg-card">
                           <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                            <span className="text-[10px] font-black uppercase tracking-wider">{card.title}</span>
-                            <span className="text-[10px] font-semibold text-primary">View all</span>
+                            <span className="text-2xs font-black uppercase tracking-wider">{card.title}</span>
+                            <span className="text-2xs font-semibold text-primary">View all</span>
                           </div>
                           {card.rows.map((r) => (
-                            <div key={r} className="border-b border-border/40 px-3 py-2 text-[10px] text-muted-foreground last:border-0">{r}</div>
+                            <div key={r} className="border-b border-border/40 px-3 py-2 text-2xs text-muted-foreground last:border-0">{r}</div>
                           ))}
                         </div>
                       ))}
@@ -1093,7 +1093,7 @@ export default async function LandingPage() {
                     {/* Verified badge */}
                     <div className="flex items-center gap-1 border border-primary/20 bg-primary/5 px-2 py-0.5">
                       <CheckCircle size={10} weight="fill" className="text-primary" />
-                      <span className="text-[10px] font-bold text-primary">Verified</span>
+                      <span className="text-xs font-bold text-primary">Verified</span>
                     </div>
                   </div>
                 </div>

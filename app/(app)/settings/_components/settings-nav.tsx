@@ -5,14 +5,13 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const PROFILE_LINKS = [
-  { href: "/settings/profile",  label: "Profile" },
-  { href: "/settings/security", label: "Security" },
-  { href: "/settings/login",    label: "Connected Accounts" },
+  { href: "/profile/profile",  label: "Profile" },
+  { href: "/profile/security", label: "Security" },
+  { href: "/profile/login",    label: "Connected Accounts" },
 ];
 
 const SETTINGS_LINKS = [
   { href: "/settings/my-link",       label: "Booking Link" },
-  { href: "/settings/branding",      label: "Public Page" },
   { href: "/settings/calendars",     label: "Calendar Sync" },
   { href: "/settings/integrations",  label: "Integrations" },
   { href: "/settings/communication", label: "Notifications" },
@@ -20,7 +19,7 @@ const SETTINGS_LINKS = [
   { href: "/settings/cookies",       label: "Cookies" },
 ];
 
-const PROFILE_PATHS = ["/settings/profile", "/settings/security", "/settings/login"];
+const PROFILE_PATHS = ["/profile/profile", "/profile/security", "/profile/login"];
 
 function isProfileSection(pathname: string) {
   return PROFILE_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));

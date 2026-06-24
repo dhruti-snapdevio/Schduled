@@ -13,10 +13,15 @@ import {
   deleteAvailabilityOverride,
   createDefaultSchedule,
   updateUserTimezone,
+  addMeetingLimit,
+  removeMeetingLimit,
+  updateMeetingLimit,
   type DayOfWeek,
   type TimeSlot,
   type ScheduleData,
   type OverrideData,
+  type MeetingLimitPeriod,
+  type MeetingLimitRow,
 } from '@/app/actions/availability'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -61,6 +66,10 @@ const COMMON_TZ = [
   'Asia/Dubai', 'Asia/Kolkata', 'Asia/Bangkok', 'Asia/Singapore',
   'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland',
 ]
+
+const ALL_TZ: string[] = (() => {
+  try { return Intl.supportedValuesOf('timeZone') } catch { return COMMON_TZ }
+})()
 
 function getTzLabel(tz: string) {
   try {
@@ -155,6 +164,7 @@ type ViewMode = 'list' | 'calendar'
 interface Props {
   initialSchedule: ScheduleData | null
   initialOverrides: OverrideData[]
+  initialMeetingLimits: MeetingLimitRow[]
   userTimezone: string
 }
 
@@ -197,6 +207,17 @@ function OverrideDialog({
     const [y, m] = base.split('-').map(Number)
     return { year: y, month: m - 1 }
   })
+
+  useEffect(() => {
+    if (open) {
+      const base = defaultDate || todayISO()
+      setSelDate(base)
+      setIsBlocked(false)
+      setSlots([{ startTime: '09:00', endTime: '17:00' }])
+      const [y, m] = base.split('-').map(Number)
+      setCursor({ year: y, month: m - 1 })
+    }
+  }, [open, defaultDate])
 
   const today = todayISO()
   const { year, month } = cursor
@@ -258,7 +279,7 @@ function OverrideDialog({
 
             <div className="grid grid-cols-7 gap-y-1">
               {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((d) => (
-                <div key={d} className="h-7 flex items-center justify-center text-[10px] font-semibold text-muted-foreground">{d}</div>
+                <div key={d} className="h-7 flex items-center justify-center text-2xs font-semibold text-muted-foreground">{d}</div>
               ))}
               {cells.map((day, i) => {
                 if (!day) return <div key={`e-${i}`} />
@@ -474,7 +495,8 @@ function FullCalendarView({ grid, overrides, currentTz, onTzClick, onEditDate, o
   }
 
   return (
-    <div className="border border-border">
+    <div className="overflow-x-auto">
+    <div className="border border-border min-w-[560px]">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => setCursor(({ year: y, month: m }) => m === 0 ? { year: y - 1, month: 11 } : { year: y, month: m - 1 })}
@@ -491,7 +513,7 @@ function FullCalendarView({ grid, overrides, currentTz, onTzClick, onEditDate, o
 
       <div className="grid grid-cols-7 border-b border-border bg-muted/20">
         {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((d) => (
-          <div key={d} className="py-2 text-center text-[11px] font-semibold text-muted-foreground border-r border-border last:border-r-0">{d}</div>
+          <div key={d} className="py-2 text-center text-xs font-semibold text-muted-foreground border-r border-border last:border-r-0">{d}</div>
         ))}
       </div>
 
@@ -528,11 +550,11 @@ function FullCalendarView({ grid, overrides, currentTz, onTzClick, onEditDate, o
                 </div>
                 <div className="space-y-0.5">
                   {displaySlots.map((s, i) => (
-                    <p key={i} className={cn('text-[11px] leading-snug',
+                    <p key={i} className={cn('text-xs leading-snug',
                       override ? 'text-primary font-medium' : 'text-muted-foreground'
                     )}>{fmt12(s.startTime)} – {fmt12(s.endTime)}</p>
                   ))}
-                  {override?.isBlocked && <p className="text-[11px] text-destructive/60">Unavailable</p>}
+                  {override?.isBlocked && <p className="text-xs text-destructive/60">Unavailable</p>}
                 </div>
               </>
             )
@@ -579,12 +601,13 @@ function FullCalendarView({ grid, overrides, currentTz, onTzClick, onEditDate, o
         </div>
       ))}
     </div>
+    </div>
   )
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezone }: Props) {
+export function AvailabilityForm({ initialSchedule, initialOverrides, initialMeetingLimits, userTimezone }: Props) {
   const [isPending, startTransition] = useTransition()
   const [pageTab, setPageTab] = useState<PageTab>('schedules')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
@@ -614,7 +637,10 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
   // Advanced tab
   const [advName, setAdvName] = useState(initialSchedule?.name ?? 'Working Hours')
   const [holidayCountry, setHolidayCountry] = useState('US')
-  const [meetingLimits, setMeetingLimits] = useState<{ period: 'day' | 'week' | 'month'; count: string }[]>([])
+  const [meetingLimits, setMeetingLimits] = useState<MeetingLimitRow[]>(initialMeetingLimits)
+  const [limitPeriod, setLimitPeriod] = useState<MeetingLimitPeriod>('day')
+  const [limitCount, setLimitCount] = useState('4')
+  const [limitPending, startLimitTransition] = useTransition()
 
   // ── Grid mutations ──────────────────────────────────────────────────────────
 
@@ -808,7 +834,10 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
 
   const filteredTz = useMemo(() => {
     const q = tzSearch.toLowerCase().trim()
-    return q ? COMMON_TZ.filter((tz) => tz.toLowerCase().includes(q) || getTzLabel(tz).toLowerCase().includes(q)) : COMMON_TZ
+    if (!q) return COMMON_TZ
+    const inCommon = COMMON_TZ.filter((tz) => tz.toLowerCase().includes(q) || getTzLabel(tz).toLowerCase().includes(q))
+    if (inCommon.length > 0) return inCommon
+    return ALL_TZ.filter((tz) => tz.toLowerCase().includes(q) || getTzLabel(tz).toLowerCase().includes(q)).slice(0, 50)
   }, [tzSearch])
 
   function handleTzChange(tz: string) {
@@ -828,7 +857,7 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
     <div>
       {/* Page tab bar */}
       <div className="-mx-4 md:-mx-6 border-b border-border px-4 md:px-6 mb-6">
-        <div className="flex">
+        <div className="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {([
             { id: 'schedules' as PageTab, label: 'Schedules' },
             { id: 'calendar' as PageTab, label: 'Calendar settings' },
@@ -925,63 +954,109 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
             </button>
           </div>
 
-          {/* Meeting limits */}
+
+          {/* Meeting Limits */}
           <div className="py-8">
             <h2 className="font-semibold mb-0.5">Meeting limits</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Set a maximum number of total meetings. You can also set specific limits within{' '}
-              <a href="/event-types" className="text-primary hover:underline">individual events</a>.
+              Set a maximum number of total meetings across all event types.
             </p>
 
+            {/* Existing limits */}
             {meetingLimits.length > 0 && (
-              <div className="space-y-3 mb-4">
-                <p className="text-sm text-muted-foreground font-medium">Schedule no more than...</p>
-                {meetingLimits.map((limit, i) => {
-                  const usedPeriods = meetingLimits.map((l) => l.period)
-                  const availablePeriods = (['day', 'week', 'month'] as const).filter(
-                    (p) => p === limit.period || !usedPeriods.includes(p)
-                  )
-                  return (
-                    <div key={i} className="flex items-center gap-2">
-                      <Input
-                        type="number" min={1} max={999} value={limit.count} placeholder="0"
-                        onChange={(e) => setMeetingLimits((prev) => prev.map((l, idx) => idx === i ? { ...l, count: e.target.value } : l))}
-                        className="w-20 text-center h-9 text-sm"
-                      />
-                      <span className="text-sm text-muted-foreground shrink-0">meetings per</span>
-                      <Select value={limit.period}
-                        onValueChange={(v) => setMeetingLimits((prev) => prev.map((l, idx) => idx === i ? { ...l, period: v as 'day' | 'week' | 'month' } : l))}>
-                        <SelectTrigger className="w-28 h-9 text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent position="popper" side="bottom" sideOffset={4} style={{ maxHeight: '200px' }}>
-                          {availablePeriods.map((p) => (
-                            <SelectItem key={p} value={p} className="text-sm capitalize">{p}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <button type="button"
-                        onClick={() => setMeetingLimits((prev) => prev.filter((_, idx) => idx !== i))}
-                        className="p-1.5 text-muted-foreground hover:text-foreground transition-colors shrink-0">
-                        <X size={14} />
-                      </button>
-                    </div>
-                  )
-                })}
+              <div className="border border-border divide-y divide-border mb-3">
+                {meetingLimits.map((lim) => (
+                  <div key={lim.id} className="flex items-center gap-3 px-4 py-3">
+                    <input
+                      type="number"
+                      min={1}
+                      max={999}
+                      defaultValue={lim.count}
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value)
+                        if (!isNaN(val) && val !== lim.count) {
+                          startLimitTransition(async () => {
+                            const res = await updateMeetingLimit(lim.id, val)
+                            if ('error' in res) { toast.error(res.error); return }
+                            setMeetingLimits((prev) => prev.map((l) => l.id === lim.id ? { ...l, count: val } : l))
+                            toast.success('Limit updated')
+                          })
+                        }
+                      }}
+                      className="w-16 h-9 border border-input bg-background px-2 text-sm text-center outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                    />
+                    <span className="text-sm text-muted-foreground">meetings per</span>
+                    <span className="text-sm font-medium">{lim.period}</span>
+                    <button
+                      type="button"
+                      disabled={limitPending}
+                      onClick={() => startLimitTransition(async () => {
+                        const res = await removeMeetingLimit(lim.id)
+                        if ('error' in res) { toast.error(res.error); return }
+                        setMeetingLimits((prev) => prev.filter((l) => l.id !== lim.id))
+                        toast.success('Limit removed')
+                      })}
+                      className="ml-auto flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
-            {meetingLimits.length < 3 && (
-              <button type="button"
-                onClick={() => {
-                  const used = meetingLimits.map((l) => l.period)
-                  const next = (['day', 'week', 'month'] as const).find((p) => !used.includes(p))
-                  if (next) setMeetingLimits((prev) => [...prev, { period: next, count: '' }])
-                }}
-                className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors">
-                <Plus size={13} />
-                {meetingLimits.length === 0 ? 'Add a meeting limit' : 'Add another meeting limit'}
-              </button>
+            {/* Add new limit */}
+            {(['day', 'week', 'month'] as MeetingLimitPeriod[]).some(
+              (p) => !meetingLimits.find((l) => l.period === p)
+            ) && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="number"
+                  min={1}
+                  max={999}
+                  value={limitCount}
+                  onChange={(e) => setLimitCount(e.target.value)}
+                  className="w-16 h-9 border border-input bg-background px-2 text-sm text-center outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                />
+                <span className="text-sm text-muted-foreground">meetings per</span>
+                <Select
+                  value={limitPeriod}
+                  onValueChange={(v) => setLimitPeriod(v as MeetingLimitPeriod)}
+                >
+                  <SelectTrigger className="w-28 h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(['day', 'week', 'month'] as MeetingLimitPeriod[])
+                      .filter((p) => !meetingLimits.find((l) => l.period === p))
+                      .map((p) => (
+                        <SelectItem key={p} value={p} className="text-sm capitalize">{p}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={limitPending || !limitCount || parseInt(limitCount) < 1}
+                  className="gap-1.5"
+                  onClick={() => startLimitTransition(async () => {
+                    const count = parseInt(limitCount)
+                    if (isNaN(count)) return
+                    const res = await addMeetingLimit(limitPeriod, count)
+                    if ('error' in res) { toast.error(res.error); return }
+                    setMeetingLimits((prev) => [...prev, { id: res.id, period: limitPeriod, count }])
+                    // Auto-select next available period
+                    const taken = new Set([...meetingLimits.map(l => l.period), limitPeriod])
+                    const next = (['day', 'week', 'month'] as MeetingLimitPeriod[]).find(p => !taken.has(p))
+                    if (next) setLimitPeriod(next)
+                    setLimitCount('4')
+                    toast.success('Meeting limit added')
+                  })}
+                >
+                  <Plus size={13} /> Add another meeting limit
+                </Button>
+              </div>
             )}
           </div>
 
@@ -1173,7 +1248,7 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, userTimezo
                         <div>
                           <p className="text-sm font-medium">{fmtDate(o.date)}</p>
                           {o.isBlocked
-                            ? <span className="inline-block text-[11px] text-muted-foreground bg-muted px-2 py-0.5 mt-0.5">Unavailable</span>
+                            ? <span className="inline-block text-xs text-muted-foreground bg-muted px-2 py-0.5 mt-0.5">Unavailable</span>
                             : <div className="mt-0.5 space-y-0.5">
                                 {o.slots.map((s, i) => (
                                   <p key={i} className="text-xs text-muted-foreground">{fmt12(s.startTime)} – {fmt12(s.endTime)}</p>

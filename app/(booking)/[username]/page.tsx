@@ -30,13 +30,13 @@ export async function generateMetadata({
 }
 
 const LOCATION_ICON: Record<string, React.ReactNode> = {
-  zoom:                <VideoCamera size={11} weight="fill" className="text-blue-500" />,
-  google_meet:         <VideoCamera size={11} weight="fill" className="text-green-600" />,
-  phone_host_calls:    <Phone size={11} weight="fill" className="text-teal-600" />,
-  phone_invitee_calls: <Phone size={11} weight="fill" className="text-teal-600" />,
-  in_person:           <MapPin size={11} weight="fill" className="text-purple-500" />,
-  custom:              <Globe size={11} weight="fill" className="text-gray-400" />,
-  invitees_choice:     <Globe size={11} weight="fill" className="text-gray-400" />,
+  zoom:                <VideoCamera size={11} weight="fill" className="text-muted-foreground" />,
+  google_meet:         <VideoCamera size={11} weight="fill" className="text-muted-foreground" />,
+  phone_host_calls:    <Phone size={11} weight="fill" className="text-primary" />,
+  phone_invitee_calls: <Phone size={11} weight="fill" className="text-primary" />,
+  in_person:           <MapPin size={11} weight="fill" className="text-muted-foreground" />,
+  custom:              <Globe size={11} weight="fill" className="text-muted-foreground" />,
+  invitees_choice:     <Globe size={11} weight="fill" className="text-muted-foreground" />,
 }
 const LOCATION_LABEL: Record<string, string> = {
   zoom: 'Zoom', google_meet: 'Google Meet',
@@ -86,7 +86,7 @@ export default async function HostProfilePage({
             alt={host.name}
             width={72}
             height={72}
-            className="h-[72px] w-[72px] rounded-full object-cover ring-2 ring-white"
+            className="h-[72px] w-[72px] rounded-full object-cover ring-1 ring-border"
           />
         ) : (
           <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primary text-2xl font-semibold text-primary-foreground">
@@ -100,7 +100,7 @@ export default async function HostProfilePage({
               {[host.jobTitle, host.company].filter(Boolean).join(' @ ')}
             </p>
           )}
-          <p className="mt-1 text-xs text-muted-foreground/50">@{username}</p>
+          <p className="mt-1 text-sm text-muted-foreground">@{username}</p>
         </div>
         {host.bio && (
           <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
@@ -145,7 +145,7 @@ export default async function HostProfilePage({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{et.name}</p>
                   {et.description && (
-                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                    <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
                       {et.description}
                     </p>
                   )}
@@ -177,6 +177,11 @@ export default async function HostProfilePage({
           })}
         </div>
       )}
+
+      <footer className="mt-10 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/50">
+        <span>Scheduling powered by</span>
+        <span className="font-semibold text-primary/60">Schduled</span>
+      </footer>
     </main>
   )
 }

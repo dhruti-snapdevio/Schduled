@@ -9,6 +9,7 @@ import {
   Check,
   Clock,
   Copy,
+  DotsSixVertical,
   DotsThreeVertical,
   Link as LinkIcon,
   MapPin,
@@ -82,23 +83,23 @@ interface EventTypeCardProps {
   stats?: EventTypeStats
   isSelected?: boolean
   onSelect?: (id: string, selected: boolean) => void
+  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>
 }
 
 // ── Location meta ────────────────────────────────────────────────────────────
 
 const LOCATION_META: Record<string, {
   label: string
-  bg: string
-  text: string
   icon: React.ReactNode
+  cls: string
 }> = {
-  zoom:                { label: 'Zoom',              bg: '#EFF6FF', text: '#2563EB', icon: <VideoCamera size={13} weight="fill" /> },
-  google_meet:         { label: 'Google Meet',       bg: '#F0FDF4', text: '#16A34A', icon: <GoogleLogo  size={13} weight="bold"  /> },
-  phone_host_calls:    { label: 'Phone call',        bg: '#F0FDFA', text: '#0D9488', icon: <Phone       size={13} weight="fill" /> },
-  phone_invitee_calls: { label: 'Phone (invitee)',   bg: '#F0FDFA', text: '#0D9488', icon: <Phone       size={13} weight="fill" /> },
-  in_person:           { label: 'In-person',         bg: '#FAF5FF', text: '#9333EA', icon: <MapPin      size={13} weight="fill" /> },
-  custom:              { label: 'Custom',            bg: '#F9FAFB', text: '#6B7280', icon: <Globe       size={13} weight="fill" /> },
-  invitees_choice:     { label: "Invitee's choice",  bg: '#F9FAFB', text: '#6B7280', icon: <Screencast  size={13} weight="fill" /> },
+  zoom:                { label: 'Zoom',              icon: <VideoCamera size={13} weight="fill" />, cls: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
+  google_meet:         { label: 'Google Meet',       icon: <GoogleLogo  size={13} weight="bold"  />, cls: 'bg-green-500/10 text-green-600 dark:text-green-400' },
+  phone_host_calls:    { label: 'Phone call',        icon: <Phone       size={13} weight="fill" />, cls: 'bg-primary/10 text-primary' },
+  phone_invitee_calls: { label: 'Phone (invitee)',   icon: <Phone       size={13} weight="fill" />, cls: 'bg-primary/10 text-primary' },
+  in_person:           { label: 'In-person',         icon: <MapPin      size={13} weight="fill" />, cls: 'bg-orange-500/10 text-orange-600 dark:text-orange-400' },
+  custom:              { label: 'Custom',            icon: <Globe       size={13} weight="fill" />, cls: 'bg-muted text-muted-foreground' },
+  invitees_choice:     { label: "Invitee's choice",  icon: <Screencast  size={13} weight="fill" />, cls: 'bg-violet-500/10 text-violet-600 dark:text-violet-400' },
 }
 
 function formatDuration(min: number) {
@@ -119,7 +120,7 @@ function relativeDate(date: Date): string {
 
 export function EventTypeCard({
   id, name, slug, color, locationType, meetingType = 'one_on_one', isActive, isHidden, durations, username, stats,
-  isSelected = false, onSelect,
+  isSelected = false, onSelect, dragHandleProps,
 }: EventTypeCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -246,8 +247,7 @@ export function EventTypeCard({
               </span>
             )}
             <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium"
-              style={{ backgroundColor: loc.bg, color: loc.text }}
+              className={cn('inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium', loc.cls)}
             >
               {loc.icon}
               {loc.label}
@@ -274,6 +274,18 @@ export function EventTypeCard({
         {/* ── Right: controls ─────────────────────────────────────── */}
         <div className="flex items-center gap-1 shrink-0">
 
+          {/* Drag handle */}
+          {dragHandleProps && (
+            <button
+              type="button"
+              title="Drag to reorder"
+              className="mr-1 flex h-8 w-6 cursor-grab items-center justify-center text-muted-foreground/40 transition-colors hover:text-muted-foreground active:cursor-grabbing"
+              {...dragHandleProps}
+            >
+              <DotsSixVertical size={16} />
+            </button>
+          )}
+
           {/* Toggle + ON/OFF label */}
           <div className="flex items-center gap-1.5 mr-1">
             <Switch
@@ -298,7 +310,7 @@ export function EventTypeCard({
               onClick={copyLink}
               disabled={!bookingUrl}
               className={cn(
-                'flex h-8 w-8 items-center justify-center transition-all hover:scale-105 disabled:pointer-events-none',
+                'hidden sm:flex h-8 w-8 items-center justify-center transition-colors disabled:pointer-events-none',
                 copied
                   ? 'text-emerald-600 bg-emerald-50'
                   : 'text-muted-foreground hover:bg-primary/10 hover:text-primary',
@@ -313,7 +325,7 @@ export function EventTypeCard({
             href={`/event-types/${id}`}
             aria-label={`Edit ${name}`}
             title="Edit"
-            className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary hover:scale-105"
+            className="hidden sm:flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
           >
             <PencilSimple size={15} />
           </Link>
@@ -326,7 +338,7 @@ export function EventTypeCard({
               rel="noopener noreferrer"
               aria-label={`Open booking page for ${name}`}
               title="Open booking page"
-              className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary hover:scale-105"
+              className="hidden sm:flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
             >
               <ArrowSquareOut size={15} />
             </a>
@@ -339,7 +351,7 @@ export function EventTypeCard({
                 type="button"
                 title="More"
                 disabled={isPending}
-                className="flex h-8 w-8 items-center justify-center rounded-none text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary hover:scale-105 disabled:opacity-50"
+                className="flex h-8 w-8 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
               >
                 <DotsThreeVertical size={16} />
               </button>

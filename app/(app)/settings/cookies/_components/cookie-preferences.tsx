@@ -100,7 +100,7 @@ export function CookiePreferences() {
           <p>You have the right to access, correct, or delete your personal data at any time.</p>
           <p>
             To export your data, visit{' '}
-            <a href="/settings/profile" className="text-primary underline underline-offset-4">
+            <a href="/profile/profile" className="text-primary underline underline-offset-4">
               Profile Settings
             </a>
             . To delete your account and all associated data, use the Delete Account option on the same page.

@@ -4,6 +4,17 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
 import { Archive, ArrowCounterClockwise, MagnifyingGlass, Note, Spinner, Trash } from '@phosphor-icons/react'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import {
   archiveContact,
   deleteContact,
   unarchiveContact,
@@ -26,6 +37,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 
 interface Contact {
@@ -93,7 +110,6 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
   }
 
   function handleDelete(email: string) {
-    if (!confirm(`Remove ${email} from contacts? They will reappear if they book again.`)) return
     startTransition(async () => {
       await deleteContact(email)
       router.refresh()
@@ -145,16 +161,16 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border border-border">
-        <Table>
+      <div className="border border-border">
+        <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead className="hidden sm:table-cell">Bookings</TableHead>
-              <TableHead className="hidden md:table-cell">Last booked</TableHead>
-              <TableHead className="hidden lg:table-cell w-32">Notes</TableHead>
-              <TableHead className="w-28 text-right">Actions</TableHead>
+              <TableHead className="w-[18%]">Name</TableHead>
+              <TableHead className="w-[24%]">Email</TableHead>
+              <TableHead className="hidden sm:table-cell w-[10%]">Bookings</TableHead>
+              <TableHead className="hidden md:table-cell w-[16%]">Last booked</TableHead>
+              <TableHead className="hidden lg:table-cell w-[20%]">Notes</TableHead>
+              <TableHead className="w-[12%] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -167,17 +183,42 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
             ) : (
               contacts.map((c) => (
                 <TableRow key={c.email} className="transition-colors duration-150 hover:bg-primary/[0.02]">
-                  <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm truncate max-w-[140px] sm:max-w-none">{c.email}</TableCell>
+                  <TableCell className="font-medium truncate">{c.name}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm truncate">
+                    <TooltipProvider delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="block truncate cursor-default">{c.email}</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs">
+                          {c.email}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
                   <TableCell className="hidden sm:table-cell">{c.booking_count}</TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">
                     {c.last_booked_at
                       ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(c.last_booked_at))
                       : '—'}
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell">
+                  <TableCell className="hidden lg:table-cell max-w-[200px]">
                     {c.notes ? (
-                      <span className="line-clamp-1 text-sm text-muted-foreground">{c.notes}</span>
+                      <TooltipProvider delayDuration={300}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="block truncate text-sm text-muted-foreground cursor-default">
+                              {c.notes}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="top"
+                            className="max-w-xs whitespace-pre-wrap break-words text-xs"
+                          >
+                            {c.notes}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     ) : (
                       <span className="text-xs text-muted-foreground/40">—</span>
                     )}
@@ -214,16 +255,36 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
                           <Archive size={15} />
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        title="Delete"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(c.email)}
-                        disabled={isPending}
-                      >
-                        <Trash size={15} />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            title="Delete"
+                            className="text-destructive hover:text-destructive"
+                            disabled={isPending}
+                          >
+                            <Trash size={15} />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove {c.name}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {c.email} will be removed from your contacts. They&apos;ll reappear if they book again.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => handleDelete(c.email)}
+                            >
+                              Remove
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -231,27 +292,27 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
             )}
           </TableBody>
         </Table>
-
-        {/* Pagination */}
-        {total > pageSize && (
-          <div className="flex items-center justify-between border-t border-border px-4 py-3">
-            <p className="text-xs text-muted-foreground">
-              {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
-            </p>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => changePage(page - 1)}>
-                Previous
-              </Button>
-              <span className="text-xs text-muted-foreground">
-                Page {page} of {totalPages}
-              </span>
-              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => changePage(page + 1)}>
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Pagination */}
+      {total > pageSize && (
+        <div className="flex flex-wrap items-center justify-between border-t border-border px-4 py-3">
+          <p className="text-xs text-muted-foreground">
+            {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => changePage(page - 1)}>
+              Previous
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              Page {page} of {totalPages}
+            </span>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => changePage(page + 1)}>
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Notes dialog */}
       <Dialog open={!!noteTarget} onOpenChange={(open) => { if (!open) setNoteTarget(null) }}>

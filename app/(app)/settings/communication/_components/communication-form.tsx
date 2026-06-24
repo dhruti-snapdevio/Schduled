@@ -127,7 +127,7 @@ export function CommunicationForm({ initial }: CommunicationFormProps) {
           <Separator />
 
           {message && (
-            <p className={`text-sm ${message.type === 'ok' ? 'text-[var(--success-foreground)]' : 'text-destructive'}`}>
+            <p className={`text-sm ${message.type === 'ok' ? 'text-primary' : 'text-destructive'}`}>
               {message.text}
             </p>
           )}

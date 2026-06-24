@@ -1,7 +1,7 @@
 import { createId } from '@paralleldrive/cuid2'
-import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import { user } from './auth'
-import { dayOfWeekEnum } from './enums'
+import { dayOfWeekEnum, meetingLimitPeriodEnum } from './enums'
 
 export const availabilitySchedule = pgTable('availability_schedule', {
   id:        text('id').primaryKey().$defaultFn(createId),
@@ -32,3 +32,11 @@ export const availabilityOverride = pgTable('availability_override', {
 }, (t) => [
   index('availability_override_user_date_idx').on(t.userId, t.date),
 ])
+
+export const meetingLimit = pgTable('meeting_limit', {
+  id:        text('id').primaryKey().$defaultFn(createId),
+  userId:    text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  period:    meetingLimitPeriodEnum('period').notNull(),
+  count:     integer('count').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})

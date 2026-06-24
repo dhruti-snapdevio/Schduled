@@ -2329,4 +2329,46 @@ NEXT PRIORITY ORDER (pick up here):
   4. settings/login page — connect auth methods view (magic link vs Google OAuth)
 
   5. Impersonation banner — amber strip when session.impersonatedBy is set
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## POST-MVP IMPROVEMENTS (v1.1+)
+
+> Identified in design audit (2026-06-24). These are NOT MVP blockers.
+> Fix bugs above first. Add these after v1 ships.
+
+### UX & Missing Scheduling SaaS Standards
+
+| Feature | Priority | Notes |
+|---------|----------|-------|
+| "Powered by Schduled" on booking pages | High | Growth loop — add to host profile, calendar, confirmation page footer |
+| "Schedule another meeting" link on confirmation | High | Link back to `/{username}` below reschedule/cancel |
+| Bookings pagination / load more | High | Currently hard-capped at 50 — users can't see older bookings |
+| `loading.tsx` on all app routes | High | Without these, route transitions show blank screen; add to `/dashboard`, `/bookings`, `/event-types`, `/availability` |
+| StatCards link to filtered bookings view | Medium | e.g. "Upcoming" stat → `/bookings?tab=upcoming` |
+| "No bookings yet" zero state on event type card stats row | Medium | Currently the stats row is hidden when count=0 and no lastBooked |
+| "View your public booking page" link on Profile settings | Medium | Every scheduling SaaS shows this prominently on profile |
+| After-booking redirect URL field | Medium | Add `redirectUrl` to event type schema + Confirmations tab |
+| Date-range filter on Bookings page | Medium | "This week / This month / Custom range" |
+| Reorder event types (drag handle) | Low | At minimum a position up/down button per card |
+| "Last signed in" timestamp on Security page | Low | Pull `session.createdAt` from current session |
+| Auto-dismiss success toast in my-link form | Low | `setTimeout(() => setMessage(null), 4000)` on success |
+| Character counter on username input | Low | Live `{n}/30` below the input |
+
+### Schema & Builder Gaps
+
+| Feature | Priority | Notes |
+|---------|----------|-------|
+| `meetingType` field on `event_type` table | Medium | Currently no enum — card badge always shows "One-on-One". Add `one_on_one`, `group`, `round_robin`, `collective` and expose in builder |
+| Meeting limits (Advanced tab) server action | Medium | UI exists but saves nothing — wire `saveMeetingLimits` server action |
+| Pending bookings tab position | Low | Move "Pending" tab to first position (most urgent) |
+
+### Code Quality
+
+| Issue | Notes |
+|-------|-------|
+| `STATUS_STYLES` defined in both `dashboard/page.tsx` and `bookings/page.tsx` | Extract to `lib/booking-status.ts` |
+| `LocationBadge` uses inline CSS colors in dashboard, Tailwind classes in bookings | Unify into shared component in `components/bookings/` |
+| `availability-form.tsx` is 1200+ lines | Split into `WeeklyHoursEditor`, `DateOverrideList`, `HolidaySettings`, `MeetingLimitsSettings` under `_components/` |
+| `COMMON_TZ` list only has 19 timezones | Fall back to `Intl.supportedValuesOf('timeZone')` when search has no match |
 ```

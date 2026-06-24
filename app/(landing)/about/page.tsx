@@ -346,9 +346,9 @@ export default function AboutPage() {
                     <div className="h-2 w-2 rounded-full bg-amber-500/40" />
                     <div className="h-2 w-2 rounded-full bg-green-500/40" />
                   </div>
-                  <span className="ml-2 text-white/25 text-[11px]">app/api/bookings/route.ts</span>
+                  <span className="ml-2 text-white/25 text-xs">app/api/bookings/route.ts</span>
                 </div>
-                <div className="p-5 space-y-1 text-[11px] leading-relaxed">
+                <div className="p-5 space-y-1 text-xs leading-relaxed">
                   <div><span className="text-teal-400/70">export async function</span> <span className="text-white/80">POST</span><span className="text-white/40">(request: Request) {"{"}</span></div>
                   <div className="pl-4"><span className="text-white/40">// Idempotency check — prevent duplicate bookings</span></div>
                   <div className="pl-4"><span className="text-teal-400/70">const</span> <span className="text-white/70">existing</span> <span className="text-white/40">= await db.select()</span></div>

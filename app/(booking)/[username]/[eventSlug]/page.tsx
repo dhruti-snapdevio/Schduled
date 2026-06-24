@@ -141,7 +141,6 @@ export default async function BookingPage({
           placeholder: q.placeholder,
         })),
       }}
-      hostTimezone={hostTz}
       today={today}
       maxDate={maxDate}
       availableDaysOfWeek={Array.from(availableDaysOfWeek)}

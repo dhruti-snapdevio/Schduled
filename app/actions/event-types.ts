@@ -77,6 +77,7 @@ export interface EventTypeFormData {
   slug: string
   description?: string
   color: string
+  meetingType: 'one_on_one' | 'group' | 'round_robin' | 'collective'
   isActive: boolean
   isHidden: boolean
   durations: number[]
@@ -130,6 +131,7 @@ export async function createEventType(data: EventTypeFormData, initialQuestions?
       slug,
       description: data.description?.trim() || null,
       color: data.color,
+      meetingType: data.meetingType,
       isActive: data.isActive,
       isHidden: data.isHidden,
       availabilityScheduleId: data.availabilityScheduleId || null,
@@ -232,6 +234,7 @@ export async function updateEventType(id: string, data: EventTypeFormData): Prom
         slug,
         description: data.description?.trim() || null,
         color: data.color,
+        meetingType: data.meetingType,
         isActive: data.isActive,
         isHidden: data.isHidden,
         availabilityScheduleId: data.availabilityScheduleId || null,
@@ -345,8 +348,10 @@ export async function deleteEventType(id: string): Promise<ActionResult> {
       .limit(1)
     if (!existing) return { error: 'Event type not found' }
 
-    await db.delete(booking).where(eq(booking.eventTypeId, id))
-    await db.delete(eventType).where(eq(eventType.id, id))
+    await db.transaction(async (tx) => {
+      await tx.delete(booking).where(eq(booking.eventTypeId, id))
+      await tx.delete(eventType).where(eq(eventType.id, id))
+    })
 
     await audit({
       action: 'event_type.deleted',
@@ -371,10 +376,12 @@ export async function bulkDeleteEventTypes(ids: string[]): Promise<ActionResult>
   if (!ids.length) return { ok: true }
   try {
     const session = await requireSession()
-    await db.delete(booking).where(inArray(booking.eventTypeId, ids))
-    await db.delete(eventType).where(
-      and(inArray(eventType.id, ids), eq(eventType.userId, session.user.id))
-    )
+    await db.transaction(async (tx) => {
+      await tx.delete(booking).where(inArray(booking.eventTypeId, ids))
+      await tx.delete(eventType).where(
+        and(inArray(eventType.id, ids), eq(eventType.userId, session.user.id))
+      )
+    })
     revalidatePath('/event-types')
     return { ok: true }
   } catch (err) {
@@ -531,6 +538,24 @@ export async function deleteQuestion(id: string): Promise<ActionResult> {
 
     await db.delete(eventTypeQuestion).where(eq(eventTypeQuestion.id, id))
     revalidatePath(`/event-types/${question.eventType.id}`)
+    return { ok: true }
+  } catch (err) {
+    console.error('[eventTypes]', err)
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+export async function reorderEventTypes(ids: string[]): Promise<ActionResult> {
+  try {
+    const session = await requireSession()
+    await Promise.all(
+      ids.map((id, pos) =>
+        db.update(eventType).set({ position: pos }).where(
+          and(eq(eventType.id, id), eq(eventType.userId, session.user.id))
+        )
+      )
+    )
+    revalidatePath('/event-types')
     return { ok: true }
   } catch (err) {
     console.error('[eventTypes]', err)

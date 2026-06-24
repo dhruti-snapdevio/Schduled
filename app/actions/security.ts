@@ -25,7 +25,7 @@ export async function toggleEmailVerification(id: string, value: boolean): Promi
       .set({ requiresEmailVerification: value, updatedAt: new Date() })
       .where(eq(eventType.id, id))
 
-    revalidatePath('/settings/security')
+    revalidatePath('/profile/security')
     return { ok: true }
   } catch (err) {
     console.error('[security] toggleEmailVerification', err)
@@ -67,7 +67,7 @@ export async function addBlocklistEntry(
       note: note?.trim() || null,
     })
 
-    revalidatePath('/settings/security')
+    revalidatePath('/profile/security')
     return { ok: true }
   } catch (err) {
     console.error('[security] addBlocklistEntry', err)
@@ -82,7 +82,7 @@ export async function removeBlocklistEntry(id: string): Promise<ActionResult> {
       .delete(bookingBlocklist)
       .where(and(eq(bookingBlocklist.id, id), eq(bookingBlocklist.userId, session.user.id)))
 
-    revalidatePath('/settings/security')
+    revalidatePath('/profile/security')
     return { ok: true }
   } catch (err) {
     console.error('[security] removeBlocklistEntry', err)

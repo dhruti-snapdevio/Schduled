@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Users } from '@phosphor-icons/react/dist/ssr'
 import { PageHeader } from '@/components/scaffold/page-header'
 import { Empty } from '@/components/ui/empty'
@@ -41,13 +42,15 @@ export default async function ContactsPage({
           description="Contacts appear here automatically when someone books a meeting with you."
         />
       ) : (
-        <ContactsTable
-          contacts={contacts}
-          total={total}
-          page={page}
-          search={search}
-          archived={archived}
-        />
+        <Suspense>
+          <ContactsTable
+            contacts={contacts}
+            total={total}
+            page={page}
+            search={search}
+            archived={archived}
+          />
+        </Suspense>
       )}
     </div>
   )

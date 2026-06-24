@@ -67,11 +67,11 @@ export function CancelClient(props: Props) {
 
   if (props.blockedByPolicy) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md overflow-hidden bg-white border border-border">
+      <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+        <div className="w-full max-w-md overflow-hidden bg-card border border-border">
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <Warning className="text-amber-500" size={48} weight="fill" />
-            <h1 className="text-lg font-bold text-gray-900">
+            <h1 className="text-lg font-bold text-foreground">
               Cancellation not available
             </h1>
             {props.policyText ? (
@@ -95,12 +95,12 @@ export function CancelClient(props: Props) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-      <div className="w-full max-w-md overflow-hidden bg-white border border-border">
+    <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+      <div className="w-full max-w-md overflow-hidden bg-card border border-border">
         {done ? (
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <CheckCircle className="text-primary" size={48} weight="fill" />
-            <h1 className="text-lg font-bold text-gray-900">
+            <h1 className="text-lg font-bold text-foreground">
               Booking cancelled
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -111,7 +111,7 @@ export function CancelClient(props: Props) {
         ) : props.isPast ? (
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <Warning className="text-amber-500" size={48} weight="fill" />
-            <h1 className="text-lg font-bold text-gray-900">
+            <h1 className="text-lg font-bold text-foreground">
               This booking has passed
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -121,44 +121,44 @@ export function CancelClient(props: Props) {
           </div>
         ) : (
           <>
-            <div className="border-b border-gray-100 bg-[#F8FCFB] px-5 sm:px-8 py-5">
+            <div className="border-b border-border bg-muted/30 px-5 sm:px-8 py-5">
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="mb-4 inline-flex items-center gap-2 border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-600 transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+                className="mb-4 inline-flex items-center gap-2 border border-border bg-background px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
               >
                 <ArrowLeft size={14} />
                 Back
               </button>
               <div className="flex items-center gap-3">
-                <CalendarX className="text-red-500" size={24} />
-                <h1 className="text-base font-bold text-gray-900">
+                <CalendarX className="text-destructive" size={24} />
+                <h1 className="text-base font-bold text-foreground">
                   Cancel this booking?
                 </h1>
               </div>
             </div>
             <div className="px-5 sm:px-8 py-6">
-              <div className="mb-5 border border-gray-200 bg-[#F8FCFB] p-4">
-                <p className="text-sm font-semibold text-gray-900">
+              <div className="mb-5 border border-border bg-muted/30 p-4">
+                <p className="text-sm font-semibold text-foreground">
                   {props.eventName}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   with {props.hostName}
                 </p>
-                <p className="mt-2 text-xs text-gray-600">{when}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{when}</p>
                 <p className="text-xs text-muted-foreground">
                   {props.inviteeTimezone}
                 </p>
               </div>
 
               <label
-                className="mb-1.5 block text-xs font-semibold text-gray-600"
+                className="mb-1.5 block text-xs font-semibold text-muted-foreground"
                 htmlFor="cancel-reason"
               >
                 Reason (optional)
               </label>
               <textarea
-                className="w-full resize-none border border-input bg-white px-3 py-2 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
+                className="w-full resize-none border border-input bg-background px-3 py-2 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
                 id="cancel-reason"
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Let the host know why you're cancelling…"
@@ -171,7 +171,7 @@ export function CancelClient(props: Props) {
               )}
 
               <button
-                className="mt-5 flex h-11 w-full items-center justify-center gap-2 bg-red-500 text-sm font-bold text-white transition-all hover:bg-red-600 disabled:opacity-60"
+                className="mt-5 flex h-11 w-full items-center justify-center gap-2 bg-destructive text-sm font-bold text-primary-foreground transition-all hover:bg-destructive/90 disabled:opacity-60"
                 disabled={submitting}
                 onClick={handleCancel}
                 type="button"

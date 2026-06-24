@@ -134,7 +134,7 @@ export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, e
               </span>
               <div>
                 <p className={cn('text-xs font-semibold', mt.disabled ? 'text-muted-foreground' : 'text-foreground')}>{mt.label}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{mt.desc}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{mt.desc}</p>
               </div>
             </button>
           ))}
@@ -217,14 +217,14 @@ export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, e
             {/* URL preview + copy */}
             {displayUrl && (
               <div className="flex items-center justify-between gap-2 mt-1.5 px-3 py-2 bg-muted/50 border border-border">
-                <span className="flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground truncate">
+                <span className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground truncate">
                   <LinkIcon size={13} />
                   {displayUrl}
                 </span>
                 <button
                   type="button"
                   onClick={copyLink}
-                  className="shrink-0 flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                  className="shrink-0 flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                 >
                   <Copy size={13} />
                   Copy
@@ -232,7 +232,7 @@ export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, e
               </div>
             )}
             {slugStatus === 'taken' && (
-              <p className="text-[11px] text-destructive mt-1">This URL is already taken. Try a different slug.</p>
+              <p className="text-xs text-destructive mt-1">This URL is already taken. Try a different slug.</p>
             )}
             <FormMessage />
           </FormItem>
@@ -253,7 +253,7 @@ export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, e
                     key={c}
                     type="button"
                     onClick={() => field.onChange(c)}
-                    className="h-7 w-7 shrink-0 border-2 transition-transform hover:scale-110"
+                    className="h-7 w-7 shrink-0 border-2 transition-opacity hover:opacity-80"
                     style={{
                       backgroundColor: c,
                       borderColor: field.value === c ? c : 'transparent',

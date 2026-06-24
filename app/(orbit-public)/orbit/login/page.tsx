@@ -39,7 +39,7 @@ export default async function AdminLoginPage({
           <span className="flex size-12 items-center justify-center bg-primary text-primary-foreground">
             <ShieldCheck size={24} weight="fill" />
           </span>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
             Orbit Admin Panel
           </p>
         </div>

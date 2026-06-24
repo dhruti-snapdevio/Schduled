@@ -4,6 +4,17 @@ import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowsClockwise, CheckCircle, GoogleLogo, XCircle } from '@phosphor-icons/react'
 import { disconnectCalendar } from '@/app/actions/settings'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 
 interface CalendarRow {
@@ -29,7 +40,6 @@ export function CalendarActions({ calendar, connectUrl }: CalendarActionsProps) 
   const isConnected = calendar.status === 'connected'
 
   function handleDisconnect() {
-    if (!confirm('Disconnect this calendar? Bookings will no longer be written to it.')) return
     startTransition(async () => {
       await disconnectCalendar(calendar.id)
       router.refresh()
@@ -67,14 +77,30 @@ export function CalendarActions({ calendar, connectUrl }: CalendarActionsProps) 
 
       {/* Actions */}
       {isConnected ? (
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isPending}
-          onClick={handleDisconnect}
-        >
-          Disconnect
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" size="sm" disabled={isPending}>
+              Disconnect
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Disconnect this calendar?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Bookings will no longer be written to it, and it won&apos;t be used for conflict checks.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleDisconnect}
+              >
+                Disconnect
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       ) : (
         <Button asChild size="sm" variant="outline">
           <a href={connectUrl}>

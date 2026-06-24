@@ -22,6 +22,8 @@ import {
   type EventTypeFormData,
   updateEventType,
 } from "@/app/actions/event-types";
+import type { MeetingLimitRow } from "@/app/actions/availability";
+import type { MeetingIntegrations } from "@/lib/integrations/status";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -74,6 +76,7 @@ const schema = z.object({
   locationValue: z.string().max(500).optional(),
   hostPhoneNumber: z.string().max(20).optional(),
   confirmationNote: z.string().max(1000).optional(),
+  meetingType: z.enum(['one_on_one', 'group', 'round_robin', 'collective']),
   requiresApproval: z.boolean(),
   allowCancellation: z.boolean(),
   cancellationCutoffHours: z.number().min(0).max(72),
@@ -107,6 +110,8 @@ export interface ExistingQuestion {
 interface BuilderProps {
   defaultValues: BuilderFormValues;
   eventTypeId?: string;
+  globalLimits?: MeetingLimitRow[];
+  integrations?: MeetingIntegrations;
   mode: "create" | "edit";
   questions?: ExistingQuestion[];
   schedules: ScheduleOption[];
@@ -124,7 +129,7 @@ const TABS = [
 
 // Maps each tab to the form fields it owns — used to jump to the tab with errors
 const TAB_FIELDS: Record<string, (keyof BuilderFormValues)[]> = {
-  general: ["name", "slug", "description", "color", "isActive", "isHidden", "requiresApproval"],
+  general: ["name", "slug", "description", "color", "meetingType", "isActive", "isHidden", "requiresApproval"],
   availability: [
     "durations",
     "defaultDuration",
@@ -134,7 +139,6 @@ const TAB_FIELDS: Record<string, (keyof BuilderFormValues)[]> = {
     "minimumNotice",
     "bufferBefore",
     "bufferAfter",
-    "maxBookingsPerDay",
     "startTimeIncrement",
   ],
   location: ["locationType", "locationValue", "hostPhoneNumber"],
@@ -155,13 +159,14 @@ export function EventTypeBuilder({
   eventTypeId,
   defaultValues,
   schedules,
+  globalLimits = [],
+  integrations = { googleConnected: false, zoomConnected: false },
   questions = [],
   username,
 }: BuilderProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [activeTab, setActiveTab] = useState("general");
-  const [meetingType, setMeetingType] = useState("one_on_one");
   const [pendingQuestions, setPendingQuestions] = useState<ExistingQuestion[]>(
     []
   );
@@ -302,7 +307,7 @@ export function EventTypeBuilder({
               </div>
               {/* Event type badge */}
               <span className="mt-1 inline-block text-xs font-medium text-muted-foreground">
-                {MEETING_TYPES.find((m) => m.id === meetingType)?.label ?? "One-on-One"}
+                {MEETING_TYPES.find((m) => m.id === form.watch('meetingType'))?.label ?? "One-on-One"}
               </span>
             </div>
 
@@ -365,15 +370,15 @@ export function EventTypeBuilder({
               <TabGeneral
                 eventTypeId={eventTypeId}
                 form={form}
-                meetingType={meetingType}
-                onMeetingTypeChange={setMeetingType}
+                meetingType={form.watch('meetingType')}
+                onMeetingTypeChange={(t) => form.setValue('meetingType', t as BuilderFormValues['meetingType'], { shouldDirty: true })}
                 username={username}
               />
             )}
             {activeTab === "availability" && (
-              <TabAvailability form={form} schedules={schedules} />
+              <TabAvailability form={form} schedules={schedules} globalLimits={globalLimits} />
             )}
-            {activeTab === "location" && <TabLocation form={form} />}
+            {activeTab === "location" && <TabLocation form={form} integrations={integrations} />}
             {activeTab === "questions" && (
               <TabQuestions
                 eventTypeId={eventTypeId}
@@ -437,7 +442,7 @@ export function EventTypeBuilder({
 
           {/* Right: live preview — always visible on large screens */}
           <div className="w-80 shrink-0 hidden lg:block">
-            <LivePreview form={form} meetingType={meetingType} username={username} />
+            <LivePreview form={form} meetingType={form.watch('meetingType')} username={username} />
           </div>
         </div>
 

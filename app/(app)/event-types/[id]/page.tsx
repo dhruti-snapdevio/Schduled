@@ -4,6 +4,8 @@ import { db } from '@/lib/db'
 import { user } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { getEventType, listAvailabilitySchedules } from '@/app/actions/event-types'
+import { getMeetingLimits } from '@/app/actions/availability'
+import { getMeetingIntegrations } from '@/lib/integrations/status'
 import { EventTypeBuilder } from '../_components/builder'
 import type { BuilderFormValues, ExistingQuestion } from '../_components/builder'
 
@@ -17,10 +19,12 @@ export default async function EditEventTypePage({ params }: { params: Promise<{ 
   const { id } = await params
   const session = await requireSession()
 
-  const [et, [currentUser], schedules] = await Promise.all([
+  const [et, [currentUser], schedules, globalLimits, integrations] = await Promise.all([
     getEventType(id),
     db.select({ username: user.username }).from(user).where(eq(user.id, session.user.id)).limit(1),
     listAvailabilitySchedules(),
+    getMeetingLimits(),
+    getMeetingIntegrations(session.user.id),
   ])
 
   if (!et) notFound()
@@ -33,6 +37,7 @@ export default async function EditEventTypePage({ params }: { params: Promise<{ 
     slug:                    et.slug,
     description:             et.description ?? '',
     color:                   et.color ?? '#0d9488',
+    meetingType:             (et.meetingType as BuilderFormValues['meetingType']) ?? 'one_on_one',
     isActive:                et.isActive,
     isHidden:                et.isHidden,
     durations,
@@ -76,6 +81,8 @@ export default async function EditEventTypePage({ params }: { params: Promise<{ 
       eventTypeId={et.id}
       defaultValues={defaultValues}
       schedules={schedules}
+      globalLimits={globalLimits}
+      integrations={integrations}
       questions={questions}
       username={currentUser?.username ?? null}
     />

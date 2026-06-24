@@ -4,7 +4,7 @@ import { and, eq, gt, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createId } from "@paralleldrive/cuid2";
-import { account, booking, session as sessionTable, user, verification } from "@/db/schema";
+import { account, booking, session as sessionTable, user, userProfile, verification } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { requireSession } from "@/lib/authz";
 import { db } from "@/lib/db";
@@ -35,6 +35,18 @@ export async function updateNameAction(
     .set({ name, updatedAt: new Date() })
     .where(eq(user.id, session.user.id));
 
+  // Keep booking page display name in sync
+  const [existing] = await db
+    .select({ id: userProfile.id })
+    .from(userProfile)
+    .where(eq(userProfile.userId, session.user.id))
+    .limit(1)
+  if (existing) {
+    await db.update(userProfile).set({ displayName: name, updatedAt: new Date() }).where(eq(userProfile.userId, session.user.id))
+  } else {
+    await db.insert(userProfile).values({ id: createId(), userId: session.user.id, displayName: name })
+  }
+
   await audit({
     action: "profile.name_updated",
     actorEmail: session.user.email,
@@ -46,8 +58,21 @@ export async function updateNameAction(
   });
 
   revalidatePath("/dashboard");
-  revalidatePath("/settings/profile");
+  revalidatePath("/profile/profile");
+  revalidatePath("/", "layout");
   return { success: "Name updated." };
+}
+
+export async function removeAvatarAction(): Promise<ActionState> {
+  try {
+    const session = await requireSession();
+    await db.update(user).set({ image: null, updatedAt: new Date() }).where(eq(user.id, session.user.id));
+    revalidatePath("/profile/profile");
+    revalidatePath("/", "layout");
+    return { success: "Photo removed." };
+  } catch {
+    return { error: "Failed to remove photo. Please try again." };
+  }
 }
 
 export async function changeEmailAction(
@@ -93,7 +118,8 @@ export async function changeEmailAction(
   });
 
   revalidatePath("/dashboard");
-  revalidatePath("/settings/profile");
+  revalidatePath("/profile/profile");
+  revalidatePath("/", "layout");
   return { success: "Email updated. Use the new email for future sign-ins." };
 }
 
@@ -128,7 +154,7 @@ export async function revokeSessionAction(formData: FormData): Promise<void> {
     entityType: "session",
   });
 
-  revalidatePath("/settings/profile");
+  revalidatePath("/profile/security");
 }
 
 export async function signOutOtherSessionsAction(): Promise<void> {
@@ -158,7 +184,7 @@ export async function signOutOtherSessionsAction(): Promise<void> {
     metadata: { revokedCount: ids.length },
   });
 
-  revalidatePath("/settings/profile");
+  revalidatePath("/profile/security");
 }
 
 // ── Delete account: step 1 — send OTP code to email ─────────────────────────

@@ -1,11 +1,14 @@
-import { getAvailabilityData } from "@/app/actions/availability";
+import { getAvailabilityData, getMeetingLimits } from "@/app/actions/availability";
 import { PageHeader } from "@/components/scaffold/page-header";
 import { AvailabilityForm } from "./_components/availability-form";
 
 export const metadata = { title: "Availability" };
 
 export default async function AvailabilityPage() {
-  const { schedule, overrides, userTimezone } = await getAvailabilityData();
+  const [{ schedule, overrides, userTimezone }, initialLimits] = await Promise.all([
+    getAvailabilityData(),
+    getMeetingLimits(),
+  ]);
 
   return (
     <>
@@ -17,6 +20,7 @@ export default async function AvailabilityPage() {
       <AvailabilityForm
         initialOverrides={overrides}
         initialSchedule={schedule}
+        initialMeetingLimits={initialLimits}
         userTimezone={userTimezone}
       />
     </>

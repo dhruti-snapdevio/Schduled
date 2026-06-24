@@ -1,6 +1,7 @@
-import { and, count, desc, eq, gt, ilike, lte, or } from 'drizzle-orm'
+import { and, count, desc, eq, gt, gte, ilike, lte, or } from 'drizzle-orm'
 import { format, isToday, isTomorrow } from 'date-fns'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import {
   CalendarBlank,
   CalendarCheck,
@@ -21,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/scaffold/page-header'
 import { BookingsSearch } from './_components/bookings-search'
+import { BookingsDateFilter } from './_components/bookings-date-filter'
 import { booking, eventType } from '@/db/schema'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
@@ -37,7 +39,7 @@ function dayLabel(date: Date): string {
 }
 
 const PLATFORM_META: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  zoom:                { label: 'Zoom',        color: 'bg-blue-500/10 text-blue-600',   icon: VideoCamera },
+  zoom:                { label: 'Zoom',        color: 'bg-muted text-muted-foreground', icon: VideoCamera },
   google_meet:         { label: 'Google Meet', color: 'bg-primary/10 text-primary',     icon: VideoCamera },
   teams:               { label: 'Teams',       color: 'bg-purple-500/10 text-purple-600', icon: VideoCamera },
   phone_host_calls:    { label: 'Phone',       color: 'bg-muted text-muted-foreground', icon: Phone },
@@ -47,13 +49,7 @@ const PLATFORM_META: Record<string, { label: string; color: string; icon: React.
   custom:              { label: 'Online',      color: 'bg-muted text-muted-foreground', icon: VideoCamera },
 }
 
-const STATUS_STYLES: Record<string, { dotClass: string; badge: string; label: string }> = {
-  confirmed: { dotClass: 'bg-primary',          badge: 'bg-primary/10 text-primary',         label: 'Confirmed' },
-  cancelled: { dotClass: 'bg-destructive',       badge: 'bg-destructive/10 text-destructive', label: 'Cancelled' },
-  pending:   { dotClass: 'bg-amber-500',         badge: 'bg-amber-500/10 text-amber-700',     label: 'Pending' },
-  no_show:   { dotClass: 'bg-muted-foreground',  badge: 'bg-muted text-muted-foreground',     label: 'No show' },
-  completed: { dotClass: 'bg-foreground/30',     badge: 'bg-foreground/5 text-muted-foreground', label: 'Completed' },
-}
+import { STATUS_STYLES } from '@/lib/booking-status'
 
 const TAB_DOTS: Record<Tab, string> = {
   upcoming:  'bg-primary',
@@ -62,16 +58,21 @@ const TAB_DOTS: Record<Tab, string> = {
   pending:   'bg-amber-500',
 }
 
+const PAGE_SIZE = 20
+
 export default async function BookingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string }>
+  searchParams: Promise<{ tab?: string; q?: string; page?: string; dateFrom?: string; dateTo?: string }>
 }) {
   const session = await requireSession()
-  const { tab: rawTab, q } = await searchParams
+  const { tab: rawTab, q, page: rawPage, dateFrom: rawDateFrom, dateTo: rawDateTo } = await searchParams
   const tab: Tab =
     rawTab === 'past' || rawTab === 'cancelled' || rawTab === 'pending' ? rawTab : 'upcoming'
   const search = q?.trim() ?? ''
+  const page = Math.max(1, parseInt(rawPage ?? '1', 10) || 1)
+  const dateFrom = rawDateFrom?.match(/^\d{4}-\d{2}-\d{2}$/) ? rawDateFrom : ''
+  const dateTo   = rawDateTo?.match(/^\d{4}-\d{2}-\d{2}$/)   ? rawDateTo   : ''
 
   const now = new Date()
 
@@ -108,12 +109,12 @@ export default async function BookingsPage({
           ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'pending'))
           : and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'cancelled'))
 
-  const whereClause = search
-    ? and(baseWhere, or(
-        ilike(booking.inviteeName, `%${search}%`),
-        ilike(booking.inviteeEmail, `%${search}%`),
-      ))
-    : baseWhere
+  const dateFromFilter = dateFrom ? gte(booking.startTime, new Date(`${dateFrom}T00:00:00`)) : undefined
+  const dateToFilter   = dateTo   ? lte(booking.startTime, new Date(`${dateTo}T23:59:59`))   : undefined
+  const searchFilter   = search
+    ? or(ilike(booking.inviteeName, `%${search}%`), ilike(booking.inviteeEmail, `%${search}%`))
+    : undefined
+  const whereClause = and(baseWhere, dateFromFilter, dateToFilter, searchFilter)
 
   const bookings = await db
     .select({
@@ -138,7 +139,11 @@ export default async function BookingsPage({
     .innerJoin(eventType, eq(booking.eventTypeId, eventType.id))
     .where(whereClause)
     .orderBy(tab === 'upcoming' || tab === 'pending' ? booking.startTime : desc(booking.startTime))
-    .limit(50)
+    .limit(PAGE_SIZE + 1)
+    .offset((page - 1) * PAGE_SIZE)
+
+  const hasMore = bookings.length > PAGE_SIZE
+  const pageBookings = hasMore ? bookings.slice(0, PAGE_SIZE) : bookings
 
   const TABS: { key: Tab; label: string }[] = [
     { key: 'upcoming',  label: 'Upcoming' },
@@ -146,6 +151,15 @@ export default async function BookingsPage({
     { key: 'past',      label: 'Past' },
     { key: 'cancelled', label: 'Cancelled' },
   ]
+
+  function pageHref(p: number) {
+    const params = new URLSearchParams({ tab })
+    if (search)   params.set('q',        search)
+    if (dateFrom) params.set('dateFrom', dateFrom)
+    if (dateTo)   params.set('dateTo',   dateTo)
+    if (p > 1)    params.set('page',     String(p))
+    return `/bookings?${params.toString()}`
+  }
 
   return (
     <>
@@ -158,7 +172,7 @@ export default async function BookingsPage({
       {/* ── Toolbar: pill tabs + search ──────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         {/* Pill tabs */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {TABS.map(({ key, label }) => (
             <Link
               key={key}
@@ -172,12 +186,12 @@ export default async function BookingsPage({
             >
               <span className={cn(
                 'size-2 rounded-full shrink-0',
-                tab === key ? 'bg-white/70' : TAB_DOTS[key],
+                tab === key ? 'bg-primary-foreground/70' : TAB_DOTS[key],
               )} />
               {label}
               <span className={cn(
                 'text-xs font-bold',
-                tab === key ? 'text-white/80' : 'text-muted-foreground',
+                tab === key ? 'text-primary-foreground/80' : 'text-muted-foreground',
               )}>
                 {counts[key]}
               </span>
@@ -185,16 +199,23 @@ export default async function BookingsPage({
           ))}
         </div>
 
+        {/* Date range filter */}
+        <Suspense>
+          <BookingsDateFilter tab={tab} dateFrom={dateFrom} dateTo={dateTo} />
+        </Suspense>
+
         {/* Search — debounced, updates URL as you type */}
-        <BookingsSearch tab={tab} />
+        <Suspense>
+          <BookingsSearch tab={tab} />
+        </Suspense>
       </div>
 
       {/* ── List ─────────────────────────────────────────────────────────────── */}
-      {bookings.length === 0 ? (
-        <EmptyState tab={tab} hasSearch={!!search} />
+      {pageBookings.length === 0 ? (
+        <EmptyState tab={tab} hasSearch={!!(search || dateFrom || dateTo)} />
       ) : (
         <div className="space-y-2">
-          {bookings.map((b) => {
+          {pageBookings.map((b) => {
             const isUpcoming = tab === 'upcoming'
             const isPending = tab === 'pending'
             const statusMeta = STATUS_STYLES[b.status] ?? STATUS_STYLES.no_show
@@ -236,6 +257,7 @@ export default async function BookingsPage({
                   </p>
                 </div>
 
+                <div className="flex flex-1 flex-col sm:flex-row min-w-0">
                 {/* Center: content */}
                 <div className="flex-1 min-w-0 py-3 px-4 flex flex-col justify-center">
                   {/* Name + event name */}
@@ -351,9 +373,31 @@ export default async function BookingsPage({
                     </div>
                   )}
                 </div>
+                </div>
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* ── Pagination ── */}
+      {(hasMore || page > 1) && (
+        <div className="mt-4 flex items-center justify-between gap-4 border-t border-border pt-4">
+          <p className="text-xs text-muted-foreground">
+            Page {page} · {PAGE_SIZE} per page
+          </p>
+          <div className="flex items-center gap-2">
+            {page > 1 && (
+              <Button asChild size="sm" variant="outline">
+                <Link href={pageHref(page - 1)}>← Previous</Link>
+              </Button>
+            )}
+            {hasMore && (
+              <Button asChild size="sm" variant="outline">
+                <Link href={pageHref(page + 1)}>Next →</Link>
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </>
@@ -379,8 +423,8 @@ function EmptyState({ tab, hasSearch }: { tab: Tab; hasSearch: boolean }) {
       <div className="flex justify-center py-10">
         <div className="w-full max-w-lg border border-border bg-background overflow-hidden">
           {/* Header */}
-          <div className="flex items-center gap-3 border-b border-border bg-amber-50/60 px-6 py-5">
-            <span className="flex size-10 shrink-0 items-center justify-center bg-amber-100 text-amber-600">
+          <div className="flex items-center gap-3 border-b border-border bg-amber-500/[0.06] px-6 py-5">
+            <span className="flex size-10 shrink-0 items-center justify-center bg-amber-500/10 text-amber-600">
               <Hourglass size={20} weight="fill" />
             </span>
             <div>
