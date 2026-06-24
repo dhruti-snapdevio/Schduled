@@ -1,14 +1,19 @@
 "use client";
 
 import {
+  ArrowSquareOut,
   Globe,
   GoogleLogo,
   MapPin,
-  Phone,
+  PhoneIncoming,
+  PhoneOutgoing,
   Screencast,
   VideoCamera,
+  Warning,
 } from "@phosphor-icons/react";
+import Link from "next/link";
 import type { UseFormReturn } from "react-hook-form";
+import type { MeetingIntegrations } from "@/lib/integrations/status";
 import {
   FormControl,
   FormDescription,
@@ -53,13 +58,13 @@ const LOCATION_OPTIONS: LocationOption[] = [
     value: "phone_host_calls",
     label: "Phone call (you call)",
     sub: "You call the invitee. They provide their number when booking.",
-    icon: <Phone className="text-primary" size={22} weight="fill" />,
+    icon: <PhoneOutgoing className="text-primary" size={22} weight="fill" />,
   },
   {
     value: "phone_invitee_calls",
     label: "Phone call (they call)",
     sub: "The invitee calls you on your phone number.",
-    icon: <Phone className="text-primary" size={22} weight="fill" />,
+    icon: <PhoneIncoming className="text-primary" size={22} weight="fill" />,
     requiresPhone: true,
   },
   {
@@ -93,11 +98,22 @@ const LOCATION_OPTIONS: LocationOption[] = [
 
 interface TabLocationProps {
   form: UseFormReturn<BuilderFormValues>;
+  integrations?: MeetingIntegrations;
 }
 
-export function TabLocation({ form }: TabLocationProps) {
+export function TabLocation({
+  form,
+  integrations = { googleConnected: false, zoomConnected: false },
+}: TabLocationProps) {
   const locationType = form.watch("locationType");
   const selected = LOCATION_OPTIONS.find((o) => o.value === locationType);
+
+  // Zoom / Google Meet auto-generate a link only if the host has connected the
+  // integration. Warn when the chosen provider isn't connected yet.
+  const needsConnect =
+    (locationType === "google_meet" && !integrations.googleConnected) ||
+    (locationType === "zoom" && !integrations.zoomConnected);
+  const connectProvider = locationType === "zoom" ? "Zoom" : "Google Calendar";
 
   return (
     <div className="space-y-6">
@@ -149,7 +165,7 @@ export function TabLocation({ form }: TabLocationProps) {
                           {opt.label}
                         </span>
                         {opt.comingSoon && (
-                          <span className="inline-flex items-center border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                          <span className="inline-flex items-center bg-teal-600 px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide text-white">
                             Coming soon
                           </span>
                         )}
@@ -176,6 +192,30 @@ export function TabLocation({ form }: TabLocationProps) {
           </FormItem>
         )}
       />
+
+      {/* Connect-required warning — provider chosen but not yet connected */}
+      {needsConnect && (
+        <div className="flex items-start gap-3 border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/30">
+          <Warning className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" size={18} weight="fill" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+              Connect {connectProvider} to generate meeting links
+            </p>
+            <p className="mt-0.5 text-xs text-amber-700/90 dark:text-amber-300/80">
+              You haven&apos;t connected {connectProvider} yet, so bookings for this meeting type
+              won&apos;t include a {locationType === "zoom" ? "Zoom" : "Google Meet"} link until you do.
+            </p>
+            <Link
+              href="/settings/integrations"
+              target="_blank"
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 underline-offset-2 hover:underline dark:text-amber-200"
+            >
+              Connect {connectProvider}
+              <ArrowSquareOut size={13} />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Extra fields when value is required */}
       {selected?.requiresValue && (

@@ -98,7 +98,7 @@ export function LegalShell({
         />
 
         <div className="relative mx-auto max-w-4xl px-5 sm:px-8">
-          <p className="mb-4 text-[10px] font-black uppercase tracking-[0.22em] text-teal-400/60">
+          <p className="mb-4 text-2xs font-black uppercase tracking-[0.22em] text-teal-400/60">
             {eyebrow}
           </p>
           <h1 className="font-black text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
@@ -120,7 +120,7 @@ export function LegalShell({
           {/* Sidebar TOC */}
           <aside className="mb-10 lg:mb-0">
             <div className="lg:sticky lg:top-24">
-              <p className="mb-4 text-[10px] font-black uppercase tracking-eyebrow text-muted-foreground/60">
+              <p className="mb-4 text-2xs font-black uppercase tracking-eyebrow text-muted-foreground/60">
                 On this page
               </p>
               <TocNav toc={toc} />

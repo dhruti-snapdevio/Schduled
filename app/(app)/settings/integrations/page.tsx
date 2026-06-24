@@ -120,7 +120,7 @@ export default async function IntegrationsPage() {
             badge={
               googleCal?.status === "connected" ? (
                 <Badge
-                  className="text-[var(--success-foreground)]"
+                  className="text-primary"
                   variant="secondary"
                 >
                   Active
@@ -152,7 +152,7 @@ export default async function IntegrationsPage() {
             badge={
               zoomConn ? (
                 <Badge
-                  className="text-[var(--success-foreground)]"
+                  className="text-primary"
                   variant="secondary"
                 >
                   Active
@@ -191,7 +191,7 @@ export default async function IntegrationsPage() {
             badge={
               googleCal?.status === "connected" ? (
                 <Badge
-                  className="text-[var(--success-foreground)]"
+                  className="text-primary"
                   variant="secondary"
                 >
                   Connected

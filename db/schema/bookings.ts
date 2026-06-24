@@ -6,8 +6,8 @@ import { bookingStatusEnum } from './enums'
 
 export const booking = pgTable('booking', {
   id:          text('id').primaryKey().$defaultFn(createId),
-  eventTypeId: text('event_type_id').notNull().references(() => eventType.id),
-  hostUserId:  text('host_user_id').notNull().references(() => user.id),
+  eventTypeId: text('event_type_id').notNull().references(() => eventType.id, { onDelete: 'cascade' }),
+  hostUserId:  text('host_user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
 
   inviteeName:     text('invitee_name').notNull(),
   inviteeEmail:    text('invitee_email').notNull(),

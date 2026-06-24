@@ -9,6 +9,7 @@ import {
   user,
   availabilitySchedule,
   availabilityWindow,
+  cancellationPolicy,
   eventType,
   eventTypeDuration,
 } from '@/db/schema'
@@ -254,6 +255,13 @@ export async function completeOnboarding(): Promise<ActionResult> {
           eventTypeId: etId,
           duration: 30,
           isDefault: true,
+        })
+
+        await tx.insert(cancellationPolicy).values({
+          id: createId(),
+          eventTypeId: etId,
+          allowCancellation: true,
+          cutoffHours: 24,
         })
       })
 

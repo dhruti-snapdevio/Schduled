@@ -10,14 +10,19 @@
 
 html {
   background: var(--background);
-  overflow: hidden;
-  height: 100%;
 }
 
 body {
-  height: 100%;
   margin: 0;
   letter-spacing: 0;
+}
+
+/* Pages that use the full app shell scroll inside their own <main>, so the
+   document itself must not scroll (otherwise a second scrollbar appears).
+   Scoped via :has() so landing / auth / booking pages keep normal scrolling. */
+html:has([data-app-shell]),
+body:has([data-app-shell]) {
+  overflow: hidden;
 }
 
 @theme inline {
@@ -156,7 +161,7 @@ body {
   --sidebar:                    oklch(0.108 0.032 215);
   --sidebar-foreground:         oklch(0.940 0.012 185);
   --sidebar-primary:            oklch(0.700 0.140 182);
-  --sidebar-primary-foreground: oklch(0.108 0.032 215);
+  --sidebar-primary-foreground: oklch(0.980 0.005 185);
   --sidebar-accent:             oklch(0.185 0.040 210);
   --sidebar-accent-foreground:  oklch(0.940 0.012 185);
   --sidebar-border:             oklch(0.200 0.036 210);
@@ -204,13 +209,13 @@ body {
   --chart-4: oklch(0.60  0.104 184.735);
   --chart-5: oklch(0.511 0.086 186.423);
 
-  --sidebar:                    oklch(0.085 0.025 215);
+  --sidebar:                    oklch(0.175 0.035 215);
   --sidebar-foreground:         oklch(0.940 0.012 185);
   --sidebar-primary:            oklch(0.700 0.140 182);
-  --sidebar-primary-foreground: oklch(0.085 0.025 215);
-  --sidebar-accent:             oklch(0.155 0.032 210);
+  --sidebar-primary-foreground: oklch(0.980 0.005 185);
+  --sidebar-accent:             oklch(0.230 0.040 210);
   --sidebar-accent-foreground:  oklch(0.940 0.012 185);
-  --sidebar-border:             oklch(0.170 0.030 210);
+  --sidebar-border:             oklch(0.250 0.036 210);
   --sidebar-ring:               oklch(0.700 0.120 183);
 }
 
@@ -231,6 +236,12 @@ body {
   button,
   input {
     font: inherit;
+  }
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+  label[for] {
+    cursor: pointer;
   }
 }
 

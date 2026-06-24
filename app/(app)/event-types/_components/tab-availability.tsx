@@ -5,6 +5,7 @@ import { ArrowSquareOut, Check, Info, Plus, X } from '@phosphor-icons/react'
 import Link from 'next/link'
 import type { UseFormReturn } from 'react-hook-form'
 import type { BuilderFormValues, ScheduleOption } from './builder'
+import { type MeetingLimitRow } from '@/app/actions/availability'
 import { FormControl, FormField, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -40,22 +41,21 @@ function InfoTip({ text }: { text: string }) {
 
 interface TabAvailabilityProps {
   form: UseFormReturn<BuilderFormValues>
+  globalLimits: MeetingLimitRow[]
   schedules: ScheduleOption[]
 }
 
-export function TabAvailability({ form, schedules }: TabAvailabilityProps) {
+export function TabAvailability({ form, schedules, globalLimits: initialLimits }: TabAvailabilityProps) {
   const [customInput, setCustomInput] = useState('')
   const [showCustom, setShowCustom] = useState(false)
+  const limits = initialLimits
 
   const durations = form.watch('durations')
   const defaultDuration = form.watch('defaultDuration')
   const increment = form.watch('startTimeIncrement')
-  const maxPerDay = form.watch('maxBookingsPerDay')
   const scheduleId = form.watch('availabilityScheduleId')
   const bufferBefore = form.watch('bufferBefore') ?? 0
   const bufferAfter = form.watch('bufferAfter') ?? 0
-
-  const isUnlimited = maxPerDay === null || maxPerDay === undefined
 
   const selectedSchedule = schedules.find((s) =>
     scheduleId ? s.id === scheduleId : s.isDefault
@@ -116,7 +116,7 @@ export function TabAvailability({ form, schedules }: TabAvailabilityProps) {
                       className={cn(
                         'flex items-center border transition-all',
                         selected
-                          ? 'bg-primary border-primary text-white'
+                          ? 'bg-primary border-primary text-primary-foreground'
                           : 'border-border bg-card text-foreground hover:border-primary/60'
                       )}
                     >
@@ -125,7 +125,7 @@ export function TabAvailability({ form, schedules }: TabAvailabilityProps) {
                         onClick={() => selected ? setDefault(d) : addDuration(d)}
                         className={cn(
                           'h-8 px-2.5 text-xs font-medium flex items-center gap-1 transition-colors',
-                          selected ? 'text-white' : 'hover:text-primary'
+                          selected ? 'text-primary-foreground' : 'hover:text-primary'
                         )}
                       >
                         {selected && <Check size={11} weight="bold" />}
@@ -135,14 +135,14 @@ export function TabAvailability({ form, schedules }: TabAvailabilityProps) {
                         <button
                           type="button"
                           onClick={() => removeDuration(d)}
-                          className="h-8 w-6 flex items-center justify-center border-l border-white/20 text-white/70 hover:text-white transition-colors"
+                          className="h-8 w-6 flex items-center justify-center border-l border-primary-foreground/20 text-primary-foreground/70 hover:text-primary-foreground transition-colors"
                         >
                           <X size={10} />
                         </button>
                       )}
                     </div>
                     {/* Reserve label space so chips align vertically */}
-                    <span className={cn('flex items-center gap-0.5 text-[10px] font-medium whitespace-nowrap', isDefault ? 'text-primary' : 'invisible')}>
+                    <span className={cn('flex items-center gap-0.5 text-2xs font-medium whitespace-nowrap', isDefault ? 'text-primary' : 'invisible')}>
                       <Check size={9} weight="bold" /> Default
                     </span>
                   </div>
@@ -169,7 +169,7 @@ export function TabAvailability({ form, schedules }: TabAvailabilityProps) {
                   <button
                     type="button"
                     onClick={addCustom}
-                    className="h-8 w-8 flex items-center justify-center border border-primary bg-primary text-white hover:bg-primary/90 transition-colors"
+                    className="h-8 w-8 flex items-center justify-center border border-primary bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   >
                     <Check size={13} weight="bold" />
                   </button>
@@ -191,7 +191,7 @@ export function TabAvailability({ form, schedules }: TabAvailabilityProps) {
                     <Plus size={11} />
                     Custom
                   </button>
-                  <span className="text-[10px] invisible">x</span>
+                  <span className="text-2xs invisible">x</span>
                 </div>
               )}
             </div>
@@ -216,7 +216,7 @@ export function TabAvailability({ form, schedules }: TabAvailabilityProps) {
                     className={cn(
                       'h-8 px-3 text-xs font-medium border transition-all flex items-center gap-1',
                       active
-                        ? 'bg-primary border-primary text-white'
+                        ? 'bg-primary border-primary text-primary-foreground'
                         : 'border-border bg-card text-foreground hover:border-primary/60 hover:text-primary'
                     )}
                   >
@@ -424,11 +424,11 @@ export function TabAvailability({ form, schedules }: TabAvailabilityProps) {
             return (
               <div className="pt-1">
                 <p className="mb-2 text-xs font-medium text-muted-foreground">Timeline preview</p>
-                <div className="flex h-8 w-full overflow-hidden text-[10px] font-semibold">
+                <div className="flex h-8 w-full overflow-hidden text-2xs font-semibold">
                   {bufferBefore > 0 && (
                     <div
                       style={{ width: `${beforePct}%` }}
-                      className="flex items-center justify-center bg-amber-100 text-amber-700 border border-amber-200 shrink-0"
+                      className="flex items-center justify-center bg-amber-500/10 text-amber-700 border border-amber-500/20 shrink-0"
                     >
                       {bufferBefore}m
                     </div>
@@ -442,13 +442,13 @@ export function TabAvailability({ form, schedules }: TabAvailabilityProps) {
                   {bufferAfter > 0 && (
                     <div
                       style={{ width: `${afterPct}%` }}
-                      className="flex items-center justify-center bg-amber-100 text-amber-700 border border-amber-200 shrink-0"
+                      className="flex items-center justify-center bg-amber-500/10 text-amber-700 border border-amber-500/20 shrink-0"
                     >
                       {bufferAfter}m
                     </div>
                   )}
                 </div>
-                <p className="mt-1.5 text-[11px] text-muted-foreground/70">
+                <p className="mt-1.5 text-xs text-muted-foreground/70">
                   {bufferBefore > 0 && bufferAfter > 0
                     ? `${bufferBefore}m prep + ${meetingMin}m meeting + ${bufferAfter}m wrap-up = ${total}m blocked`
                     : bufferBefore > 0
@@ -459,61 +459,21 @@ export function TabAvailability({ form, schedules }: TabAvailabilityProps) {
             )
           })()}
 
+          {/* Global Meeting Limits — read-only */}
           <div className="border-t border-border/60 pt-5">
-            {/* Max Bookings Per Day */}
-            <FormField
-              control={form.control}
-              name="maxBookingsPerDay"
-              render={({ field }) => (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium text-foreground">Max Bookings Per Day</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!isUnlimited) {
-                        field.onChange(null)
-                      } else {
-                        field.onChange(5)
-                      }
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <div className={cn(
-                      'h-4 w-4 border flex items-center justify-center transition-colors',
-                      isUnlimited ? 'border-primary bg-primary text-white' : 'border-border bg-background'
-                    )}>
-                      {isUnlimited && <Check size={10} weight="bold" />}
-                    </div>
-                    <span className="text-sm text-foreground">Unlimited</span>
-                  </button>
-
-                  {!isUnlimited && (
-                    <div className="flex items-center gap-2 ml-6">
-                      <span className="text-sm text-muted-foreground">Maximum:</span>
-                      <div className="flex items-stretch border border-input w-24">
-                        <Input
-                          className="border-0 shadow-none focus-visible:ring-0 h-8 px-2 text-sm"
-                          max={100}
-                          min={1}
-                          type="number"
-                          value={field.value ?? ''}
-                          onChange={(e) => {
-                            const n = parseInt(e.target.value, 10)
-                            field.onChange(isNaN(n) ? null : n)
-                          }}
-                        />
-                      </div>
-                      <span className="text-sm text-muted-foreground">bookings per day</span>
-                    </div>
-                  )}
-                  <FormMessage />
-                </div>
-              )}
-            />
+            <p className="text-sm font-medium text-foreground mb-1">Global Meeting Limits</p>
+            <p className="text-sm text-muted-foreground">
+              {limits.length > 0
+                ? limits.map((l) => `${l.count} per ${l.period}`).join(', ')
+                : 'No global limits set.'
+              }
+              {' — '}
+              <Link href="/availability" className="text-primary hover:underline inline-flex items-center gap-0.5">
+                Manage in Availability <ArrowSquareOut size={11} />
+              </Link>
+            </p>
           </div>
+
         </div>
       </div>
 

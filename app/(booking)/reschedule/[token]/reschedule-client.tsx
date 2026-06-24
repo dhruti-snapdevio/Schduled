@@ -168,19 +168,19 @@ export function RescheduleClient(props: Props) {
 
   if (done) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md bg-white px-8 py-12 text-center border border-border">
+      <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+        <div className="w-full max-w-md bg-card px-8 py-12 text-center border border-border">
           <CheckCircle
             className="mx-auto text-primary"
             size={48}
             weight="fill"
           />
-          <h1 className="mt-4 text-lg font-bold text-gray-900">
+          <h1 className="mt-4 text-lg font-bold text-foreground">
             Booking rescheduled
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Your {props.eventName} with {props.hostName} is now on{" "}
-            <strong className="text-gray-700">
+            <strong className="text-foreground">
               {newStartUtc &&
                 formatInTimeZone(new Date(newStartUtc), inviteeTz, DATE_FMT)}
             </strong>
@@ -192,18 +192,18 @@ export function RescheduleClient(props: Props) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-      <div className="w-full max-w-3xl overflow-hidden bg-white border border-border">
-        <div className="border-b border-gray-100 bg-[#F8FCFB] px-8 py-5">
+    <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+      <div className="w-full max-w-3xl overflow-hidden bg-card border border-border">
+        <div className="border-b border-border bg-muted/30 px-8 py-5">
           <button
             type="button"
             onClick={() => router.back()}
-            className="mb-4 inline-flex items-center gap-2 border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-600 transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+            className="mb-4 inline-flex items-center gap-2 border border-border bg-background px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
           >
             <ArrowLeft size={14} />
             Back
           </button>
-          <h1 className="text-base font-bold text-gray-900">
+          <h1 className="text-base font-bold text-foreground">
             Reschedule your booking
           </h1>
           <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -214,21 +214,21 @@ export function RescheduleClient(props: Props) {
 
         <div className="flex flex-col lg:flex-row">
           {/* Calendar */}
-          <div className="shrink-0 border-b border-gray-100 p-6 lg:w-[340px] lg:border-b-0 lg:border-r">
+          <div className="shrink-0 border-b border-border p-6 lg:w-[340px] lg:border-b-0 lg:border-r">
             <div className="mb-4 flex items-center justify-between">
               <button
-                className="flex h-8 w-8 items-center justify-center text-gray-400 transition-colors hover:text-gray-700 disabled:opacity-30"
+                className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
                 disabled={format(month, "yyyy-MM") <= today.slice(0, 7)}
                 onClick={() => setMonth((m) => subMonths(m, 1))}
                 type="button"
               >
                 <CaretLeft size={14} weight="bold" />
               </button>
-              <span className="text-sm font-semibold text-gray-700">
+              <span className="text-sm font-semibold text-foreground">
                 {format(month, "MMMM yyyy")}
               </span>
               <button
-                className="flex h-8 w-8 items-center justify-center text-gray-400 transition-colors hover:text-gray-700 disabled:opacity-30"
+                className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
                 disabled={
                   format(addMonths(month, 1), "yyyy-MM") >
                   props.maxDate.slice(0, 7)
@@ -242,7 +242,7 @@ export function RescheduleClient(props: Props) {
             <div className="mb-2 grid grid-cols-7">
               {DAY_LABELS.map((d) => (
                 <span
-                  className="py-1 text-center text-[10px] font-bold uppercase tracking-widest text-gray-400"
+                  className="py-1 text-center text-2xs font-bold uppercase tracking-widest text-muted-foreground"
                   key={d}
                 >
                   {d}
@@ -268,19 +268,19 @@ export function RescheduleClient(props: Props) {
                   >
                     <button
                       className={cn(
-                        "flex h-9 w-9 items-center justify-center text-sm transition-all",
+                        "flex h-10 w-10 items-center justify-center text-sm transition-all",
                         !inMonth && "invisible pointer-events-none",
-                        inMonth && !available && "cursor-default text-gray-200",
+                        inMonth && !available && "cursor-default text-muted-foreground/20",
                         inMonth &&
                           available &&
                           !isSelected &&
                           !isToday &&
-                          "cursor-pointer font-medium text-gray-700 hover:bg-primary/10 hover:text-primary",
+                          "cursor-pointer font-medium text-foreground hover:bg-primary/10 hover:text-primary",
                         isToday &&
                           !isSelected &&
                           "cursor-pointer font-bold text-primary ring-2 ring-inset ring-primary",
                         isSelected &&
-                          "cursor-pointer bg-primary font-bold text-white"
+                          "cursor-pointer bg-primary font-bold text-primary-foreground"
                       )}
                       disabled={!available}
                       onClick={() => {
@@ -303,8 +303,8 @@ export function RescheduleClient(props: Props) {
           <div className="flex flex-1 flex-col">
             {selectedDate ? (
               <div className="flex flex-1 flex-col">
-                <div className="border-b border-gray-100 px-6 py-4">
-                  <h3 className="text-[15px] font-bold text-gray-900">
+                <div className="border-b border-border px-6 py-4">
+                  <h3 className="text-[15px] font-bold text-foreground">
                     {formatInTimeZone(
                       new Date(`${selectedDate}T12:00:00Z`),
                       inviteeTz,
@@ -339,8 +339,8 @@ export function RescheduleClient(props: Props) {
                             className={cn(
                               "flex h-11 w-full items-center justify-center gap-2 text-sm font-semibold transition-all",
                               isChosen
-                                ? "bg-primary text-white"
-                                : "border border-gray-200 bg-white text-gray-700 hover:border-primary/60 hover:bg-primary/5 hover:text-primary"
+                                ? "bg-primary text-primary-foreground"
+                                : "border border-border bg-background text-foreground hover:border-primary/60 hover:bg-primary/5 hover:text-primary"
                             )}
                             key={slot.startUtc}
                             onClick={() => setSelectedSlot(slot)}
@@ -366,9 +366,9 @@ export function RescheduleClient(props: Props) {
                   </p>
                 )}
                 {selectedSlot && (
-                  <div className="border-t border-gray-100 p-4">
+                  <div className="border-t border-border p-4">
                     <button
-                      className="flex h-11 w-full items-center justify-center gap-2 bg-primary text-sm font-bold text-white transition-all hover:bg-primary/90 disabled:opacity-60"
+                      className="flex h-11 w-full items-center justify-center gap-2 bg-primary text-sm font-bold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-60"
                       disabled={submitting}
                       onClick={handleConfirm}
                       type="button"

@@ -1,10 +1,25 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Trash, Power, X, ToggleLeft, ToggleRight } from '@phosphor-icons/react'
+import { Trash, X, ToggleLeft, ToggleRight } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { bulkDeleteEventTypes, bulkToggleEventTypes } from '@/app/actions/event-types'
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { bulkDeleteEventTypes, bulkToggleEventTypes, reorderEventTypes } from '@/app/actions/event-types'
 import { EventTypeCard, type EventTypeStats } from './event-type-card'
 import {
   AlertDialog,
@@ -25,6 +40,7 @@ interface EventType {
   slug: string
   color?: string | null
   locationType: string
+  meetingType?: string | null
   isActive: boolean
   isHidden: boolean
   durations: { duration: number; isDefault: boolean }[]
@@ -36,10 +52,76 @@ interface EventTypeListProps {
   statsMap: Map<string, EventTypeStats>
 }
 
-export function EventTypeList({ eventTypes, username, statsMap }: EventTypeListProps) {
+interface SortableItemProps {
+  et: EventType
+  username: string | null
+  stats?: EventTypeStats
+  isSelected: boolean
+  onSelect: (id: string, selected: boolean) => void
+}
+
+function SortableItem({ et, username, stats, isSelected, onSelect }: SortableItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: et.id })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: 'relative',
+    zIndex: isDragging ? 10 : undefined,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <EventTypeCard
+        id={et.id}
+        name={et.name}
+        slug={et.slug}
+        color={et.color}
+        locationType={et.locationType}
+        meetingType={et.meetingType ?? undefined}
+        isActive={et.isActive}
+        isHidden={et.isHidden}
+        durations={et.durations}
+        username={username}
+        stats={stats}
+        isSelected={isSelected}
+        onSelect={onSelect}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
+    </div>
+  )
+}
+
+export function EventTypeList({ eventTypes: initialEventTypes, username, statsMap }: EventTypeListProps) {
   const router = useRouter()
+  const [orderedTypes, setOrderedTypes] = useState(initialEventTypes)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isPending, startTransition] = useTransition()
+
+  useEffect(() => { setOrderedTypes(initialEventTypes) }, [initialEventTypes])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  )
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = orderedTypes.findIndex((et) => et.id === active.id)
+    const newIndex = orderedTypes.findIndex((et) => et.id === over.id)
+    const next = arrayMove(orderedTypes, oldIndex, newIndex)
+    setOrderedTypes(next)
+
+    startTransition(async () => {
+      const res = await reorderEventTypes(next.map((et) => et.id))
+      if ('error' in res) {
+        toast.error(res.error)
+        setOrderedTypes(orderedTypes)
+      }
+    })
+  }
 
   function handleSelect(id: string, selected: boolean) {
     setSelectedIds((prev) => {
@@ -84,25 +166,26 @@ export function EventTypeList({ eventTypes, username, statsMap }: EventTypeListP
 
   return (
     <>
-      <div className="space-y-2">
-        {eventTypes.map((et) => (
-          <EventTypeCard
-            key={et.id}
-            id={et.id}
-            name={et.name}
-            slug={et.slug}
-            color={et.color}
-            locationType={et.locationType}
-            isActive={et.isActive}
-            isHidden={et.isHidden}
-            durations={et.durations}
-            username={username}
-            stats={statsMap.get(et.id)}
-            isSelected={selectedIds.has(et.id)}
-            onSelect={handleSelect}
-          />
-        ))}
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={orderedTypes.map((et) => et.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {orderedTypes.map((et) => (
+              <SortableItem
+                key={et.id}
+                et={et}
+                username={username}
+                stats={statsMap.get(et.id)}
+                isSelected={selectedIds.has(et.id)}
+                onSelect={handleSelect}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {/* ── Bottom selection action bar ──────────────────────────── */}
       {count > 0 && (
@@ -133,7 +216,7 @@ export function EventTypeList({ eventTypes, username, statsMap }: EventTypeListP
             className="gap-1.5"
           >
             <ToggleRight size={15} weight="bold" />
-            Turn On
+            <span className="hidden sm:inline">Turn On</span>
           </Button>
 
           {/* Turn Off */}
@@ -145,7 +228,7 @@ export function EventTypeList({ eventTypes, username, statsMap }: EventTypeListP
             className="gap-1.5"
           >
             <ToggleLeft size={15} weight="bold" />
-            Turn Off
+            <span className="hidden sm:inline">Turn Off</span>
           </Button>
 
           {/* Delete */}
@@ -158,7 +241,7 @@ export function EventTypeList({ eventTypes, username, statsMap }: EventTypeListP
                 className="gap-1.5"
               >
                 <Trash size={15} weight="bold" />
-                Delete
+                <span className="hidden sm:inline">Delete</span>
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>

@@ -253,7 +253,7 @@ export default async function OrbitUserDetailPage({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium truncate">{et.name}</p>
-                      <span className={`shrink-0 inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-[10px] font-semibold ${
+                      <span className={`shrink-0 inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-2xs font-semibold ${
                         et.isActive
                           ? "border-success/25 bg-success/10 text-success"
                           : "border-border bg-muted text-muted-foreground"

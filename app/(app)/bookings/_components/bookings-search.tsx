@@ -3,6 +3,7 @@
 import { MagnifyingGlass, Spinner } from '@phosphor-icons/react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { Input } from '@/components/ui/input'
 
 export function BookingsSearch({ tab }: { tab: string }) {
   const router = useRouter()
@@ -62,14 +63,14 @@ export function BookingsSearch({ tab }: { tab: string }) {
           className="pointer-events-none absolute left-2.5 text-muted-foreground"
         />
       )}
-      <input
+      <Input
         ref={inputRef}
         name="q"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         type="search"
         placeholder="Search name or email..."
-        className="h-9 w-full sm:w-56 border border-border bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary rounded-none"
+        className="h-9 w-full sm:w-56 pl-8 pr-3 text-sm"
       />
     </form>
   )

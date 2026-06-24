@@ -13,6 +13,7 @@ export default async function ConfirmedPage({
 }: {
   searchParams: Promise<{
     host?: string
+    slug?: string
     event?: string
     start?: string
     end?: string
@@ -28,7 +29,7 @@ export default async function ConfirmedPage({
 
   if (!p.start || !p.tz || !p.event) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
+      <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
         <p className="text-sm text-muted-foreground">Invalid confirmation link.</p>
       </main>
     )
@@ -49,6 +50,7 @@ export default async function ConfirmedPage({
     <ConfirmationClient
       eventName={p.event}
       hostName={p.host ?? ''}
+      hostUsername={p.slug ?? null}
       startUtc={p.start}
       endUtc={p.end ?? null}
       timezone={p.tz}

@@ -11,7 +11,7 @@ export default async function BrandingPage() {
   const session = await requireSession()
 
   const [freshUser, profile] = await Promise.all([
-    db.select({ name: user.name, image: user.image })
+    db.select({ name: user.name })
       .from(user)
       .where(eq(user.id, session.user.id))
       .limit(1)
@@ -32,11 +32,7 @@ export default async function BrandingPage() {
         title="Branding"
         description="Customize how you appear on your public booking page."
       />
-      <BrandingForm
-        displayName={displayName}
-        avatarUrl={freshUser?.image ?? null}
-        initials={(displayName || session.user.name || '?').slice(0, 2).toUpperCase()}
-      />
+      <BrandingForm displayName={displayName} />
     </div>
   )
 }

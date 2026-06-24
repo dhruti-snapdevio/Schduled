@@ -63,6 +63,8 @@ export default async function SecurityPage() {
     userAgent: s.userAgent,
   }))
 
+  const currentSession = sessions.find((s) => s.token === current.session.token)
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -77,7 +79,7 @@ export default async function SecurityPage() {
           <CardTitle>Authentication Method</CardTitle>
           <CardDescription>How you sign in to Schduled.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <div className="flex items-center gap-3 border border-border bg-muted/40 px-4 py-3">
             <ShieldCheck size={20} className="shrink-0 text-primary" />
             <div>
@@ -88,6 +90,17 @@ export default async function SecurityPage() {
               </p>
             </div>
           </div>
+          {currentSession && (
+            <p className="text-xs text-muted-foreground">
+              Last signed in:{' '}
+              <span className="font-medium text-foreground">
+                {new Intl.DateTimeFormat('en-US', {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                }).format(currentSession.createdAt)}
+              </span>
+            </p>
+          )}
         </CardContent>
       </Card>
 

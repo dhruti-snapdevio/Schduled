@@ -3,6 +3,8 @@ import { db } from '@/lib/db'
 import { user } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { listAvailabilitySchedules } from '@/app/actions/event-types'
+import { getMeetingLimits } from '@/app/actions/availability'
+import { getMeetingIntegrations } from '@/lib/integrations/status'
 import { EventTypeBuilder } from '../_components/builder'
 import type { BuilderFormValues } from '../_components/builder'
 
@@ -13,6 +15,7 @@ const DEFAULT_VALUES: BuilderFormValues = {
   slug:                    '',
   description:             '',
   color:                   '#0d9488',
+  meetingType:             'one_on_one',
   isActive:                true,
   isHidden:                false,
   durations:               [30],
@@ -42,9 +45,11 @@ const DEFAULT_VALUES: BuilderFormValues = {
 export default async function NewEventTypePage() {
   const session = await requireSession()
 
-  const [[currentUser], schedules] = await Promise.all([
+  const [[currentUser], schedules, globalLimits, integrations] = await Promise.all([
     db.select({ username: user.username }).from(user).where(eq(user.id, session.user.id)).limit(1),
     listAvailabilitySchedules(),
+    getMeetingLimits(),
+    getMeetingIntegrations(session.user.id),
   ])
 
   return (
@@ -52,6 +57,8 @@ export default async function NewEventTypePage() {
       mode="create"
       defaultValues={DEFAULT_VALUES}
       schedules={schedules}
+      globalLimits={globalLimits}
+      integrations={integrations}
       username={currentUser?.username ?? null}
     />
   )

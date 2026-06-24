@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import { AvatarProvider } from '@/components/avatar-context'
 import { AppShell } from '@/components/scaffold/app-shell'
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal'
 import { GuidedTour } from '@/components/tour/guided-tour'
@@ -27,26 +28,28 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isImpersonating = !!session.session.impersonatedBy;
 
   return (
-    <AppShell
-      email={freshUser?.email ?? session.user.email}
-      userName={freshUser?.name ?? null}
-      isAdmin={freshUser?.role === ADMIN_ROLE}
-      userImage={freshUser?.image ?? null}
-      isImpersonating={isImpersonating}
-      impersonatedUserName={freshUser?.name ?? null}
-    >
-      {freshUser && !freshUser.onboardingDone && (
-        <OnboardingModal
-          name={freshUser.name ?? session.user.name ?? ''}
-          username={freshUser.username ?? null}
-          onboardingStep={freshUser.onboardingStep ?? 0}
-          userImage={freshUser.image ?? null}
-        />
-      )}
-      {freshUser?.onboardingDone && (
-        <GuidedTour userId={session.user.id} />
-      )}
-      {children}
-    </AppShell>
+    <AvatarProvider initialUrl={freshUser?.image ?? null}>
+      <AppShell
+        email={freshUser?.email ?? session.user.email}
+        userName={freshUser?.name ?? null}
+        isAdmin={freshUser?.role === ADMIN_ROLE}
+        userImage={freshUser?.image ?? null}
+        isImpersonating={isImpersonating}
+        impersonatedUserName={freshUser?.name ?? null}
+      >
+        {freshUser && !freshUser.onboardingDone && (
+          <OnboardingModal
+            name={freshUser.name ?? session.user.name ?? ''}
+            username={freshUser.username ?? null}
+            onboardingStep={freshUser.onboardingStep ?? 0}
+            userImage={freshUser.image ?? null}
+          />
+        )}
+        {freshUser?.onboardingDone && (
+          <GuidedTour userId={session.user.id} />
+        )}
+        {children}
+      </AppShell>
+    </AvatarProvider>
   )
 }

@@ -1,10 +1,10 @@
 export default function RescheduleLoading() {
   return (
-    <div className="relative min-h-screen bg-[#F3F7F6] p-4 md:p-6 lg:flex lg:h-screen lg:items-center lg:p-8 animate-pulse">
-      <div className="mx-auto w-full max-w-[900px] bg-white border border-border lg:flex lg:max-h-[640px]">
+    <div className="relative min-h-screen bg-muted/30 p-4 md:p-6 lg:flex lg:h-screen lg:items-center lg:p-8 animate-pulse">
+      <div className="mx-auto w-full max-w-[900px] bg-card border border-border lg:flex lg:max-h-[640px]">
         <div className="flex flex-col lg:flex-row flex-1">
           {/* Left info panel */}
-          <div className="lg:w-[230px] border-b lg:border-b-0 lg:border-r border-gray-100 p-6 space-y-4">
+          <div className="lg:w-[230px] border-b lg:border-b-0 lg:border-r border-border p-6 space-y-4">
             <div className="h-10 w-10 bg-muted" />
             <div className="space-y-1.5">
               <div className="h-4 w-24 bg-muted" />
@@ -19,7 +19,7 @@ export default function RescheduleLoading() {
           </div>
 
           {/* Calendar panel */}
-          <div className="lg:w-[320px] border-b lg:border-b-0 lg:border-r border-gray-100 p-6 space-y-4">
+          <div className="lg:w-[320px] border-b lg:border-b-0 lg:border-r border-border p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="h-9 w-9 bg-muted" />
               <div className="h-4 w-28 bg-muted" />

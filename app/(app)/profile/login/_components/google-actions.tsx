@@ -19,7 +19,7 @@ export function GoogleActions({ hasGoogle, canDisconnect }: GoogleActionsProps) 
     try {
       const result = await authClient.linkSocial({
         provider: "google",
-        callbackURL: "/settings/login",
+        callbackURL: "/profile/login",
       });
       if (result?.data?.url) {
         window.location.href = result.data.url;

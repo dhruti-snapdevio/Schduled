@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   CheckCircle,
   CalendarBlank,
+  CalendarPlus,
   Clock,
   MapPin,
   VideoCamera,
@@ -79,15 +80,15 @@ function icsDataUrl(title: string, start: string, end: string, location: string)
 function locationInfo(type: string): { icon: React.ReactNode; label: string; color: string } {
   switch (type) {
     case 'google_meet':
-      return { icon: <VideoCamera size={14} weight="fill" />, label: 'Google Meet', color: 'text-emerald-600' }
+      return { icon: <VideoCamera size={14} weight="fill" />, label: 'Google Meet', color: 'text-primary' }
     case 'zoom':
-      return { icon: <VideoCamera size={14} weight="fill" />, label: 'Zoom', color: 'text-blue-600' }
+      return { icon: <VideoCamera size={14} weight="fill" />, label: 'Zoom', color: 'text-primary' }
     case 'phone_host_calls':
       return { icon: <Phone size={14} weight="fill" />, label: 'Phone (host calls you)', color: 'text-primary' }
     case 'phone_invitee_calls':
       return { icon: <Phone size={14} weight="fill" />, label: 'Phone call', color: 'text-primary' }
     case 'in_person':
-      return { icon: <MapPin size={14} weight="fill" />, label: 'In-person meeting', color: 'text-orange-500' }
+      return { icon: <MapPin size={14} weight="fill" />, label: 'In-person meeting', color: 'text-muted-foreground' }
     default:
       return { icon: <LinkIcon size={14} weight="fill" />, label: 'Online meeting', color: 'text-primary' }
   }
@@ -98,6 +99,7 @@ function locationInfo(type: string): { icon: React.ReactNode; label: string; col
 interface Props {
   eventName: string
   hostName: string
+  hostUsername: string | null
   startUtc: string
   endUtc: string | null
   timezone: string
@@ -113,6 +115,7 @@ interface Props {
 export function ConfirmationClient({
   eventName,
   hostName,
+  hostUsername,
   startUtc,
   endUtc,
   timezone,
@@ -151,23 +154,23 @@ export function ConfirmationClient({
   })()
 
   return (
-    <div className="relative min-h-screen bg-[#F3F7F6] p-4 md:flex md:items-center md:justify-center md:p-8">
+    <div className="relative min-h-screen bg-muted/30 p-4 md:flex md:items-center md:justify-center md:p-8">
 
       {/* Blur decorations */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute right-[10%] top-[8%] h-72 w-72 rounded-full bg-teal-400/[0.08] blur-[80px]" />
-        <div className="absolute left-[5%] bottom-[10%] h-56 w-56 rounded-full bg-teal-300/[0.06] blur-[70px]" />
+        <div className="absolute right-[10%] top-[8%] h-72 w-72 bg-primary/[0.08] blur-[80px]" />
+        <div className="absolute left-[5%] bottom-[10%] h-56 w-56 bg-primary/[0.06] blur-[70px]" />
       </div>
 
       <div className="relative z-10 mx-auto w-full max-w-[580px]">
-        <div className="flex flex-col items-center gap-5 bg-white px-5 py-8 sm:px-8 border border-border">
+        <div className="flex flex-col items-center gap-5 bg-card px-5 py-8 sm:px-8 border border-border">
 
           {/* Back button — top-left inside the card */}
           <div className="w-full">
             <button
               type="button"
               onClick={() => router.back()}
-              className="inline-flex items-center gap-2 border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-600 transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+              className="inline-flex items-center gap-2 border border-border px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
             >
               <ArrowLeft size={14} />
               Back
@@ -183,7 +186,7 @@ export function ConfirmationClient({
           >
             {isPending ? (
               <>
-                <div className="absolute inset-0 scale-[2.2] rounded-full bg-amber-400/20 blur-2xl" />
+                <div className="absolute inset-0 scale-[2.2] bg-amber-400/20 blur-2xl" />
                 <Bell
                   size={64}
                   weight="fill"
@@ -192,7 +195,7 @@ export function ConfirmationClient({
               </>
             ) : (
               <>
-                <div className="absolute inset-0 scale-[2.2] rounded-full bg-teal-400/20 blur-2xl" />
+                <div className="absolute inset-0 scale-[2.2] bg-primary/[0.09] blur-2xl" />
                 <CheckCircle
                   size={64}
                   weight="fill"
@@ -206,11 +209,11 @@ export function ConfirmationClient({
           <div className="text-center">
             {isPending ? (
               <>
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   Request Submitted!
                 </h1>
                 {hostName && (
-                  <p className="mt-1 text-sm font-medium text-gray-700">
+                  <p className="mt-1 text-sm font-medium text-foreground">
                     Your request for{' '}
                     <span className="text-amber-600">{eventName}</span> with{' '}
                     <span className="text-primary">{hostName}</span> is awaiting approval.
@@ -222,11 +225,11 @@ export function ConfirmationClient({
               </>
             ) : (
               <>
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   You&apos;re Scheduled!
                 </h1>
                 {hostName && (
-                  <p className="mt-1 text-sm font-medium text-gray-700">
+                  <p className="mt-1 text-sm font-medium text-foreground">
                     Your meeting with <span className="text-primary">{hostName}</span> is confirmed.
                   </p>
                 )}
@@ -238,24 +241,24 @@ export function ConfirmationClient({
           </div>
 
           {/* ── Meeting details card ── */}
-          <div className="w-full border border-gray-100 bg-[#F8FCFB]">
-            <div className="border-b border-gray-100 px-5 py-2.5">
-              <p className="text-sm font-bold text-gray-900">{eventName}</p>
+          <div className="w-full border border-border bg-muted/30">
+            <div className="border-b border-border px-5 py-2.5">
+              <p className="text-sm font-bold text-foreground">{eventName}</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 px-5 py-3.5">
               {hostName && (
                 <div className="flex items-center gap-2">
                   <UserCircle size={14} className="shrink-0 text-muted-foreground" />
-                  <span className="truncate text-xs text-gray-700">{hostName}</span>
+                  <span className="truncate text-xs text-foreground">{hostName}</span>
                 </div>
               )}
               <div className="flex items-center gap-2">
                 <CalendarBlank size={14} className="shrink-0 text-muted-foreground" />
-                <span className="truncate text-xs text-gray-700">{dateLine}</span>
+                <span className="truncate text-xs text-foreground">{dateLine}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock size={14} className="shrink-0 text-muted-foreground" />
-                <span className="text-xs text-gray-700">
+                <span className="text-xs text-foreground">
                   {startTime}{endTime ? ` – ${endTime}` : ''}
                 </span>
               </div>
@@ -266,13 +269,13 @@ export function ConfirmationClient({
               {locationValue && (
                 <div className="col-span-2 flex items-start gap-2">
                   {locationType === 'in_person' ? (
-                    <MapPin size={14} className="mt-0.5 shrink-0 text-orange-500" />
+                    <MapPin size={14} className="mt-0.5 shrink-0 text-muted-foreground" />
                   ) : locationType === 'phone_invitee_calls' ? (
                     <Phone size={14} className="mt-0.5 shrink-0 text-primary" />
                   ) : (
                     <LinkIcon size={14} className="mt-0.5 shrink-0 text-muted-foreground" />
                   )}
-                  <span className="break-all text-xs text-gray-700">{locationValue}</span>
+                  <span className="break-all text-xs text-foreground">{locationValue}</span>
                 </div>
               )}
               <div className="col-span-2 flex items-center gap-2">
@@ -299,7 +302,7 @@ export function ConfirmationClient({
 
           {/* ── Add to Calendar — hidden for pending bookings ── */}
           {!isPending && <div className="w-full">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Add to Calendar
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -308,6 +311,7 @@ export function ConfirmationClient({
                   href: gcalUrl,
                   download: undefined as string | undefined,
                   label: 'Google Calendar',
+                  comingSoon: false,
                   icon: (
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                       <path d="M6 2v2M18 2v2M2 8h20M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -319,6 +323,7 @@ export function ConfirmationClient({
                   href: outlookCalUrl,
                   download: undefined,
                   label: 'Outlook',
+                  comingSoon: true,
                   icon: (
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                       <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
@@ -331,6 +336,7 @@ export function ConfirmationClient({
                   href: icsUrl,
                   download: 'meeting.ics',
                   label: 'Apple Calendar',
+                  comingSoon: true,
                   icon: (
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                       <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z" stroke="currentColor" strokeWidth="2"/>
@@ -338,19 +344,34 @@ export function ConfirmationClient({
                     </svg>
                   ),
                 },
-              ].map(({ href, download, label, icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  download={download}
-                  target={download ? undefined : '_blank'}
-                  rel={download ? undefined : 'noopener noreferrer'}
-                  className="flex items-center gap-2 border border-gray-200 px-3 py-2.5 text-xs font-medium text-gray-600 transition-all hover:border-primary/40 hover:bg-primary/[0.05] hover:text-primary"
-                >
-                  {icon}
-                  {label}
-                </a>
-              ))}
+              ].map(({ href, download, label, icon, comingSoon }) =>
+                comingSoon ? (
+                  <div
+                    key={label}
+                    title="Coming soon"
+                    aria-disabled="true"
+                    className="flex cursor-not-allowed items-center gap-2 border border-border px-3 py-2.5 text-sm font-medium text-muted-foreground/50"
+                  >
+                    {icon}
+                    <span className="truncate">{label}</span>
+                    <span className="ml-auto shrink-0 bg-muted px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+                      Soon
+                    </span>
+                  </div>
+                ) : (
+                  <a
+                    key={label}
+                    href={href}
+                    download={download}
+                    target={download ? undefined : '_blank'}
+                    rel={download ? undefined : 'noopener noreferrer'}
+                    className="flex items-center gap-2 border border-border px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:border-primary/40 hover:bg-primary/[0.05] hover:text-primary"
+                  >
+                    {icon}
+                    {label}
+                  </a>
+                )
+              )}
             </div>
           </div>}
 
@@ -360,7 +381,7 @@ export function ConfirmationClient({
               {rescheduleToken && (
                 <Link
                   href={`/reschedule/${rescheduleToken}`}
-                  className="flex flex-1 h-10 items-center justify-center gap-1.5 border border-primary text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-white"
+                  className="flex flex-1 h-10 items-center justify-center gap-1.5 border border-primary text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground"
                 >
                   <ArrowsClockwise size={13} />
                   Reschedule
@@ -369,7 +390,7 @@ export function ConfirmationClient({
               {cancelToken && (
                 <Link
                   href={`/cancel/${cancelToken}`}
-                  className="flex flex-1 h-10 items-center justify-center gap-1.5 border border-red-300 text-sm font-semibold text-red-400 transition-all hover:bg-red-50 hover:border-red-400 hover:text-red-600"
+                  className="flex flex-1 h-10 items-center justify-center gap-1.5 border border-destructive/30 text-sm font-semibold text-destructive/60 transition-all hover:bg-destructive/5 hover:border-destructive hover:text-destructive"
                 >
                   <X size={13} />
                   Cancel Event
@@ -379,36 +400,53 @@ export function ConfirmationClient({
           )}
 
           {/* ── What's Next ── */}
-          <div className="w-full border border-gray-100 px-5 py-3.5">
-            <p className="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+          <div className="w-full border border-border px-5 py-3.5">
+            <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
               What&apos;s Next?
             </p>
             {isPending ? (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2.5">
                   <Bell size={13} weight="fill" className="shrink-0 text-amber-500" />
-                  <span className="text-xs text-gray-600">You&apos;ll receive an email once the host approves your request</span>
+                  <span className="text-xs text-muted-foreground">You&apos;ll receive an email once the host approves your request</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <EnvelopeSimple size={13} weight="fill" className="shrink-0 text-amber-500" />
-                  <span className="text-xs text-gray-600">A calendar invite will be sent to you after approval</span>
+                  <span className="text-xs text-muted-foreground">A calendar invite will be sent to you after approval</span>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2.5">
                   <EnvelopeSimple size={13} weight="fill" className="shrink-0 text-primary/70" />
-                  <span className="text-xs text-gray-600">Check your email for confirmation</span>
+                  <span className="text-xs text-muted-foreground">Check your email for confirmation</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Bell size={13} weight="fill" className="shrink-0 text-primary/70" />
-                  <span className="text-xs text-gray-600">You&apos;ll receive reminder emails before the meeting</span>
+                  <span className="text-xs text-muted-foreground">You&apos;ll receive reminder emails before the meeting</span>
                 </div>
               </div>
             )}
           </div>
 
+          {/* ── Schedule another meeting ── */}
+          {hostUsername && (
+            <Link
+              href={`/${hostUsername}`}
+              className="flex w-full h-10 items-center justify-center gap-1.5 border border-border text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            >
+              <CalendarPlus size={14} />
+              Schedule another meeting
+            </Link>
+          )}
+
         </div>
+      </div>
+
+      {/* ── Powered by Schduled ── */}
+      <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/50">
+        <span>Scheduling powered by</span>
+        <span className="font-semibold text-primary/60">Schduled</span>
       </div>
     </div>
   )

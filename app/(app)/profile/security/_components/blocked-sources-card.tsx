@@ -12,6 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 
 interface BlocklistEntry {
   id: string
@@ -97,19 +98,19 @@ export function BlockedSourcesCard({ entries: initial }: { entries: BlocklistEnt
                   <Globe size={14} /> Domain
                 </button>
               </div>
-              <input
+              <Input
                 type="text"
                 value={pattern}
                 onChange={(e) => { setPattern(e.target.value); setError(null) }}
                 placeholder={type === 'email' ? 'spam@example.com' : 'example.com'}
-                className="flex-1 min-w-[180px] border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all placeholder:text-muted-foreground/60"
+                className="flex-1 min-w-[180px]"
               />
-              <input
+              <Input
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Reason (optional)"
-                className="flex-1 min-w-[140px] border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all placeholder:text-muted-foreground/60"
+                className="flex-1 min-w-[140px]"
               />
               <Button type="button" size="sm" className="gap-1.5" onClick={handleAdd} disabled={!pattern.trim()}>
                 <Plus size={14} /> Block
@@ -152,7 +153,7 @@ export function BlockedSourcesCard({ entries: initial }: { entries: BlocklistEnt
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    className="h-9 w-9 text-muted-foreground hover:text-destructive"
                     onClick={() => setDeleteId(entry.id)}
                   >
                     <Trash size={14} />

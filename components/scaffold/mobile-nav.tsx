@@ -37,7 +37,7 @@ export function MobileNav() {
             key={href}
             href={href}
             className={cn(
-              "flex h-16 flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors",
+              "flex h-16 flex-1 flex-col items-center justify-center gap-1 text-2xs font-semibold transition-colors",
               active
                 ? "text-primary"
                 : "text-sidebar-foreground/50 hover:text-sidebar-foreground"

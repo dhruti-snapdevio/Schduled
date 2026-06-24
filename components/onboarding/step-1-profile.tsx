@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { CheckCircle, UserCircle } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
@@ -120,18 +121,9 @@ export function StepProfile({ defaultName, defaultUsername, defaultImage, onNext
     onNext(result.username)
   }
 
-  // Initials avatar (shown when no photo uploaded)
-  const initials = name
-    .trim()
-    .split(' ')
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-
   const borderColor =
     usernameState === 'available'
-      ? 'border-green-500 focus-visible:ring-green-500'
+      ? 'border-primary focus-visible:ring-primary'
       : usernameState === 'taken' || usernameState === 'invalid'
         ? 'border-destructive focus-visible:ring-destructive'
         : ''
@@ -147,12 +139,7 @@ export function StepProfile({ defaultName, defaultUsername, defaultImage, onNext
           aria-label="Upload profile photo"
         >
           {avatarPreview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarPreview} alt="Avatar preview" className="size-full object-cover" />
-          ) : initials ? (
-            <span className="flex size-full items-center justify-center text-2xl font-semibold text-primary">
-              {initials}
-            </span>
+            <Image fill unoptimized src={avatarPreview} alt="Avatar preview" className="object-cover" sizes="80px" />
           ) : (
             <UserCircle size={40} className="m-auto text-muted-foreground" />
           )}

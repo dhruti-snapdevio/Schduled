@@ -41,9 +41,18 @@ export const dayOfWeekEnum = pgEnum('day_of_week', [
   'friday', 'saturday', 'sunday',
 ])
 
+export const meetingLimitPeriodEnum = pgEnum('meeting_limit_period', ['day', 'week', 'month'])
+
 export const bookingWindowTypeEnum = pgEnum('booking_window_type', [
   'rolling',
   'fixed',
+])
+
+export const meetingTypeEnum = pgEnum('meeting_type', [
+  'one_on_one',
+  'group',
+  'round_robin',
+  'collective',
 ])
 
 export const bookingStatusEnum = pgEnum('booking_status', [

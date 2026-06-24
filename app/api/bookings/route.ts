@@ -9,6 +9,7 @@ import {
   bookingAnswer,
   eventType,
   idempotencyKey,
+  meetingLimit,
   user,
 } from "@/db/schema";
 import { db } from "@/lib/db";
@@ -174,11 +175,61 @@ export async function POST(request: Request) {
 
       if (hasConflict) return { conflict: true } as const;
 
-      if (
-        et.maxBookingsPerDay != null &&
-        existingBookings.length >= et.maxBookingsPerDay
-      ) {
-        return { dailyLimit: true } as const;
+      if (et.maxBookingsPerDay != null) {
+        const sameDayCount = existingBookings.filter(
+          (b) => b.startTime >= dayStartUtc && b.startTime <= dayEndUtc
+        ).length;
+        if (sameDayCount >= et.maxBookingsPerDay) {
+          return { dailyLimit: true } as const;
+        }
+      }
+
+      // ── Global meeting limits ─────────────────────────────────────────────────
+      const globalLimits = await tx
+        .select({ period: meetingLimit.period, count: meetingLimit.count })
+        .from(meetingLimit)
+        .where(eq(meetingLimit.userId, host.id));
+
+      if (globalLimits.length > 0) {
+        // Count all active bookings for this host
+        const allHostBookings = await tx
+          .select({ startTime: booking.startTime })
+          .from(booking)
+          .where(
+            and(
+              eq(booking.hostUserId, host.id),
+              sql`${booking.status} IN ('confirmed', 'pending')`,
+            )
+          );
+
+        // week boundaries (Mon–Sun containing the booking date)
+        const dow = startTime.getUTCDay(); // 0=Sun
+        const daysFromMon = (dow + 6) % 7;
+        const weekStartUtc = new Date(startTime);
+        weekStartUtc.setUTCDate(startTime.getUTCDate() - daysFromMon);
+        weekStartUtc.setUTCHours(0, 0, 0, 0);
+        const weekEndUtc = new Date(weekStartUtc);
+        weekEndUtc.setUTCDate(weekStartUtc.getUTCDate() + 6);
+        weekEndUtc.setUTCHours(23, 59, 59, 999);
+
+        // month boundaries
+        const monthStartUtc = new Date(Date.UTC(startTime.getUTCFullYear(), startTime.getUTCMonth(), 1));
+        const monthEndUtc   = new Date(Date.UTC(startTime.getUTCFullYear(), startTime.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+
+        for (const lim of globalLimits) {
+          let windowStart: Date, windowEnd: Date;
+          if (lim.period === 'day')   { windowStart = dayStartUtc;   windowEnd = dayEndUtc; }
+          else if (lim.period === 'week')  { windowStart = weekStartUtc;  windowEnd = weekEndUtc; }
+          else                         { windowStart = monthStartUtc; windowEnd = monthEndUtc; }
+
+          const windowCount = allHostBookings.filter(
+            (b) => b.startTime >= windowStart && b.startTime <= windowEnd
+          ).length;
+
+          if (windowCount >= lim.count) {
+            return { globalLimit: lim.period } as const;
+          }
+        }
       }
 
       const cancelToken     = createId();
@@ -203,7 +254,7 @@ export async function POST(request: Request) {
           rescheduleToken,
           approvalToken,
           cancelTokenExpiresAt:     addHours(endTime, 24),
-          rescheduleTokenExpiresAt: startTime,
+          rescheduleTokenExpiresAt: addHours(endTime, 24),
         })
         .returning();
 
@@ -258,6 +309,11 @@ export async function POST(request: Request) {
 
     if ("dailyLimit" in result && result.dailyLimit) {
       return jsonError("No more bookings available for this day.", 409);
+    }
+
+    if ("globalLimit" in result && result.globalLimit) {
+      const period = result.globalLimit as string;
+      return jsonError(`The host has reached their maximum bookings for this ${period}.`, 409);
     }
 
     const { data } = result;

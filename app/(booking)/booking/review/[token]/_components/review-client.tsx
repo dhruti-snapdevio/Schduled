@@ -102,25 +102,25 @@ export function ReviewClient(props: Props) {
 
   // Booking card shared across views
   const BookingCard = () => (
-    <div className="mb-5 border border-gray-200 bg-[#F8FCFB] p-4">
-      <p className="text-sm font-semibold text-gray-900">{props.eventName}</p>
+    <div className="mb-5 border border-border bg-muted/30 p-4">
+      <p className="text-sm font-semibold text-foreground">{props.eventName}</p>
       <p className="mt-0.5 text-xs text-muted-foreground">
         with {props.inviteeName} ({props.inviteeEmail})
       </p>
-      <p className="mt-2 text-xs text-gray-600">{when}</p>
+      <p className="mt-2 text-xs text-muted-foreground">{when}</p>
       <p className="text-xs text-muted-foreground">{props.hostTimezone}</p>
-      <p className="mt-1 text-xs text-gray-600">{props.locationLabel}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{props.locationLabel}</p>
     </div>
   );
 
   // Show spinner while auto-approving from email link (prevents flash of main view)
   if (autoApproving && view === "main") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md overflow-hidden bg-white border border-border">
+      <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+        <div className="w-full max-w-md overflow-hidden bg-card border border-border">
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-14 text-center">
             <Spinner className="animate-spin text-primary" size={40} />
-            <p className="text-sm font-medium text-gray-700">Approving booking…</p>
+            <p className="text-sm font-medium text-foreground">Approving booking…</p>
           </div>
         </div>
       </main>
@@ -129,11 +129,11 @@ export function ReviewClient(props: Props) {
 
   if (props.isPast) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md overflow-hidden bg-white border border-border">
+      <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+        <div className="w-full max-w-md overflow-hidden bg-card border border-border">
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <Warning className="text-amber-500" size={48} weight="fill" />
-            <h1 className="text-lg font-bold text-gray-900">This booking has passed</h1>
+            <h1 className="text-lg font-bold text-foreground">This booking has passed</h1>
             <p className="text-sm text-muted-foreground">
               It&apos;s no longer possible to approve or decline a past booking.
             </p>
@@ -145,11 +145,11 @@ export function ReviewClient(props: Props) {
 
   if (view === "approved") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md overflow-hidden bg-white border border-border">
+      <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+        <div className="w-full max-w-md overflow-hidden bg-card border border-border">
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <CheckCircle className="text-primary" size={48} weight="fill" />
-            <h1 className="text-lg font-bold text-gray-900">Booking approved</h1>
+            <h1 className="text-lg font-bold text-foreground">Booking approved</h1>
             <p className="text-sm text-muted-foreground">
               {props.inviteeName} will receive a confirmation email with the
               booking details.
@@ -162,11 +162,11 @@ export function ReviewClient(props: Props) {
 
   if (view === "rejected") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md overflow-hidden bg-white border border-border">
+      <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+        <div className="w-full max-w-md overflow-hidden bg-card border border-border">
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
-            <CheckCircle className="text-gray-400" size={48} weight="fill" />
-            <h1 className="text-lg font-bold text-gray-900">Booking declined</h1>
+            <CheckCircle className="text-muted-foreground" size={48} weight="fill" />
+            <h1 className="text-lg font-bold text-foreground">Booking declined</h1>
             <p className="text-sm text-muted-foreground">
               {props.inviteeName} will be notified that their booking request was
               declined.
@@ -179,23 +179,23 @@ export function ReviewClient(props: Props) {
 
   if (view === "reject") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-        <div className="w-full max-w-md overflow-hidden bg-white border border-border">
-          <div className="flex items-center gap-3 border-b border-gray-100 bg-[#F8FCFB] px-5 sm:px-8 py-6">
-            <X className="text-red-500" size={24} weight="bold" />
-            <h1 className="text-base font-bold text-gray-900">Decline this booking?</h1>
+      <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+        <div className="w-full max-w-md overflow-hidden bg-card border border-border">
+          <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-5 sm:px-8 py-6">
+            <X className="text-destructive" size={24} weight="bold" />
+            <h1 className="text-base font-bold text-foreground">Decline this booking?</h1>
           </div>
           <div className="px-5 sm:px-8 py-6">
             <BookingCard />
 
             <label
-              className="mb-1.5 block text-xs font-semibold text-gray-600"
+              className="mb-1.5 block text-xs font-semibold text-muted-foreground"
               htmlFor="reject-reason"
             >
               Reason for declining (optional)
             </label>
             <textarea
-              className="w-full resize-none border border-input bg-white px-3 py-2 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
+              className="w-full resize-none border border-input bg-background px-3 py-2 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
               id="reject-reason"
               onChange={(e) => setReason(e.target.value)}
               placeholder="Let the invitee know why you're declining…"
@@ -207,7 +207,7 @@ export function ReviewClient(props: Props) {
 
             <div className="mt-5 flex gap-3">
               <button
-                className="flex h-11 flex-1 items-center justify-center border border-gray-200 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 disabled:opacity-60"
+                className="flex h-11 flex-1 items-center justify-center border border-border text-sm font-semibold text-foreground transition-all hover:bg-muted disabled:opacity-60"
                 disabled={submitting}
                 onClick={() => setView("main")}
                 type="button"
@@ -215,7 +215,7 @@ export function ReviewClient(props: Props) {
                 Back
               </button>
               <button
-                className="flex h-11 flex-1 items-center justify-center gap-2 bg-red-500 text-sm font-bold text-white transition-all hover:bg-red-600 disabled:opacity-60"
+                className="flex h-11 flex-1 items-center justify-center gap-2 bg-destructive text-sm font-bold text-primary-foreground transition-all hover:bg-destructive/90 disabled:opacity-60"
                 disabled={submitting}
                 onClick={handleReject}
                 type="button"
@@ -237,19 +237,19 @@ export function ReviewClient(props: Props) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#F3F7F6] p-4">
-      <div className="w-full max-w-md overflow-hidden bg-white border border-border">
-        <div className="flex items-center gap-3 border-b border-gray-100 bg-[#F8FCFB] px-5 sm:px-8 py-6">
-          <span className="flex size-7 items-center justify-center bg-amber-100 text-amber-600">
+    <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+      <div className="w-full max-w-md overflow-hidden bg-card border border-border">
+        <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-5 sm:px-8 py-6">
+          <span className="flex size-7 items-center justify-center bg-amber-500/10 text-amber-600">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 3.5a.75.75 0 0 1 .75.75v3a.75.75 0 0 1-1.5 0v-3A.75.75 0 0 1 8 4.5zm0 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
             </svg>
           </span>
-          <h1 className="text-base font-bold text-gray-900">Review booking request</h1>
+          <h1 className="text-base font-bold text-foreground">Review booking request</h1>
         </div>
 
         <div className="px-5 sm:px-8 py-6">
-          <p className="mb-5 text-sm text-gray-600">
+          <p className="mb-5 text-sm text-muted-foreground">
             <strong>{props.inviteeName}</strong> has requested to book time with you.
             Review the details below and approve or decline.
           </p>
@@ -260,7 +260,7 @@ export function ReviewClient(props: Props) {
 
           <div className="flex gap-3">
             <button
-              className="flex h-11 flex-1 items-center justify-center gap-2 bg-red-50 border border-red-200 text-sm font-semibold text-red-600 transition-all hover:bg-red-100 disabled:opacity-60"
+              className="flex h-11 flex-1 items-center justify-center gap-2 bg-destructive/10 border border-destructive text-sm font-semibold text-destructive transition-all hover:bg-destructive/20 disabled:opacity-60"
               disabled={submitting}
               onClick={() => setView("reject")}
               type="button"
@@ -269,7 +269,7 @@ export function ReviewClient(props: Props) {
               Decline
             </button>
             <button
-              className="flex h-11 flex-1 items-center justify-center gap-2 bg-primary text-sm font-bold text-white transition-all hover:bg-primary/90 disabled:opacity-60"
+              className="flex h-11 flex-1 items-center justify-center gap-2 bg-primary text-sm font-bold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-60"
               disabled={submitting}
               onClick={handleApprove}
               type="button"

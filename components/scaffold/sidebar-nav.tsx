@@ -1,6 +1,7 @@
 "use client";
 
 import type { ComponentType } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,6 +15,7 @@ import {
   UserCircle,
 } from "@phosphor-icons/react";
 import { logoutAction } from "@/app/actions/auth";
+import { useAvatar } from "@/components/avatar-context";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 
@@ -23,11 +25,11 @@ type IconComponent = ComponentType<{
   className?: string;
 }>;
 
-const NAV_LINKS: { href: string; label: string; icon: IconComponent }[] = [
+const NAV_LINKS: { href: string; label: string; icon: IconComponent; tourId?: string }[] = [
   { href: "/dashboard",    label: "Dashboard",   icon: SquaresFour },
-  { href: "/event-types",  label: "Meeting Types", icon: Lightning  },
-  { href: "/availability", label: "Availability", icon: Clock      },
-  { href: "/bookings",     label: "Bookings",    icon: CalendarCheck },
+  { href: "/event-types",  label: "Meeting Types", icon: Lightning, tourId: "meeting-types" },
+  { href: "/availability", label: "Availability", icon: Clock, tourId: "availability" },
+  { href: "/bookings",     label: "Bookings",    icon: CalendarCheck, tourId: "bookings" },
   { href: "/settings",     label: "Settings",    icon: GearSix     },
 ];
 
@@ -36,23 +38,26 @@ function NavItem({
   label,
   icon: Icon,
   active,
+  tourId,
 }: {
   href: string;
   label: string;
   icon: IconComponent;
   active: boolean;
+  tourId?: string;
 }) {
   return (
     <Link
       href={href}
+      data-tour={tourId}
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors rounded-none border-l-[3px]",
         active
-          ? "border-l-primary bg-primary text-primary-foreground"
+          ? "border-l-sidebar-primary bg-sidebar-primary text-sidebar-primary-foreground"
           : "border-l-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
       )}
     >
-      <Icon size={17} weight={active ? "fill" : "regular"} />
+      <Icon size={17} weight={active ? "fill" : "regular"} className={active ? "text-sidebar-primary-foreground" : ""} />
       {label}
     </Link>
   );
@@ -70,6 +75,7 @@ export function SidebarNav({
   userImage?: string | null;
 }) {
   const pathname = usePathname();
+  const { url: avatarUrl } = useAvatar();
 
   return (
     <div className="flex h-full flex-col">
@@ -81,18 +87,18 @@ export function SidebarNav({
 
       {/* ── Main nav ─────────────────────────────────────────────────── */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto no-scrollbar px-2 py-3">
-        {NAV_LINKS.map(({ href, label, icon }) => {
+        {NAV_LINKS.map(({ href, label, icon, tourId }) => {
           const isProfileSection =
-            pathname.startsWith("/settings/profile") ||
-            pathname.startsWith("/settings/security") ||
-            pathname.startsWith("/settings/login")
+            pathname.startsWith("/profile/profile") ||
+            pathname.startsWith("/profile/security") ||
+            pathname.startsWith("/profile/login")
           const active =
             href === "/settings"
               ? pathname.startsWith("/settings") && !isProfileSection
               : pathname === href ||
                 (href !== "/dashboard" && pathname.startsWith(href + "/"))
           return (
-            <NavItem key={href} href={href} label={label} icon={icon} active={active} />
+            <NavItem key={href} href={href} label={label} icon={icon} active={active} tourId={tourId} />
           )
         })}
       </nav>
@@ -102,13 +108,13 @@ export function SidebarNav({
 
         {/* Profile link */}
         <NavItem
-          href="/settings/profile"
+          href="/profile/profile"
           label="Profile"
           icon={UserCircle}
           active={
-            pathname.startsWith("/settings/profile") ||
-            pathname.startsWith("/settings/security") ||
-            pathname.startsWith("/settings/login")
+            pathname.startsWith("/profile/profile") ||
+            pathname.startsWith("/profile/security") ||
+            pathname.startsWith("/profile/login")
           }
         />
 
@@ -138,12 +144,11 @@ export function SidebarNav({
           className="flex items-center gap-2.5 px-3 py-2.5 mt-1 border-t border-sidebar-border/50"
           title={email}
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden bg-primary text-primary-foreground text-xs font-bold">
-            {userImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={userImage} alt="Profile" className="size-full object-cover" />
+          <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden bg-primary/10 text-primary">
+            {avatarUrl ? (
+              <Image fill unoptimized src={avatarUrl} alt="Profile" className="object-cover" sizes="32px" />
             ) : (
-              (userName ?? email).slice(0, 2).toUpperCase()
+              <UserCircle size={22} />
             )}
           </span>
           <div className="min-w-0 flex-1">

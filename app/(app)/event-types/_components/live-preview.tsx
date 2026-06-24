@@ -54,9 +54,9 @@ export function LivePreview({ form, username, meetingType }: LivePreviewProps) {
     <div className="sticky top-8">
       {/* Section header */}
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Live Preview</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Live Preview</p>
         <span className={cn(
-          'text-[10px] font-bold px-2 py-0.5',
+          'text-2xs font-bold px-2 py-0.5',
           isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
         )}>
           {isActive ? 'Active' : 'Inactive'}
@@ -79,7 +79,7 @@ export function LivePreview({ form, username, meetingType }: LivePreviewProps) {
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-bold text-foreground truncate">{name}</h3>
-              <span className="text-[10px] text-muted-foreground">{meetingLabel}</span>
+              <span className="text-2xs text-muted-foreground">{meetingLabel}</span>
             </div>
             {isHidden && (
               <span className="ml-auto shrink-0 text-[9px] font-bold px-1.5 py-0.5 bg-muted text-muted-foreground">
@@ -90,7 +90,7 @@ export function LivePreview({ form, username, meetingType }: LivePreviewProps) {
 
           {/* Description */}
           {description && (
-            <p className="text-[12px] text-muted-foreground leading-relaxed line-clamp-3">
+            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
               {description}
             </p>
           )}
@@ -101,13 +101,13 @@ export function LivePreview({ form, username, meetingType }: LivePreviewProps) {
               {sortedDurations.slice(0, 4).map((d) => (
                 <span
                   key={d}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary text-[11px] font-medium"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium"
                 >
                   <Clock size={10} weight="bold" />
                   {formatDuration(d)}
                 </span>
               ))}
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted text-muted-foreground text-[11px] font-medium">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted text-muted-foreground text-xs font-medium">
                 {loc.icon}
                 {loc.label}
               </span>
@@ -116,7 +116,7 @@ export function LivePreview({ form, username, meetingType }: LivePreviewProps) {
 
           {/* Booking URL */}
           {displayUrl && (
-            <div className="text-[10px] font-mono text-muted-foreground/70 truncate pt-1 border-t border-border/60">
+            <div className="text-2xs font-mono text-muted-foreground/70 truncate pt-1 border-t border-border/60">
               {displayUrl}
             </div>
           )}
@@ -125,7 +125,7 @@ export function LivePreview({ form, username, meetingType }: LivePreviewProps) {
         {/* CTA button mockup */}
         <div className="px-5 pb-5">
           <div
-            className="h-9 flex items-center justify-center text-[12px] font-semibold text-white"
+            className="h-9 flex items-center justify-center text-xs font-semibold text-white"
             style={{ backgroundColor: color }}
           >
             Book a time
@@ -133,7 +133,7 @@ export function LivePreview({ form, username, meetingType }: LivePreviewProps) {
         </div>
       </div>
 
-      <p className="text-[10px] text-muted-foreground text-center mt-2">
+      <p className="text-2xs text-muted-foreground text-center mt-2">
         Updates live as you edit
       </p>
     </div>

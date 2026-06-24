@@ -1,7 +1,7 @@
 import { createId } from '@paralleldrive/cuid2'
 import { boolean, index, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import { user } from './auth'
-import { locationTypeEnum, questionTypeEnum, bookingWindowTypeEnum } from './enums'
+import { locationTypeEnum, questionTypeEnum, bookingWindowTypeEnum, meetingTypeEnum } from './enums'
 
 export const eventType = pgTable('event_type', {
   id:                     text('id').primaryKey().$defaultFn(createId),
@@ -10,6 +10,7 @@ export const eventType = pgTable('event_type', {
   name:                   text('name').notNull(),
   slug:                   text('slug').notNull(),
   description:            text('description'),
+  meetingType:            meetingTypeEnum('meeting_type').notNull().default('one_on_one'),
   locationType:           locationTypeEnum('location_type').notNull().default('zoom'),
   locationValue:          text('location_value'),
   hostPhoneNumber:        text('host_phone_number'),

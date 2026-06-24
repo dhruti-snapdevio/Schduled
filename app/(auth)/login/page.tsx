@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AuthForm } from "@/app/(auth)/_components/auth-form";
 
 export const metadata = {
@@ -5,5 +6,9 @@ export const metadata = {
 };
 
 export default function LoginPage() {
-  return <AuthForm />;
+  return (
+    <Suspense>
+      <AuthForm />
+    </Suspense>
+  );
 }

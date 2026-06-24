@@ -81,7 +81,8 @@ export function BookingVerificationCard({ eventTypes }: { eventTypes: EventTypeR
         {filtered.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No meeting types found.</p>
         ) : (
-          <div className="border border-border">
+          <div className="overflow-x-auto">
+          <div className="border border-border min-w-[560px]">
             {/* Header */}
             <div className="grid grid-cols-[1fr_120px_140px_140px] gap-4 border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <span>Name</span>
@@ -98,7 +99,7 @@ export function BookingVerificationCard({ eventTypes }: { eventTypes: EventTypeR
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span
-                    className="h-3 w-3 shrink-0 rounded-full"
+                    className="h-3 w-3 shrink-0"
                     style={{ backgroundColor: et.color }}
                   />
                   <span className="truncate text-sm font-medium">{et.name}</span>
@@ -115,6 +116,7 @@ export function BookingVerificationCard({ eventTypes }: { eventTypes: EventTypeR
                 <span className="text-sm text-muted-foreground">{formatDate(et.updatedAt)}</span>
               </div>
             ))}
+          </div>
           </div>
         )}
       </CardContent>

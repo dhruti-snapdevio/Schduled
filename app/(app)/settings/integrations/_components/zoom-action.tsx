@@ -3,6 +3,17 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { disconnectZoom } from "@/app/actions/settings";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
 export function ZoomDisconnectButton() {
@@ -10,13 +21,6 @@ export function ZoomDisconnectButton() {
   const [isPending, startTransition] = useTransition();
 
   function handleDisconnect() {
-    // biome-ignore lint/suspicious/noAlert: native confirm is the project pattern for destructive settings actions
-    const ok = confirm(
-      "Disconnect Zoom? New bookings will no longer get a Zoom link."
-    );
-    if (!ok) {
-      return;
-    }
     startTransition(async () => {
       await disconnectZoom();
       router.refresh();
@@ -24,13 +28,29 @@ export function ZoomDisconnectButton() {
   }
 
   return (
-    <Button
-      disabled={isPending}
-      onClick={handleDisconnect}
-      size="sm"
-      variant="outline"
-    >
-      Disconnect
-    </Button>
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button disabled={isPending} size="sm" variant="outline">
+          Disconnect
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Disconnect Zoom?</AlertDialogTitle>
+          <AlertDialogDescription>
+            New bookings will no longer get a Zoom link.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={handleDisconnect}
+          >
+            Disconnect
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

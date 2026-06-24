@@ -19,6 +19,7 @@ import {
 } from "date-fns";
 import { and, count, desc, eq, gt, gte, lte } from "drizzle-orm";
 import Link from "next/link";
+import { PageHeader } from "@/components/scaffold/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { booking, eventType, user } from "@/db/schema";
@@ -229,62 +230,42 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* ── Welcome + Quick Actions ──────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-eyebrow text-primary mb-1">Dashboard</p>
-          <h1 className="font-heading text-3xl font-black text-foreground tracking-tight">
-            Welcome back, {displayName}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            You have{" "}
-            <span className="font-semibold text-foreground">
-              {stats.upcoming} upcoming meetings
-            </span>
-            {stats.meetingsToday > 0 && (
-              <>
-                ,{" "}
-                <span className="font-semibold text-foreground">
-                  {stats.meetingsToday} today
-                </span>
-              </>
-            )}{" "}
-            and{" "}
-            <span className="font-semibold text-foreground">
-              {stats.totalThisMonth} bookings this month
-            </span>
-            .
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button asChild>
-            <Link href="/event-types">
-              <Plus className="mr-1.5" size={15} weight="bold" />
-              Create Meeting Type
-            </Link>
-          </Button>
-          <Button asChild variant="secondary">
-            <Link href="/availability">
-              <LinkSimple className="mr-1.5" size={15} />
-              Set Availability
-            </Link>
-          </Button>
-          {bookingUrl ? (
-            <Button asChild variant="secondary">
-              <a href={bookingUrl} rel="noopener noreferrer" target="_blank">
-                <ShareNetwork className="mr-1.5" size={15} />
-                My Booking Page
-              </a>
-            </Button>
-          ) : (
-            <Button asChild variant="secondary">
-              <Link href="/settings/my-link">
-                <LinkSimple className="mr-1.5" size={15} />
-                Set Up Link
+      <PageHeader
+        title={`Welcome back, ${displayName}`}
+        description={`You have ${stats.upcoming} upcoming meetings${stats.meetingsToday > 0 ? `, ${stats.meetingsToday} today` : ''} and ${stats.totalThisMonth} bookings this month.`}
+        eyebrow="Dashboard"
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild>
+              <Link href="/event-types">
+                <Plus className="mr-1.5" size={15} weight="bold" />
+                Create Meeting Type
               </Link>
             </Button>
-          )}
-        </div>
-      </div>
+            <Button asChild variant="secondary">
+              <Link href="/availability">
+                <LinkSimple className="mr-1.5" size={15} />
+                Set Availability
+              </Link>
+            </Button>
+            {bookingUrl ? (
+              <Button asChild variant="secondary" data-tour="booking-link">
+                <a href={bookingUrl} rel="noopener noreferrer" target="_blank">
+                  <ShareNetwork className="mr-1.5" size={15} />
+                  My Booking Page
+                </a>
+              </Button>
+            ) : (
+              <Button asChild variant="secondary" data-tour="booking-link">
+                <Link href="/settings/my-link">
+                  <LinkSimple className="mr-1.5" size={15} />
+                  Set Up Link
+                </Link>
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* ── Next meeting focal strip ─────────────────────────────────── */}
       {upcomingMeetings[0] && (
@@ -327,12 +308,14 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <StatCard
           accent={stats.activeEventTypes > 0 && stats.total === 0}
+          href="/event-types"
           icon={<CalendarPlus size={20} weight="duotone" />}
           label="Meeting Types"
           subtitle="Active"
           value={stats.activeEventTypes}
         />
         <StatCard
+          href="/bookings"
           icon={<CalendarBlank size={20} weight="duotone" />}
           label="Total Bookings"
           note={`${stats.totalThisMonth} bookings this month`}
@@ -341,18 +324,21 @@ export default async function DashboardPage() {
         />
         <StatCard
           accent={stats.upcoming > 0}
+          href="/bookings?tab=upcoming"
           icon={<Clock size={20} weight="duotone" />}
           label="Upcoming"
           subtitle={upcomingSubtitle}
           value={stats.upcoming}
         />
         <StatCard
+          href="/bookings?tab=past"
           icon={<CalendarCheck size={20} weight="duotone" />}
           label="Completed"
           subtitle={`${stats.completedThisMonth} this month`}
           value={stats.completed}
         />
         <StatCard
+          href="/bookings?tab=cancelled"
           icon={<CalendarX size={20} weight="duotone" />}
           label="Cancelled"
           subtitle={`${stats.cancelledThisMonth} this month`}
@@ -479,6 +465,7 @@ function StatCard({
   icon,
   accent = false,
   note,
+  href,
 }: {
   label: string;
   value: number;
@@ -486,11 +473,13 @@ function StatCard({
   icon: React.ReactNode;
   accent?: boolean;
   note?: string;
+  href?: string;
 }) {
-  return (
+  const inner = (
     <Card
       className={[
-        "group relative overflow-hidden transition-all duration-200",
+        "group relative overflow-hidden transition-all duration-200 h-full flex flex-col",
+        href ? "cursor-pointer" : "",
         "hover:border-primary/60 hover:bg-primary/[0.025]",
         accent ? "border-primary/40 bg-primary/[0.03]" : "",
       ].join(" ")}
@@ -503,8 +492,8 @@ function StatCard({
         ].join(" ")}
       />
 
-      <CardContent className="px-5 pt-5 pb-4">
-        <div className="flex items-start justify-between gap-2">
+      <CardContent className="px-5 pt-5 pb-4 flex flex-col flex-1">
+        <div className="flex items-start justify-between gap-2 flex-1">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-ui text-muted-foreground">
               {label}
@@ -526,14 +515,16 @@ function StatCard({
           </span>
         </div>
 
-        {note && (
-          <div className="mt-3 border-t border-border pt-3">
-            <p className="text-sm text-muted-foreground">{note}</p>
-          </div>
-        )}
+        <div className="mt-3 border-t border-border pt-3">
+          <p className="text-sm text-muted-foreground">
+            {note ?? <span className="invisible">–</span>}
+          </p>
+        </div>
       </CardContent>
     </Card>
-  );
+  )
+  if (href) return <Link href={href} className="block h-full">{inner}</Link>
+  return inner
 }
 
 function EmptyUpcoming({
@@ -628,13 +619,13 @@ const STATUS_STYLES: Record<
   },
   cancelled: {
     badge:
-      "bg-red-50 text-red-600 border border-red-200 text-xs font-medium px-2.5 py-0.5",
-    dotColor: "bg-red-500",
+      "bg-destructive/10 text-destructive border border-destructive/20 text-xs font-medium px-2.5 py-0.5",
+    dotColor: "bg-destructive",
     label: "Cancelled",
   },
   pending: {
     badge:
-      "bg-amber-50 text-amber-600 border border-amber-200 text-xs font-medium px-2.5 py-0.5",
+      "bg-amber-500/10 text-amber-700 border border-amber-500/20 text-xs font-medium px-2.5 py-0.5",
     dotColor: "bg-amber-500",
     label: "Pending",
   },
@@ -657,11 +648,11 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 const LOCATION_BADGE_STYLES: Record<string, string> = {
-  zoom: "bg-blue-50 text-blue-600 border border-blue-200",
-  google_meet: "bg-green-50 text-green-600 border border-green-200",
-  phone_host_calls: "bg-orange-50 text-orange-600 border border-orange-200",
-  phone_invitee_calls: "bg-orange-50 text-orange-600 border border-orange-200",
-  in_person: "bg-purple-50 text-purple-600 border border-purple-200",
+  zoom: "bg-muted text-muted-foreground border border-border",
+  google_meet: "bg-muted text-muted-foreground border border-border",
+  phone_host_calls: "bg-muted text-muted-foreground border border-border",
+  phone_invitee_calls: "bg-muted text-muted-foreground border border-border",
+  in_person: "bg-muted text-muted-foreground border border-border",
 };
 const LOCATION_LABEL: Record<string, string> = {
   zoom: "Zoom",
