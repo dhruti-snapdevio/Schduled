@@ -40,14 +40,14 @@ export default async function OrbitSettingsPage() {
   const nodeEnv = process.env.NODE_ENV ?? "—";
 
   return (
-    <div>
+    <div className="space-y-6">
       <OrbitPageHeader
         description="Read-only view of environment configuration and feature status."
         eyebrow="Admin"
         title="Platform Settings"
       />
 
-      <div className="max-w-4xl space-y-5">
+      <div className="space-y-5">
         {/* General */}
         <Card>
           <CardHeader className="py-4">

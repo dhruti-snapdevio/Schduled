@@ -19,7 +19,6 @@ import {
   Clock,
   CaretLeft,
   CaretRight,
-  CaretDown,
   Globe,
   CheckCircle,
   ArrowLeft,
@@ -33,6 +32,14 @@ import {
   Lightning,
   Briefcase,
 } from '@phosphor-icons/react'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -139,19 +146,21 @@ function QuestionInput({
   }
   if (q.type === 'single_select' || q.type === 'dropdown') {
     return (
-      <select
-        value={strVal}
-        onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))}
-        required={q.isRequired}
-        className={`${inputCls} h-9`}
+      <Select
+        value={strVal || undefined}
+        onValueChange={(v) => setAnswers((p) => ({ ...p, [q.id]: v }))}
       >
-        <option value="">Select…</option>
-        {q.options?.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger className="h-9 w-full text-sm">
+          <SelectValue placeholder="Select…" />
+        </SelectTrigger>
+        <SelectContent>
+          {q.options?.map((o) => (
+            <SelectItem key={o} value={o}>
+              {o}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     )
   }
   if (q.type === 'multiple_select') {
@@ -164,21 +173,19 @@ function QuestionInput({
               key={opt}
               className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
             >
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={arr.includes(opt)}
-                onChange={(e) => {
+                onCheckedChange={(checked) => {
                   const cur = Array.isArray(answers[q.id])
                     ? (answers[q.id] as string[])
                     : []
                   setAnswers((p) => ({
                     ...p,
-                    [q.id]: e.target.checked
+                    [q.id]: checked === true
                       ? [...cur, opt]
                       : cur.filter((v) => v !== opt),
                   }))
                 }}
-                className="accent-primary"
               />
               {opt}
             </label>
@@ -334,30 +341,40 @@ export function BookingCalendar({
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [prefilled, setPrefilled] = useState(false)
+  const [emailBlocked, setEmailBlocked] = useState(false)
+  const [checkingBlocked, setCheckingBlocked] = useState(false)
 
-  // Return-booker pre-fill: debounce email → lookup contact
+  // Return-booker pre-fill: debounce email → lookup contact + blocklist check
   useEffect(() => {
     const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-    if (!isValidEmail) { setPrefilled(false); return }
+    if (!isValidEmail) { setPrefilled(false); setEmailBlocked(false); return }
 
     const controller = new AbortController()
+    setCheckingBlocked(true)
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `/api/contact-lookup?username=${encodeURIComponent(host.username)}&email=${encodeURIComponent(email)}`,
-          { signal: controller.signal }
-        )
-        const data = await res.json()
-        if (data.found) {
-          if (data.name  && !name)  setName(data.name)
-          if (data.phone && !phone) setPhone(data.phone)
+        const [lookupRes, blockedRes] = await Promise.all([
+          fetch(
+            `/api/contact-lookup?username=${encodeURIComponent(host.username)}&email=${encodeURIComponent(email)}`,
+            { signal: controller.signal }
+          ),
+          fetch(
+            `/api/check-blocked?username=${encodeURIComponent(host.username)}&email=${encodeURIComponent(email)}`,
+            { signal: controller.signal }
+          ),
+        ])
+        const [lookupData, blockedData] = await Promise.all([lookupRes.json(), blockedRes.json()])
+        if (lookupData.found) {
+          if (lookupData.name && !name) setName(lookupData.name)
           setPrefilled(true)
         } else {
           setPrefilled(false)
         }
+        setEmailBlocked(!!blockedData.blocked)
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return
-        // silently ignore — pre-fill is best-effort
+      } finally {
+        setCheckingBlocked(false)
       }
     }, 600)
 
@@ -510,7 +527,11 @@ export function BookingCalendar({
       })
       const data = await res.json()
       if (!data.ok) {
-        setSubmitError(data.error ?? 'Booking failed.')
+        if (res.status === 403) {
+          setSubmitError('__blocked__')
+        } else {
+          setSubmitError(data.error ?? 'Booking failed.')
+        }
         return
       }
       const p = new URLSearchParams({
@@ -824,19 +845,19 @@ export function BookingCalendar({
 
               {/* Timezone picker */}
               <div className="mt-5 border-t border-border pt-4">
-                <label className="flex cursor-pointer items-center gap-1.5 group">
-                  <Globe size={14} className="shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
-                  <select
-                    value={inviteeTz}
-                    onChange={(e) => setInviteeTz(e.target.value)}
-                    className="flex-1 truncate bg-transparent text-sm text-muted-foreground outline-none cursor-pointer group-hover:text-primary transition-colors appearance-none border-none"
-                  >
+                <Select value={inviteeTz} onValueChange={setInviteeTz}>
+                  <SelectTrigger className="h-auto w-full gap-1.5 border-0 bg-transparent p-0 text-sm text-muted-foreground shadow-none focus-visible:ring-0">
+                    <Globe size={14} className="shrink-0" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent style={{ maxHeight: 280 }}>
                     {commonTimezones.map((tz) => (
-                      <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
+                      <SelectItem key={tz} value={tz} className="text-sm">
+                        {tz.replace(/_/g, ' ')}
+                      </SelectItem>
                     ))}
-                  </select>
-                  <CaretDown size={11} className="shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
-                </label>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
@@ -997,15 +1018,37 @@ export function BookingCalendar({
                   </FormField>
 
                   <FormField label="Email" required>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => { setEmail(e.target.value); setPrefilled(false) }}
-                      required
-                      placeholder="you@example.com"
-                      className={`${inputCls} h-9`}
-                    />
-                    {prefilled && (
+                    <div className="relative">
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value)
+                          setPrefilled(false)
+                          setEmailBlocked(false)
+                          if (submitError === '__blocked__') setSubmitError(null)
+                        }}
+                        required
+                        placeholder="you@example.com"
+                        className={`${inputCls} h-9 ${emailBlocked ? 'border-destructive focus:border-destructive focus:ring-destructive/15 pr-8' : ''}`}
+                      />
+                      {checkingBlocked && (
+                        <Spinner size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" />
+                      )}
+                      {!checkingBlocked && emailBlocked && (
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-destructive">
+                          ✕
+                        </span>
+                      )}
+                    </div>
+                    {emailBlocked && (
+                      <div className="mt-2 border border-destructive/30 bg-destructive/5 px-4 py-3">
+                        <p className="text-sm font-bold text-destructive">Booking Unavailable</p>
+                        <p className="mt-1 text-sm text-destructive">You have been blocked from booking with this host.</p>
+                        <p className="mt-0.5 text-xs text-destructive/70">Please contact the host if you believe this is an error.</p>
+                      </div>
+                    )}
+                    {!emailBlocked && prefilled && (
                       <p className="mt-1 text-sm text-primary font-medium">
                         Welcome back! We filled in your details from a previous booking.
                       </p>
@@ -1038,13 +1081,27 @@ export function BookingCalendar({
                     ))}
 
                   {submitError && (
-                    <p className="text-xs text-destructive">{submitError}</p>
+                    <div className="border border-destructive/30 bg-destructive/5 px-4 py-3">
+                      {submitError === '__blocked__' ? (
+                        <>
+                          <p className="text-sm font-bold text-destructive">Booking Unavailable</p>
+                          <p className="mt-1 text-sm text-destructive">You have been blocked from booking with this host.</p>
+                          <p className="mt-0.5 text-xs text-destructive/70">Please contact the host if you believe this is an error.</p>
+                        </>
+                      ) : (
+                        <p className="text-sm font-medium text-destructive">{submitError}</p>
+                      )}
+                    </div>
                   )}
 
                   <button
                     type="submit"
-                    disabled={submitting}
-                    className="mt-1 flex h-11 w-full items-center justify-center gap-2 bg-primary text-sm font-bold text-white transition-all hover:bg-primary/90 disabled:opacity-60"
+                    disabled={submitting || submitError === '__blocked__' || emailBlocked}
+                    className={`mt-1 flex h-11 w-full items-center justify-center gap-2 text-sm font-bold text-white transition-all ${
+                      submitError === '__blocked__' || emailBlocked
+                        ? 'bg-muted-foreground/40 cursor-not-allowed pointer-events-none'
+                        : 'bg-primary hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed'
+                    }`}
                   >
                     {submitting ? (
                       <>

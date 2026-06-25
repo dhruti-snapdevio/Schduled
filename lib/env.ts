@@ -43,6 +43,20 @@ const envSchema = z.object({
   S3_ACCESS_KEY_ID: optionalString,
   S3_SECRET_ACCESS_KEY: optionalString,
   S3_PUBLIC_URL: optionalString,
+}).superRefine((val, ctx) => {
+  // OAuth integrations store access/refresh tokens encrypted at rest with
+  // ENCRYPT_KEY. If an integration is configured but the key is missing, the
+  // OAuth callback would throw *after* the code exchange — fail at boot instead.
+  const googleEnabled = !!(val.GOOGLE_CLIENT_ID && val.GOOGLE_CLIENT_SECRET);
+  const zoomEnabled = !!(val.ZOOM_CLIENT_ID && val.ZOOM_CLIENT_SECRET);
+  if ((googleEnabled || zoomEnabled) && !val.ENCRYPT_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["ENCRYPT_KEY"],
+      message:
+        "ENCRYPT_KEY is required when Google or Zoom OAuth is configured (it encrypts stored OAuth tokens).",
+    });
+  }
 });
 
 const parsed = envSchema.safeParse(process.env);

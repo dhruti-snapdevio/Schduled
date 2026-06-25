@@ -258,6 +258,7 @@ export async function disconnectCalendar(
       .select({
         id: connectedCalendar.id,
         accountEmail: connectedCalendar.accountEmail,
+        isWriteTarget: connectedCalendar.isWriteTarget,
       })
       .from(connectedCalendar)
       .where(
@@ -272,10 +273,43 @@ export async function disconnectCalendar(
       return { error: "Calendar not found" };
     }
 
-    await db
-      .update(connectedCalendar)
-      .set({ status: "disconnected", disconnectedAt: new Date() })
-      .where(eq(connectedCalendar.id, calendarId));
+    await db.transaction(async (tx) => {
+      // Disconnect: clear stored OAuth tokens and relinquish the write-target
+      // flag so future bookings don't try to write to a dead calendar.
+      await tx
+        .update(connectedCalendar)
+        .set({
+          status: "disconnected",
+          disconnectedAt: new Date(),
+          isWriteTarget: false,
+          accessToken: null,
+          refreshToken: null,
+          tokenExpiresAt: null,
+        })
+        .where(eq(connectedCalendar.id, calendarId));
+
+      // If this was the write target, promote another still-connected calendar
+      // so confirmed bookings keep landing on a real calendar.
+      if (cal.isWriteTarget) {
+        const [next] = await tx
+          .select({ id: connectedCalendar.id })
+          .from(connectedCalendar)
+          .where(
+            and(
+              eq(connectedCalendar.userId, session.user.id),
+              eq(connectedCalendar.status, "connected")
+            )
+          )
+          .limit(1);
+
+        if (next) {
+          await tx
+            .update(connectedCalendar)
+            .set({ isWriteTarget: true })
+            .where(eq(connectedCalendar.id, next.id));
+        }
+      }
+    });
 
     await audit({
       action: "calendar.disconnected",

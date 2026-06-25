@@ -13,6 +13,16 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Re-check the live ban status — the session token may predate a ban.
+  const [freshUser] = await db
+    .select({ banned: user.banned })
+    .from(user)
+    .where(eq(user.id, current.user.id))
+    .limit(1);
+  if (!freshUser || freshUser.banned) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
   const [profile, sessions, accounts, auditEntries] = await Promise.all([
     db.query.user.findFirst({ where: eq(user.id, current.user.id) }),
     db

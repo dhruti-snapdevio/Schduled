@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { FaqAccordion } from '@/components/landing/faq-accordion'
 import {
   ArrowDown,
   ArrowRight,
@@ -965,8 +966,8 @@ export default async function LandingPage() {
                             left: '3.5rem',
                             right: '-2rem',
                             height: '2px',
-                            background: 'linear-gradient(to right, var(--primary), rgba(20,184,166,.3), transparent)',
-                            backgroundSize: '200% 100%',
+                            background: 'linear-gradient(90deg, transparent, var(--primary) 50%, transparent)',
+                            backgroundSize: '300% 100%',
                             animation: 'schduled-connector-shimmer 2.5s linear infinite',
                           }}
                         />
@@ -1111,23 +1112,7 @@ export default async function LandingPage() {
               <p className="mt-3 text-sm text-muted-foreground">Everything you need to know. Can&apos;t find what you&apos;re looking for? <a href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? 'support@schduled.com'}`} className="text-primary hover:underline">Contact us.</a></p>
             </div>
 
-            <div className="divide-y divide-border border-t border-border">
-              {FAQ_ITEMS.map(({ q, a, defaultOpen }, i) => (
-                <details key={q} name="faq" open={defaultOpen} className={`scroll-reveal ${i > 0 ? `sr-d${Math.min(i, 3) as 1|2|3}` : ''} faq-item group py-5 transition-all duration-200`}>
-                  <summary className="flex cursor-pointer list-none items-start justify-between gap-4 py-1">
-                    <span className="faq-q font-semibold text-foreground transition-colors duration-200 group-open:text-primary">{q}</span>
-                    <span className="mt-0.5 shrink-0 text-muted-foreground transition-transform duration-300 group-open:rotate-45">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.75" strokeLinecap="square" />
-                      </svg>
-                    </span>
-                  </summary>
-                  <div className="faq-body overflow-hidden">
-                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{a}</p>
-                  </div>
-                </details>
-              ))}
-            </div>
+            <FaqAccordion items={FAQ_ITEMS} />
           </div>
         </section>
 

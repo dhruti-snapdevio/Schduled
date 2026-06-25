@@ -9,6 +9,18 @@ import {
   Stack,
   XCircle,
 } from "@phosphor-icons/react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { paginationRange } from "@/lib/utils";
+
+const PAGE_SIZE = 10;
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +30,14 @@ import {
 } from "@/components/ui/card";
 import { retryFailedJobsAction } from "@/app/actions/orbit-queues";
 import type { QueueSummaryRow } from "@/lib/worker/queue-inspection";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // ── Friendly queue name map ───────────────────────────────────────────────────
 
@@ -257,6 +277,7 @@ export function QueuesClient({
 }) {
   const [isPending, startTransition] = useTransition();
   const [secondsAgo, setSecondsAgo] = useState(0);
+  const [page, setPage] = useState(1);
   const router = useRouter();
 
   // Reset and tick timer whenever fresh data arrives
@@ -295,6 +316,10 @@ export function QueuesClient({
       }),
     [queues],
   );
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <div className="space-y-8">
@@ -372,63 +397,105 @@ export function QueuesClient({
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/40">
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+              <Table className="w-full text-sm">
+                <TableHeader>
+                  <TableRow className="border-b border-border bg-muted/40">
+                    <TableHead className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                       Queue
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                       State
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                       Jobs
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                       Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.map((row) => (
-                    <tr
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pageRows.map((row) => (
+                    <TableRow
                       key={`${row.name}:${row.state}`}
                       className="border-b border-border transition-colors hover:bg-muted/20 last:border-0"
                     >
                       {/* Queue name */}
-                      <td className="px-6 py-3">
+                      <TableCell className="px-6 py-3">
                         <p className="text-sm font-medium">
                           {getFriendlyName(row.name)}
                         </p>
                         <p className="mt-0.5 font-mono text-xs text-muted-foreground/60">
                           {row.name}
                         </p>
-                      </td>
+                      </TableCell>
 
                       {/* State badge */}
-                      <td className="px-4 py-3">
+                      <TableCell className="px-4 py-3">
                         <StateBadge state={row.state} />
-                      </td>
+                      </TableCell>
 
                       {/* Job count */}
-                      <td className="px-4 py-3">
+                      <TableCell className="px-4 py-3">
                         <span className="text-sm font-semibold tabular-nums">
                           {row.count.toLocaleString()}
                         </span>
-                      </td>
+                      </TableCell>
 
                       {/* Actions */}
-                      <td className="px-4 py-3">
+                      <TableCell className="px-4 py-3">
                         {row.state === "failed" ? (
                           <RetryButton queueName={row.name} />
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between gap-3 border-t border-border px-5 py-3">
+              <p className="text-xs text-muted-foreground">{sorted.length} rows</p>
+              <Pagination className="mx-0 w-auto">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      aria-disabled={safePage <= 1}
+                      className={safePage <= 1 ? "pointer-events-none opacity-40" : ""}
+                      onClick={(e) => { e.preventDefault(); if (safePage > 1) setPage(safePage - 1); }}
+                    />
+                  </PaginationItem>
+                  {paginationRange(safePage, totalPages).map((p, i) =>
+                    p === "ellipsis" ? (
+                      <PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>
+                    ) : (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          href="#"
+                          isActive={p === safePage}
+                          onClick={(e) => { e.preventDefault(); setPage(p); }}
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      aria-disabled={safePage >= totalPages}
+                      className={safePage >= totalPages ? "pointer-events-none opacity-40" : ""}
+                      onClick={(e) => { e.preventDefault(); if (safePage < totalPages) setPage(safePage + 1); }}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </CardContent>

@@ -90,14 +90,21 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, p
   function handleSave() {
     if (!form.label.trim()) { toast.error('Question label is required'); return }
 
+    const parsedOptions = typeHasOptions
+      ? form.options.split('\n').map((s) => s.trim()).filter(Boolean)
+      : undefined
+
+    if (typeHasOptions && (!parsedOptions || parsedOptions.length < 1)) {
+      toast.error('Add at least one option for this question type')
+      return
+    }
+
     const data: QuestionData = {
       label: form.label.trim(),
       type: form.type,
       isRequired: form.isRequired,
       placeholder: form.placeholder || undefined,
-      options: typeHasOptions
-        ? form.options.split('\n').map((s) => s.trim()).filter(Boolean)
-        : undefined,
+      options: parsedOptions,
     }
 
     if (mode === 'create') {

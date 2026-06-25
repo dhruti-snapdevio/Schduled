@@ -11,10 +11,14 @@ export function MagicLinkEmail({
   magicLinkUrl: string;
   productName?: string;
 }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const logoUrl = appUrl ? `${appUrl}/logo.svg` : undefined;
+
   return (
     <EmailLayout
       preview={`Sign in to ${productName}`}
       productName={productName}
+      logoUrl={logoUrl}
     >
       <Text style={emailStyles.heading}>Sign in to {productName}</Text>
       <Text style={emailStyles.paragraph}>

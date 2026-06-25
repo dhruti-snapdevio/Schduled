@@ -4,9 +4,20 @@ import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { account, booking, eventType, session as sessionTable, user } from "@/db/schema";
+import { ADMIN_ROLE } from "@/config/platform";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/authz";
 import { db } from "@/lib/db";
+
+/** Returns the subset of `ids` that are NOT admins — admins can't be acted on. */
+async function nonAdminIds(ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const rows = await db
+    .select({ id: user.id, role: user.role })
+    .from(user)
+    .where(inArray(user.id, ids));
+  return rows.filter((r) => r.role !== ADMIN_ROLE).map((r) => r.id);
+}
 
 export async function toggleUserBanAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin();
@@ -15,6 +26,16 @@ export async function toggleUserBanAction(formData: FormData): Promise<void> {
 
   if (userId === admin.user.id && banned) {
     return;
+  }
+
+  // Admins cannot suspend other admins.
+  if (banned) {
+    const [target] = await db
+      .select({ role: user.role })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+    if (target?.role === ADMIN_ROLE) return;
   }
 
   await db
@@ -54,12 +75,17 @@ export async function deleteUserAction(formData: FormData): Promise<void> {
   }
 
   const [target] = await db
-    .select({ email: user.email })
+    .select({ email: user.email, role: user.role })
     .from(user)
     .where(eq(user.id, userId))
     .limit(1);
 
   if (!target) {
+    redirect("/orbit/users");
+  }
+
+  // Admins cannot delete other admins.
+  if (target.role === ADMIN_ROLE) {
     redirect("/orbit/users");
   }
 
@@ -159,7 +185,8 @@ export async function deleteEventTypeAction(formData: FormData): Promise<void> {
 
 export async function bulkBanUsersAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin();
-  const ids = formData.getAll("userId").map(String).filter((id) => id && id !== admin.user.id);
+  const requested = formData.getAll("userId").map(String).filter((id) => id && id !== admin.user.id);
+  const ids = await nonAdminIds(requested);
   if (ids.length === 0) return;
 
   await db.update(user).set({
@@ -187,7 +214,8 @@ export async function bulkBanUsersAction(formData: FormData): Promise<void> {
 
 export async function bulkDeleteUsersAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin();
-  const ids = formData.getAll("userId").map(String).filter((id) => id && id !== admin.user.id);
+  const requested = formData.getAll("userId").map(String).filter((id) => id && id !== admin.user.id);
+  const ids = await nonAdminIds(requested);
   if (ids.length === 0) return;
 
   const targets = await db

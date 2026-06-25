@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { UserCircle } from "@phosphor-icons/react";
 import { useAvatar } from "@/components/avatar-context";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function HeaderAvatar() {
   const { url } = useAvatar();
@@ -11,13 +11,14 @@ export function HeaderAvatar() {
     <Link
       href="/profile/profile"
       aria-label="Profile settings"
-      className="relative ml-1 flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden bg-primary/10 text-primary transition-opacity hover:opacity-80"
+      className="ml-1 shrink-0 rounded-full transition-opacity hover:opacity-80"
     >
-      {url ? (
-        <Image fill unoptimized alt="Profile" className="object-cover" sizes="32px" src={url} />
-      ) : (
-        <UserCircle size={22} />
-      )}
+      <Avatar>
+        {url ? <AvatarImage alt="Profile" src={url} /> : null}
+        <AvatarFallback className="bg-primary/10 text-primary">
+          <UserCircle size={22} />
+        </AvatarFallback>
+      </Avatar>
     </Link>
   );
 }

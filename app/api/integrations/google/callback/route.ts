@@ -7,6 +7,7 @@ import { db } from '@/lib/db'
 import { connectedCalendar, user } from '@/db/schema'
 import { encrypt } from '@/lib/encrypt'
 import { audit } from '@/lib/audit'
+import { safeReturnTo } from '@/lib/api/helpers'
 import { env } from '@/lib/env'
 
 export async function GET(req: NextRequest) {
@@ -138,7 +139,7 @@ export async function GET(req: NextRequest) {
     metadata: { provider: 'google', accountEmail },
   })
 
-  const returnUrl = new URL(state.returnTo, req.url)
+  const returnUrl = new URL(safeReturnTo(state.returnTo), req.url)
   returnUrl.searchParams.set('calendar_connected', '1')
   return NextResponse.redirect(returnUrl)
 }

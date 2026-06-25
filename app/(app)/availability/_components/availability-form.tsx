@@ -178,6 +178,23 @@ const EMPTY_GRID: WeekGrid = {
   sunday: [],
 }
 
+// ── Slot validation ───────────────────────────────────────────────────────────
+// Times are "HH:MM" strings, so lexical comparison is correct within a day.
+
+function validateSlots(slots: TimeSlot[]): string | null {
+  for (const s of slots) {
+    if (!s.startTime || !s.endTime) return 'Please set both a start and end time.'
+    if (s.endTime <= s.startTime) return 'Each interval must end after it starts.'
+  }
+  const sorted = [...slots].sort((a, b) => a.startTime.localeCompare(b.startTime))
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i].startTime < sorted[i - 1].endTime) {
+      return 'Time intervals cannot overlap.'
+    }
+  }
+  return null
+}
+
 // ── Shared time select ────────────────────────────────────────────────────────
 
 function TimeSelect({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
@@ -196,11 +213,12 @@ function OverrideDialog({
   defaultDate: string
   weekGrid: WeekGrid
   overrideMap: Map<string, OverrideData>
-  onApply: (date: string, isBlocked: boolean, slots: TimeSlot[]) => void
+  onApply: (date: string, isBlocked: boolean, slots: TimeSlot[], reason: string) => void
   isPending: boolean
 }) {
   const [selDate, setSelDate] = useState(defaultDate || todayISO())
   const [isBlocked, setIsBlocked] = useState(false)
+  const [reason, setReason] = useState('')
   const [slots, setSlots] = useState<TimeSlot[]>([{ startTime: '09:00', endTime: '17:00' }])
   const [cursor, setCursor] = useState(() => {
     const base = defaultDate || todayISO()
@@ -213,6 +231,7 @@ function OverrideDialog({
       const base = defaultDate || todayISO()
       setSelDate(base)
       setIsBlocked(false)
+      setReason('')
       setSlots([{ startTime: '09:00', endTime: '17:00' }])
       const [y, m] = base.split('-').map(Number)
       setCursor({ year: y, month: m - 1 })
@@ -230,6 +249,7 @@ function OverrideDialog({
     const existing = overrideMap.get(iso)
     if (existing) {
       setIsBlocked(existing.isBlocked)
+      setReason(existing.reason ?? '')
       setSlots(existing.isBlocked || existing.slots.length === 0
         ? [{ startTime: '09:00', endTime: '17:00' }]
         : existing.slots.map((s) => ({ ...s })))
@@ -237,6 +257,7 @@ function OverrideDialog({
       const dow = DAY_MAP[jsDay(iso)]
       const ws = weekGrid[dow]
       setIsBlocked(ws.length === 0)
+      setReason('')
       setSlots(ws.length > 0 ? ws.map((s) => ({ ...s })) : [{ startTime: '09:00', endTime: '17:00' }])
     }
   }
@@ -349,13 +370,25 @@ function OverrideDialog({
             )}
 
             {isBlocked && <p className="text-sm text-muted-foreground">This date will be marked as unavailable.</p>}
+
+            <div className="flex flex-col gap-1.5 pt-1">
+              <label className="text-xs font-semibold text-muted-foreground">Reason (optional)</label>
+              <input
+                type="text"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                maxLength={200}
+                placeholder="e.g. Public holiday, vacation…"
+                className="w-full border border-input bg-background px-3 h-9 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all placeholder:text-muted-foreground/60"
+              />
+            </div>
           </div>
         </div>
 
         <div className="border-t border-border px-5 py-3 flex justify-end gap-2 bg-background">
           <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
           <Button size="sm" disabled={isPending || !selDate}
-            onClick={() => onApply(selDate, isBlocked, isBlocked ? [] : slots)}>
+            onClick={() => onApply(selDate, isBlocked, isBlocked ? [] : slots, reason.trim())}>
             {isPending ? 'Saving…' : 'Apply'}
           </Button>
         </div>
@@ -668,6 +701,14 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
   // ── Save schedule ───────────────────────────────────────────────────────────
 
   function handleSave(nameOverride?: string) {
+    for (const [day, daySlots] of Object.entries(grid)) {
+      const err = validateSlots(daySlots)
+      if (err) {
+        const label = DAYS.find((d) => d.key === day)?.label ?? day
+        toast.error(`${label}: ${err}`)
+        return
+      }
+    }
     startTransition(async () => {
       const name = nameOverride ?? scheduleName
       if (!scheduleId) {
@@ -688,11 +729,15 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
 
   // ── Override apply ──────────────────────────────────────────────────────────
 
-  function handleApplyOverride(date: string, isBlocked: boolean, slots: TimeSlot[]) {
+  function handleApplyOverride(date: string, isBlocked: boolean, slots: TimeSlot[], reason: string) {
+    if (!isBlocked) {
+      const err = validateSlots(slots)
+      if (err) { toast.error(err); return }
+    }
     startTransition(async () => {
       const dow = DAY_MAP[jsDay(date)]
       const weeklySlots = grid[dow]
-      const matchesWeekly = !isBlocked && slots.length === weeklySlots.length &&
+      const matchesWeekly = !isBlocked && !reason && slots.length === weeklySlots.length &&
         slots.every((s, i) => s.startTime === weeklySlots[i]?.startTime && s.endTime === weeklySlots[i]?.endTime)
 
       if (matchesWeekly) {
@@ -707,12 +752,12 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
         return
       }
 
-      const res = await addAvailabilityOverride({ date, isBlocked, slots: isBlocked ? [] : slots })
+      const res = await addAvailabilityOverride({ date, isBlocked, slots: isBlocked ? [] : slots, reason: reason || undefined })
       if ('error' in res) { toast.error(res.error); return }
 
       setOverrides((prev) => {
         const without = prev.filter((o) => o.date !== date)
-        return [...without, { date, isBlocked, slots: isBlocked ? [] : slots, reason: null }]
+        return [...without, { date, isBlocked, slots: isBlocked ? [] : slots, reason: reason || null }]
           .sort((a, b) => a.date.localeCompare(b.date))
       })
       setDialogOpen(false)
@@ -741,6 +786,8 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
   }
 
   function handleApplyWeekday(dow: DayOfWeek, slots: TimeSlot[]) {
+    const err = validateSlots(slots)
+    if (err) { toast.error(err); return }
     // Update the weekly grid for this day-of-week, then persist the schedule.
     const nextGrid: WeekGrid = { ...grid, [dow]: slots }
     setGrid(nextGrid)

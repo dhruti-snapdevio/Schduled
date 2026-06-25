@@ -459,6 +459,38 @@ export function TabAvailability({ form, schedules, globalLimits: initialLimits }
             )
           })()}
 
+          {/* Max bookings per day */}
+          <FormField
+            control={form.control}
+            name="maxBookingsPerDay"
+            render={({ field }) => (
+              <div className="flex items-center gap-3 border-t border-border/60 pt-5">
+                <div className="flex items-center gap-1.5 w-40 shrink-0">
+                  <span className="text-sm font-medium text-foreground">Max per day</span>
+                  <InfoTip text="Cap how many of this event type can be booked in a single day. Leave empty for no limit." />
+                </div>
+                <div className="flex items-stretch border border-input w-28">
+                  <Input
+                    className="border-0 shadow-none focus-visible:ring-0 h-8 px-2 text-sm"
+                    max={100}
+                    min={1}
+                    type="number"
+                    placeholder="∞"
+                    value={field.value ?? ""}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10)
+                      field.onChange(Number.isFinite(n) && n > 0 ? n : null)
+                    }}
+                  />
+                  <span className="flex items-center bg-muted px-2.5 text-xs text-muted-foreground border-l border-input shrink-0">
+                    /day
+                  </span>
+                </div>
+                <FormMessage />
+              </div>
+            )}
+          />
+
           {/* Global Meeting Limits — read-only */}
           <div className="border-t border-border/60 pt-5">
             <p className="text-sm font-medium text-foreground mb-1">Global Meeting Limits</p>

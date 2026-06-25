@@ -1,6 +1,8 @@
-import { eq } from "drizzle-orm";
+import { addMinutes } from "date-fns";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { and, eq, gte, lte, ne, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { booking } from "@/db/schema";
+import { availabilitySchedule, booking, eventType } from "@/db/schema";
 import { db } from "@/lib/db";
 import { checkRateLimit, jsonError, rateLimitKey } from "@/lib/api/helpers";
 import { enqueueJob } from "@/lib/worker/enqueue";
@@ -26,6 +28,10 @@ export async function POST(request: Request) {
         id: booking.id,
         status: booking.status,
         startTime: booking.startTime,
+        endTime: booking.endTime,
+        duration: booking.duration,
+        hostUserId: booking.hostUserId,
+        eventTypeId: booking.eventTypeId,
       })
       .from(booking)
       .where(eq(booking.approvalToken, token))
@@ -45,13 +51,73 @@ export async function POST(request: Request) {
       return jsonError("This booking has already taken place.", 409);
     }
 
-    await db
-      .update(booking)
-      .set({
-        status: "confirmed",
-        updatedAt: new Date(),
-      })
-      .where(eq(booking.id, b.id));
+    // Load buffers + host timezone so the conflict re-check matches the create path.
+    const et = await db.query.eventType.findFirst({
+      where: eq(eventType.id, b.eventTypeId),
+    });
+
+    const schedule = await db.query.availabilitySchedule.findFirst({
+      where: et?.availabilityScheduleId
+        ? and(
+            eq(availabilitySchedule.id, et.availabilityScheduleId),
+            eq(availabilitySchedule.userId, b.hostUserId)
+          )
+        : and(
+            eq(availabilitySchedule.userId, b.hostUserId),
+            eq(availabilitySchedule.isDefault, true)
+          ),
+    });
+    const hostTz = schedule?.timezone ?? "UTC";
+
+    const start = new Date(b.startTime);
+    const end = new Date(b.endTime);
+    const bufferStart = et?.bufferBefore ? addMinutes(start, -et.bufferBefore) : start;
+    const bufferEnd = et?.bufferAfter ? addMinutes(end, et.bufferAfter) : end;
+
+    const date = formatInTimeZone(start, hostTz, "yyyy-MM-dd");
+    const dayStartUtc = fromZonedTime(`${date}T00:00:00`, hostTz);
+    const dayEndUtc = fromZonedTime(`${date}T23:59:59`, hostTz);
+
+    // ── Transaction: advisory lock → conflict re-check → confirm ─────────────
+    // Without this, two pending bookings for the same slot could both be
+    // approved, double-booking the host.
+    const result = await db.transaction(async (tx) => {
+      const lockKey = `${b.hostUserId}:${start.toISOString()}`;
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+
+      const existing = await tx
+        .select({ startTime: booking.startTime, endTime: booking.endTime })
+        .from(booking)
+        .where(
+          and(
+            eq(booking.hostUserId, b.hostUserId),
+            // only confirmed bookings block approval — other pending ones don't
+            eq(booking.status, "confirmed"),
+            ne(booking.id, b.id),
+            lte(booking.startTime, dayEndUtc),
+            gte(booking.endTime, dayStartUtc)
+          )
+        );
+
+      const hasConflict = existing.some(
+        (e) => bufferStart < new Date(e.endTime) && bufferEnd > new Date(e.startTime)
+      );
+      if (hasConflict) return { conflict: true } as const;
+
+      await tx
+        .update(booking)
+        .set({ status: "confirmed", updatedAt: new Date() })
+        .where(eq(booking.id, b.id));
+
+      return { ok: true } as const;
+    });
+
+    if ("conflict" in result && result.conflict) {
+      return jsonError(
+        "That time slot is no longer available — another booking was confirmed for it. Please reschedule or decline this request.",
+        409
+      );
+    }
 
     await Promise.allSettled([
       enqueueJob(JOB_NAMES.BOOKING_APPROVED, { bookingId: b.id }),

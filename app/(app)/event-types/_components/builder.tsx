@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowSquareOut,
-  CaretRight,
   CheckCircle,
   FloppyDisk,
   List,
@@ -13,7 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -24,6 +23,14 @@ import {
 } from "@/app/actions/event-types";
 import type { MeetingLimitRow } from "@/app/actions/availability";
 import type { MeetingIntegrations } from "@/lib/integrations/status";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -85,6 +92,9 @@ const schema = z.object({
   requireCancellationReason: z.boolean(),
   showPolicyText: z.boolean(),
   policyText: z.string().max(1000).optional(),
+}).refine((v) => v.durations.includes(v.defaultDuration), {
+  message: "The default duration must be one of the offered durations",
+  path: ["defaultDuration"],
 });
 
 export type BuilderFormValues = z.infer<typeof schema>;
@@ -140,6 +150,7 @@ const TAB_FIELDS: Record<string, (keyof BuilderFormValues)[]> = {
     "bufferBefore",
     "bufferAfter",
     "startTimeIncrement",
+    "maxBookingsPerDay",
   ],
   location: ["locationType", "locationValue", "hostPhoneNumber"],
   notifications: ["confirmationNote"],
@@ -181,6 +192,10 @@ export function EventTypeBuilder({
     resolver: zodResolver(schema),
     defaultValues,
   });
+
+  // Track the last-saved values so "Discard" reverts to the most recent save
+  // in edit mode, not the values the page was originally rendered with.
+  const savedValuesRef = useRef(defaultValues);
 
   const isDirty = form.formState.isDirty;
   const tabIndex = TABS.findIndex((t) => t.id === activeTab);
@@ -246,6 +261,7 @@ export function EventTypeBuilder({
           return;
         }
         form.reset(values);
+        savedValuesRef.current = values;
         setSuccessInfo({
           id: eventTypeId!,
           slug: values.slug,
@@ -262,21 +278,26 @@ export function EventTypeBuilder({
         {/* Header */}
         <div className="mb-6 border border-border bg-background">
           {/* Breadcrumb row */}
-          <div className="flex items-center gap-1.5 border-b border-border/60 px-4 py-2 text-xs text-muted-foreground">
-            <Link
-              className="flex items-center gap-1 transition-colors hover:text-foreground"
-              href="/event-types"
-            >
-              <ArrowLeft size={13} />
-              Meeting Types
-            </Link>
-            <CaretRight className="text-muted-foreground/50" size={11} />
-            <span className="truncate font-medium text-foreground">
-              {mode === "create"
-                ? "New Meeting Type"
-                : form.watch("name") || "Edit"}
-            </span>
-          </div>
+          <Breadcrumb className="border-b border-border/60 px-4 py-2 text-xs">
+            <BreadcrumbList className="gap-1.5 font-sans text-xs font-normal normal-case tracking-normal sm:gap-1.5">
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link className="flex items-center gap-1" href="/event-types">
+                    <ArrowLeft size={13} />
+                    Meeting Types
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="truncate">
+                  {mode === "create"
+                    ? "New Meeting Type"
+                    : form.watch("name") || "Edit"}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
 
           {/* Title row */}
           <div className="flex flex-wrap items-center gap-3 px-4 py-4">
@@ -317,7 +338,7 @@ export function EventTypeBuilder({
                 <Button
                   className="gap-1.5 text-muted-foreground"
                   disabled={!isDirty || isPending}
-                  onClick={() => form.reset(defaultValues)}
+                  onClick={() => form.reset(savedValuesRef.current)}
                   size="sm"
                   type="button"
                   variant="ghost"

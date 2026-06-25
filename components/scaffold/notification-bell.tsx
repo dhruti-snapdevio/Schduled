@@ -230,11 +230,11 @@ export function NotificationBell() {
                 {/* Per-notification dismiss button */}
                 <button
                   aria-label="Dismiss notification"
-                  className="absolute right-2 top-2 hidden items-center justify-center p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground group-hover/item:flex [@media(hover:none)]:flex transition-colors"
+                  className="absolute right-2 top-2 hidden items-center justify-center h-5 w-5 bg-background text-muted-foreground hover:bg-muted hover:text-foreground group-hover/item:flex [@media(hover:none)]:flex transition-colors border border-border/60"
                   onClick={() => dismissOne(n.id)}
                   type="button"
                 >
-                  <X size={12} />
+                  <X size={11} />
                 </button>
               </div>
             );

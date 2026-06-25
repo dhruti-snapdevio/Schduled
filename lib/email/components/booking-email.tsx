@@ -4,6 +4,7 @@ import {
   Head,
   Hr,
   Html,
+  Img,
   Preview,
   Section,
   Text,
@@ -115,16 +116,14 @@ export function BookingEmail(props: BookingEmailProps) {
           <Section
             style={{ backgroundColor: copy.headerColor, padding: "28px 32px" }}
           >
-            <Text
-              style={{
-                color: white,
-                fontSize: "20px",
-                fontWeight: 700,
-                margin: 0,
-              }}
-            >
-              Schduled
-            </Text>
+            {(() => {
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+              return appUrl ? (
+                <Img src={`${appUrl}/logo1.svg`} height="28" alt="Schduled" style={{ display: 'block', marginBottom: '8px' }} />
+              ) : (
+                <Text style={{ color: white, fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>Schduled</Text>
+              );
+            })()}
             <Text
               style={{
                 color: "rgba(255,255,255,0.9)",

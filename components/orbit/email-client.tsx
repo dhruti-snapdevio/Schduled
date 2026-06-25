@@ -10,7 +10,25 @@ import {
   EnvelopeSimple,
   XCircle,
 } from "@phosphor-icons/react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { paginationRange } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Card,
   CardContent,
@@ -235,11 +253,15 @@ export function EmailClient({
   outbox,
   events,
   stats,
+  outboxPage,
+  outboxTotalPages,
   fetchedAt,
 }: {
   outbox: OutboxRow[];
   events: EventRow[];
   stats: EmailStats;
+  outboxPage: number;
+  outboxTotalPages: number;
   fetchedAt: string;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -254,6 +276,10 @@ export function EmailClient({
 
   function handleRefresh() {
     startTransition(() => router.refresh());
+  }
+
+  function goToPage(p: number) {
+    startTransition(() => router.push(`/orbit/email?outboxPage=${p}`));
   }
 
   return (
@@ -334,43 +360,43 @@ export function EmailClient({
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/40">
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                <Table className="w-full text-sm">
+                  <TableHeader>
+                    <TableRow className="border-b border-border bg-muted/40">
+                      <TableHead className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                         Recipient
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                         Subject
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                         Status
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                         Attempts
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                         Sent At
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {outbox.map((email) => {
                       const sentAt = email.sentAt ? formatDate(email.sentAt) : null;
                       return (
-                        <tr
+                        <TableRow
                           key={email.id}
                           className="border-b border-border transition-colors hover:bg-muted/20 last:border-0"
                         >
                           {/* Recipient */}
-                          <td className="px-6 py-3">
+                          <TableCell className="px-6 py-3">
                             <p className="max-w-[180px] truncate text-sm">
                               {email.payload.to}
                             </p>
-                          </td>
+                          </TableCell>
 
                           {/* Subject */}
-                          <td className="px-4 py-3">
+                          <TableCell className="px-4 py-3">
                             <p className="text-sm font-medium">
                               {getFriendlySubject(email.payload.subject)}
                             </p>
@@ -380,22 +406,22 @@ export function EmailClient({
                                 {email.payload.subject}
                               </p>
                             )}
-                          </td>
+                          </TableCell>
 
                           {/* Status */}
-                          <td className="px-4 py-3">
+                          <TableCell className="px-4 py-3">
                             <StatusBadge status={email.status} />
-                          </td>
+                          </TableCell>
 
                           {/* Attempts */}
-                          <td className="px-4 py-3">
+                          <TableCell className="px-4 py-3">
                             <span className="text-sm tabular-nums text-muted-foreground">
                               {email.attemptCount}
                             </span>
-                          </td>
+                          </TableCell>
 
                           {/* Sent At */}
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
+                          <TableCell className="px-4 py-3 text-xs text-muted-foreground">
                             {sentAt ? (
                               <>
                                 <p>{sentAt.date}</p>
@@ -404,12 +430,56 @@ export function EmailClient({
                             ) : (
                               <span className="text-muted-foreground/40">—</span>
                             )}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {outboxTotalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-border px-5 py-3">
+                <p className="text-xs text-muted-foreground">
+                  Page <span className="font-semibold text-foreground">{outboxPage}</span> of {outboxTotalPages}
+                </p>
+                <Pagination className="mx-0 w-auto">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        aria-disabled={outboxPage <= 1}
+                        className={outboxPage <= 1 ? "pointer-events-none opacity-40" : ""}
+                        onClick={(e) => { e.preventDefault(); if (outboxPage > 1) goToPage(outboxPage - 1); }}
+                      />
+                    </PaginationItem>
+                    {paginationRange(outboxPage, outboxTotalPages).map((p, i) =>
+                      p === "ellipsis" ? (
+                        <PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>
+                      ) : (
+                        <PaginationItem key={p}>
+                          <PaginationLink
+                            href="#"
+                            isActive={p === outboxPage}
+                            onClick={(e) => { e.preventDefault(); goToPage(p); }}
+                          >
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    )}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        aria-disabled={outboxPage >= outboxTotalPages}
+                        className={outboxPage >= outboxTotalPages ? "pointer-events-none opacity-40" : ""}
+                        onClick={(e) => { e.preventDefault(); if (outboxPage < outboxTotalPages) goToPage(outboxPage + 1); }}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </div>
             )}
           </CardContent>

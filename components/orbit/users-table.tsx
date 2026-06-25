@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { format } from "date-fns";
+
+const PAGE_SIZE = 10;
 import Link from "next/link";
 import { ArrowRight, MagnifyingGlass, Trash, ProhibitInset } from "@phosphor-icons/react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -13,9 +17,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { ADMIN_ROLE } from "@/config/platform";
+import { paginationRange } from "@/lib/utils";
 import { bulkBanUsersAction, bulkDeleteUsersAction } from "@/app/actions/orbit-users";
 import { UserSuspendForm } from "./user-actions";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type UserRow = {
   id: string;
@@ -40,7 +62,13 @@ export function UsersTable({
   const [selected, setSelected]   = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmSuspend, setConfirmSuspend] = useState(false);
+  const [page, setPage] = useState(1);
   const [isPending, startTransition] = useTransition();
+
+  // Reset to first page when the search/filter narrows the list
+  useEffect(() => {
+    setPage(1);
+  }, [search, filter]);
 
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
@@ -58,6 +86,10 @@ export function UsersTable({
 
   const selectableIds = filtered.filter((u) => u.id !== currentUserId).map((u) => u.id);
   const allSelected   = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageUsers = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const adminCount     = users.filter((u) => u.role === ADMIN_ROLE).length;
   const suspendedCount = users.filter((u) => u.banned).length;
@@ -143,72 +175,70 @@ export function UsersTable({
 
       {/* ── Table ───────────────────────────────────────────────────── */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/40">
-              <th className="w-10 px-4 py-3">
-                <input
-                  type="checkbox"
+        <Table className="w-full text-sm">
+          <TableHeader>
+            <TableRow className="border-b border-border bg-muted/40">
+              <TableHead className="w-10 px-4 py-3">
+                <Checkbox
                   checked={allSelected}
-                  onChange={toggleAll}
+                  onCheckedChange={() => toggleAll()}
                   disabled={selectableIds.length === 0}
                   title={selectableIds.length === 0 ? "No other accounts to select" : "Select all"}
-                  className="h-4 w-4 accent-primary disabled:cursor-not-allowed disabled:opacity-40 enabled:cursor-pointer"
                   aria-label="Select all"
                 />
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                 User
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                 Role
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                 Status
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                 Created
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                 Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-10 text-center text-sm text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={6} className="px-6 py-10 text-center text-sm text-muted-foreground">
                   No users match your search.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
-              filtered.map((u) => {
+              pageUsers.map((u) => {
                 const isSelf = u.id === currentUserId;
                 const isChecked = selected.has(u.id);
                 return (
-                  <tr
+                  <TableRow
                     key={u.id}
                     className={`border-b border-border transition-colors last:border-0 ${isChecked ? "bg-primary/[0.04]" : "hover:bg-muted/20"}`}
                   >
                     {/* Checkbox */}
-                    <td className="w-10 px-4 py-3">
+                    <TableCell className="w-10 px-4 py-3">
                       {!isSelf && (
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={isChecked}
-                          onChange={() => toggleOne(u.id)}
-                          className="h-4 w-4 cursor-pointer accent-primary"
+                          onCheckedChange={() => toggleOne(u.id)}
                           aria-label={`Select ${u.email}`}
                         />
                       )}
-                    </td>
+                    </TableCell>
 
                     {/* User */}
-                    <td className="px-4 py-3">
+                    <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-primary/10 text-primary text-xs font-bold">
-                          {(u.name ?? u.email).slice(0, 2).toUpperCase()}
-                        </span>
+                        <Avatar className="shrink-0">
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                            {(u.name ?? u.email).slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="truncate text-sm font-medium">{u.name ?? "—"}</p>
@@ -221,17 +251,17 @@ export function UsersTable({
                           <p className="truncate text-xs text-muted-foreground">{u.email}</p>
                         </div>
                       </div>
-                    </td>
+                    </TableCell>
 
                     {/* Role */}
-                    <td className="px-4 py-3">
+                    <TableCell className="px-4 py-3">
                       <Badge variant={u.role === ADMIN_ROLE ? "default" : "secondary"} className="text-xs">
                         {u.role ?? "user"}
                       </Badge>
-                    </td>
+                    </TableCell>
 
                     {/* Status */}
-                    <td className="px-4 py-3">
+                    <TableCell className="px-4 py-3">
                       {u.banned ? (
                         <span className="inline-flex items-center gap-1.5 rounded-none border border-destructive/20 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
                           <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
@@ -243,15 +273,15 @@ export function UsersTable({
                           Active
                         </span>
                       )}
-                    </td>
+                    </TableCell>
 
                     {/* Created */}
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                    <TableCell className="px-4 py-3 text-xs text-muted-foreground">
                       {format(u.createdAt, "MMM d, yyyy")}
-                    </td>
+                    </TableCell>
 
                     {/* Actions */}
-                    <td className="px-4 py-3">
+                    <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {!isSelf && (
                           <UserSuspendForm banned={u.banned} userId={u.id} />
@@ -263,21 +293,58 @@ export function UsersTable({
                           View <ArrowRight size={11} />
                         </Link>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Row count */}
+      {/* Row count + pagination */}
       {filtered.length > 0 && selected.size === 0 && (
-        <div className="border-t border-border px-6 py-3">
+        <div className="flex items-center justify-between gap-3 border-t border-border px-6 py-3">
           <p className="text-xs text-muted-foreground">
             {filtered.length} of {users.length} user{users.length !== 1 ? "s" : ""}
           </p>
+          {totalPages > 1 && (
+            <Pagination className="mx-0 w-auto">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    aria-disabled={safePage <= 1}
+                    className={safePage <= 1 ? "pointer-events-none opacity-40" : ""}
+                    onClick={(e) => { e.preventDefault(); if (safePage > 1) setPage(safePage - 1); }}
+                  />
+                </PaginationItem>
+                {paginationRange(safePage, totalPages).map((p, i) =>
+                  p === "ellipsis" ? (
+                    <PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>
+                  ) : (
+                    <PaginationItem key={p}>
+                      <PaginationLink
+                        href="#"
+                        isActive={p === safePage}
+                        onClick={(e) => { e.preventDefault(); setPage(p); }}
+                      >
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                )}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    aria-disabled={safePage >= totalPages}
+                    className={safePage >= totalPages ? "pointer-events-none opacity-40" : ""}
+                    onClick={(e) => { e.preventDefault(); if (safePage < totalPages) setPage(safePage + 1); }}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </div>
       )}
 
