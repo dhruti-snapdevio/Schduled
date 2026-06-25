@@ -1,7 +1,6 @@
 "use client";
 
 import type { ComponentType } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,6 +15,7 @@ import {
 } from "@phosphor-icons/react";
 import { logoutAction } from "@/app/actions/auth";
 import { useAvatar } from "@/components/avatar-context";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 
@@ -144,13 +144,12 @@ export function SidebarNav({
           className="flex items-center gap-2.5 px-3 py-2.5 mt-1 border-t border-sidebar-border/50"
           title={email}
         >
-          <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden bg-primary/10 text-primary">
-            {avatarUrl ? (
-              <Image fill unoptimized src={avatarUrl} alt="Profile" className="object-cover" sizes="32px" />
-            ) : (
+          <Avatar>
+            {avatarUrl ? <AvatarImage src={avatarUrl} alt="Profile" /> : null}
+            <AvatarFallback className="bg-primary/10 text-primary">
               <UserCircle size={22} />
-            )}
-          </span>
+            </AvatarFallback>
+          </Avatar>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-sidebar-foreground leading-none">
               {userName ?? email}

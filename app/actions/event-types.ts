@@ -114,40 +114,50 @@ export async function createEventType(data: EventTypeFormData, initialQuestions?
     if (data.durations.length === 0) return { error: 'At least one duration is required' }
 
     const slugBase = slugify(data.slug || name)
-    const slug = await uniqueSlug(session.user.id, slugBase)
-
-    // Count existing for position
-    const [{ count }] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(eventType)
-      .where(eq(eventType.userId, session.user.id))
-
     const id = createId()
 
-    await db.insert(eventType).values({
-      id,
-      userId: session.user.id,
-      name,
-      slug,
-      description: data.description?.trim() || null,
-      color: data.color,
-      meetingType: data.meetingType,
-      isActive: data.isActive,
-      isHidden: data.isHidden,
-      availabilityScheduleId: data.availabilityScheduleId || null,
-      bookingWindow: data.bookingWindow,
-      bookingWindowType: data.bookingWindowType,
-      minimumNotice: data.minimumNotice,
-      bufferBefore: data.bufferBefore,
-      bufferAfter: data.bufferAfter,
-      maxBookingsPerDay: data.maxBookingsPerDay ?? null,
-      startTimeIncrement: data.startTimeIncrement,
-      locationType: data.locationType,
-      locationValue: data.locationValue?.trim() || null,
-      hostPhoneNumber: data.hostPhoneNumber?.trim() || null,
-      confirmationNote: data.confirmationNote?.trim() || null,
-      requiresApproval: data.requiresApproval,
-      position: count,
+    // Serialise slug allocation per user so two concurrent creates can't both
+    // claim the same slug. The advisory lock is held until this transaction
+    // commits, so a waiting request reads the freshly-committed slug.
+    const slug = await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtext(${`et-slug:${session.user.id}`}))`
+      )
+      const resolvedSlug = await uniqueSlug(session.user.id, slugBase)
+
+      // Count existing for position
+      const [{ count }] = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(eventType)
+        .where(eq(eventType.userId, session.user.id))
+
+      await tx.insert(eventType).values({
+        id,
+        userId: session.user.id,
+        name,
+        slug: resolvedSlug,
+        description: data.description?.trim() || null,
+        color: data.color,
+        meetingType: data.meetingType,
+        isActive: data.isActive,
+        isHidden: data.isHidden,
+        availabilityScheduleId: data.availabilityScheduleId || null,
+        bookingWindow: data.bookingWindow,
+        bookingWindowType: data.bookingWindowType,
+        minimumNotice: data.minimumNotice,
+        bufferBefore: data.bufferBefore,
+        bufferAfter: data.bufferAfter,
+        maxBookingsPerDay: data.maxBookingsPerDay ?? null,
+        startTimeIncrement: data.startTimeIncrement,
+        locationType: data.locationType,
+        locationValue: data.locationValue?.trim() || null,
+        hostPhoneNumber: data.hostPhoneNumber?.trim() || null,
+        confirmationNote: data.confirmationNote?.trim() || null,
+        requiresApproval: data.requiresApproval,
+        position: count,
+      })
+
+      return resolvedSlug
     })
 
     // Insert durations

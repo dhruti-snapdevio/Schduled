@@ -24,7 +24,7 @@ export default async function OrbitUsersPage() {
     .orderBy(desc(user.createdAt));
 
   return (
-    <div>
+    <div className="space-y-6">
       <OrbitPageHeader
         title="User Management"
         description="Suspend accounts, manage users, and inspect basic account state."

@@ -346,7 +346,7 @@ details[open] .faq-body { animation: schduled-faq-open 0.25s ease-out both; }
 
 /* Connector line shimmer */
 @keyframes schduled-connector-shimmer {
-  0%   { background-position: -200% center; }
+  0%   { background-position: -100% center; }
   100% { background-position: 200% center; }
 }
 

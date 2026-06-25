@@ -1,5 +1,26 @@
 import { NextResponse } from "next/server";
 
+// ── Redirect-target sanitization ──────────────────────────────────────────────
+
+/**
+ * Returns `value` only if it is a safe, same-origin relative path. Rejects
+ * absolute URLs, protocol-relative URLs (`//evil.com`), backslash tricks, and
+ * anything that doesn't start with a single "/", falling back to `fallback`.
+ * Use before building a redirect from any user-supplied `returnTo`.
+ */
+export function safeReturnTo(
+  value: string | null | undefined,
+  fallback = "/dashboard"
+): string {
+  if (!value) return fallback;
+  // Must be a relative path: starts with exactly one slash, no scheme, no
+  // protocol-relative "//" or "/\" host-injection.
+  if (!value.startsWith("/")) return fallback;
+  if (value.startsWith("//") || value.startsWith("/\\")) return fallback;
+  if (value.includes("://")) return fallback;
+  return value;
+}
+
 // ── Typed response helpers ───────────────────────────────────────────────────
 
 export function jsonOk<T>(data: T, status = 200): NextResponse<T> {

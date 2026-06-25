@@ -2,8 +2,16 @@ import { NextResponse } from 'next/server'
 import { eq, and, desc } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { user, booking, contact } from '@/db/schema'
+import { checkRateLimit, rateLimitKey } from '@/lib/api/helpers'
 
 export async function GET(request: Request) {
+  // This endpoint is unauthenticated (the public booking form prefills a
+  // returning invitee's name as they type their email). Rate-limit it hard so
+  // it can't be used to enumerate which emails have booked a given host.
+  if (!checkRateLimit(rateLimitKey('GET:/api/contact-lookup', request), 15, 60_000)) {
+    return NextResponse.json({ found: false })
+  }
+
   const { searchParams } = new URL(request.url)
   const username = searchParams.get('username')
   const email    = searchParams.get('email')
@@ -28,18 +36,19 @@ export async function GET(request: Request) {
     .where(and(eq(contact.hostUserId, host.id), eq(contact.email, email)))
     .limit(1)
 
-  // Check most recent booking for phone
+  // Most recent booking is only used as a fallback for the name. We
+  // deliberately do NOT return the stored phone number — handing a stranger's
+  // phone number to anyone who guesses their email is a PII leak.
   const [lastBooking] = await db
-    .select({ phone: booking.inviteePhone, name: booking.inviteeName })
+    .select({ name: booking.inviteeName })
     .from(booking)
     .where(and(eq(booking.hostUserId, host.id), eq(booking.inviteeEmail, email)))
     .orderBy(desc(booking.createdAt))
     .limit(1)
 
-  const name  = contactRow?.name || lastBooking?.name || null
-  const phone = lastBooking?.phone || null
+  const name = contactRow?.name || lastBooking?.name || null
 
-  if (!name && !phone) return NextResponse.json({ found: false })
+  if (!name) return NextResponse.json({ found: false })
 
-  return NextResponse.json({ found: true, name, phone })
+  return NextResponse.json({ found: true, name })
 }

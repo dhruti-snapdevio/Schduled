@@ -4,6 +4,7 @@ import {
   Head,
   Hr,
   Html,
+  Img,
   Preview,
   Section,
   Text,
@@ -56,9 +57,11 @@ export function ReminderInviteeEmail({
 
           {/* Teal header */}
           <Section style={{ backgroundColor: teal, padding: '28px 32px' }}>
-            <Text style={{ color: white, fontSize: '20px', fontWeight: 700, margin: 0 }}>
-              Schduled
-            </Text>
+            {process.env.NEXT_PUBLIC_APP_URL ? (
+              <Img src={`${process.env.NEXT_PUBLIC_APP_URL}/logo1.svg`} height="28" alt="Schduled" style={{ display: 'block', marginBottom: '8px' }} />
+            ) : (
+              <Text style={{ color: white, fontSize: '20px', fontWeight: 700, margin: '0 0 8px' }}>Schduled</Text>
+            )}
             <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: '14px', margin: '6px 0 0' }}>
               Meeting reminder
             </Text>

@@ -7,6 +7,7 @@ import {
   availabilitySchedule,
   booking,
   bookingAnswer,
+  bookingBlocklist,
   eventType,
   idempotencyKey,
   meetingLimit,
@@ -93,6 +94,20 @@ export async function POST(request: Request) {
     });
 
     if (!et) return jsonError("Event type not found", 404);
+
+    // ── Blocklist check ──────────────────────────────────────────────────────
+    const inviteeDomain = email.split("@")[1] ?? "";
+    const blocklist = await db
+      .select({ pattern: bookingBlocklist.pattern, type: bookingBlocklist.type })
+      .from(bookingBlocklist)
+      .where(eq(bookingBlocklist.userId, host.id));
+
+    const isBlocked = blocklist.some((b) =>
+      b.type === "email"  ? b.pattern.toLowerCase() === email :
+      b.type === "domain" ? b.pattern.toLowerCase() === inviteeDomain :
+      false
+    );
+    if (isBlocked) return jsonError("You have been blocked from booking with this host.", 403);
 
     // Enforce minimum notice
     const minimumNoticeMs = (et.minimumNotice ?? 0) * 60_000;

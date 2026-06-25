@@ -1,6 +1,6 @@
-import { addMinutes } from "date-fns";
+import { addHours, addMinutes } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
-import { and, eq, gte, inArray, lte, ne } from "drizzle-orm";
+import { and, eq, gte, lte, ne, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import {
   availabilitySchedule,
@@ -42,6 +42,11 @@ export async function POST(request: Request) {
       return jsonError("Invalid start time", 400);
     }
 
+    const nowMs = Date.now();
+    if (newStart.getTime() <= nowMs) {
+      return jsonError("Cannot reschedule to a time in the past.", 400);
+    }
+
     const [b] = await db
       .select({
         id: booking.id,
@@ -67,7 +72,7 @@ export async function POST(request: Request) {
 
     if (
       b.rescheduleTokenExpiresAt &&
-      b.rescheduleTokenExpiresAt.getTime() < Date.now()
+      b.rescheduleTokenExpiresAt.getTime() < nowMs
     ) {
       return jsonError("This reschedule link has expired.", 410);
     }
@@ -75,12 +80,35 @@ export async function POST(request: Request) {
     const previousStartUtc = new Date(b.startTime).toISOString();
     const newEnd = addMinutes(newStart, b.duration);
 
-    // Load event type for buffers + host timezone
+    // Load event type for buffers + host timezone + booking rules
     const et = await db.query.eventType.findFirst({
       where: eq(eventType.id, b.eventTypeId),
     });
     if (!et) {
       return jsonError("Event type not found", 404);
+    }
+
+    // ── Enforce the same booking rules as the create path ────────────────────
+    const minimumNoticeMs = (et.minimumNotice ?? 0) * 60_000;
+    if (minimumNoticeMs > 0 && newStart.getTime() - nowMs < minimumNoticeMs) {
+      const mins = et.minimumNotice ?? 0;
+      const label =
+        mins >= 60
+          ? `${mins / 60} hour${mins / 60 === 1 ? "" : "s"}`
+          : `${mins} minute${mins === 1 ? "" : "s"}`;
+      return jsonError(
+        `This event type requires at least ${label} notice before booking.`,
+        400
+      );
+    }
+
+    const bookingWindowDays = et.bookingWindow ?? 60;
+    const maxBookableMs = nowMs + bookingWindowDays * 86_400_000;
+    if (newStart.getTime() > maxBookableMs) {
+      return jsonError(
+        `Bookings can only be made up to ${bookingWindowDays} days in advance.`,
+        400
+      );
     }
 
     // ── maxReschedules check ─────────────────────────────────────────────────
@@ -120,59 +148,79 @@ export async function POST(request: Request) {
       ? addMinutes(newEnd, et.bufferAfter)
       : newEnd;
 
-    // Conflict check against other confirmed bookings (exclude this one)
     const date = formatInTimeZone(newStart, hostTz, "yyyy-MM-dd");
     const dayStartUtc = fromZonedTime(`${date}T00:00:00`, hostTz);
     const dayEndUtc = fromZonedTime(`${date}T23:59:59`, hostTz);
 
-    const existing = await db
-      .select({ startTime: booking.startTime, endTime: booking.endTime })
-      .from(booking)
-      .where(
-        and(
-          eq(booking.hostUserId, b.hostUserId),
-          // include pending so a reschedule can't collide with an awaiting-approval slot
-          inArray(booking.status, ["confirmed", "pending"]),
-          ne(booking.id, b.id),
-          lte(booking.startTime, dayEndUtc),
-          gte(booking.endTime, dayStartUtc)
-        )
-      );
+    // ── Transaction: advisory lock → conflict re-check → UPDATE ──────────────
+    const result = await db.transaction(async (tx) => {
+      // Serialise concurrent writes targeting the same host + slot.
+      const lockKey = `${b.hostUserId}:${newStart.toISOString()}`;
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
 
-    const hasConflict = existing.some(
-      (e) =>
-        bufferStart < new Date(e.endTime) && bufferEnd > new Date(e.startTime)
-    );
-    if (hasConflict) {
+      const existing = await tx
+        .select({ startTime: booking.startTime, endTime: booking.endTime })
+        .from(booking)
+        .where(
+          and(
+            eq(booking.hostUserId, b.hostUserId),
+            // include pending so a reschedule can't collide with an awaiting-approval slot
+            sql`${booking.status} IN ('confirmed', 'pending')`,
+            ne(booking.id, b.id),
+            lte(booking.startTime, dayEndUtc),
+            gte(booking.endTime, dayStartUtc)
+          )
+        );
+
+      const hasConflict = existing.some(
+        (e) =>
+          bufferStart < new Date(e.endTime) && bufferEnd > new Date(e.startTime)
+      );
+      if (hasConflict) return { conflict: true } as const;
+
+      await tx
+        .update(booking)
+        .set({
+          startTime: newStart,
+          endTime: newEnd,
+          // Preserve approval state — a pending booking stays pending so the
+          // host still has to approve the new time; never silently confirm.
+          rescheduleCount: b.rescheduleCount + 1,
+          // Keep the reschedule/cancel links usable for the new time.
+          rescheduleTokenExpiresAt: addHours(newEnd, 24),
+          cancelTokenExpiresAt: addHours(newEnd, 24),
+          updatedAt: new Date(),
+        })
+        .where(eq(booking.id, b.id));
+
+      return { ok: true } as const;
+    });
+
+    if ("conflict" in result && result.conflict) {
       return jsonError(
         "That time is no longer available. Please pick another.",
         409
       );
     }
 
-    await db
-      .update(booking)
-      .set({
-        startTime: newStart,
-        endTime: newEnd,
-        status: "confirmed",
-        rescheduleCount: b.rescheduleCount + 1,
-        updatedAt: new Date(),
-      })
-      .where(eq(booking.id, b.id));
-
-    await Promise.allSettled([
-      enqueueJob(JOB_NAMES.BOOKING_RESCHEDULE_NOTIFY, {
-        bookingId: b.id,
-        previousStartUtc,
-      }),
-      enqueueJob(JOB_NAMES.CALENDAR_UPDATE, { bookingId: b.id }),
-      enqueueJob(JOB_NAMES.BOOKING_RESCHEDULE_REMINDERS, {
-        bookingId: b.id,
-        newStartTime: newStart.toISOString(),
-        newEndTime: newEnd.toISOString(),
-      }),
-    ]);
+    if (b.status === "pending") {
+      // Still awaiting host approval — re-notify the host of the new time
+      // instead of sending "rescheduled" confirmations to the invitee.
+      await enqueueJob(JOB_NAMES.BOOKING_APPROVAL_REQUEST, { bookingId: b.id });
+    } else {
+      await Promise.allSettled([
+        enqueueJob(JOB_NAMES.BOOKING_RESCHEDULE_NOTIFY, {
+          bookingId: b.id,
+          previousStartUtc,
+        }),
+        enqueueJob(JOB_NAMES.CALENDAR_UPDATE, { bookingId: b.id }),
+        enqueueJob(JOB_NAMES.BOOKING_RESCHEDULE_REMINDERS, {
+          bookingId: b.id,
+          newStartTime: newStart.toISOString(),
+          newEndTime: newEnd.toISOString(),
+        }),
+      ]);
+    }
 
     return NextResponse.json({
       ok: true,

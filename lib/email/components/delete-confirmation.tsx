@@ -11,10 +11,14 @@ export function DeleteConfirmationEmail({
   email: string;
   productName?: string;
 }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const logoUrl = appUrl ? `${appUrl}/logo.svg` : undefined;
+
   return (
     <EmailLayout
       preview={`${code} is your ${productName} account deletion code`}
       productName={productName}
+      logoUrl={logoUrl}
     >
       <Text style={emailStyles.heading}>Confirm account deletion</Text>
       <Text style={emailStyles.paragraph}>

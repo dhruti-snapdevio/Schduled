@@ -15,6 +15,7 @@ import {
   Warning,
   XCircle,
 } from "@phosphor-icons/react/dist/ssr";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -26,6 +27,14 @@ import { ADMIN_ROLE } from "@/config/platform";
 import { auditLogs, booking, emailOutbox, session, user } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getQueueSummary } from "@/lib/worker/queue-inspection";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const metadata = { title: "Admin Panel" };
 
@@ -158,37 +167,39 @@ export default async function OrbitPage() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-t border-border bg-muted/40">
-                    <th className="px-6 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+              <Table className="w-full text-sm">
+                <TableHeader>
+                  <TableRow className="border-t border-border bg-muted/40">
+                    <TableHead className="px-6 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                       User
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                    </TableHead>
+                    <TableHead className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                       Role
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                    </TableHead>
+                    <TableHead className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                       Status
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                    </TableHead>
+                    <TableHead className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                       Joined
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+                    </TableHead>
+                    <TableHead className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                       Last Login
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {recentUsers.map((u) => (
-                    <tr
+                    <TableRow
                       key={u.id}
                       className="border-t border-border hover:bg-muted/20 transition-colors"
                     >
-                      <td className="px-6 py-3">
+                      <TableCell className="px-6 py-3">
                         <div className="flex items-center gap-3">
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-primary/10 text-primary text-xs font-bold">
-                            {(u.name ?? u.email).slice(0, 2).toUpperCase()}
-                          </span>
+                          <Avatar className="shrink-0">
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                              {(u.name ?? u.email).slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium">
                               {u.name ?? "—"}
@@ -198,8 +209,8 @@ export default async function OrbitPage() {
                             </p>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-3">
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
                         <Badge
                           variant={
                             u.role === ADMIN_ROLE ? "default" : "secondary"
@@ -208,8 +219,8 @@ export default async function OrbitPage() {
                         >
                           {u.role}
                         </Badge>
-                      </td>
-                      <td className="px-4 py-3">
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
                         {u.banned ? (
                           <span className="flex items-center gap-1.5 text-xs font-medium text-destructive">
                             <XCircle size={13} weight="fill" />
@@ -221,21 +232,21 @@ export default async function OrbitPage() {
                             Active
                           </span>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-xs text-muted-foreground">
                         {format(u.createdAt, "MMM d, yyyy")}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-xs text-muted-foreground">
                         {u.lastLogin
                           ? formatDistanceToNow(u.lastLogin, {
                               addSuffix: true,
                             })
                           : <span className="text-muted-foreground/40">Never</span>}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
@@ -354,14 +365,14 @@ function StatCard({
   const inner = (
     <Card
       className={[
-        "relative overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-primary/60",
+        "relative h-full flex flex-col overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-primary/60",
         accent ? "border-primary/40 bg-primary/[0.03]" : "",
       ].join(" ")}
     >
       {accent && (
         <div className="absolute inset-x-0 top-0 h-[3px] bg-primary" />
       )}
-      <CardContent className="px-5 pt-5 pb-4">
+      <CardContent className="flex flex-1 flex-col px-5 pt-5 pb-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-ui text-muted-foreground">
@@ -390,7 +401,7 @@ function StatCard({
           </span>
         </div>
         {href && (
-          <div className="mt-3 border-t border-border/60 pt-3">
+          <div className="mt-auto border-t border-border/60 pt-3">
             <span className="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors group-hover:text-primary/80">
               View all <ArrowRight size={12} weight="bold" />
             </span>
@@ -400,7 +411,7 @@ function StatCard({
     </Card>
   );
 
-  return href ? <Link href={href} className="group block">{inner}</Link> : inner;
+  return href ? <Link href={href} className="group block h-full">{inner}</Link> : inner;
 }
 
 function StatusRow({

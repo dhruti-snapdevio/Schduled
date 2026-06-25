@@ -5,7 +5,16 @@ import { db } from "@/lib/db";
 
 export const metadata = { title: "Email" };
 
-export default async function OrbitEmailPage() {
+const OUTBOX_PAGE_SIZE = 10;
+
+export default async function OrbitEmailPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ outboxPage?: string }>;
+}) {
+  const { outboxPage: rawOutboxPage } = await searchParams;
+  const outboxPage = Math.max(1, parseInt(rawOutboxPage ?? "1", 10) || 1);
+
   const [
     outboxRows,
     eventRows,
@@ -25,7 +34,8 @@ export default async function OrbitEmailPage() {
       })
       .from(emailOutbox)
       .orderBy(desc(emailOutbox.createdAt))
-      .limit(50),
+      .limit(OUTBOX_PAGE_SIZE)
+      .offset((outboxPage - 1) * OUTBOX_PAGE_SIZE),
 
     db
       .select({
@@ -59,16 +69,21 @@ export default async function OrbitEmailPage() {
     receivedAt: r.receivedAt.toISOString(),
   }));
 
+  const total = totalRow?.value ?? 0;
+  const outboxTotalPages = Math.max(1, Math.ceil(total / OUTBOX_PAGE_SIZE));
+
   return (
     <EmailClient
       outbox={outbox}
       events={events}
       stats={{
-        total:   totalRow?.value   ?? 0,
+        total,
         sent:    sentRow?.value    ?? 0,
         failed:  failedRow?.value  ?? 0,
         pending: pendingRow?.value ?? 0,
       }}
+      outboxPage={outboxPage}
+      outboxTotalPages={outboxTotalPages}
       fetchedAt={new Date().toISOString()}
     />
   );

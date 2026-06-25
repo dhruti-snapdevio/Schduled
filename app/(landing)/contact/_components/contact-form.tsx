@@ -3,6 +3,13 @@
 import { useActionState } from "react";
 import { sendContactMessageAction } from "@/app/actions/contact";
 import { PaperPlaneTilt, SpinnerGap } from "@phosphor-icons/react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const SUBJECTS = [
   "General question",
@@ -74,17 +81,16 @@ export function ContactForm() {
         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-ui text-muted-foreground">
           Subject
         </label>
-        <select
-          name="subject"
-          required
-          defaultValue=""
-          className="h-10 w-full border border-border bg-page px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-        >
-          <option value="" disabled>Select a topic…</option>
-          {SUBJECTS.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+        <Select name="subject" required>
+          <SelectTrigger className="h-10 w-full text-sm">
+            <SelectValue placeholder="Select a topic…" />
+          </SelectTrigger>
+          <SelectContent>
+            {SUBJECTS.map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div>

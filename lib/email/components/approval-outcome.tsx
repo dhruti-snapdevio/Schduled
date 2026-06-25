@@ -40,9 +40,11 @@ export function ApprovalOutcomeEmail({
   const badgeColor = approved ? teal : red;
   const badgeBg = approved ? "#CCFBF1" : "#FEE2E2";
   const badgeText = approved ? "Booking Confirmed" : "Booking Declined";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const logoUrl = appUrl ? `${appUrl}/logo.svg` : undefined;
 
   return (
-    <EmailLayout
+    <EmailLayout logoUrl={logoUrl}
       preview={
         approved
           ? `Confirmed: ${eventName} with ${hostName}`

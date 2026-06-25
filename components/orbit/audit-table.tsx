@@ -2,8 +2,28 @@
 
 import { Export, FunnelSimple, MagnifyingGlass } from "@phosphor-icons/react";
 import { format, startOfDay, subDays } from "date-fns";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { paginationRange } from "@/lib/utils";
+
+const PAGE_SIZE = 15;
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -164,6 +184,12 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
   const [dateRange, setDateRange] = useState<DateRange>("all");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  const [page, setPage] = useState(1);
+
+  // Reset to the first page whenever a filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, actionCat, entityFilter, dateRange, customFrom, customTo]);
 
   const entityTypes = useMemo(
     () => ["all", ...Array.from(new Set(logs.map((l) => l.entityType)))],
@@ -221,6 +247,10 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
       return true;
     });
   }, [logs, search, actionCat, entityFilter, dateRange, customFrom, customTo]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const todayStamp = format(new Date(), "yyyy-MM-dd");
 
@@ -359,48 +389,48 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
 
       {/* ── Table ─────────────────────────────────────────────────────── */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/40">
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+        <Table className="w-full text-sm">
+          <TableHeader>
+            <TableRow className="border-b border-border bg-muted/40">
+              <TableHead className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                 Action
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                 Actor
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                 Entity
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
                 Date
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.length === 0 ? (
-              <tr>
-                <td
+              <TableRow>
+                <TableCell
                   className="px-6 py-12 text-center text-sm text-muted-foreground"
                   colSpan={4}
                 >
                   No audit logs match your filters.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
-              filtered.map((log) => (
-                <tr
+              pageRows.map((log) => (
+                <TableRow
                   className="border-b border-border transition-colors hover:bg-muted/20 last:border-0"
                   key={log.id}
                 >
                   {/* Action */}
-                  <td className="px-6 py-3">
+                  <TableCell className="px-6 py-3">
                     <p className="text-sm font-medium">
                       {getFriendlyLabel(log.action)}
                     </p>
-                  </td>
+                  </TableCell>
 
                   {/* Actor */}
-                  <td className="px-4 py-3">
+                  <TableCell className="px-4 py-3">
                     {log.actorEmail ? (
                       <p className="text-sm">{log.actorEmail}</p>
                     ) : (
@@ -408,37 +438,74 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
                         System
                       </span>
                     )}
-                  </td>
+                  </TableCell>
 
                   {/* Entity */}
-                  <td className="px-4 py-3">
+                  <TableCell className="px-4 py-3">
                     <EntityBadge type={log.entityType} />
                     {log.entityId && (
                       <p className="mt-0.5 font-mono text-2xs text-muted-foreground/50 truncate max-w-24">
                         {log.entityId}
                       </p>
                     )}
-                  </td>
+                  </TableCell>
 
                   {/* Date */}
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                  <TableCell className="px-4 py-3 text-xs text-muted-foreground">
                     <p>{format(new Date(log.createdAt), "MMM d, yyyy")}</p>
                     <p className="text-muted-foreground/60">
                       {format(new Date(log.createdAt), "h:mm a")}
                     </p>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Row count */}
-      <div className="border-t border-border px-6 py-3">
+      {/* Row count + pagination */}
+      <div className="flex items-center justify-between gap-3 border-t border-border px-6 py-3">
         <p className="text-xs text-muted-foreground">
           {filtered.length} of {logs.length} log{logs.length === 1 ? "" : "s"}
         </p>
+        {totalPages > 1 && (
+          <Pagination className="mx-0 w-auto">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  aria-disabled={safePage <= 1}
+                  className={safePage <= 1 ? "pointer-events-none opacity-40" : ""}
+                  onClick={(e) => { e.preventDefault(); if (safePage > 1) setPage(safePage - 1); }}
+                />
+              </PaginationItem>
+              {paginationRange(safePage, totalPages).map((p, i) =>
+                p === "ellipsis" ? (
+                  <PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>
+                ) : (
+                  <PaginationItem key={p}>
+                    <PaginationLink
+                      href="#"
+                      isActive={p === safePage}
+                      onClick={(e) => { e.preventDefault(); setPage(p); }}
+                    >
+                      {p}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  aria-disabled={safePage >= totalPages}
+                  className={safePage >= totalPages ? "pointer-events-none opacity-40" : ""}
+                  onClick={(e) => { e.preventDefault(); if (safePage < totalPages) setPage(safePage + 1); }}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </div>
     </div>
   );

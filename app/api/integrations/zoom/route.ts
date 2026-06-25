@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/authz";
+import { safeReturnTo } from "@/lib/api/helpers";
 import { getZoomAuthUrl, zoomConfigured } from "@/lib/zoom/client";
 
 export async function GET(req: NextRequest) {
@@ -8,8 +9,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  const returnTo =
-    req.nextUrl.searchParams.get("returnTo") ?? "/settings/integrations";
+  const returnTo = safeReturnTo(
+    req.nextUrl.searchParams.get("returnTo"),
+    "/settings/integrations"
+  );
 
   if (!zoomConfigured()) {
     const fallback = new URL(returnTo, req.url);

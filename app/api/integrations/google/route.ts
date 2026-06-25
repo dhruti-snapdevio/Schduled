@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { google } from 'googleapis'
 import { getCurrentSession } from '@/lib/authz'
+import { safeReturnTo } from '@/lib/api/helpers'
 import { env } from '@/lib/env'
 
 const SCOPES = [
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  const returnTo = req.nextUrl.searchParams.get('returnTo') ?? '/dashboard'
+  const returnTo = safeReturnTo(req.nextUrl.searchParams.get('returnTo'))
 
   if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
     const fallback = new URL(returnTo, req.url)

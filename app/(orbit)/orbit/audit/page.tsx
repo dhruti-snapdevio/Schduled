@@ -31,7 +31,7 @@ export default async function AuditPage() {
   }));
 
   return (
-    <>
+    <div className="space-y-6">
       <OrbitPageHeader
         title="Audit Logs"
         description="All system and user actions recorded for compliance and security."
@@ -42,6 +42,6 @@ export default async function AuditPage() {
           <AuditTable logs={logs} />
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }

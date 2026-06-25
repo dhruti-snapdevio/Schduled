@@ -40,6 +40,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -200,12 +201,9 @@ export function EventTypeCard({
 
       {/* Checkbox area */}
       <div className="flex items-center pl-4 pr-2">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={isSelected}
-          onChange={(e) => onSelect?.(id, e.target.checked)}
-          className="h-4 w-4 cursor-pointer"
-          style={{ accentColor: cardColor }}
+          onCheckedChange={(c) => onSelect?.(id, c === true)}
           aria-label={`Select ${name}`}
         />
       </div>

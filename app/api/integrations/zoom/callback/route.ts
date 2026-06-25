@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { videoConnection } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { getCurrentSession } from "@/lib/authz";
+import { safeReturnTo } from "@/lib/api/helpers";
 import { db } from "@/lib/db";
 import { encrypt } from "@/lib/encrypt";
 import { env } from "@/lib/env";
@@ -113,7 +114,7 @@ export async function GET(req: NextRequest) {
     metadata: { provider: "zoom", accountEmail: zoomUser.email },
   });
 
-  const returnUrl = new URL(state.returnTo, base);
+  const returnUrl = new URL(safeReturnTo(state.returnTo, "/settings/integrations"), base);
   returnUrl.searchParams.set("zoom_connected", "1");
   return NextResponse.redirect(returnUrl);
 }
