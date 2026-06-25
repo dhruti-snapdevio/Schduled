@@ -14,11 +14,15 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   const username = searchParams.get('username')
-  const email    = searchParams.get('email')
+  const rawEmail = searchParams.get('email')
 
-  if (!username || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!username || !rawEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
     return NextResponse.json({ found: false })
   }
+
+  // Stored invitee emails / contacts are lowercased — normalize before matching
+  // so a capitalized email (e.g. John@Example.com) still finds the prefill.
+  const email = rawEmail.toLowerCase().trim()
 
   // Resolve host userId from username
   const [host] = await db

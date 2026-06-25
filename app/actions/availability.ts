@@ -1,10 +1,10 @@
 'use server'
 
-import { and, eq, gte } from 'drizzle-orm'
+import { and, eq, gte, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
-import { user, availabilitySchedule, availabilityWindow, availabilityOverride, meetingLimit } from '@/db/schema'
+import { user, availabilitySchedule, availabilityWindow, availabilityOverride, eventType, meetingLimit } from '@/db/schema'
 import { audit } from '@/lib/audit'
 
 type ActionResult<T = Record<never, never>> = { error: string } | ({ ok: true } & T)
@@ -16,7 +16,23 @@ export interface ScheduleData {
   id: string
   name: string
   timezone: string
+  isDefault: boolean
   windows: Record<DayOfWeek, TimeSlot[]>
+}
+
+const DAY_KEYS: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+function emptyWindows(): Record<DayOfWeek, TimeSlot[]> {
+  return { monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: [] }
+}
+
+function windowsFromRows(rows: { dayOfWeek: string; startTime: string; endTime: string }[]): Record<DayOfWeek, TimeSlot[]> {
+  const windows = emptyWindows()
+  for (const w of rows) {
+    const day = w.dayOfWeek as DayOfWeek
+    if (DAY_KEYS.includes(day)) windows[day].push({ startTime: w.startTime, endTime: w.endTime })
+  }
+  return windows
 }
 
 export interface OverrideData {
@@ -29,7 +45,7 @@ export interface OverrideData {
 // ── Load ──────────────────────────────────────────────────────────────────────
 
 export async function getAvailabilityData(): Promise<{
-  schedule: ScheduleData | null
+  schedules: ScheduleData[]
   overrides: OverrideData[]
   userTimezone: string
 }> {
@@ -43,13 +59,21 @@ export async function getAvailabilityData(): Promise<{
 
   const userTimezone = freshUser?.timezone ?? 'UTC'
 
-  const schedule = await db.query.availabilitySchedule.findFirst({
-    where: and(
-      eq(availabilitySchedule.userId, session.user.id),
-      eq(availabilitySchedule.isDefault, true),
-    ),
+  // All schedules for this user, default first then by creation order.
+  const scheduleRows = await db.query.availabilitySchedule.findMany({
+    where: eq(availabilitySchedule.userId, session.user.id),
     with: { windows: true },
   })
+
+  const schedules: ScheduleData[] = scheduleRows
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      timezone: s.timezone,
+      isDefault: s.isDefault,
+      windows: windowsFromRows(s.windows),
+    }))
+    .sort((a, b) => (a.isDefault === b.isDefault ? a.name.localeCompare(b.name) : a.isDefault ? -1 : 1))
 
   // Today in YYYY-MM-DD so we only return future overrides
   const today = new Date().toISOString().slice(0, 10)
@@ -64,22 +88,6 @@ export async function getAvailabilityData(): Promise<{
       )
     )
     .orderBy(availabilityOverride.date)
-
-  const DAYS: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-
-  let windows: Record<DayOfWeek, TimeSlot[]> = {
-    monday: [], tuesday: [], wednesday: [], thursday: [],
-    friday: [], saturday: [], sunday: [],
-  }
-
-  if (schedule) {
-    for (const w of schedule.windows) {
-      const day = w.dayOfWeek as DayOfWeek
-      if (DAYS.includes(day)) {
-        windows[day].push({ startTime: w.startTime, endTime: w.endTime })
-      }
-    }
-  }
 
   // Group override rows by date — multiple rows per date = multiple slots
   const overrideMap = new Map<string, OverrideData>()
@@ -98,9 +106,7 @@ export async function getAvailabilityData(): Promise<{
   }
 
   return {
-    schedule: schedule
-      ? { id: schedule.id, name: schedule.name, timezone: schedule.timezone, windows }
-      : null,
+    schedules,
     overrides: Array.from(overrideMap.values()),
     userTimezone,
   }
@@ -195,6 +201,207 @@ export async function createDefaultSchedule(): Promise<ActionResult<{ id: string
 
     revalidatePath('/availability')
     return { ok: true, id: schedule.id }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+// ── Create a NEW (non-default) schedule ───────────────────────────────────────
+
+export async function createSchedule(name: string): Promise<ActionResult<{ id: string }>> {
+  try {
+    const session = await requireSession()
+    const trimmed = name.trim() || 'New schedule'
+
+    // Inherit timezone from the user's existing default schedule (or user tz).
+    const [defaultSchedule] = await db
+      .select({ timezone: availabilitySchedule.timezone })
+      .from(availabilitySchedule)
+      .where(and(eq(availabilitySchedule.userId, session.user.id), eq(availabilitySchedule.isDefault, true)))
+      .limit(1)
+
+    const [freshUser] = await db
+      .select({ timezone: user.timezone })
+      .from(user)
+      .where(eq(user.id, session.user.id))
+      .limit(1)
+
+    const timezone = defaultSchedule?.timezone ?? freshUser?.timezone ?? 'UTC'
+
+    // If the user somehow has no schedules yet, the first one becomes default.
+    const existingIds = await db
+      .select({ id: availabilitySchedule.id })
+      .from(availabilitySchedule)
+      .where(eq(availabilitySchedule.userId, session.user.id))
+    const isFirst = existingIds.length === 0
+
+    const [schedule] = await db
+      .insert(availabilitySchedule)
+      .values({ userId: session.user.id, name: trimmed, isDefault: isFirst, timezone })
+      .returning()
+
+    // Seed with Mon–Fri 9–5 so it's immediately usable.
+    const defaultSlots = (
+      ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as DayOfWeek[]
+    ).map((day) => ({ scheduleId: schedule.id, dayOfWeek: day, startTime: '09:00', endTime: '17:00' }))
+    await db.insert(availabilityWindow).values(defaultSlots)
+
+    await audit({
+      action: 'availability.schedule_created',
+      actorId: session.user.id,
+      actorEmail: session.user.email,
+      entityType: 'user',
+      entityId: session.user.id,
+      description: `Created availability schedule "${trimmed}"`,
+    })
+
+    revalidatePath('/availability')
+    return { ok: true, id: schedule.id }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+// ── Duplicate a schedule (with its weekly windows) ────────────────────────────
+
+export async function duplicateSchedule(scheduleId: string): Promise<ActionResult<{ id: string }>> {
+  try {
+    const session = await requireSession()
+
+    const source = await db.query.availabilitySchedule.findFirst({
+      where: and(eq(availabilitySchedule.id, scheduleId), eq(availabilitySchedule.userId, session.user.id)),
+      with: { windows: true },
+    })
+    if (!source) return { error: 'Schedule not found' }
+
+    const [copy] = await db
+      .insert(availabilitySchedule)
+      .values({ userId: session.user.id, name: `${source.name} (copy)`, isDefault: false, timezone: source.timezone })
+      .returning()
+
+    if (source.windows.length > 0) {
+      await db.insert(availabilityWindow).values(
+        source.windows.map((w) => ({
+          scheduleId: copy.id,
+          dayOfWeek: w.dayOfWeek,
+          startTime: w.startTime,
+          endTime: w.endTime,
+        }))
+      )
+    }
+
+    revalidatePath('/availability')
+    return { ok: true, id: copy.id }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+// ── Rename a schedule ─────────────────────────────────────────────────────────
+
+export async function renameSchedule(scheduleId: string, name: string): Promise<ActionResult> {
+  try {
+    const session = await requireSession()
+    const trimmed = name.trim()
+    if (!trimmed) return { error: 'Name is required' }
+
+    const result = await db
+      .update(availabilitySchedule)
+      .set({ name: trimmed })
+      .where(and(eq(availabilitySchedule.id, scheduleId), eq(availabilitySchedule.userId, session.user.id)))
+      .returning({ id: availabilitySchedule.id })
+
+    if (result.length === 0) return { error: 'Schedule not found' }
+
+    revalidatePath('/availability')
+    return { ok: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+// ── Set a schedule as the default ─────────────────────────────────────────────
+
+export async function setDefaultSchedule(scheduleId: string): Promise<ActionResult> {
+  try {
+    const session = await requireSession()
+
+    const [target] = await db
+      .select({ id: availabilitySchedule.id })
+      .from(availabilitySchedule)
+      .where(and(eq(availabilitySchedule.id, scheduleId), eq(availabilitySchedule.userId, session.user.id)))
+      .limit(1)
+    if (!target) return { error: 'Schedule not found' }
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(availabilitySchedule)
+        .set({ isDefault: false })
+        .where(and(eq(availabilitySchedule.userId, session.user.id), ne(availabilitySchedule.id, scheduleId)))
+      await tx
+        .update(availabilitySchedule)
+        .set({ isDefault: true })
+        .where(eq(availabilitySchedule.id, scheduleId))
+    })
+
+    revalidatePath('/availability')
+    return { ok: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+// ── Delete a schedule ─────────────────────────────────────────────────────────
+
+export async function deleteSchedule(scheduleId: string): Promise<ActionResult> {
+  try {
+    const session = await requireSession()
+
+    const all = await db
+      .select({ id: availabilitySchedule.id, name: availabilitySchedule.name, isDefault: availabilitySchedule.isDefault })
+      .from(availabilitySchedule)
+      .where(eq(availabilitySchedule.userId, session.user.id))
+
+    const target = all.find((s) => s.id === scheduleId)
+    if (!target) return { error: 'Schedule not found' }
+    if (all.length <= 1) return { error: 'You must keep at least one schedule.' }
+
+    await db.transaction(async (tx) => {
+      // Event types pinned to this schedule fall back to the default (null).
+      await tx
+        .update(eventType)
+        .set({ availabilityScheduleId: null })
+        .where(and(eq(eventType.userId, session.user.id), eq(eventType.availabilityScheduleId, scheduleId)))
+
+      await tx.delete(availabilitySchedule).where(eq(availabilitySchedule.id, scheduleId))
+
+      // If we removed the default, promote another schedule. Pick the
+      // alphabetically-first remaining one so the server's choice matches the
+      // client's optimistic promotion (which sorts by name).
+      if (target.isDefault) {
+        const next = all
+          .filter((s) => s.id !== scheduleId)
+          .sort((a, b) => a.name.localeCompare(b.name))[0]
+        if (next) {
+          await tx
+            .update(availabilitySchedule)
+            .set({ isDefault: true })
+            .where(eq(availabilitySchedule.id, next.id))
+        }
+      }
+    })
+
+    await audit({
+      action: 'availability.schedule_deleted',
+      actorId: session.user.id,
+      actorEmail: session.user.email,
+      entityType: 'user',
+      entityId: session.user.id,
+      description: `Deleted an availability schedule`,
+    })
+
+    revalidatePath('/availability')
+    return { ok: true }
   } catch {
     return { error: 'Something went wrong. Please try again.' }
   }

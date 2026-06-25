@@ -45,6 +45,8 @@ export default async function EditEventTypePage({ params }: { params: Promise<{ 
     availabilityScheduleId:  et.availabilityScheduleId ?? undefined,
     bookingWindow:           et.bookingWindow ?? 60,
     bookingWindowType:       (et.bookingWindowType as 'rolling' | 'fixed') ?? 'rolling',
+    bookingRangeStart:       et.bookingRangeStart ?? undefined,
+    bookingRangeEnd:         et.bookingRangeEnd ?? undefined,
     minimumNotice:           et.minimumNotice ?? 60,
     bufferBefore:            et.bufferBefore ?? 0,
     bufferAfter:             et.bufferAfter ?? 0,

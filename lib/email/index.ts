@@ -15,16 +15,25 @@ export interface SendEmailOptions {
 
 export async function enqueueEmail(
   options: SendEmailOptions,
-  jobOptions?: { startAfter?: Date }
+  jobOptions?: { startAfter?: Date; idempotencyKey?: string }
 ) {
+  // A caller-supplied idempotencyKey makes the enqueue safe to repeat: if a
+  // handler crashes after enqueuing and pg-boss retries it, the duplicate
+  // insert is skipped (the key is uniquely indexed) instead of sending twice.
+  const idempotencyKey = jobOptions?.idempotencyKey ?? randomUUID();
+
   const [row] = await db
     .insert(emailOutbox)
     .values({
-      idempotencyKey: randomUUID(),
+      idempotencyKey,
       payload: options,
       status: "queued",
     })
+    .onConflictDoNothing({ target: emailOutbox.idempotencyKey })
     .returning({ id: emailOutbox.id });
 
-  await enqueueJob(JOB_NAMES.EMAIL_SEND, { outboxId: row.id }, jobOptions);
+  // No row → an email with this key was already enqueued; don't double-send.
+  if (!row) return;
+
+  await enqueueJob(JOB_NAMES.EMAIL_SEND, { outboxId: row.id }, { startAfter: jobOptions?.startAfter });
 }

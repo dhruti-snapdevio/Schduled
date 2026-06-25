@@ -89,12 +89,20 @@ export async function GET(request: Request) {
 
   const hostTz = schedule.timezone;
   const now = new Date();
-  const today = formatInTimeZone(now, hostTz, "yyyy-MM-dd");
-  const maxDate = formatInTimeZone(
+  const todayStr = formatInTimeZone(now, hostTz, "yyyy-MM-dd");
+  const rollingMax = formatInTimeZone(
     new Date(now.getTime() + (et.bookingWindow ?? 60) * 24 * 60 * 60 * 1000),
     hostTz,
     "yyyy-MM-dd"
   );
+
+  // For a fixed window, clamp the bookable range to [rangeStart, rangeEnd];
+  // otherwise use the rolling window from today.
+  const isFixed =
+    et.bookingWindowType === "fixed" && !!et.bookingRangeStart && !!et.bookingRangeEnd;
+  const today =
+    isFixed && et.bookingRangeStart! > todayStr ? et.bookingRangeStart! : todayStr;
+  const maxDate = isFixed ? et.bookingRangeEnd! : rollingMax;
 
   // Build day list using UTC-based iteration — local-time Date constructors
   // shift dates by the server's TZ offset when formatted back in UTC, causing
@@ -139,7 +147,7 @@ export async function GET(request: Request) {
 
   // Pre-fetch bookings for the whole month range
   const monthStartUtc = fromZonedTime(`${monthFirstDate}T00:00:00`, hostTz);
-  const monthEndUtc = fromZonedTime(`${monthLastDate}T23:59:59`, hostTz);
+  const monthEndUtc = fromZonedTime(`${monthLastDate}T23:59:59.999`, hostTz);
 
   const monthBookings = await db
     .select({ startTime: booking.startTime, endTime: booking.endTime })
@@ -186,18 +194,25 @@ export async function GET(request: Request) {
 
     // Filter existing bookings to this day
     const dayStartUtc = fromZonedTime(`${dateStr}T00:00:00`, hostTz);
-    const dayEndUtc = fromZonedTime(`${dateStr}T23:59:59`, hostTz);
+    const dayEndUtc = fromZonedTime(`${dateStr}T23:59:59.999`, hostTz);
 
     const dayBookings = monthBookings.filter(
       (b) =>
         new Date(b.startTime) <= dayEndUtc && new Date(b.endTime) >= dayStartUtc
     );
 
+    // Count only bookings that START on this day, matching the create path's
+    // maxBookingsPerDay check.
+    const sameDayStartCount = dayBookings.filter((b) => {
+      const s = new Date(b.startTime);
+      return s >= dayStartUtc && s <= dayEndUtc;
+    }).length;
+
     // Check maxBookingsPerDay
     if (
       et.maxBookingsPerDay !== null &&
       et.maxBookingsPerDay !== undefined &&
-      dayBookings.length >= et.maxBookingsPerDay
+      sameDayStartCount >= et.maxBookingsPerDay
     ) {
       continue;
     }

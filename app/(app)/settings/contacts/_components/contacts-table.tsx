@@ -228,7 +228,7 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        title="Edit note"
+                        title="Edit note" aria-label="Edit note"
                         onClick={() => openNote(c)}
                         disabled={isPending}
                       >
@@ -238,7 +238,7 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          title="Restore"
+                          title="Restore" aria-label="Restore"
                           onClick={() => handleUnarchive(c.email)}
                           disabled={isPending}
                         >
@@ -248,7 +248,7 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          title="Archive"
+                          title="Archive" aria-label="Archive"
                           onClick={() => handleArchive(c.email, c.name)}
                           disabled={isPending}
                         >
@@ -260,7 +260,7 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            title="Delete"
+                            title="Delete" aria-label="Delete"
                             className="text-destructive hover:text-destructive"
                             disabled={isPending}
                           >

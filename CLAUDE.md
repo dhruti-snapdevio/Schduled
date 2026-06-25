@@ -1,0 +1,118 @@
+# Schduled — Project Rules
+
+Read this file before making any code changes. These rules override all defaults.
+Design decisions are documented in [design.md](./design.md) — follow it strictly.
+
+## Tech Stack
+- Next.js 15 App Router + Turbopack
+- Better Auth v1.6.18 (magic link, admin plugin)
+- Drizzle ORM + PostgreSQL
+- Tailwind CSS v4
+- pg-boss background worker
+
+---
+
+## Design Rules (STRICT — never break these)
+
+### No Shadows
+**Never add shadows anywhere in the project.** This includes:
+- `shadow-sm`, `shadow-md`, `shadow-lg`, `shadow-xl`, `shadow-2xl`
+- Custom shadows: `shadow-[...]`
+- Inline `boxShadow` style props
+- `drop-shadow-[...]`
+- `hover:shadow-*`
+
+The only shadow-related classes allowed are `shadow-none` (to explicitly reset) and `ring-1 ring-foreground/10` for floating UI elements (dialogs, dropdowns, popovers).
+
+### No Border Radius
+Zero border radius everywhere. Never use `rounded-*` classes.
+Exception: `rounded-full` for circular avatar/icon elements only.
+
+### Colors
+- Primary: teal (`--primary` CSS var)
+- All icons, buttons, active states use teal
+- No other accent colors for UI chrome
+
+### Icons
+**Phosphor Icons only.** Never use Lucide or any other icon library.
+```tsx
+import { IconName } from "@phosphor-icons/react"
+// or for SSR:
+import { IconName } from "@phosphor-icons/react/dist/ssr"
+```
+
+### Typography
+- Body text / descriptions: minimum `text-sm` (never `text-xs` for readable content)
+- `text-xs` is only for badges, navigation labels, pagination counters, small status chips
+- No `text-[10px]` or `text-[11px]` outside of tightly constrained badge-like elements
+
+---
+
+## Component Usage (STRICT)
+
+**Always use shadcn/ui components from `components/ui/`.** Never use raw HTML elements where a shadcn component exists.
+
+| Instead of | Use |
+|---|---|
+| `<button>` | `<Button>` from `components/ui/button` |
+| `<input>` | `<Input>` from `components/ui/input` |
+| `<textarea>` | `<Textarea>` from `components/ui/textarea` |
+| `<label>` | `<Label>` from `components/ui/label` |
+| `<select>` | `<Select>` from `components/ui/select` |
+| `<table>` | `<Table>` from `components/ui/table` |
+| `<dialog>` / modal | `<Dialog>` or `<AlertDialog>` from `components/ui/` |
+
+Only create a new component when no existing shadcn component in `components/ui/` fits the need. See [design.md](./design.md) for the full list of available components.
+
+---
+
+## URL / Route Naming (STRICT)
+
+- All route folder names must be **lowercase**
+- Word separators: **hyphens only** (`-`) — no underscores, no spaces, no uppercase
+- Landing page must be at `/` (root) — never at `/landing` or `/landing-page`
+- Dynamic segments use `[kebab-case]`
+
+Examples:
+- ✓ `/event-types`, `/my-link`, `/booking/review`
+- ✗ `/EventTypes`, `/my_link`, `/Booking-Review`
+
+---
+
+## Database Rules
+- DB: `postgresql://schedica:Schedica123@localhost:5432/schedica`
+- Keep `db/` path for schema files
+- Singular table names (Better Auth default): `user`, `session`, `verification`, etc.
+- Never rename DB tables or change naming conventions
+
+---
+
+## Code Rules
+- `tsc --noEmit` must pass clean after every change
+- No S3 uploads (feature skipped)
+- Only one admin in the system — no "Make Admin / Remove Admin" UI
+- Booking emails: teal-only color scheme
+- No `max-w-4xl` wrappers in admin/orbit pages — full width layouts
+- Use `cn()` from `lib/utils` for conditional class merging
+- Prefer server components; add `'use client'` only when needed (state, events, browser APIs)
+- No comments unless the WHY is non-obvious
+
+---
+
+## Auth
+- Admin email: `dhruti.hirapara@snapdevio.com`
+- Users log in via magic link only (no Google OAuth for admin)
+- Use `requireAdmin()` for orbit (admin panel) routes
+- Use `requireSession()` for app routes
+
+---
+
+## Project Structure
+- `app/(app)/` — authenticated user app
+- `app/(orbit)/` — admin panel
+- `app/(booking)/` — public booking flow
+- `app/(landing)/` — public marketing pages
+- `app/(orbit-public)/` — admin login
+- `components/ui/` — shadcn/ui primitives (customized, no radius, no shadow)
+- `components/orbit/` — admin panel components
+- `components/scaffold/` — app shell (sidebar, header)

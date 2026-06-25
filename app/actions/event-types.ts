@@ -85,6 +85,8 @@ export interface EventTypeFormData {
   availabilityScheduleId?: string
   bookingWindow: number
   bookingWindowType: 'rolling' | 'fixed'
+  bookingRangeStart?: string | null
+  bookingRangeEnd?: string | null
   minimumNotice: number
   bufferBefore: number
   bufferAfter: number
@@ -144,6 +146,8 @@ export async function createEventType(data: EventTypeFormData, initialQuestions?
         availabilityScheduleId: data.availabilityScheduleId || null,
         bookingWindow: data.bookingWindow,
         bookingWindowType: data.bookingWindowType,
+        bookingRangeStart: data.bookingWindowType === "fixed" ? data.bookingRangeStart || null : null,
+        bookingRangeEnd: data.bookingWindowType === "fixed" ? data.bookingRangeEnd || null : null,
         minimumNotice: data.minimumNotice,
         bufferBefore: data.bufferBefore,
         bufferAfter: data.bufferAfter,
@@ -218,7 +222,7 @@ export async function createEventType(data: EventTypeFormData, initialQuestions?
 
 // ── Update ────────────────────────────────────────────────────────────────────
 
-export async function updateEventType(id: string, data: EventTypeFormData): Promise<ActionResult> {
+export async function updateEventType(id: string, data: EventTypeFormData): Promise<ActionResult<{ slug: string }>> {
   try {
     const session = await requireSession()
 
@@ -235,7 +239,20 @@ export async function updateEventType(id: string, data: EventTypeFormData): Prom
     if (!existing) return { error: 'Event type not found' }
 
     const slugBase = slugify(data.slug || name)
-    const slug = await uniqueSlug(session.user.id, slugBase, id)
+
+    // Serialise slug allocation per user (same guard as createEventType) so two
+    // concurrent edits can't resolve to the same slug.
+    const slug = await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtext(${`et-slug:${session.user.id}`}))`
+      )
+      const resolvedSlug = await uniqueSlug(session.user.id, slugBase, id)
+      await tx
+        .update(eventType)
+        .set({ slug: resolvedSlug })
+        .where(eq(eventType.id, id))
+      return resolvedSlug
+    })
 
     await db
       .update(eventType)
@@ -250,6 +267,8 @@ export async function updateEventType(id: string, data: EventTypeFormData): Prom
         availabilityScheduleId: data.availabilityScheduleId || null,
         bookingWindow: data.bookingWindow,
         bookingWindowType: data.bookingWindowType,
+        bookingRangeStart: data.bookingWindowType === "fixed" ? data.bookingRangeStart || null : null,
+        bookingRangeEnd: data.bookingWindowType === "fixed" ? data.bookingRangeEnd || null : null,
         minimumNotice: data.minimumNotice,
         bufferBefore: data.bufferBefore,
         bufferAfter: data.bufferAfter,
@@ -308,7 +327,7 @@ export async function updateEventType(id: string, data: EventTypeFormData): Prom
 
     revalidatePath('/event-types')
     revalidatePath(`/event-types/${id}`)
-    return { ok: true }
+    return { ok: true, slug }
   } catch (err) {
     console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
@@ -424,38 +443,62 @@ export async function duplicateEventType(id: string): Promise<ActionResult<{ id:
     const session = await requireSession()
     const source = await db.query.eventType.findFirst({
       where: and(eq(eventType.id, id), eq(eventType.userId, session.user.id)),
-      with: { durations: true, cancellationPolicy: true },
+      with: { durations: true, cancellationPolicy: true, questions: true },
     })
     if (!source) return { error: 'Event type not found' }
 
     const newId = createId()
-    const slug = await uniqueSlug(session.user.id, source.slug)
+    // Pull the relation arrays out so they aren't spread into the insert.
+    const { durations, cancellationPolicy: sourcePolicy, questions, ...sourceCols } = source
 
-    const [{ count }] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(eventType)
-      .where(eq(eventType.userId, session.user.id))
+    await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtext(${`et-slug:${session.user.id}`}))`
+      )
+      const resolvedSlug = await uniqueSlug(session.user.id, source.slug)
 
-    await db.insert(eventType).values({
-      ...source,
-      id: newId,
-      name: `${source.name} (copy)`,
-      slug,
-      isActive: false,
-      position: count,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      const [{ count }] = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(eventType)
+        .where(eq(eventType.userId, session.user.id))
+
+      await tx.insert(eventType).values({
+        ...sourceCols,
+        id: newId,
+        name: `${source.name} (copy)`,
+        slug: resolvedSlug,
+        isActive: false,
+        position: count,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
     })
 
-    if (source.durations.length > 0) {
+    if (durations.length > 0) {
       await db.insert(eventTypeDuration).values(
-        source.durations.map((d) => ({ eventTypeId: newId, duration: d.duration, isDefault: d.isDefault }))
+        durations.map((d) => ({ eventTypeId: newId, duration: d.duration, isDefault: d.isDefault }))
       )
     }
 
-    if (source.cancellationPolicy) {
-      const { id: _pid, eventTypeId: _eid, createdAt: _ca, ...policyRest } = source.cancellationPolicy
+    if (sourcePolicy) {
+      const { id: _pid, eventTypeId: _eid, createdAt: _ca, ...policyRest } = sourcePolicy
       await db.insert(cancellationPolicy).values({ eventTypeId: newId, ...policyRest })
+    }
+
+    // Copy custom booking-form questions (previously silently dropped).
+    if (questions.length > 0) {
+      await db.insert(eventTypeQuestion).values(
+        questions.map((q) => ({
+          eventTypeId: newId,
+          label: q.label,
+          type: q.type,
+          isRequired: q.isRequired,
+          options: q.options ?? null,
+          placeholder: q.placeholder,
+          position: q.position,
+          isActive: q.isActive,
+        }))
+      )
     }
 
     revalidatePath('/event-types')

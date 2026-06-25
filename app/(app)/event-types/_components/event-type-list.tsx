@@ -195,7 +195,7 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
             type="button"
             onClick={clearSelection}
             className="flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-            title="Clear selection"
+            title="Clear selection" aria-label="Clear selection"
           >
             <X size={16} weight="bold" />
           </button>

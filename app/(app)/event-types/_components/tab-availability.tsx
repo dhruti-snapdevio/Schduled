@@ -56,6 +56,8 @@ export function TabAvailability({ form, schedules, globalLimits: initialLimits }
   const scheduleId = form.watch('availabilityScheduleId')
   const bufferBefore = form.watch('bufferBefore') ?? 0
   const bufferAfter = form.watch('bufferAfter') ?? 0
+  const windowType = form.watch('bookingWindowType')
+  const maxPerDay = form.watch('maxBookingsPerDay')
 
   const selectedSchedule = schedules.find((s) =>
     scheduleId ? s.id === scheduleId : s.isDefault
@@ -231,6 +233,26 @@ export function TabAvailability({ form, schedules, globalLimits: initialLimits }
       </div>
 
       {/* ── Section 2: Schedule ───────────────────────────────────────── */}
+      {schedules.length === 0 && (
+        <div className="border border-border bg-background">
+          <div className="px-5 py-4 border-b border-border/60">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Schedule</p>
+          </div>
+          <div className="flex flex-col items-start gap-2 px-5 py-6">
+            <p className="text-sm font-medium text-foreground">No availability schedule yet</p>
+            <p className="text-sm text-muted-foreground">
+              Invitees can only book when you have availability hours set. Create a schedule to start taking bookings.
+            </p>
+            <Link
+              href="/availability"
+              className="mt-1 inline-flex items-center gap-1.5 border border-primary px-3 h-8 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+            >
+              <Plus size={14} /> Set your availability
+            </Link>
+          </div>
+        </div>
+      )}
+
       {schedules.length > 0 && (
         <div className="border border-border bg-background">
           <div className="px-5 py-4 border-b border-border/60">
@@ -302,33 +324,92 @@ export function TabAvailability({ form, schedules, globalLimits: initialLimits }
 
         <div className="px-5 py-5 space-y-5">
 
-          {/* Booking Window */}
-          <FormField
-            control={form.control}
-            name="bookingWindow"
-            render={({ field }) => (
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5 w-40 shrink-0">
-                  <span className="text-sm font-medium text-foreground">Booking Window</span>
-                  <InfoTip text="How many days in advance people can book a meeting with you." />
-                </div>
-                <div className="flex items-stretch border border-input w-28">
-                  <Input
-                    className="border-0 shadow-none focus-visible:ring-0 h-8 px-2 text-sm"
-                    max={365}
-                    min={1}
-                    type="number"
-                    value={field.value}
-                    onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 60)}
-                  />
-                  <span className="flex items-center bg-muted px-2.5 text-xs text-muted-foreground border-l border-input shrink-0">
-                    days
-                  </span>
-                </div>
-                <FormMessage />
+          {/* Booking Window — type selector + (rolling days | fixed range) on one row */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5 w-40 shrink-0">
+              <span className="text-sm font-medium text-foreground">Booking Window</span>
+              <InfoTip text="How far ahead invitees can book — a rolling window (next N days from today) or a fixed calendar date range." />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="bookingWindowType"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="h-8 w-44 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rolling">Rolling window</SelectItem>
+                    <SelectItem value="fixed">Fixed date range</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+
+            {windowType !== 'fixed' ? (
+              <FormField
+                control={form.control}
+                name="bookingWindow"
+                render={({ field }) => (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">next</span>
+                    <div className="flex items-stretch border border-input w-24">
+                      <Input
+                        className="border-0 shadow-none focus-visible:ring-0 h-8 px-2 text-sm"
+                        max={365}
+                        min={1}
+                        type="number"
+                        value={field.value ?? ''}
+                        onChange={(e) => {
+                          const n = parseInt(e.target.value, 10)
+                          field.onChange(Number.isFinite(n) ? n : 0)
+                        }}
+                      />
+                      <span className="flex items-center bg-muted px-2.5 text-xs text-muted-foreground border-l border-input shrink-0">
+                        days
+                      </span>
+                    </div>
+                  </div>
+                )}
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                <FormField
+                  control={form.control}
+                  name="bookingRangeStart"
+                  render={({ field }) => (
+                    <Input
+                      type="date"
+                      className="h-8 w-40 text-sm"
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value || undefined)}
+                    />
+                  )}
+                />
+                <span className="text-sm text-muted-foreground">to</span>
+                <FormField
+                  control={form.control}
+                  name="bookingRangeEnd"
+                  render={({ field }) => (
+                    <Input
+                      type="date"
+                      className="h-8 w-40 text-sm"
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value || undefined)}
+                    />
+                  )}
+                />
               </div>
             )}
-          />
+          </div>
+
+          {/* Booking-window validation messages (range start/end) */}
+          {windowType === 'fixed' && (
+            <div className="pl-[172px] -mt-3">
+              <FormField control={form.control} name="bookingRangeEnd" render={() => <FormMessage />} />
+            </div>
+          )}
 
           {/* Minimum Notice */}
           <FormField
@@ -467,7 +548,7 @@ export function TabAvailability({ form, schedules, globalLimits: initialLimits }
               <div className="flex items-center gap-3 border-t border-border/60 pt-5">
                 <div className="flex items-center gap-1.5 w-40 shrink-0">
                   <span className="text-sm font-medium text-foreground">Max per day</span>
-                  <InfoTip text="Cap how many of this event type can be booked in a single day. Leave empty for no limit." />
+                  <InfoTip text="Caps how many times THIS event type can be booked in a single day. Leave empty for no limit. This works alongside your global limit — whichever limit is reached first blocks further bookings." />
                 </div>
                 <div className="flex items-stretch border border-input w-28">
                   <Input
@@ -493,7 +574,10 @@ export function TabAvailability({ form, schedules, globalLimits: initialLimits }
 
           {/* Global Meeting Limits — read-only */}
           <div className="border-t border-border/60 pt-5">
-            <p className="text-sm font-medium text-foreground mb-1">Global Meeting Limits</p>
+            <div className="flex items-center gap-1.5 mb-1">
+              <p className="text-sm font-medium text-foreground">Global Meeting Limits</p>
+              <InfoTip text="Counts bookings across ALL your event types combined, not just this one. Set in Availability → Advanced." />
+            </div>
             <p className="text-sm text-muted-foreground">
               {limits.length > 0
                 ? limits.map((l) => `${l.count} per ${l.period}`).join(', ')
@@ -504,6 +588,20 @@ export function TabAvailability({ form, schedules, globalLimits: initialLimits }
                 Manage in Availability <ArrowSquareOut size={11} />
               </Link>
             </p>
+
+            {/* Explain how per-event and global limits interact */}
+            {maxPerDay != null && limits.some((l) => l.period === 'day') && (
+              <p className="mt-2 border-l-2 border-primary/40 bg-primary/[0.04] px-3 py-2 text-xs text-muted-foreground">
+                Both limits apply — the <span className="font-medium text-foreground">stricter</span> one wins.
+                Here, this event is capped at{' '}
+                <span className="font-medium text-foreground">{maxPerDay}/day</span> while all events share{' '}
+                <span className="font-medium text-foreground">
+                  {limits.find((l) => l.period === 'day')?.count}/day
+                </span>
+                , so at most <span className="font-medium text-foreground">{maxPerDay}</span> of this event can be
+                booked per day.
+              </p>
+            )}
           </div>
 
         </div>

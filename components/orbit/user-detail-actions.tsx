@@ -106,8 +106,8 @@ export function UserDetailActions({
 
       {!banned && (
         <p className="pt-1 text-2xs text-muted-foreground">
-          Impersonation opens the app as this user. You can return by signing
-          out.
+          Impersonation opens the app as this user. Use the “Stop impersonating”
+          banner at the top to return to your admin session.
         </p>
       )}
 

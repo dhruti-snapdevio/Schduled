@@ -8,6 +8,19 @@ export function sanitizeText(text: string): string {
   return text.replace(/<[^>]*>/g, "").trim();
 }
 
+/**
+ * Escape the five HTML-significant characters so user-supplied text can be
+ * safely interpolated into an HTML document/email without injecting markup.
+ */
+export function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // ── Field validators ─────────────────────────────────────────────────────────
 // Each validator returns null on success, or an error string on failure.
 

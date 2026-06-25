@@ -83,13 +83,16 @@ async function processOne(bookingId: string) {
       meetUrl: b.videoLinkInvitee ?? undefined,
     });
 
-    await enqueueEmail({
-      to: b.inviteeEmail,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-      attachments: [icsAttachment],
-    });
+    await enqueueEmail(
+      {
+        to: b.inviteeEmail,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+        attachments: [icsAttachment],
+      },
+      { idempotencyKey: `confirmation:${b.id}:invitee` }
+    );
   }
 
   // Host notification
@@ -102,12 +105,15 @@ async function processOne(bookingId: string) {
       meetLink: b.videoLinkHost,
       meetLabel,
     });
-    await enqueueEmail({
-      to: b.hostEmail,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-    });
+    await enqueueEmail(
+      {
+        to: b.hostEmail,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      },
+      { idempotencyKey: `confirmation:${b.id}:host` }
+    );
   }
 
   // In-app notification for host

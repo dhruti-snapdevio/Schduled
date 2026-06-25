@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { FaqAccordion } from '@/components/landing/faq-accordion'
+import { LandingHeader } from '@/components/landing/landing-header'
+import { LandingFooter } from '@/components/landing/landing-footer'
 import {
   ArrowDown,
   ArrowRight,
@@ -12,19 +14,13 @@ import {
   CheckCircle,
   Clock,
   Code,
-  FacebookLogo,
   Globe,
-  InstagramLogo,
   Lightning,
-  LinkedinLogo,
   LinkSimple,
   ShieldCheck,
   Star,
   VideoCamera,
-  XLogo,
-  YoutubeLogo,
 } from '@phosphor-icons/react/dist/ssr'
-import { Logo } from '@/components/logo'
 import { getCurrentSession } from '@/lib/authz'
 
 export const metadata = {
@@ -298,27 +294,10 @@ export default async function LandingPage() {
   const todayDayName = DAY_SHORT[now.getDay()]
 
   return (
-    <div className="min-h-screen bg-background text-foreground antialiased">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground antialiased">
 
       {/* ─── NAVBAR ──────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-8">
-          <Logo variant="full" size="lg" href="/" />
-          <nav className="hidden items-center gap-8 md:flex">
-            {[['Features', '#features'], ['How It Works', '#how-it-works'], ['FAQ', '#faq']].map(([l, h]) => (
-              <a key={l} href={h} className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">{l}</a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <Link href="/login" className="hidden px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">
-              Sign In
-            </Link>
-            <Link href="/login" className="inline-flex items-center gap-1.5 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
-              Get Started Free <ArrowRight size={13} weight="bold" />
-            </Link>
-          </div>
-        </div>
-      </header>
+      <LandingHeader />
 
       <main>
 
@@ -961,16 +940,23 @@ export default async function LandingPage() {
                       {/* Animated teal connector */}
                       {i < 2 && (
                         <div
-                          className="pointer-events-none absolute top-7 hidden md:block"
+                          className="pointer-events-none absolute top-7 hidden overflow-hidden md:block"
                           style={{
                             left: '3.5rem',
                             right: '-2rem',
                             height: '2px',
-                            background: 'linear-gradient(90deg, transparent, var(--primary) 50%, transparent)',
-                            backgroundSize: '300% 100%',
-                            animation: 'schduled-connector-shimmer 2.5s linear infinite',
+                            background: 'color-mix(in oklch, var(--primary) 15%, transparent)',
                           }}
-                        />
+                        >
+                          <div
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              background: 'linear-gradient(90deg, transparent 0%, var(--primary) 50%, transparent 100%)',
+                              animation: 'schduled-connector-shimmer 2.5s linear infinite',
+                            }}
+                          />
+                        </div>
                       )}
                     </div>
 
@@ -1175,86 +1161,7 @@ export default async function LandingPage() {
       </main>
 
       {/* ─── FOOTER ──────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-border bg-background">
-        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-
-            {/* Brand */}
-            <div>
-              <Logo variant="full" size="lg" href="/" />
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Schduled helps teams schedule meetings, manage availability and automate bookings — completely free, forever.
-              </p>
-              {/* Social icons */}
-              <div className="mt-5 flex items-center gap-3">
-                {[
-                  { icon: XLogo,         href: 'https://twitter.com',   label: 'X' },
-                  { icon: LinkedinLogo,  href: 'https://linkedin.com',  label: 'LinkedIn' },
-                  { icon: FacebookLogo,  href: 'https://facebook.com',  label: 'Facebook' },
-                  { icon: InstagramLogo, href: 'https://instagram.com', label: 'Instagram' },
-                  { icon: YoutubeLogo,   href: 'https://youtube.com',   label: 'YouTube' },
-                ].map(({ icon: Icon, href, label }) => (
-                  <a
-                    key={label}
-                    href={href}
-                    aria-label={label}
-                    className="flex h-9 w-9 items-center justify-center border border-border text-muted-foreground transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
-                  >
-                    <Icon size={18} weight="fill" />
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            {/* Links */}
-            {[
-              { title: 'Product', links: [['Features', '#features'], ['How It Works', '#how-it-works'], ['FAQ', '#faq']] },
-              { title: 'Company', links: [['Privacy', '/privacy'], ['Terms', '/terms'], ['Cookies', '/cookies']] },
-            ].map((col) => (
-              <div key={col.title}>
-                <h4 className="mb-4 text-xs font-black uppercase tracking-eyebrow text-foreground">{col.title}</h4>
-                <ul className="space-y-2.5">
-                  {col.links.map(([label, href]) => (
-                    <li key={label}>
-                      <a href={href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">{label}</a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-
-            {/* Newsletter */}
-            <div>
-              <h4 className="mb-4 text-xs font-black uppercase tracking-eyebrow text-foreground">Stay Updated</h4>
-              <p className="mb-4 text-sm text-muted-foreground">Join 5,000+ users. Get tips and updates.</p>
-              <div className="flex flex-col gap-2">
-                <input
-                  type="email"
-                  placeholder="you@company.com"
-                  className="border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-2 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-                >
-                  Subscribe <ArrowRight size={13} weight="bold" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-12 border-t border-border pt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-            <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} Schduled. All rights reserved.
-            </p>
-            <div className="flex items-center gap-4">
-              {[['Privacy', '/privacy'], ['Terms', '/terms'], ['Cookies', '/cookies']].map(([l, h]) => (
-                <a key={l} href={h} className="text-xs text-muted-foreground transition-colors hover:text-foreground">{l}</a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   )
 }

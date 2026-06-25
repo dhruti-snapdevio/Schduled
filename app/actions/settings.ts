@@ -516,7 +516,7 @@ export async function getContacts({
       ON c.host_user_id = b.host_user_id
       AND c.email = b.invitee_email
     WHERE b.host_user_id = ${userId}
-      AND (c.is_archived IS NULL OR c.is_archived = ${archived})
+      AND COALESCE(c.is_archived, false) = ${archived}
       ${search ? sql`AND (b.invitee_email ILIKE ${"%" + search + "%"} OR b.invitee_name ILIKE ${"%" + search + "%"})` : sql``}
     GROUP BY b.invitee_email, c.notes, c.is_archived, c.id
     ORDER BY MAX(b.start_time) DESC
@@ -530,7 +530,7 @@ export async function getContacts({
       ON c.host_user_id = b.host_user_id
       AND c.email = b.invitee_email
     WHERE b.host_user_id = ${userId}
-      AND (c.is_archived IS NULL OR c.is_archived = ${archived})
+      AND COALESCE(c.is_archived, false) = ${archived}
       ${search ? sql`AND (b.invitee_email ILIKE ${"%" + search + "%"} OR b.invitee_name ILIKE ${"%" + search + "%"})` : sql``}
   `);
 

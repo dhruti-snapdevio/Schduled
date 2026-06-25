@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
-import { Logo } from "@/components/logo";
+import { ArrowLeft, ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { LandingHeader } from "./landing-header";
+import { LandingFooter } from "./landing-footer";
 import { TocNav } from "./toc-nav";
 
 const DARK_BG: React.CSSProperties = {
@@ -34,47 +35,8 @@ export function LegalShell({
   children,
 }: LegalShellProps) {
   return (
-    <div className="min-h-screen bg-background text-foreground antialiased">
-      {/* ── Navbar ────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-8">
-          <Logo variant="full" size="lg" href="/" />
-          <nav className="hidden items-center gap-8 md:flex">
-            <Link
-              href="/#features"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Features
-            </Link>
-            <Link
-              href="/#how-it-works"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              How It Works
-            </Link>
-            <Link
-              href="/#faq"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              FAQ
-            </Link>
-          </nav>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/login"
-              className="hidden px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:block"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-1.5 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              Get Started Free <ArrowRight size={13} weight="bold" />
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground antialiased">
+      <LandingHeader />
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden py-20 sm:py-28" style={DARK_BG}>
@@ -164,71 +126,7 @@ export function LegalShell({
         </div>
       </section>
 
-      {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-border bg-page">
-        <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <Logo variant="full" size="lg" href="/" />
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Smart scheduling for modern professionals. Free forever, open source.
-              </p>
-            </div>
-            {[
-              {
-                title: "Product",
-                links: [
-                  ["Features", "/#features"],
-                  ["How It Works", "/#how-it-works"],
-                  ["FAQ", "/#faq"],
-                ],
-              },
-              {
-                title: "Company",
-                links: [
-                  ["Privacy Policy", "/privacy"],
-                  ["Terms of Service", "/terms"],
-                  ["Cookie Policy", "/cookies"],
-                ],
-              },
-              {
-                title: "Social",
-                links: [
-                  ["GitHub", "https://github.com"],
-                  ["Twitter / X", "https://twitter.com"],
-                  ["LinkedIn", "https://linkedin.com"],
-                ],
-              },
-            ].map((col) => (
-              <div key={col.title}>
-                <h4 className="mb-4 text-xs font-black uppercase tracking-eyebrow text-foreground">
-                  {col.title}
-                </h4>
-                <ul className="space-y-2.5">
-                  {col.links.map(([label, href]) => (
-                    <li key={label}>
-                      <a
-                        href={href}
-                        className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        {label}
-                        {href.startsWith("http") && (
-                          <ArrowUpRight size={11} className="opacity-40" />
-                        )}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <div className="mt-10 border-t border-border pt-6">
-            <p className="text-center text-xs text-muted-foreground">
-              © {new Date().getFullYear()} Schduled. All rights reserved. Built with care.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }

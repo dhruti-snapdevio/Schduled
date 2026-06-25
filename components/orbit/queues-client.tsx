@@ -53,7 +53,6 @@ const QUEUE_LABELS: Record<string, string> = {
   "__pgboss__cron":               "Cron Scheduler",
   "__pgboss__archive":            "Job Archive",
   "booking.video-link-generate":  "Video Link Generator",
-  "booking.video-link-retry":     "Video Link Retry",
   "booking.calendar-write":       "Calendar Event Writer",
   "booking.reminder-24h":         "24h Reminder",
   "booking.reminder-1h":          "1h Reminder",

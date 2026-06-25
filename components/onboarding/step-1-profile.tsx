@@ -135,7 +135,7 @@ export function StepProfile({ defaultName, defaultUsername, defaultImage, onNext
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="group relative size-20 shrink-0 overflow-hidden rounded-full border-2 border-dashed border-border bg-muted transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="group relative size-20 shrink-0 overflow-hidden rounded-none border-2 border-dashed border-border bg-muted transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Upload profile photo"
         >
           {avatarPreview ? (

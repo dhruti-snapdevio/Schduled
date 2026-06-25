@@ -23,6 +23,8 @@ const DEFAULT_VALUES: BuilderFormValues = {
   availabilityScheduleId:  undefined,
   bookingWindow:           60,
   bookingWindowType:       'rolling',
+  bookingRangeStart:       undefined,
+  bookingRangeEnd:         undefined,
   minimumNotice:           60,
   bufferBefore:            0,
   bufferAfter:             0,

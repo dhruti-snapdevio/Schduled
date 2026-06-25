@@ -7,9 +7,19 @@ export default function DashboardLoading() {
         <div className="h-9 w-36 bg-muted" />
       </div>
 
-      {/* Stats row — 3 cards */}
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-        {["stat-1", "stat-2", "stat-3"].map((card) => (
+      {/* Next-meeting strip */}
+      <div className="border border-border bg-card p-5 flex items-center gap-4">
+        <div className="h-10 w-10 bg-muted shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-40 bg-muted" />
+          <div className="h-3 w-56 bg-muted" />
+        </div>
+        <div className="h-9 w-28 bg-muted shrink-0" />
+      </div>
+
+      {/* Stats row — 4 cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {["stat-1", "stat-2", "stat-3", "stat-4"].map((card) => (
           <div
             className="border border-border bg-card p-5 space-y-2"
             key={card}

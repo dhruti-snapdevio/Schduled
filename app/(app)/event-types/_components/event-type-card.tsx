@@ -276,7 +276,7 @@ export function EventTypeCard({
           {dragHandleProps && (
             <button
               type="button"
-              title="Drag to reorder"
+              title="Drag to reorder" aria-label="Drag to reorder"
               className="mr-1 flex h-8 w-6 cursor-grab items-center justify-center text-muted-foreground/40 transition-colors hover:text-muted-foreground active:cursor-grabbing"
               {...dragHandleProps}
             >
@@ -347,7 +347,7 @@ export function EventTypeCard({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                title="More"
+                title="More" aria-label="More"
                 disabled={isPending}
                 className="flex h-8 w-8 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
               >

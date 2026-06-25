@@ -86,12 +86,19 @@ export async function GET(request: Request) {
   }
 
   const hostTz = schedule.timezone;
-  const today = formatInTimeZone(now, hostTz, "yyyy-MM-dd");
-  const maxDate = formatInTimeZone(
+  const todayStr = formatInTimeZone(now, hostTz, "yyyy-MM-dd");
+  const rollingMax = formatInTimeZone(
     addDays(now, et.bookingWindow ?? 60),
     hostTz,
     "yyyy-MM-dd"
   );
+
+  // Fixed window clamps to [rangeStart, rangeEnd]; otherwise rolling from today.
+  const isFixed =
+    et.bookingWindowType === "fixed" && !!et.bookingRangeStart && !!et.bookingRangeEnd;
+  const today =
+    isFixed && et.bookingRangeStart! > todayStr ? et.bookingRangeStart! : todayStr;
+  const maxDate = isFixed ? et.bookingRangeEnd! : rollingMax;
 
   if (date < today || date > maxDate) {
     return NextResponse.json({ slots: [] });
@@ -142,7 +149,7 @@ export async function GET(request: Request) {
 
   // Load existing bookings that overlap this calendar day in host TZ
   const dayStartUtc = fromZonedTime(`${date}T00:00:00`, hostTz);
-  const dayEndUtc = fromZonedTime(`${date}T23:59:59`, hostTz);
+  const dayEndUtc = fromZonedTime(`${date}T23:59:59.999`, hostTz);
 
   const existingBookings = await db
     .select({ startTime: booking.startTime, endTime: booking.endTime })
@@ -158,10 +165,16 @@ export async function GET(request: Request) {
       )
     );
 
+  // Count only bookings whose START falls on this day, matching the create
+  // path's maxBookingsPerDay check (overlapping prior-day bookings don't count).
+  const sameDayStartCount = existingBookings.filter(
+    (b) => b.startTime >= dayStartUtc && b.startTime <= dayEndUtc
+  ).length;
+
   if (
     et.maxBookingsPerDay !== null &&
     et.maxBookingsPerDay !== undefined &&
-    existingBookings.length >= et.maxBookingsPerDay
+    sameDayStartCount >= et.maxBookingsPerDay
   ) {
     return NextResponse.json({ slots: [] });
   }

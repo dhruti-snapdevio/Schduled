@@ -144,7 +144,9 @@ export function SidebarNav({
           className="flex items-center gap-2.5 px-3 py-2.5 mt-1 border-t border-sidebar-border/50"
           title={email}
         >
-          <Avatar>
+          {/* key remounts on URL change so the placeholder shows after the
+              photo is removed (Radix keeps a stale "loaded" status). */}
+          <Avatar key={avatarUrl ?? "placeholder"}>
             {avatarUrl ? <AvatarImage src={avatarUrl} alt="Profile" /> : null}
             <AvatarFallback className="bg-primary/10 text-primary">
               <UserCircle size={22} />

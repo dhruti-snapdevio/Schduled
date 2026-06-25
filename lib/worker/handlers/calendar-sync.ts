@@ -65,25 +65,12 @@ async function processCalendarSync(job: Job<CalendarSyncPayload>) {
       // busy = not free/transparent
       const isBusy = ev.transparency !== 'transparent'
 
-      // Upsert by (connectedCalendarId, externalEventId)
-      const [existing] = await db
-        .select({ id: calendarEventCache.id })
-        .from(calendarEventCache)
-        .where(
-          and(
-            eq(calendarEventCache.connectedCalendarId, connectedCalendarId),
-            eq(calendarEventCache.externalEventId, ev.id),
-          ),
-        )
-        .limit(1)
-
-      if (existing) {
-        await db
-          .update(calendarEventCache)
-          .set({ startTime, endTime, isBusy, syncedAt: now2 })
-          .where(eq(calendarEventCache.id, existing.id))
-      } else {
-        await db.insert(calendarEventCache).values({
+      // Atomic upsert on the (connectedCalendarId, externalEventId) unique
+      // index — avoids a check-then-insert race that could double-insert and
+      // inflate busy time.
+      await db
+        .insert(calendarEventCache)
+        .values({
           connectedCalendarId,
           externalEventId: ev.id,
           startTime,
@@ -91,7 +78,13 @@ async function processCalendarSync(job: Job<CalendarSyncPayload>) {
           isBusy,
           syncedAt: now2,
         })
-      }
+        .onConflictDoUpdate({
+          target: [
+            calendarEventCache.connectedCalendarId,
+            calendarEventCache.externalEventId,
+          ],
+          set: { startTime, endTime, isBusy, syncedAt: now2 },
+        })
     }
 
     // Prune stale entries (events that ended more than 7 days ago)

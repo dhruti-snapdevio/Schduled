@@ -61,7 +61,38 @@ async function processCalendarTokenRefresh(job: Job<CalendarTokenRefreshPayload>
 
     console.log(`[calendar-token-refresh] refreshed token for ${connectedCalendarId}`)
   } catch (err) {
-    console.error(`[calendar-token-refresh] refresh failed for ${connectedCalendarId}:`, err)
+    const message = err instanceof Error ? err.message : String(err)
+    // googleapis surfaces the OAuth error code under response.data.error
+    const oauthError = String(
+      (err as { response?: { data?: { error?: unknown } } })?.response?.data?.error ?? ''
+    )
+    // Only these mean the grant is genuinely dead — anything else (network
+    // blip, Google 5xx, rate limit) is transient and should be retried.
+    const isPermanent =
+      /invalid_grant|invalid_client|unauthorized_client/i.test(oauthError) ||
+      /invalid_grant|invalid_client|unauthorized_client/i.test(message)
+
+    // pg-boss exposes the current attempt count (0-based) as retrycount.
+    const attempt = Number(
+      (job as { retryCount?: number; retrycount?: number }).retryCount ??
+        (job as { retrycount?: number }).retrycount ??
+        0
+    )
+    const retryLimit = 3
+
+    if (!isPermanent && attempt < retryLimit) {
+      // Transient failure with retries left — re-throw so pg-boss retries.
+      console.warn(
+        `[calendar-token-refresh] transient failure for ${connectedCalendarId} (attempt ${attempt}), retrying:`,
+        message
+      )
+      throw err
+    }
+
+    console.error(
+      `[calendar-token-refresh] ${isPermanent ? 'permanent' : 'exhausted'} failure for ${connectedCalendarId}:`,
+      message
+    )
 
     await db
       .update(connectedCalendar)
