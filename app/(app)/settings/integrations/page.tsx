@@ -1,4 +1,4 @@
-import { GoogleLogo, VideoCamera } from "@phosphor-icons/react/dist/ssr";
+import { GoogleLogo, MicrosoftOutlookLogo, VideoCamera } from "@phosphor-icons/react/dist/ssr";
 import { and, eq } from "drizzle-orm";
 import { PageHeader } from "@/components/scaffold/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -206,6 +206,20 @@ export default async function IntegrationsPage() {
             icon={<GoogleLogo size={20} weight="bold" />}
             name="Google Calendar"
           />
+
+          {/* Microsoft Outlook — coming soon */}
+          <div className="opacity-60">
+            <IntegrationRow
+              action={
+                <span className="bg-muted px-2 py-1 text-xs text-muted-foreground">
+                  Soon
+                </span>
+              }
+              description="Sync bookings and check availability with Outlook Calendar."
+              icon={<MicrosoftOutlookLogo size={20} />}
+              name="Microsoft Outlook"
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

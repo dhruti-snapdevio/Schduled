@@ -66,6 +66,8 @@ const schema = z.object({
   availabilityScheduleId: z.string().optional(),
   bookingWindow: z.number().min(1).max(365),
   bookingWindowType: z.enum(["rolling", "fixed"]),
+  bookingRangeStart: z.string().optional(),
+  bookingRangeEnd: z.string().optional(),
   minimumNotice: z.number().min(0).max(1440),
   bufferBefore: z.number().min(0).max(120),
   bufferAfter: z.number().min(0).max(120),
@@ -95,7 +97,22 @@ const schema = z.object({
 }).refine((v) => v.durations.includes(v.defaultDuration), {
   message: "The default duration must be one of the offered durations",
   path: ["defaultDuration"],
-});
+}).refine(
+  (v) =>
+    v.bookingWindowType !== "fixed" ||
+    (!!v.bookingRangeStart && !!v.bookingRangeEnd),
+  {
+    message: "Set both a start and end date for a fixed booking window",
+    path: ["bookingRangeEnd"],
+  }
+).refine(
+  (v) =>
+    v.bookingWindowType !== "fixed" ||
+    !v.bookingRangeStart ||
+    !v.bookingRangeEnd ||
+    v.bookingRangeEnd >= v.bookingRangeStart,
+  { message: "End date must be on or after the start date", path: ["bookingRangeEnd"] }
+);
 
 export type BuilderFormValues = z.infer<typeof schema>;
 
@@ -146,6 +163,8 @@ const TAB_FIELDS: Record<string, (keyof BuilderFormValues)[]> = {
     "availabilityScheduleId",
     "bookingWindow",
     "bookingWindowType",
+    "bookingRangeStart",
+    "bookingRangeEnd",
     "minimumNotice",
     "bufferBefore",
     "bufferAfter",
@@ -260,11 +279,14 @@ export function EventTypeBuilder({
           toast.error(res.error);
           return;
         }
-        form.reset(values);
-        savedValuesRef.current = values;
+        // The server may have auto-suffixed the slug on collision — sync the
+        // form + preview link to the slug that was actually saved.
+        const savedValues = { ...values, slug: res.slug };
+        form.reset(savedValues);
+        savedValuesRef.current = savedValues;
         setSuccessInfo({
           id: eventTypeId!,
-          slug: values.slug,
+          slug: res.slug,
           name: values.name,
           isCreate: false,
         });

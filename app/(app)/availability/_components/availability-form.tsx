@@ -5,13 +5,18 @@ import { toast } from 'sonner'
 import {
   ArrowLeft, ArrowRight, ArrowsClockwise, ArrowSquareOut,
   CalendarBlank, CalendarCheck, CaretDown, CheckCircle,
-  Clock, FloppyDisk, Globe, List, Plus, Trash, X,
+  Clock, Copy, FloppyDisk, Globe, List, PencilSimple, Plus, Star, Trash, X,
 } from '@phosphor-icons/react'
 import {
   updateAvailabilitySchedule,
   addAvailabilityOverride,
   deleteAvailabilityOverride,
   createDefaultSchedule,
+  createSchedule,
+  duplicateSchedule,
+  renameSchedule,
+  setDefaultSchedule,
+  deleteSchedule,
   updateUserTimezone,
   addMeetingLimit,
   removeMeetingLimit,
@@ -29,7 +34,17 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TimeCombobox } from '@/components/ui/time-combobox'
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
@@ -42,7 +57,14 @@ function fmt12(t: string): string {
   return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`
 }
 
-function todayISO() { return new Date().toISOString().slice(0, 10) }
+function todayISO() {
+  // Local calendar date (not UTC) — the calendar cells are rendered in the
+  // user's local time, so "today"/past must be computed locally too.
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
 function dateToISO(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
@@ -162,10 +184,16 @@ type PageTab = 'schedules' | 'calendar' | 'advanced'
 type ViewMode = 'list' | 'calendar'
 
 interface Props {
-  initialSchedule: ScheduleData | null
+  initialSchedules: ScheduleData[]
   initialOverrides: OverrideData[]
   initialMeetingLimits: MeetingLimitRow[]
   userTimezone: string
+}
+
+interface ScheduleMeta {
+  id: string
+  name: string
+  isDefault: boolean
 }
 
 const EMPTY_GRID: WeekGrid = {
@@ -640,15 +668,34 @@ function FullCalendarView({ grid, overrides, currentTz, onTzClick, onEditDate, o
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function AvailabilityForm({ initialSchedule, initialOverrides, initialMeetingLimits, userTimezone }: Props) {
+export function AvailabilityForm({ initialSchedules, initialOverrides, initialMeetingLimits, userTimezone }: Props) {
   const [isPending, startTransition] = useTransition()
   const [pageTab, setPageTab] = useState<PageTab>('schedules')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
 
-  const [scheduleId, setScheduleId] = useState<string | null>(initialSchedule?.id ?? null)
-  const [scheduleName, setScheduleName] = useState(initialSchedule?.name ?? 'Working Hours')
-  const [grid, setGrid] = useState<WeekGrid>(initialSchedule?.windows ?? EMPTY_GRID)
+  // ── Multi-schedule state ────────────────────────────────────────────────────
+  const firstSchedule = initialSchedules.find((s) => s.isDefault) ?? initialSchedules[0] ?? null
+  const [schedules, setSchedules] = useState<ScheduleMeta[]>(
+    initialSchedules.map((s) => ({ id: s.id, name: s.name, isDefault: s.isDefault }))
+  )
+  // Per-schedule weekly grids, cached so switching is instant.
+  const [gridsById, setGridsById] = useState<Record<string, WeekGrid>>(() =>
+    Object.fromEntries(initialSchedules.map((s) => [s.id, s.windows]))
+  )
+
+  const [scheduleId, setScheduleId] = useState<string | null>(firstSchedule?.id ?? null)
+  const [scheduleName, setScheduleName] = useState(firstSchedule?.name ?? 'Working Hours')
+  const [grid, setGrid] = useState<WeekGrid>(firstSchedule?.windows ?? EMPTY_GRID)
   const [scheduleEdited, setScheduleEdited] = useState(false)
+  // Schedule ids with unsaved weekly-hour edits (so switching back re-enables Save).
+  const [dirtyIds, setDirtyIds] = useState<Set<string>>(() => new Set())
+
+  const activeIsDefault = schedules.find((s) => s.id === scheduleId)?.isDefault ?? false
+
+  // Schedule name dialog (create / rename) + delete confirmation
+  const [nameDialog, setNameDialog] = useState<{ mode: 'new' | 'rename' } | null>(null)
+  const [nameValue, setNameValue] = useState('')
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const [overrides, setOverrides] = useState<OverrideData[]>(initialOverrides)
   const overrideMap = useMemo(() => {
@@ -668,7 +715,7 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
   const [currentTz, setCurrentTz] = useState(userTimezone)
 
   // Advanced tab
-  const [advName, setAdvName] = useState(initialSchedule?.name ?? 'Working Hours')
+  const [advName, setAdvName] = useState(firstSchedule?.name ?? 'Working Hours')
   const [holidayCountry, setHolidayCountry] = useState('US')
   const [meetingLimits, setMeetingLimits] = useState<MeetingLimitRow[]>(initialMeetingLimits)
   const [limitPeriod, setLimitPeriod] = useState<MeetingLimitPeriod>('day')
@@ -677,17 +724,24 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
 
   // ── Grid mutations ──────────────────────────────────────────────────────────
 
+  // Mark the active schedule dirty. dirtyIds lets us restore the correct
+  // "unsaved" state when switching back to a schedule with cached edits.
+  function markActiveDirty() {
+    setScheduleEdited(true)
+    if (scheduleId) setDirtyIds((prev) => new Set(prev).add(scheduleId))
+  }
+
   function setDay(day: DayOfWeek, enabled: boolean) {
     setGrid((prev) => ({ ...prev, [day]: enabled ? [{ startTime: '09:00', endTime: '17:00' }] : [] }))
-    setScheduleEdited(true)
+    markActiveDirty()
   }
   function addSlot(day: DayOfWeek) {
     setGrid((prev) => ({ ...prev, [day]: [...prev[day], { startTime: '09:00', endTime: '17:00' }] }))
-    setScheduleEdited(true)
+    markActiveDirty()
   }
   function removeSlot(day: DayOfWeek, index: number) {
     setGrid((prev) => ({ ...prev, [day]: prev[day].filter((_, i) => i !== index) }))
-    setScheduleEdited(true)
+    markActiveDirty()
   }
   function updateSlot(day: DayOfWeek, index: number, field: 'startTime' | 'endTime', value: string) {
     setGrid((prev) => {
@@ -695,7 +749,7 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
       slots[index] = { ...slots[index], [field]: value }
       return { ...prev, [day]: slots }
     })
-    setScheduleEdited(true)
+    markActiveDirty()
   }
 
   // ── Save schedule ───────────────────────────────────────────────────────────
@@ -711,10 +765,15 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
     }
     startTransition(async () => {
       const name = nameOverride ?? scheduleName
+      let savedId = scheduleId
       if (!scheduleId) {
         const res = await createDefaultSchedule()
         if ('error' in res) { toast.error(res.error); return }
+        savedId = res.id
         setScheduleId(res.id)
+        setSchedules((prev) =>
+          prev.length === 0 ? [{ id: res.id, name, isDefault: true }] : prev
+        )
         const res2 = await updateAvailabilitySchedule(res.id, name, grid)
         if ('error' in res2) { toast.error(res2.error); return }
       } else {
@@ -723,7 +782,141 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
       }
       setScheduleEdited(false)
       setScheduleName(name)
+      // Sync the in-memory cache + the switcher's label, and clear the dirty flag.
+      if (savedId) {
+        setGridsById((prev) => ({ ...prev, [savedId!]: grid }))
+        setDirtyIds((prev) => {
+          const next = new Set(prev)
+          next.delete(savedId!)
+          return next
+        })
+      }
+      setSchedules((prev) => prev.map((s) => (s.id === savedId ? { ...s, name } : s)))
       toast.success('Availability saved')
+    })
+  }
+
+  // ── Multi-schedule handlers ───────────────────────────────────────────────────
+
+  function switchSchedule(id: string) {
+    if (id === scheduleId) return
+    const target = schedules.find((s) => s.id === id)
+    if (!target) return
+    // Preserve any in-progress edits for the current schedule in the cache.
+    if (scheduleId) setGridsById((prev) => ({ ...prev, [scheduleId]: grid }))
+    setScheduleId(id)
+    setScheduleName(target.name)
+    setAdvName(target.name)
+    setGrid(gridsById[id] ?? EMPTY_GRID)
+    // Restore the unsaved state for the target so its Save button stays usable.
+    setScheduleEdited(dirtyIds.has(id))
+  }
+
+  function openNewScheduleDialog() {
+    setNameValue('New schedule')
+    setNameDialog({ mode: 'new' })
+  }
+
+  function openRenameDialog() {
+    if (!scheduleId) return
+    setNameValue(scheduleName)
+    setNameDialog({ mode: 'rename' })
+  }
+
+  function confirmNameDialog() {
+    const name = nameValue.trim()
+    if (!name) { toast.error('Name is required'); return }
+    const mode = nameDialog?.mode
+    startTransition(async () => {
+      if (mode === 'new') {
+        const res = await createSchedule(name)
+        if ('error' in res) { toast.error(res.error); return }
+        const seeded: WeekGrid = JSON.parse(JSON.stringify(EMPTY_GRID))
+        if (scheduleId) setGridsById((prev) => ({ ...prev, [scheduleId]: grid }))
+        setGridsById((prev) => ({ ...prev, [res.id]: seeded }))
+        setSchedules((prev) => [...prev, { id: res.id, name, isDefault: prev.length === 0 }])
+        setScheduleId(res.id)
+        setScheduleName(name)
+        setAdvName(name)
+        setGrid(seeded)
+        setScheduleEdited(false)
+        toast.success('Schedule created')
+      } else if (mode === 'rename' && scheduleId) {
+        const res = await renameSchedule(scheduleId, name)
+        if ('error' in res) { toast.error(res.error); return }
+        setSchedules((prev) => prev.map((s) => (s.id === scheduleId ? { ...s, name } : s)))
+        setScheduleName(name)
+        setAdvName(name)
+        toast.success('Schedule renamed')
+      }
+      setNameDialog(null)
+    })
+  }
+
+  function handleDuplicateSchedule() {
+    if (!scheduleId) return
+    // Duplicate copies the SAVED hours on the server, so block while there are
+    // unsaved edits to avoid the copy diverging from what's shown.
+    if (scheduleEdited) { toast.error('Save your changes before duplicating.'); return }
+    const sourceId = scheduleId
+    startTransition(async () => {
+      const res = await duplicateSchedule(sourceId)
+      if ('error' in res) { toast.error(res.error); return }
+      const copyName = `${scheduleName} (copy)`
+      const copyGrid: WeekGrid = JSON.parse(JSON.stringify(gridsById[sourceId] ?? grid))
+      setGridsById((prev) => ({ ...prev, [res.id]: copyGrid }))
+      setSchedules((prev) => [...prev, { id: res.id, name: copyName, isDefault: false }])
+      setScheduleId(res.id)
+      setScheduleName(copyName)
+      setAdvName(copyName)
+      setGrid(copyGrid)
+      setScheduleEdited(false)
+      toast.success('Schedule duplicated')
+    })
+  }
+
+  function handleSetDefaultSchedule() {
+    if (!scheduleId || activeIsDefault) return
+    const id = scheduleId
+    startTransition(async () => {
+      const res = await setDefaultSchedule(id)
+      if ('error' in res) { toast.error(res.error); return }
+      setSchedules((prev) => prev.map((s) => ({ ...s, isDefault: s.id === id })))
+      toast.success('Default schedule updated')
+    })
+  }
+
+  function confirmDeleteSchedule() {
+    if (!scheduleId) return
+    if (schedules.length <= 1) { toast.error('You must keep at least one schedule.'); return }
+    const id = scheduleId
+    setDeleteOpen(false)
+    startTransition(async () => {
+      const res = await deleteSchedule(id)
+      if ('error' in res) { toast.error(res.error); return }
+      const remaining = schedules.filter((s) => s.id !== id)
+      const wasDefault = schedules.find((s) => s.id === id)?.isDefault
+      if (wasDefault && remaining.length > 0 && !remaining.some((s) => s.isDefault)) {
+        // Promote the alphabetically-first remaining schedule — must match the
+        // server's deterministic choice in deleteSchedule so the default star
+        // doesn't jump after a refresh.
+        const promoted = [...remaining].sort((a, b) => a.name.localeCompare(b.name))[0]
+        const idx = remaining.findIndex((s) => s.id === promoted.id)
+        remaining[idx] = { ...remaining[idx], isDefault: true }
+      }
+      setSchedules(remaining)
+      setGridsById((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      const nextActive = remaining.find((s) => s.isDefault) ?? remaining[0]
+      setScheduleId(nextActive?.id ?? null)
+      setScheduleName(nextActive?.name ?? 'Working Hours')
+      setAdvName(nextActive?.name ?? 'Working Hours')
+      setGrid(nextActive ? gridsById[nextActive.id] ?? EMPTY_GRID : EMPTY_GRID)
+      setScheduleEdited(false)
+      toast.success('Schedule deleted')
     })
   }
 
@@ -844,6 +1037,8 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
 
   function handleAllHolidaysToggle(enable: boolean) {
     const holidays = HOLIDAYS[holidayCountry] ?? []
+    // Snapshot the current state so we can roll back if any write fails.
+    const prevOverrides = overrides
 
     // Optimistic update first
     setOverrides((prev) => {
@@ -857,23 +1052,20 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
     })
 
     startTransition(async () => {
-      if (enable) {
-        for (const h of holidays) {
-          if (!overrideMap.get(h.date)?.isBlocked) {
-            const res = await addAvailabilityOverride({ date: h.date, isBlocked: true, slots: [] })
-            if ('error' in res) { toast.error(res.error); return }
-          }
+      // addAvailabilityOverride/deleteAvailabilityOverride are idempotent
+      // (they clear the date first / no-op when absent), so we can apply every
+      // holiday unconditionally instead of reading a stale overrideMap.
+      for (const h of holidays) {
+        const res = enable
+          ? await addAvailabilityOverride({ date: h.date, isBlocked: true, slots: [] })
+          : await deleteAvailabilityOverride(h.date)
+        if ('error' in res) {
+          setOverrides(prevOverrides) // roll back the optimistic update
+          toast.error(res.error)
+          return
         }
-        toast.success('All holidays blocked')
-      } else {
-        for (const h of holidays) {
-          if (overrideMap.has(h.date)) {
-            const res = await deleteAvailabilityOverride(h.date)
-            if ('error' in res) { toast.error(res.error); return }
-          }
-        }
-        toast.success('All holiday overrides removed')
       }
+      toast.success(enable ? 'All holidays blocked' : 'All holiday overrides removed')
     })
   }
 
@@ -1163,13 +1355,49 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
       {pageTab === 'schedules' && (
         <div className="space-y-5">
           {/* Schedule header bar */}
-          <div className="flex items-center justify-between gap-4 pb-4 border-b border-border">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Schedule</p>
-              <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-4 pb-4 border-b border-border flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              {scheduleId && schedules.length > 0 ? (
+                <Select value={scheduleId} onValueChange={switchSchedule}>
+                  <SelectTrigger className="h-8 w-56 text-sm font-semibold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {schedules.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}{s.isDefault ? ' (default)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
                 <span className="font-semibold">{scheduleName}</span>
-                <span className="text-xs text-primary font-medium">(default)</span>
-              </div>
+              )}
+
+              <Button size="sm" variant="outline" onClick={openNewScheduleDialog} disabled={isPending} className="gap-1.5">
+                <Plus size={13} /> New
+              </Button>
+
+              {scheduleId && (
+                <Button size="sm" variant="ghost" onClick={openRenameDialog} disabled={isPending} className="gap-1.5 text-muted-foreground hover:text-foreground" title="Rename schedule">
+                  <PencilSimple size={13} /> Rename
+                </Button>
+              )}
+              {scheduleId && !activeIsDefault && (
+                <Button size="sm" variant="ghost" onClick={handleSetDefaultSchedule} disabled={isPending} className="gap-1.5 text-muted-foreground hover:text-foreground" title="Set as default">
+                  <Star size={13} /> Set default
+                </Button>
+              )}
+              {scheduleId && (
+                <Button size="sm" variant="ghost" onClick={handleDuplicateSchedule} disabled={isPending} className="gap-1.5 text-muted-foreground hover:text-foreground" title="Duplicate schedule">
+                  <Copy size={13} /> Duplicate
+                </Button>
+              )}
+              {scheduleId && schedules.length > 1 && (
+                <Button size="sm" variant="ghost" onClick={() => setDeleteOpen(true)} disabled={isPending} className="gap-1.5 text-muted-foreground hover:text-destructive" title="Delete schedule">
+                  <Trash size={13} /> Delete
+                </Button>
+              )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <div className="flex border border-border overflow-hidden">
@@ -1360,6 +1588,56 @@ export function AvailabilityForm({ initialSchedule, initialOverrides, initialMee
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Schedule name dialog — create / rename */}
+      <Dialog open={nameDialog !== null} onOpenChange={(open) => { if (!open) setNameDialog(null) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{nameDialog?.mode === 'rename' ? 'Rename schedule' : 'New schedule'}</DialogTitle>
+            <DialogDescription>
+              {nameDialog?.mode === 'rename'
+                ? 'Give this availability schedule a new name.'
+                : 'Create a new availability schedule (starts with Mon–Fri, 9 AM–5 PM).'}
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            autoFocus
+            value={nameValue}
+            onChange={(e) => setNameValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirmNameDialog() } }}
+            placeholder="e.g. Weekend hours"
+            maxLength={60}
+            className="h-9"
+          />
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setNameDialog(null)} disabled={isPending}>Cancel</Button>
+            <Button size="sm" onClick={confirmNameDialog} disabled={isPending || !nameValue.trim()}>
+              {nameDialog?.mode === 'rename' ? 'Rename' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete schedule confirmation */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete “{scheduleName}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the schedule and its weekly hours. Event types using it will fall back to your default schedule. This can&apos;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDeleteSchedule}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

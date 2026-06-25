@@ -117,11 +117,14 @@ export async function POST(request: Request) {
       return jsonError(`This event type requires at least ${label} notice before booking.`, 400);
     }
 
-    // Enforce booking window
-    const bookingWindowDays = et.bookingWindow ?? 60;
-    const maxBookableMs = nowMs + bookingWindowDays * 86_400_000;
-    if (startTime.getTime() > maxBookableMs) {
-      return jsonError(`Bookings can only be made up to ${bookingWindowDays} days in advance.`, 400);
+    // Enforce booking window (rolling only — the fixed-range check needs the
+    // host timezone and runs after `date` is computed below).
+    if (et.bookingWindowType !== "fixed") {
+      const bookingWindowDays = et.bookingWindow ?? 60;
+      const maxBookableMs = nowMs + bookingWindowDays * 86_400_000;
+      if (startTime.getTime() > maxBookableMs) {
+        return jsonError(`Bookings can only be made up to ${bookingWindowDays} days in advance.`, 400);
+      }
     }
 
     const defaultDuration =
@@ -146,7 +149,17 @@ export async function POST(request: Request) {
     const hostTz    = schedule?.timezone ?? "UTC";
     const date      = formatInTimeZone(startTime, hostTz, "yyyy-MM-dd");
     const dayStartUtc = fromZonedTime(`${date}T00:00:00`, hostTz);
-    const dayEndUtc   = fromZonedTime(`${date}T23:59:59`, hostTz);
+    const dayEndUtc   = fromZonedTime(`${date}T23:59:59.999`, hostTz);
+
+    // Fixed booking window — the host-local date must fall inside the range.
+    if (et.bookingWindowType === "fixed" && et.bookingRangeStart && et.bookingRangeEnd) {
+      if (date < et.bookingRangeStart || date > et.bookingRangeEnd) {
+        return jsonError(
+          `This event can only be booked between ${et.bookingRangeStart} and ${et.bookingRangeEnd}.`,
+          400
+        );
+      }
+    }
 
     // ── Idempotency check ────────────────────────────────────────────────────
     // Key is deterministic for the same (invitee, host, event, slot) combination.
@@ -217,19 +230,32 @@ export async function POST(request: Request) {
             )
           );
 
-        // week boundaries (Mon–Sun containing the booking date)
-        const dow = startTime.getUTCDay(); // 0=Sun
-        const daysFromMon = (dow + 6) % 7;
-        const weekStartUtc = new Date(startTime);
-        weekStartUtc.setUTCDate(startTime.getUTCDate() - daysFromMon);
-        weekStartUtc.setUTCHours(0, 0, 0, 0);
-        const weekEndUtc = new Date(weekStartUtc);
-        weekEndUtc.setUTCDate(weekStartUtc.getUTCDate() + 6);
-        weekEndUtc.setUTCHours(23, 59, 59, 999);
+        // Week/month boundaries are computed in the HOST's timezone (matching
+        // the day window), not UTC — otherwise a late-evening booking can fall
+        // into the wrong week/month bucket near midnight.
+        const fmtCal = (d: Date) =>
+          `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+        const [ly, lm, ld] = formatInTimeZone(startTime, hostTz, "yyyy-MM-dd")
+          .split("-")
+          .map(Number);
+        const isoDow = Number(formatInTimeZone(startTime, hostTz, "i")); // 1=Mon..7=Sun
+        // Treat the host-local calendar date as a UTC date purely for arithmetic.
+        const localCal = new Date(Date.UTC(ly, lm - 1, ld));
 
-        // month boundaries
-        const monthStartUtc = new Date(Date.UTC(startTime.getUTCFullYear(), startTime.getUTCMonth(), 1));
-        const monthEndUtc   = new Date(Date.UTC(startTime.getUTCFullYear(), startTime.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+        const weekStartCal = new Date(localCal);
+        weekStartCal.setUTCDate(localCal.getUTCDate() - (isoDow - 1));
+        const weekEndCal = new Date(weekStartCal);
+        weekEndCal.setUTCDate(weekStartCal.getUTCDate() + 6);
+
+        const weekStartUtc = fromZonedTime(`${fmtCal(weekStartCal)}T00:00:00`, hostTz);
+        const weekEndUtc = fromZonedTime(`${fmtCal(weekEndCal)}T23:59:59.999`, hostTz);
+
+        const monthEndCal = new Date(Date.UTC(ly, lm, 0)); // day 0 of next month = last day
+        const monthStartUtc = fromZonedTime(
+          `${ly}-${String(lm).padStart(2, "0")}-01T00:00:00`,
+          hostTz
+        );
+        const monthEndUtc = fromZonedTime(`${fmtCal(monthEndCal)}T23:59:59.999`, hostTz);
 
         for (const lim of globalLimits) {
           let windowStart: Date, windowEnd: Date;

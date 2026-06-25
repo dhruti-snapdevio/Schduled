@@ -1,4 +1,4 @@
-const tabSkeletons = ["tab-1", "tab-2", "tab-3"];
+const tabSkeletons = ["tab-1", "tab-2", "tab-3", "tab-4"];
 const bookingRows = ["row-1", "row-2", "row-3", "row-4", "row-5", "row-6"];
 
 export default function BookingsLoading() {
@@ -7,14 +7,18 @@ export default function BookingsLoading() {
       {/* Header */}
       <div className="h-7 w-28 bg-muted" />
 
-      {/* Tab pills (3 tabs) + search */}
+      {/* Tab pills (4 tabs) + date filter + search */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex gap-1.5">
           {tabSkeletons.map((tab) => (
             <div className="h-8 w-20 bg-muted" key={tab} />
           ))}
         </div>
-        <div className="ml-auto h-9 w-44 bg-muted" />
+        <div className="ml-auto flex items-center gap-2">
+          <div className="h-9 w-[150px] bg-muted" />
+          <div className="h-9 w-[150px] bg-muted" />
+          <div className="h-9 w-44 bg-muted" />
+        </div>
       </div>
 
       {/* Booking rows */}

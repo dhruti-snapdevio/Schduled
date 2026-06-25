@@ -166,6 +166,17 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, p
     })
   }
 
+  function persistReorder(prev: ExistingQuestion[], next: ExistingQuestion[]) {
+    if (!eventTypeId) return
+    startTransition(async () => {
+      const res = await reorderQuestions(eventTypeId, next.map((q) => q.id))
+      if (res && 'error' in res) {
+        setQuestions(prev) // roll back the optimistic reorder
+        toast.error(res.error)
+      }
+    })
+  }
+
   function moveUp(index: number) {
     if (index === 0) return
     if (mode === 'create') {
@@ -174,13 +185,11 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, p
       onPendingChange?.(next)
       return
     }
+    const prev = questions
     const next = [...questions]
     ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
     setQuestions(next)
-    if (!eventTypeId) return
-    startTransition(async () => {
-      await reorderQuestions(eventTypeId, next.map((q) => q.id))
-    })
+    persistReorder(prev, next)
   }
 
   function moveDown(index: number) {
@@ -191,13 +200,11 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, p
       onPendingChange?.(next)
       return
     }
+    const prev = questions
     const next = [...questions]
     ;[next[index], next[index + 1]] = [next[index + 1], next[index]]
     setQuestions(next)
-    if (!eventTypeId) return
-    startTransition(async () => {
-      await reorderQuestions(eventTypeId, next.map((q) => q.id))
-    })
+    persistReorder(prev, next)
   }
 
   return (

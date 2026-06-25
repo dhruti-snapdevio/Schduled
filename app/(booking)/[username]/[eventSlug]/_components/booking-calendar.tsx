@@ -474,7 +474,10 @@ export function BookingCalendar({
     e.preventDefault()
     if (!selectedSlot) return
 
-    for (const q of eventType.questions.filter((q) => q.isRequired)) {
+    // Phone-type questions are collected via the dedicated phone field below,
+    // not the generic answers map — exclude them from this loop or a required
+    // phone question would be permanently unsubmittable.
+    for (const q of eventType.questions.filter((q) => q.isRequired && q.type !== 'phone')) {
       const ans = answers[q.id]
       const val = Array.isArray(ans) ? ans.join('') : (ans ?? '')
       if (!val.trim()) {
@@ -482,12 +485,18 @@ export function BookingCalendar({
         return
       }
     }
+    const phoneQ = eventType.questions.find((q) => q.type === 'phone')
     const needsPhone = eventType.locationType === 'phone_host_calls'
-    if (needsPhone) {
-      if (!phone.trim()) {
-        setSubmitError('Phone number is required for this meeting type')
-        return
-      }
+    const phoneRequired = needsPhone || (phoneQ?.isRequired ?? false)
+    if (phoneRequired && !phone.trim()) {
+      setSubmitError(
+        needsPhone
+          ? 'Phone number is required for this meeting type'
+          : `"${phoneQ?.label ?? 'Phone'}" is required`
+      )
+      return
+    }
+    if (phone.trim()) {
       const digits = phone.replace(/\D/g, '')
       if (digits.length < 7 || digits.length > 15) {
         setSubmitError('Please enter a valid phone number (7–15 digits)')
@@ -500,6 +509,10 @@ export function BookingCalendar({
 
     const answersPayload = eventType.questions
       .map((q) => {
+        // Phone-type questions are answered via the dedicated phone field.
+        if (q.type === 'phone') {
+          return { questionId: q.id, questionLabel: q.label, answer: phone.trim() }
+        }
         const ans = answers[q.id]
         return {
           questionId: q.id,
@@ -583,7 +596,7 @@ export function BookingCalendar({
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="relative min-h-screen bg-background p-4 md:p-6 lg:flex lg:h-screen lg:items-center lg:overflow-hidden lg:p-8">
+    <div className="relative min-h-screen overflow-x-hidden bg-background p-4 md:p-6 lg:flex lg:h-screen lg:items-center lg:overflow-hidden lg:p-8">
 
       {/* Decorative blur circles */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
@@ -648,10 +661,10 @@ export function BookingCalendar({
                   alt={host.name}
                   width={48}
                   height={48}
-                  className="h-12 w-12 rounded-full object-cover ring-1 ring-border"
+                  className="h-12 w-12 rounded-none object-cover ring-1 ring-border"
                 />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-xl font-bold text-white ring-1 ring-border">
+                <div className="flex h-12 w-12 items-center justify-center rounded-none bg-primary text-xl font-bold text-white ring-1 ring-border">
                   {host.name.charAt(0).toUpperCase()}
                 </div>
               )}

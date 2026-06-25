@@ -5,7 +5,7 @@ import { AvailabilityForm } from "./_components/availability-form";
 export const metadata = { title: "Availability" };
 
 export default async function AvailabilityPage() {
-  const [{ schedule, overrides, userTimezone }, initialLimits] = await Promise.all([
+  const [{ schedules, overrides, userTimezone }, initialLimits] = await Promise.all([
     getAvailabilityData(),
     getMeetingLimits(),
   ]);
@@ -19,7 +19,7 @@ export default async function AvailabilityPage() {
       />
       <AvailabilityForm
         initialOverrides={overrides}
-        initialSchedule={schedule}
+        initialSchedules={schedules}
         initialMeetingLimits={initialLimits}
         userTimezone={userTimezone}
       />

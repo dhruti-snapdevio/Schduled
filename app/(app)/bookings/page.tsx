@@ -1,5 +1,5 @@
 import { and, count, desc, eq, gt, gte, ilike, lte, or } from 'drizzle-orm'
-import { format, isToday, isTomorrow } from 'date-fns'
+import { format, isToday } from 'date-fns'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import {
@@ -7,7 +7,6 @@ import {
   CalendarCheck,
   CalendarX,
   Check,
-  Clock,
   EnvelopeSimple,
   EnvelopeOpen,
   Hourglass,
@@ -23,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/scaffold/page-header'
 import { BookingsSearch } from './_components/bookings-search'
 import { BookingsDateFilter } from './_components/bookings-date-filter'
+import { BookingHighlighter } from './_components/booking-highlighter'
 import { booking, eventType } from '@/db/schema'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
@@ -31,12 +31,6 @@ import { cn } from '@/lib/utils'
 export const metadata = { title: 'Bookings' }
 
 type Tab = 'upcoming' | 'past' | 'cancelled' | 'pending'
-
-function dayLabel(date: Date): string {
-  if (isToday(date)) return 'Today'
-  if (isTomorrow(date)) return 'Tomorrow'
-  return format(date, 'EEE, MMM d')
-}
 
 const PLATFORM_META: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   zoom:                { label: 'Zoom',        color: 'bg-muted text-muted-foreground', icon: VideoCamera },
@@ -161,8 +155,29 @@ export default async function BookingsPage({
     return `/bookings?${params.toString()}`
   }
 
+  // Group bookings by calendar day (Calendly-style). pageBookings is already
+  // ordered by start time, so group order is preserved.
+  const dayGroups = (() => {
+    const map = new Map<string, typeof pageBookings>()
+    for (const b of pageBookings) {
+      const key = format(b.startTime, 'yyyy-MM-dd')
+      const arr = map.get(key) ?? []
+      arr.push(b)
+      map.set(key, arr)
+    }
+    return Array.from(map.entries()).map(([key, items]) => ({
+      key,
+      label: format(items[0].startTime, 'EEE, d MMM'),
+      isToday: isToday(items[0].startTime),
+      items,
+    }))
+  })()
+
   return (
     <>
+      <Suspense>
+        <BookingHighlighter />
+      </Suspense>
       <PageHeader
         eyebrow="Scheduling"
         title="Bookings"
@@ -214,169 +229,145 @@ export default async function BookingsPage({
       {pageBookings.length === 0 ? (
         <EmptyState tab={tab} hasSearch={!!(search || dateFrom || dateTo)} />
       ) : (
-        <div className="space-y-2">
-          {pageBookings.map((b) => {
-            const isUpcoming = tab === 'upcoming'
-            const isPending = tab === 'pending'
-            const statusMeta = STATUS_STYLES[b.status] ?? STATUS_STYLES.no_show
-            const platform = PLATFORM_META[b.locationType ?? 'custom'] ?? PLATFORM_META.custom
-            const PlatformIcon = platform.icon
-
-            const joinUrl =
-              b.locationValue?.startsWith('http') &&
-              ['zoom', 'google_meet', 'teams', 'custom'].includes(b.locationType ?? '')
-                ? b.locationValue
-                : null
-
-            const joinLabel =
-              b.locationType === 'zoom'        ? 'Open Zoom'
-              : b.locationType === 'google_meet' ? 'Join Meet'
-              : 'Join Meeting'
-
-            return (
-              <div
-                key={b.id}
-                className="group relative flex items-stretch border border-border bg-background transition-all duration-150 hover:border-primary/40 hover:bg-primary/[0.02] overflow-hidden"
-              >
-                {/* 3px event color bar */}
-                <div
-                  className="w-[3px] shrink-0"
-                  style={{ backgroundColor: b.eventColor ?? 'var(--primary)' }}
-                />
-
-                {/* Date column */}
-                <div className="flex flex-col items-center justify-center w-[58px] shrink-0 text-center py-3 px-2 border-r border-border/40">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide leading-none">
-                    {format(b.startTime, 'MMM')}
-                  </p>
-                  <p className="text-2xl font-bold text-foreground leading-tight">
-                    {format(b.startTime, 'd')}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-none">
-                    {format(b.startTime, 'EEE')}
-                  </p>
-                </div>
-
-                <div className="flex flex-1 flex-col sm:flex-row min-w-0">
-                {/* Center: content */}
-                <div className="flex-1 min-w-0 py-3 px-4 flex flex-col justify-center">
-                  {/* Name + event name */}
-                  <div className="flex items-baseline gap-2 min-w-0">
-                    <p className="font-semibold text-foreground text-base truncate transition-colors duration-150 group-hover:text-primary">{b.inviteeName}</p>
-                    <p className="text-sm text-muted-foreground truncate">{b.eventName}</p>
-                  </div>
-
-                  {/* Meta row */}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock size={13} />
-                      {dayLabel(b.startTime)} · {format(b.startTime, 'h:mm a')} – {format(b.endTime, 'h:mm a')}
-                    </span>
-                    <span className="flex items-center gap-1 max-w-[180px] sm:max-w-none truncate">
-                      <EnvelopeSimple size={13} className="shrink-0" />
-                      <span className="truncate">{b.inviteeEmail}</span>
-                    </span>
-                    {/* Platform badge */}
-                    <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium', platform.color)}>
-                      <PlatformIcon size={12} weight="fill" />
-                      {platform.label}
-                    </span>
-                    {/* Cancellation reason */}
-                    {tab === 'cancelled' && b.cancellationReason && (
-                      <span className="text-destructive/70 truncate max-w-xs">
-                        "{b.cancellationReason}"
-                      </span>
-                    )}
-                    {/* Pending indicator */}
-                    {isPending && (
-                      <span className="flex items-center gap-1 text-amber-600">
-                        <Hourglass size={13} weight="fill" />
-                        Awaiting your review
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right: status badge + actions */}
-                <div className="flex flex-col items-end justify-center gap-2 px-4 py-3 shrink-0">
-                  {/* Status pill */}
-                  <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold', statusMeta.badge)}>
-                    <span className={cn('size-1.5 rounded-full shrink-0', statusMeta.dotClass)} />
-                    {statusMeta.label}
+        <div className="space-y-6">
+          {dayGroups.map((g) => (
+            <div key={g.key}>
+              {/* Day header */}
+              <div className="mb-2 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground">{g.label}</h3>
+                {g.isToday && (
+                  <span className="border border-primary/30 bg-primary/5 px-1.5 py-0.5 text-xs font-medium text-primary">
+                    Today
                   </span>
-
-                  {/* Actions — upcoming confirmed bookings */}
-                  {isUpcoming && b.status === 'confirmed' && (
-                    <div className="flex items-center gap-1">
-                      {joinUrl && (
-                        <Button asChild size="sm" className="h-7 text-xs gap-1 px-2.5">
-                          <a href={joinUrl} target="_blank" rel="noopener noreferrer">
-                            <VideoCamera size={13} weight="fill" />
-                            {joinLabel}
-                          </a>
-                        </Button>
-                      )}
-                      {b.rescheduleToken && (
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs gap-1 px-2"
-                          title="Reschedule"
-                        >
-                          <Link href={`/reschedule/${b.rescheduleToken}`}>
-                            <ArrowCounterClockwise size={14} />
-                            <span className="hidden lg:inline">Reschedule</span>
-                          </Link>
-                        </Button>
-                      )}
-                      {b.cancelToken && (
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/5"
-                          title="Cancel"
-                        >
-                          <Link href={`/cancel/${b.cancelToken}`}>
-                            <X size={14} />
-                          </Link>
-                        </Button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Actions — pending approval bookings */}
-                  {tab === 'pending' && b.approvalToken && (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        asChild
-                        size="sm"
-                        className="h-7 text-xs gap-1 px-2.5 bg-primary hover:bg-primary/90"
-                      >
-                        <Link href={`/booking/review/${b.approvalToken}?action=approve`}>
-                          <Check size={13} weight="bold" />
-                          Approve
-                        </Link>
-                      </Button>
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs gap-1 px-2 border-destructive/40 text-destructive hover:bg-destructive/5 hover:border-destructive"
-                      >
-                        <Link href={`/booking/review/${b.approvalToken}`}>
-                          <X size={13} weight="bold" />
-                          Decline
-                        </Link>
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                </div>
+                )}
               </div>
-            )
-          })}
+
+              {/* Rows for the day */}
+              <div className="divide-y divide-border border border-border bg-background">
+                {g.items.map((b) => {
+                  const isUpcoming = tab === 'upcoming'
+                  const isPending = tab === 'pending'
+                  const statusMeta = STATUS_STYLES[b.status] ?? STATUS_STYLES.no_show
+                  const platform = PLATFORM_META[b.locationType ?? 'custom'] ?? PLATFORM_META.custom
+                  const PlatformIcon = platform.icon
+
+                  const joinUrl =
+                    b.locationValue?.startsWith('http') &&
+                    ['zoom', 'google_meet', 'teams', 'custom'].includes(b.locationType ?? '')
+                      ? b.locationValue
+                      : null
+
+                  const joinLabel =
+                    b.locationType === 'zoom' ? 'Open Zoom'
+                    : b.locationType === 'google_meet' ? 'Join Meet'
+                    : 'Join Meeting'
+
+                  return (
+                    <div
+                      key={b.id}
+                      id={`booking-${b.id}`}
+                      className="group relative flex flex-col gap-3 px-4 py-3.5 transition-colors hover:bg-primary/[0.02] scroll-mt-24 target:bg-primary/5 sm:flex-row sm:items-center"
+                    >
+                      {/* Time range */}
+                      <div className="w-[140px] shrink-0 text-sm font-medium text-muted-foreground tabular-nums">
+                        {format(b.startTime, 'h:mm a')} – {format(b.endTime, 'h:mm a')}
+                      </div>
+
+                      {/* Color dot + name + event + meta */}
+                      <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                        <span
+                          className="mt-1.5 size-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: b.eventColor ?? 'var(--primary)' }}
+                        />
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-baseline gap-x-2 min-w-0">
+                            <p className="truncate font-semibold text-foreground transition-colors group-hover:text-primary">
+                              {b.inviteeName}
+                            </p>
+                            <p className="truncate text-sm text-muted-foreground">{b.eventName}</p>
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                            <span className="inline-flex max-w-[240px] items-center gap-1 truncate">
+                              <EnvelopeSimple size={12} className="shrink-0" />
+                              <span className="truncate">{b.inviteeEmail}</span>
+                            </span>
+                            {tab === 'cancelled' && b.cancellationReason && (
+                              <span className="max-w-xs truncate text-destructive/70">
+                                &ldquo;{b.cancellationReason}&rdquo;
+                              </span>
+                            )}
+                            {isPending && (
+                              <span className="inline-flex items-center gap-1 text-amber-600">
+                                <Hourglass size={12} weight="fill" />
+                                Awaiting your review
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Platform + status + actions */}
+                      <div className="flex shrink-0 items-center gap-2 pl-[18px] sm:pl-0">
+                        <span className={cn('hidden items-center gap-1 px-1.5 py-0.5 text-xs font-medium md:inline-flex', platform.color)}>
+                          <PlatformIcon size={12} weight="fill" />
+                          {platform.label}
+                        </span>
+                        <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold', statusMeta.badge)}>
+                          <span className={cn('size-1.5 rounded-full shrink-0', statusMeta.dotClass)} />
+                          {statusMeta.label}
+                        </span>
+
+                        {isUpcoming && b.status === 'confirmed' && (
+                          <div className="flex items-center gap-1">
+                            {joinUrl && (
+                              <Button asChild size="sm" className="h-7 gap-1 px-2.5 text-xs">
+                                <a href={joinUrl} target="_blank" rel="noopener noreferrer">
+                                  <VideoCamera size={13} weight="fill" />
+                                  {joinLabel}
+                                </a>
+                              </Button>
+                            )}
+                            {b.rescheduleToken && (
+                              <Button asChild variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" title="Reschedule">
+                                <Link href={`/reschedule/${b.rescheduleToken}`}>
+                                  <ArrowCounterClockwise size={14} />
+                                  <span className="hidden lg:inline">Reschedule</span>
+                                </Link>
+                              </Button>
+                            )}
+                            {b.cancelToken && (
+                              <Button asChild variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:bg-destructive/5 hover:text-destructive" title="Cancel">
+                                <Link href={`/cancel/${b.cancelToken}`}>
+                                  <X size={14} />
+                                </Link>
+                              </Button>
+                            )}
+                          </div>
+                        )}
+
+                        {tab === 'pending' && b.approvalToken && (
+                          <div className="flex items-center gap-1">
+                            <Button asChild size="sm" className="h-7 gap-1 bg-primary px-2.5 text-xs hover:bg-primary/90">
+                              <Link href={`/booking/review/${b.approvalToken}?action=approve`}>
+                                <Check size={13} weight="bold" />
+                                Approve
+                              </Link>
+                            </Button>
+                            <Button asChild variant="outline" size="sm" className="h-7 gap-1 border-destructive/40 px-2 text-xs text-destructive hover:border-destructive hover:bg-destructive/5">
+                              <Link href={`/booking/review/${b.approvalToken}`}>
+                                <X size={13} weight="bold" />
+                                Decline
+                              </Link>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

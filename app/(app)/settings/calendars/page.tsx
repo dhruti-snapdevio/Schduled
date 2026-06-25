@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { CalendarBlank, GoogleLogo, Plus } from '@phosphor-icons/react/dist/ssr'
+import { CalendarBlank, GoogleLogo, MicrosoftOutlookLogo, Plus } from '@phosphor-icons/react/dist/ssr'
 import { PageHeader } from '@/components/scaffold/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -91,6 +91,22 @@ export default async function CalendarsPage() {
                 connectUrl={connectUrl}
               />
             ))}
+
+            {/* Microsoft Outlook — coming soon */}
+            <div className="flex items-center gap-4 px-6 py-4 opacity-60">
+              <div className="flex size-10 shrink-0 items-center justify-center bg-muted">
+                <MicrosoftOutlookLogo size={20} className="text-foreground" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">Microsoft Outlook</p>
+                <p className="text-sm text-muted-foreground">
+                  Sync availability and add events to Outlook Calendar
+                </p>
+              </div>
+              <span className="shrink-0 bg-muted px-2 py-1 text-xs text-muted-foreground">
+                Soon
+              </span>
+            </div>
           </CardContent>
         </Card>
       )}

@@ -48,12 +48,17 @@ async function processOne(bookingId: string) {
       startUtc: new Date(b.startTime),
     });
 
-    await enqueueEmail({
-      to: b.hostEmail,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-    });
+    await enqueueEmail(
+      {
+        to: b.hostEmail,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      },
+      // Key on the current start time so a re-request after a reschedule still
+      // sends, but a handler retry for the same time does not double-send.
+      { idempotencyKey: `approval-request:${b.id}:${new Date(b.startTime).getTime()}:host` }
+    );
   }
 
   await createNotification({

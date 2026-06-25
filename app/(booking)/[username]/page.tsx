@@ -86,10 +86,10 @@ export default async function HostProfilePage({
             alt={host.name}
             width={72}
             height={72}
-            className="h-[72px] w-[72px] rounded-full object-cover ring-1 ring-border"
+            className="h-[72px] w-[72px] rounded-none object-cover ring-1 ring-border"
           />
         ) : (
-          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primary text-2xl font-semibold text-primary-foreground">
+          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-none bg-primary text-2xl font-semibold text-primary-foreground">
             {host.name.charAt(0).toUpperCase()}
           </div>
         )}

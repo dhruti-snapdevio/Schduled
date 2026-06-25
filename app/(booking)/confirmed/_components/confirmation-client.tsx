@@ -323,7 +323,7 @@ export function ConfirmationClient({
                   href: outlookCalUrl,
                   download: undefined,
                   label: 'Outlook',
-                  comingSoon: true,
+                  comingSoon: false,
                   icon: (
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                       <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
@@ -336,7 +336,7 @@ export function ConfirmationClient({
                   href: icsUrl,
                   download: 'meeting.ics',
                   label: 'Apple Calendar',
-                  comingSoon: true,
+                  comingSoon: false,
                   icon: (
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                       <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z" stroke="currentColor" strokeWidth="2"/>

@@ -102,30 +102,61 @@ export async function POST(request: Request) {
       );
     }
 
-    const bookingWindowDays = et.bookingWindow ?? 60;
-    const maxBookableMs = nowMs + bookingWindowDays * 86_400_000;
-    if (newStart.getTime() > maxBookableMs) {
-      return jsonError(
-        `Bookings can only be made up to ${bookingWindowDays} days in advance.`,
-        400
-      );
+    // Rolling window only — the fixed-range check needs the host timezone and
+    // runs after `date` is computed below (mirrors the create path).
+    if (et.bookingWindowType !== "fixed") {
+      const bookingWindowDays = et.bookingWindow ?? 60;
+      const maxBookableMs = nowMs + bookingWindowDays * 86_400_000;
+      if (newStart.getTime() > maxBookableMs) {
+        return jsonError(
+          `Bookings can only be made up to ${bookingWindowDays} days in advance.`,
+          400
+        );
+      }
     }
 
-    // ── maxReschedules check ─────────────────────────────────────────────────
+    // ── Reschedule policy checks ─────────────────────────────────────────────
     const [policy] = await db
-      .select({ maxReschedules: cancellationPolicy.maxReschedules })
+      .select({
+        maxReschedules: cancellationPolicy.maxReschedules,
+        allowRescheduling: cancellationPolicy.allowRescheduling,
+        rescheduleCutoffHours: cancellationPolicy.rescheduleCutoffHours,
+      })
       .from(cancellationPolicy)
       .where(eq(cancellationPolicy.eventTypeId, b.eventTypeId))
       .limit(1);
 
-    if (
-      policy?.maxReschedules != null &&
-      b.rescheduleCount >= policy.maxReschedules
-    ) {
-      return jsonError(
-        `This booking cannot be rescheduled more than ${policy.maxReschedules} time${policy.maxReschedules === 1 ? "" : "s"}.`,
-        409
-      );
+    if (policy) {
+      if (!policy.allowRescheduling) {
+        return jsonError(
+          "Rescheduling is not allowed for this event type.",
+          403
+        );
+      }
+
+      // Cutoff is measured against the booking's CURRENT start time — you can't
+      // reschedule once you're inside the host's reschedule window.
+      const cutoff = policy.rescheduleCutoffHours ?? 0;
+      if (cutoff > 0) {
+        const hoursUntil =
+          (new Date(b.startTime).getTime() - nowMs) / 3_600_000;
+        if (hoursUntil < cutoff) {
+          return jsonError(
+            `Rescheduling must be done at least ${cutoff} hour${cutoff === 1 ? "" : "s"} before the meeting.`,
+            403
+          );
+        }
+      }
+
+      if (
+        policy.maxReschedules != null &&
+        b.rescheduleCount >= policy.maxReschedules
+      ) {
+        return jsonError(
+          `This booking cannot be rescheduled more than ${policy.maxReschedules} time${policy.maxReschedules === 1 ? "" : "s"}.`,
+          409
+        );
+      }
     }
 
     const schedule = await db.query.availabilitySchedule.findFirst({
@@ -150,7 +181,17 @@ export async function POST(request: Request) {
 
     const date = formatInTimeZone(newStart, hostTz, "yyyy-MM-dd");
     const dayStartUtc = fromZonedTime(`${date}T00:00:00`, hostTz);
-    const dayEndUtc = fromZonedTime(`${date}T23:59:59`, hostTz);
+    const dayEndUtc = fromZonedTime(`${date}T23:59:59.999`, hostTz);
+
+    // Fixed booking window — the new date must fall inside the configured range.
+    if (et.bookingWindowType === "fixed" && et.bookingRangeStart && et.bookingRangeEnd) {
+      if (date < et.bookingRangeStart || date > et.bookingRangeEnd) {
+        return jsonError(
+          `This event can only be booked between ${et.bookingRangeStart} and ${et.bookingRangeEnd}.`,
+          400
+        );
+      }
+    }
 
     // ── Transaction: advisory lock → conflict re-check → UPDATE ──────────────
     const result = await db.transaction(async (tx) => {

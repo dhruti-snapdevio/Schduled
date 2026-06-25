@@ -63,12 +63,17 @@ async function processOne(bookingId: string, previousStartUtc: string) {
       meetLink: b.videoLinkInvitee,
       meetLabel,
     });
-    await enqueueEmail({
-      to: b.inviteeEmail,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-    });
+    await enqueueEmail(
+      {
+        to: b.inviteeEmail,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      },
+      // Key on the reschedule event (previous start) so each reschedule sends
+      // but a handler retry for the same event doesn't double-send.
+      { idempotencyKey: `reschedule:${b.id}:${previousStartUtc}:invitee` }
+    );
   }
 
   // Host
@@ -81,12 +86,15 @@ async function processOne(bookingId: string, previousStartUtc: string) {
       meetLink: b.videoLinkHost,
       meetLabel,
     });
-    await enqueueEmail({
-      to: b.hostEmail,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-    });
+    await enqueueEmail(
+      {
+        to: b.hostEmail,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      },
+      { idempotencyKey: `reschedule:${b.id}:${previousStartUtc}:host` }
+    );
   }
 
   const whenLabel = formatInTimeZone(

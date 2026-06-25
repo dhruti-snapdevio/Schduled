@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
     const date = formatInTimeZone(start, hostTz, "yyyy-MM-dd");
     const dayStartUtc = fromZonedTime(`${date}T00:00:00`, hostTz);
-    const dayEndUtc = fromZonedTime(`${date}T23:59:59`, hostTz);
+    const dayEndUtc = fromZonedTime(`${date}T23:59:59.999`, hostTz);
 
     // ── Transaction: advisory lock → conflict re-check → confirm ─────────────
     // Without this, two pending bookings for the same slot could both be

@@ -36,4 +36,6 @@ export const calendarEventCache = pgTable('calendar_event_cache', {
   syncedAt:            timestamp('synced_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index('calendar_event_cache_cal_time_idx').on(t.connectedCalendarId, t.startTime, t.endTime),
+  // One cache row per external event per calendar — enables safe upserts.
+  uniqueIndex('calendar_event_cache_cal_event_unq').on(t.connectedCalendarId, t.externalEventId),
 ])

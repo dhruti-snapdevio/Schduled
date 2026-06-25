@@ -82,7 +82,7 @@ async function processOne(bookingId: string) {
       text: mail.text,
       attachments: [icsAttachment],
     },
-    { startAfter: emailStartAfter }
+    { startAfter: emailStartAfter, idempotencyKey: `approved:${b.id}:invitee` }
   );
 
   // In-app notification to host

@@ -60,12 +60,15 @@ async function processOne(bookingId: string) {
       recipientName: b.inviteeName,
       otherPartyName: b.hostName ?? "your host",
     });
-    await enqueueEmail({
-      to: b.inviteeEmail,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-    });
+    await enqueueEmail(
+      {
+        to: b.inviteeEmail,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      },
+      { idempotencyKey: `cancellation:${b.id}:invitee` }
+    );
   }
 
   // Host
@@ -76,12 +79,15 @@ async function processOne(bookingId: string) {
       recipientName: b.hostName ?? "there",
       otherPartyName: b.inviteeName,
     });
-    await enqueueEmail({
-      to: b.hostEmail,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-    });
+    await enqueueEmail(
+      {
+        to: b.hostEmail,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      },
+      { idempotencyKey: `cancellation:${b.id}:host` }
+    );
   }
 
   const whenLabel = formatInTimeZone(

@@ -1,5 +1,5 @@
 import { createId } from '@paralleldrive/cuid2'
-import { boolean, index, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, date, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 import { user } from './auth'
 import { locationTypeEnum, questionTypeEnum, bookingWindowTypeEnum, meetingTypeEnum } from './enums'
 
@@ -21,6 +21,9 @@ export const eventType = pgTable('event_type', {
   minimumNotice:          integer('minimum_notice').default(60),
   bookingWindow:          integer('booking_window').default(60),
   bookingWindowType:      bookingWindowTypeEnum('booking_window_type').default('rolling'),
+  // For bookingWindowType='fixed' — invitees can only book within this date range.
+  bookingRangeStart:      date('booking_range_start'),
+  bookingRangeEnd:        date('booking_range_end'),
   bufferBefore:           integer('buffer_before').default(0),
   bufferAfter:            integer('buffer_after').default(0),
   maxBookingsPerDay:      integer('max_bookings_per_day'),
@@ -31,7 +34,7 @@ export const eventType = pgTable('event_type', {
   createdAt:              timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt:              timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
-  index('event_type_user_slug_idx').on(t.userId, t.slug),
+  uniqueIndex('event_type_user_slug_idx').on(t.userId, t.slug),
   index('event_type_user_active_idx').on(t.userId, t.isActive),
 ])
 

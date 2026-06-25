@@ -9,7 +9,8 @@ import {
   Question,
   ShieldCheck,
 } from "@phosphor-icons/react/dist/ssr";
-import { Logo } from "@/components/logo";
+import { LandingHeader } from "@/components/landing/landing-header";
+import { LandingFooter } from "@/components/landing/landing-footer";
 import { ContactForm } from "./_components/contact-form";
 
 export const metadata = {
@@ -52,29 +53,9 @@ const CHANNELS = [
 
 export default function ContactPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground antialiased">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground antialiased">
 
-      {/* ── Navbar ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-8">
-          <Logo variant="full" size="lg" href="/" />
-          <nav className="hidden items-center gap-8 md:flex">
-            {[["Features", "/#features"], ["How It Works", "/#how-it-works"], ["FAQ", "/#faq"]].map(([l, h]) => (
-              <Link key={l} href={h} className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-                {l}
-              </Link>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <Link href="/login" className="hidden px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">
-              Sign In
-            </Link>
-            <Link href="/login" className="inline-flex items-center gap-1.5 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
-              Get Started Free <ArrowRight size={13} weight="bold" />
-            </Link>
-          </div>
-        </div>
-      </header>
+      <LandingHeader />
 
       <main>
 
@@ -212,40 +193,7 @@ export default function ContactPage() {
 
       </main>
 
-      {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="border-t border-border bg-page">
-        <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <Logo variant="full" size="lg" href="/" />
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Smart scheduling for modern professionals. Free forever, open source.
-              </p>
-            </div>
-            {[
-              { title: "Product", links: [["Features", "/#features"], ["How It Works", "/#how-it-works"], ["FAQ", "/#faq"]] },
-              { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Privacy", "/privacy"], ["Terms", "/terms"], ["Cookies", "/cookies"]] },
-              { title: "Social",  links: [["GitHub", "https://github.com"], ["Twitter / X", "https://twitter.com"], ["LinkedIn", "https://linkedin.com"]] },
-            ].map((col) => (
-              <div key={col.title}>
-                <h4 className="mb-4 text-xs font-black uppercase tracking-eyebrow text-foreground">{col.title}</h4>
-                <ul className="space-y-2.5">
-                  {col.links.map(([label, href]) => (
-                    <li key={label}>
-                      <a href={href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">{label}</a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <div className="mt-10 border-t border-border pt-6">
-            <p className="text-center text-xs text-muted-foreground">
-              © {new Date().getFullYear()} Schduled. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }

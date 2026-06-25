@@ -64,7 +64,7 @@ export function GlobalSearch() {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="h-9 w-48 md:w-72 lg:w-[340px] rounded-none border border-border bg-page pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-        placeholder="Search bookings, meetings..."
+        placeholder="Search bookings by name or email…"
         type="search"
       />
     </form>

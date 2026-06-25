@@ -98,12 +98,37 @@ export function NotificationBell() {
     }
   }
 
+  async function markRead(id: string) {
+    let wasUnread = false;
+    setItems((prev) =>
+      prev.map((n) => {
+        if (n.id === id && !n.read) {
+          wasUnread = true;
+          return { ...n, read: true };
+        }
+        return n;
+      })
+    );
+    // setItems' updater runs synchronously, so wasUnread is set before this.
+    if (wasUnread) {
+      setUnread((prev) => Math.max(0, prev - 1));
+      try {
+        await fetch("/api/notifications/read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: [id] }),
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
   async function dismissOne(id: string) {
+    const dismissed = items.find((n) => n.id === id);
+    const wasUnread = !!dismissed && !dismissed.read;
     setItems((prev) => prev.filter((n) => n.id !== id));
-    setUnread((prev) => {
-      const dismissed = items.find((n) => n.id === id);
-      return dismissed && !dismissed.read ? Math.max(0, prev - 1) : prev;
-    });
+    if (wasUnread) setUnread((prev) => Math.max(0, prev - 1));
     try {
       await fetch(`/api/notifications/${id}`, { method: "DELETE" });
     } catch {
@@ -220,7 +245,10 @@ export function NotificationBell() {
                 {n.bookingId ? (
                   <Link
                     href={`/bookings?highlight=${n.bookingId}`}
-                    onClick={() => setOpen(false)}
+                    onClick={() => {
+                      void markRead(n.id);
+                      setOpen(false);
+                    }}
                   >
                     {content}
                   </Link>

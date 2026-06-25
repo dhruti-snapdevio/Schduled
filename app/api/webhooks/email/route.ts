@@ -1,5 +1,4 @@
 import { timingSafeEqual } from "node:crypto";
-import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { emailEvents } from "@/db/schema";
 import { db } from "@/lib/db";
@@ -27,20 +26,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing event id" }, { status: 400 });
   }
 
-  const existing = await db.query.emailEvents.findFirst({
-    where: eq(emailEvents.providerEventId, eventId),
-  });
-  if (existing) {
+  // Atomic dedupe: rely on the unique constraint on provider_event_id instead
+  // of a check-then-insert, so concurrent duplicate deliveries can't both pass
+  // a read and then throw on the second insert.
+  const inserted = await db
+    .insert(emailEvents)
+    .values({
+      providerEmailId,
+      providerEventId: eventId,
+      eventType,
+      payload,
+      recipient: recipient ? String(recipient) : null,
+    })
+    .onConflictDoNothing({ target: emailEvents.providerEventId })
+    .returning({ id: emailEvents.id });
+
+  if (inserted.length === 0) {
     return NextResponse.json({ ok: true, duplicate: true });
   }
-
-  await db.insert(emailEvents).values({
-    providerEmailId,
-    providerEventId: eventId,
-    eventType,
-    payload,
-    recipient: recipient ? String(recipient) : null,
-  });
 
   return NextResponse.json({ ok: true });
 }

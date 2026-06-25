@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { Job } from "pg-boss";
-import { booking, eventType, videoConnection } from "@/db/schema";
+import { booking, connectedCalendar, eventType, videoConnection } from "@/db/schema";
 import { db } from "@/lib/db";
 import type { VideoLinkGeneratePayload } from "@/lib/worker/job-types";
 import { createZoomMeeting, getValidZoomAccessToken } from "@/lib/zoom/client";
@@ -54,12 +54,45 @@ async function processVideoLinkGenerate(job: Job<VideoLinkGeneratePayload>) {
       console.log(
         `[video-link-generate] booking ${bookingId} already has Meet link — done`
       );
-    } else {
-      // Calendar write may not have run yet or calendar is not connected.
-      console.log(
-        `[video-link-generate] booking ${bookingId}: Meet link not yet set (calendar write pending or calendar not connected)`
+      return;
+    }
+
+    // No link yet. If the host has a connected write-target calendar, the
+    // CALENDAR_WRITE job just hasn't finished — retry so we don't permanently
+    // lose the link. If there's no write-target calendar, a Meet link can
+    // never be created, so give up gracefully instead of spinning.
+    const [writeCal] = await db
+      .select({ id: connectedCalendar.id })
+      .from(connectedCalendar)
+      .where(
+        and(
+          eq(connectedCalendar.userId, b.hostUserId),
+          eq(connectedCalendar.status, "connected"),
+          eq(connectedCalendar.isWriteTarget, true)
+        )
+      )
+      .limit(1);
+
+    if (!writeCal) {
+      console.warn(
+        `[video-link-generate] booking ${bookingId}: no connected write-target calendar — cannot create a Meet link`
+      );
+      return;
+    }
+
+    const attempt = Number(
+      (job as { retryCount?: number; retrycount?: number }).retryCount ??
+        (job as { retrycount?: number }).retrycount ??
+        0
+    );
+    if (attempt < 2) {
+      throw new Error(
+        `Meet link for booking ${bookingId} not written yet by calendar-write — retrying`
       );
     }
+    console.warn(
+      `[video-link-generate] booking ${bookingId}: gave up waiting for the Meet link after retries`
+    );
     return;
   }
 
