@@ -284,10 +284,18 @@ function TimezoneSearch({ value, onChange }: { value: string; onChange: (tz: str
     return ALL_TIMEZONES.filter(e => e.searchKey.includes(q))
   }, [search])
 
+  // ALL_TIMEZONES is empty during SSR (built only in the browser), so the first
+  // client render must match the server's plain-city fallback to avoid a
+  // hydration mismatch; the offset-rich label is applied after mount.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
   const currentLabel = useMemo(() => {
+    const fallback = value.split('/').pop()?.replace(/_/g, ' ') ?? value
+    if (!mounted) return fallback
     const found = ALL_TIMEZONES.find(e => e.tz === value)
-    return found ? found.label : value.split('/').pop()?.replace(/_/g, ' ') ?? value
-  }, [value])
+    return found ? found.label : fallback
+  }, [value, mounted])
 
   useEffect(() => {
     if (open) {
