@@ -7,6 +7,7 @@ import {
   CaretRight,
   CheckCircle,
   Clock,
+  HourglassMedium,
   Spinner,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
@@ -78,6 +79,7 @@ export function RescheduleClient(props: Props) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [newStartUtc, setNewStartUtc] = useState<string | null>(null);
+  const [pendingApproval, setPendingApproval] = useState(false);
 
   const fetchDays = useCallback(
     async (forMonth: Date) => {
@@ -147,6 +149,7 @@ export function RescheduleClient(props: Props) {
         return;
       }
       setNewStartUtc(data.startUtc);
+      setPendingApproval(!!data.requiresApproval);
       setDone(true);
     } catch {
       setError("Something went wrong. Please try again.");
@@ -169,23 +172,59 @@ export function RescheduleClient(props: Props) {
   if (done) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-        <div className="w-full max-w-md bg-card px-8 py-12 text-center border border-border">
-          <CheckCircle
-            className="mx-auto text-primary"
-            size={48}
-            weight="fill"
-          />
-          <h1 className="mt-4 text-lg font-bold text-foreground">
-            Booking rescheduled
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Your {props.eventName} with {props.hostName} is now on{" "}
-            <strong className="text-foreground">
-              {newStartUtc &&
-                formatInTimeZone(new Date(newStartUtc), inviteeTz, DATE_FMT)}
-            </strong>
-            . A confirmation email is on its way.
-          </p>
+        <div className="w-full max-w-md bg-card border border-border overflow-hidden">
+          <div className="px-8 py-12 text-center">
+            {pendingApproval ? (
+              <HourglassMedium
+                className="mx-auto text-amber-500"
+                size={48}
+                weight="fill"
+              />
+            ) : (
+              <CheckCircle
+                className="mx-auto text-primary"
+                size={48}
+                weight="fill"
+              />
+            )}
+            <h1 className="mt-4 text-lg font-bold text-foreground">
+              {pendingApproval ? "Awaiting host approval" : "Booking rescheduled"}
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {pendingApproval ? (
+                <>
+                  Your request to reschedule{" "}
+                  <strong className="text-foreground">{props.eventName}</strong>{" "}
+                  to{" "}
+                  <strong className="text-foreground">
+                    {newStartUtc &&
+                      formatInTimeZone(new Date(newStartUtc), inviteeTz, DATE_FMT)}
+                  </strong>{" "}
+                  has been sent to {props.hostName} for approval. You'll receive a
+                  confirmation email once approved.
+                </>
+              ) : (
+                <>
+                  Your {props.eventName} with {props.hostName} is now on{" "}
+                  <strong className="text-foreground">
+                    {newStartUtc &&
+                      formatInTimeZone(new Date(newStartUtc), inviteeTz, DATE_FMT)}
+                  </strong>
+                  . A confirmation email is on its way.
+                </>
+              )}
+            </p>
+          </div>
+          <div className="border-t border-border px-8 py-5">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex h-10 w-full items-center justify-center gap-2 border border-border text-sm font-semibold text-foreground transition-all hover:bg-muted"
+            >
+              <ArrowLeft size={14} />
+              Go Back
+            </button>
+          </div>
         </div>
       </main>
     );

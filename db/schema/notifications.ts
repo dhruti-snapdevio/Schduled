@@ -13,6 +13,8 @@ export const notificationPreference = pgTable('notification_preference', {
   reminderEmail1h:          boolean('reminder_email_1h').notNull().default(true),
   cancellationEmail:        boolean('cancellation_email').notNull().default(true),
   rescheduleEmail:          boolean('reschedule_email').notNull().default(true),
+  // Minutes before a meeting the in-app "Join soon" bar appears. 0 = disabled.
+  joinSoonLeadMinutes:      integer('join_soon_lead_minutes').notNull().default(15),
   fromName:                 text('from_name'),
   replyToEmail:             text('reply_to_email'),
   updatedAt:                timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

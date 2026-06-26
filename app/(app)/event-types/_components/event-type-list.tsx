@@ -164,6 +164,14 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
 
   const count = selectedIds.size
 
+  // Only offer the toggle that actually changes something:
+  //  all selected ON  → only "Turn Off";  all OFF → only "Turn On";  mixed → both.
+  const selectedTypes = orderedTypes.filter((et) => selectedIds.has(et.id))
+  const allOn = selectedTypes.length > 0 && selectedTypes.every((et) => et.isActive)
+  const allOff = selectedTypes.length > 0 && selectedTypes.every((et) => !et.isActive)
+  const showTurnOn = !allOn
+  const showTurnOff = !allOff
+
   return (
     <>
       <DndContext
@@ -207,29 +215,33 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
 
           <div className="flex-1" />
 
-          {/* Turn On */}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isPending}
-            onClick={() => handleBulkToggle(true)}
-            className="gap-1.5"
-          >
-            <ToggleRight size={15} weight="bold" />
-            <span className="hidden sm:inline">Turn On</span>
-          </Button>
+          {/* Turn On — hidden when every selected type is already on */}
+          {showTurnOn && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isPending}
+              onClick={() => handleBulkToggle(true)}
+              className="gap-1.5"
+            >
+              <ToggleRight size={15} weight="bold" />
+              <span className="hidden sm:inline">Turn On</span>
+            </Button>
+          )}
 
-          {/* Turn Off */}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isPending}
-            onClick={() => handleBulkToggle(false)}
-            className="gap-1.5"
-          >
-            <ToggleLeft size={15} weight="bold" />
-            <span className="hidden sm:inline">Turn Off</span>
-          </Button>
+          {/* Turn Off — hidden when every selected type is already off */}
+          {showTurnOff && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isPending}
+              onClick={() => handleBulkToggle(false)}
+              className="gap-1.5"
+            >
+              <ToggleLeft size={15} weight="bold" />
+              <span className="hidden sm:inline">Turn Off</span>
+            </Button>
+          )}
 
           {/* Delete */}
           <AlertDialog>

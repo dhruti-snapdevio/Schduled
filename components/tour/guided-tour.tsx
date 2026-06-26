@@ -198,6 +198,18 @@ export function GuidedTour({ userId }: { userId: string }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [show, finish, total])
 
+  // Mark the spotlit target element as active so it renders with selected styles
+  useEffect(() => {
+    const curStep = STEPS[step]
+    document.querySelectorAll('[data-tour-active]').forEach(el => el.removeAttribute('data-tour-active'))
+    if (!show || curStep.kind !== 'spotlight' || !curStep.target) return
+    const el = document.querySelector<HTMLElement>(curStep.target)
+    el?.setAttribute('data-tour-active', 'true')
+    return () => {
+      el?.removeAttribute('data-tour-active')
+    }
+  }, [show, step])
+
   if (!show) return null
 
   const Icon = cur.icon

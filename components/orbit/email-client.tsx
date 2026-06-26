@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowClockwise,
@@ -8,6 +8,8 @@ import {
   Clock,
   Envelope,
   EnvelopeSimple,
+  MagnifyingGlass,
+  X,
   XCircle,
 } from "@phosphor-icons/react";
 import {
@@ -21,6 +23,14 @@ import {
 } from "@/components/ui/pagination";
 import { paginationRange } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -35,6 +45,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -65,58 +76,32 @@ export type EmailStats = {
 
 function getFriendlySubject(subject: string): string {
   const s = subject.toLowerCase();
-  if (s.includes("sign in") || s.includes("magic link") || s.includes("log in"))
-    return "Magic Link Login";
-  if (s.includes("booking confirmation") || s.includes("confirmed your booking"))
-    return "Booking Confirmation";
-  if (s.includes("reminder") || s.includes("upcoming meeting"))
-    return "Meeting Reminder";
-  if (s.includes("password reset") || s.includes("reset your password"))
-    return "Password Reset";
-  if (s.includes("welcome"))
-    return "Welcome Email";
-  if (s.includes("reschedule") || s.includes("rescheduled"))
-    return "Booking Rescheduled";
-  if (s.includes("cancel"))
-    return "Booking Cancelled";
+  if (s.includes("sign in") || s.includes("magic link") || s.includes("log in")) return "Magic Link Login";
+  if (s.includes("booking confirmation") || s.includes("confirmed your booking")) return "Booking Confirmation";
+  if (s.includes("reminder") || s.includes("upcoming meeting")) return "Meeting Reminder";
+  if (s.includes("password reset") || s.includes("reset your password")) return "Password Reset";
+  if (s.includes("welcome")) return "Welcome Email";
+  if (s.includes("reschedule") || s.includes("rescheduled")) return "Booking Rescheduled";
+  if (s.includes("new booking request") || s.includes("approval")) return "Booking Request";
+  if (s.includes("declined") || s.includes("rejected")) return "Booking Declined";
+  if (s.includes("approved")) return "Booking Approved";
+  if (s.includes("cancel")) return "Booking Cancelled";
   return subject;
 }
 
-// ── Outbox status badge ───────────────────────────────────────────────────────
+// ── Status badge ──────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string; dot: string }> = {
-  sent: {
-    label: "Sent",
-    cls:   "bg-success/10 text-success border-success/25",
-    dot:   "bg-success",
-  },
-  failed: {
-    label: "Failed",
-    cls:   "bg-destructive/10 text-destructive border-destructive/20",
-    dot:   "bg-destructive",
-  },
-  queued: {
-    label: "Queued",
-    cls:   "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400",
-    dot:   "bg-amber-500",
-  },
-  sending: {
-    label: "Sending",
-    cls:   "bg-primary/10 text-primary border-primary/20",
-    dot:   "bg-primary",
-  },
+  sent:    { label: "Sent",    cls: "bg-success/10 text-success border-success/25",             dot: "bg-success" },
+  failed:  { label: "Failed",  cls: "bg-destructive/10 text-destructive border-destructive/20", dot: "bg-destructive" },
+  queued:  { label: "Queued",  cls: "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400", dot: "bg-amber-500" },
+  sending: { label: "Sending", cls: "bg-primary/10 text-primary border-primary/20",             dot: "bg-primary" },
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] ?? {
-    label: status,
-    cls:   "bg-muted text-muted-foreground border-border",
-    dot:   "bg-muted-foreground",
-  };
+  const cfg = STATUS_CONFIG[status] ?? { label: status, cls: "bg-muted text-muted-foreground border-border", dot: "bg-muted-foreground" };
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-none border px-2 py-0.5 text-xs font-semibold ${cfg.cls}`}
-    >
+    <span className={`inline-flex items-center gap-1.5 border px-2 py-0.5 text-xs font-semibold ${cfg.cls}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
       {cfg.label}
     </span>
@@ -126,54 +111,19 @@ function StatusBadge({ status }: { status: string }) {
 // ── Event type badge ──────────────────────────────────────────────────────────
 
 const EVENT_CONFIG: Record<string, { label: string; cls: string; dot: string }> = {
-  delivered: {
-    label: "Delivered",
-    cls:   "bg-success/10 text-success border-success/25",
-    dot:   "bg-success",
-  },
-  opened: {
-    label: "Opened",
-    cls:   "bg-blue-500/10 text-blue-600 border-blue-500/25 dark:text-blue-400",
-    dot:   "bg-blue-500",
-  },
-  open: {
-    label: "Opened",
-    cls:   "bg-blue-500/10 text-blue-600 border-blue-500/25 dark:text-blue-400",
-    dot:   "bg-blue-500",
-  },
-  bounced: {
-    label: "Bounced",
-    cls:   "bg-destructive/10 text-destructive border-destructive/20",
-    dot:   "bg-destructive",
-  },
-  bounce: {
-    label: "Bounced",
-    cls:   "bg-destructive/10 text-destructive border-destructive/20",
-    dot:   "bg-destructive",
-  },
-  complained: {
-    label: "Complained",
-    cls:   "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",
-    dot:   "bg-orange-500",
-  },
-  complaint: {
-    label: "Complained",
-    cls:   "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",
-    dot:   "bg-orange-500",
-  },
+  delivered: { label: "Delivered",  cls: "bg-success/10 text-success border-success/25",              dot: "bg-success" },
+  opened:    { label: "Opened",     cls: "bg-blue-500/10 text-blue-600 border-blue-500/25 dark:text-blue-400", dot: "bg-blue-500" },
+  open:      { label: "Opened",     cls: "bg-blue-500/10 text-blue-600 border-blue-500/25 dark:text-blue-400", dot: "bg-blue-500" },
+  bounced:   { label: "Bounced",    cls: "bg-destructive/10 text-destructive border-destructive/20",   dot: "bg-destructive" },
+  bounce:    { label: "Bounced",    cls: "bg-destructive/10 text-destructive border-destructive/20",   dot: "bg-destructive" },
+  complained:{ label: "Complained", cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400", dot: "bg-orange-500" },
+  complaint: { label: "Complained", cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400", dot: "bg-orange-500" },
 };
 
 function EventTypeBadge({ type }: { type: string }) {
-  const key = type.toLowerCase();
-  const cfg = EVENT_CONFIG[key] ?? {
-    label: type,
-    cls:   "bg-muted text-muted-foreground border-border",
-    dot:   "bg-muted-foreground",
-  };
+  const cfg = EVENT_CONFIG[type.toLowerCase()] ?? { label: type, cls: "bg-muted text-muted-foreground border-border", dot: "bg-muted-foreground" };
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-none border px-2 py-0.5 text-xs font-semibold ${cfg.cls}`}
-    >
+    <span className={`inline-flex items-center gap-1.5 border px-2 py-0.5 text-xs font-semibold ${cfg.cls}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
       {cfg.label}
     </span>
@@ -183,56 +133,32 @@ function EventTypeBadge({ type }: { type: string }) {
 // ── Stat card ─────────────────────────────────────────────────────────────────
 
 function StatCard({
-  label,
-  value,
-  icon,
-  accent = false,
-  danger = false,
+  label, value, icon, accent = false, danger = false, active = false, onClick,
 }: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  accent?: boolean;
-  danger?: boolean;
+  label: string; value: number; icon: React.ReactNode;
+  accent?: boolean; danger?: boolean; active?: boolean; onClick?: () => void;
 }) {
   return (
     <Card
-      className={
-        accent
-          ? "border-primary/40 bg-primary/[0.04]"
-          : danger
-          ? "border-destructive/30 bg-destructive/[0.03]"
-          : ""
-      }
+      onClick={onClick}
+      className={cn(
+        onClick && "cursor-pointer transition-all hover:border-primary/50",
+        active && "ring-2 ring-primary ring-offset-0",
+        accent ? "border-primary/40 bg-primary/[0.04]" : danger ? "border-destructive/30 bg-destructive/[0.03]" : "",
+      )}
     >
       <CardContent className="px-5 pb-4 pt-5">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-ui text-muted-foreground">
-              {label}
-            </p>
-            <p className="mt-1.5 font-heading text-3xl font-bold text-foreground">
-              {value}
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-ui text-muted-foreground">{label}</p>
+            <p className="mt-1.5 font-heading text-3xl font-bold text-foreground">{value}</p>
           </div>
-          <span
-            className={
-              accent
-                ? "text-primary"
-                : danger
-                ? "text-destructive"
-                : "text-muted-foreground/60"
-            }
-          >
-            {icon}
-          </span>
+          <span className={accent ? "text-primary" : danger ? "text-destructive" : "text-muted-foreground/60"}>{icon}</span>
         </div>
       </CardContent>
     </Card>
   );
 }
-
-// ── Timer ─────────────────────────────────────────────────────────────────────
 
 function formatSecondsAgo(s: number): string {
   if (s < 60) return `${s}s ago`;
@@ -242,9 +168,10 @@ function formatSecondsAgo(s: number): string {
 
 function formatDate(iso: string): { date: string; time: string } {
   const d = new Date(iso);
-  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  return { date, time };
+  return {
+    date: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    time: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+  };
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -256,6 +183,8 @@ export function EmailClient({
   outboxPage,
   outboxTotalPages,
   fetchedAt,
+  searchQuery = "",
+  statusFilter = "all",
 }: {
   outbox: OutboxRow[];
   events: EventRow[];
@@ -263,10 +192,16 @@ export function EmailClient({
   outboxPage: number;
   outboxTotalPages: number;
   fetchedAt: string;
+  searchQuery?: string;
+  statusFilter?: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const [secondsAgo, setSecondsAgo] = useState(0);
+  const [inputValue, setInputValue] = useState(searchQuery);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
+
+  useEffect(() => { setInputValue(searchQuery); }, [searchQuery]);
 
   useEffect(() => {
     setSecondsAgo(0);
@@ -274,13 +209,43 @@ export function EmailClient({
     return () => clearInterval(id);
   }, [fetchedAt]);
 
-  function handleRefresh() {
-    startTransition(() => router.refresh());
+  function buildUrl({ q, status, page }: { q?: string; status?: string; page?: number }) {
+    const params = new URLSearchParams();
+    const qVal    = q      !== undefined ? q      : inputValue;
+    const statVal = status !== undefined ? status : statusFilter;
+    const pageVal = page   !== undefined ? page   : outboxPage;
+    if (qVal.trim())             params.set("q",         qVal.trim());
+    if (statVal && statVal !== "all") params.set("status",    statVal);
+    if (pageVal > 1)             params.set("outboxPage", String(pageVal));
+    const str = params.toString();
+    return `/orbit/email${str ? `?${str}` : ""}`;
+  }
+
+  function handleRefresh() { startTransition(() => router.refresh()); }
+
+  function handleSearchChange(val: string) {
+    setInputValue(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      startTransition(() => router.push(buildUrl({ q: val, page: 1 })));
+    }, 350);
+  }
+
+  function clearSearch() {
+    setInputValue("");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    startTransition(() => router.push(buildUrl({ q: "", page: 1 })));
+  }
+
+  function handleStatusChange(s: string) {
+    startTransition(() => router.push(buildUrl({ status: s, page: 1 })));
   }
 
   function goToPage(p: number) {
-    startTransition(() => router.push(`/orbit/email?outboxPage=${p}`));
+    startTransition(() => router.push(buildUrl({ page: p })));
   }
+
+  const isFiltered = inputValue.trim() !== "" || (statusFilter !== "all" && statusFilter !== "");
 
   return (
     <div className="space-y-8">
@@ -293,69 +258,137 @@ export function EmailClient({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-xs text-muted-foreground">
-            Updated {formatSecondsAgo(secondsAgo)}
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-xs"
-            onClick={handleRefresh}
-            disabled={isPending}
-          >
-            <ArrowClockwise
-              size={13}
-              className={isPending ? "animate-spin" : ""}
-            />
+          <p className="text-xs text-muted-foreground">Updated {formatSecondsAgo(secondsAgo)}</p>
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleRefresh} disabled={isPending}>
+            <ArrowClockwise size={13} className={isPending ? "animate-spin" : ""} />
             {isPending ? "Refreshing…" : "Refresh"}
           </Button>
         </div>
       </div>
 
-      {/* ── Summary stat cards ───────────────────────────────────────────── */}
+      {/* ── Summary stat cards (clickable as status shortcuts) ───────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Total Emails"
-          value={stats.total}
+          label="Total Emails" value={stats.total}
           icon={<Envelope size={20} weight="duotone" />}
+          onClick={() => handleStatusChange("all")}
+          active={!statusFilter || statusFilter === "all"}
         />
         <StatCard
-          label="Sent"
-          value={stats.sent}
+          label="Sent" value={stats.sent}
           icon={<CheckCircle size={20} weight="duotone" />}
           accent
+          onClick={() => handleStatusChange("sent")}
+          active={statusFilter === "sent"}
         />
         <StatCard
-          label="Failed"
-          value={stats.failed}
+          label="Failed" value={stats.failed}
           icon={<XCircle size={20} weight="duotone" />}
           danger={stats.failed > 0}
+          onClick={() => handleStatusChange("failed")}
+          active={statusFilter === "failed"}
         />
         <StatCard
-          label="Pending"
-          value={stats.pending}
+          label="Pending" value={stats.pending}
           icon={<Clock size={20} weight="duotone" />}
+          onClick={() => handleStatusChange("queued")}
+          active={statusFilter === "queued" || statusFilter === "sending"}
         />
       </div>
 
       {/* ── Outbox + Events ──────────────────────────────────────────────── */}
       <div className="grid gap-6 xl:grid-cols-3">
+
         {/* Outbox — 2/3 width */}
         <Card className="xl:col-span-2">
-          <CardHeader className="py-4">
-            <CardTitle className="text-base font-semibold">Outbox</CardTitle>
+          {/* Toolbar */}
+          <CardHeader className="border-b border-border py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-semibold">Outbox</CardTitle>
+                {isFiltered && outbox.length > 0 && (
+                  <span className="inline-flex items-center border border-border bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
+                    {outboxTotalPages > 1
+                      ? `Page ${outboxPage} / ${outboxTotalPages}`
+                      : `${outbox.length} result${outbox.length !== 1 ? "s" : ""}`}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Search */}
+                <div className="relative">
+                  <MagnifyingGlass
+                    size={13}
+                    className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    value={inputValue}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    placeholder="Search recipient or subject…"
+                    className="h-9 w-52 pl-8 pr-7 text-sm"
+                  />
+                  {inputValue && (
+                    <button
+                      type="button"
+                      onClick={clearSearch}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Status filter dropdown */}
+                <Select value={statusFilter || "all"} onValueChange={handleStatusChange}>
+                  <SelectTrigger size="sm" className="h-9 w-38 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper" align="end">
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="sent">Sent</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="queued">Queued</SelectItem>
+                    <SelectItem value="sending">Sending</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Clear filters */}
+                {isFiltered && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 gap-1.5 px-3 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => { clearSearch(); handleStatusChange("all"); }}
+                  >
+                    <X size={12} />
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
           </CardHeader>
+
           <CardContent className="p-0">
             {outbox.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-                <span className="text-muted-foreground/25">
-                  <Envelope size={40} weight="duotone" />
-                </span>
+                <span className="text-muted-foreground/25"><Envelope size={40} weight="duotone" /></span>
                 <div>
-                  <p className="text-sm font-medium text-foreground">No emails yet</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Emails will appear here once the queue starts processing.
+                  <p className="text-sm font-medium text-foreground">
+                    {isFiltered ? "No emails match your search" : "No emails yet"}
                   </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {isFiltered ? "Try a different term or clear the filters." : "Emails will appear here once the queue starts processing."}
+                  </p>
+                  {isFiltered && (
+                    <button
+                      type="button"
+                      onClick={() => { clearSearch(); handleStatusChange("all"); }}
+                      className="mt-3 text-xs font-medium text-primary hover:underline"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -363,64 +396,33 @@ export function EmailClient({
                 <Table className="w-full text-sm">
                   <TableHeader>
                     <TableRow className="border-b border-border bg-muted/40">
-                      <TableHead className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
-                        Recipient
-                      </TableHead>
-                      <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
-                        Subject
-                      </TableHead>
-                      <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
-                        Status
-                      </TableHead>
-                      <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
-                        Attempts
-                      </TableHead>
-                      <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
-                        Sent At
-                      </TableHead>
+                      <TableHead className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">Recipient</TableHead>
+                      <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">Subject</TableHead>
+                      <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">Status</TableHead>
+                      <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">Attempts</TableHead>
+                      <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">Sent At</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {outbox.map((email) => {
                       const sentAt = email.sentAt ? formatDate(email.sentAt) : null;
                       return (
-                        <TableRow
-                          key={email.id}
-                          className="border-b border-border transition-colors hover:bg-muted/20 last:border-0"
-                        >
-                          {/* Recipient */}
+                        <TableRow key={email.id} className="border-b border-border transition-colors hover:bg-muted/20 last:border-0">
                           <TableCell className="px-6 py-3">
-                            <p className="max-w-[180px] truncate text-sm">
-                              {email.payload.to}
-                            </p>
+                            <p className="max-w-[180px] truncate text-sm">{email.payload.to}</p>
                           </TableCell>
-
-                          {/* Subject */}
                           <TableCell className="px-4 py-3">
-                            <p className="text-sm font-medium">
-                              {getFriendlySubject(email.payload.subject)}
-                            </p>
-                            {getFriendlySubject(email.payload.subject) !==
-                              email.payload.subject && (
-                              <p className="mt-0.5 text-xs text-muted-foreground/60 truncate max-w-[200px]">
+                            <p className="text-sm font-medium">{getFriendlySubject(email.payload.subject)}</p>
+                            {getFriendlySubject(email.payload.subject) !== email.payload.subject && (
+                              <p className="mt-0.5 max-w-[200px] truncate text-xs text-muted-foreground/60">
                                 {email.payload.subject}
                               </p>
                             )}
                           </TableCell>
-
-                          {/* Status */}
+                          <TableCell className="px-4 py-3"><StatusBadge status={email.status} /></TableCell>
                           <TableCell className="px-4 py-3">
-                            <StatusBadge status={email.status} />
+                            <span className="tabular-nums text-sm text-muted-foreground">{email.attemptCount}</span>
                           </TableCell>
-
-                          {/* Attempts */}
-                          <TableCell className="px-4 py-3">
-                            <span className="text-sm tabular-nums text-muted-foreground">
-                              {email.attemptCount}
-                            </span>
-                          </TableCell>
-
-                          {/* Sent At */}
                           <TableCell className="px-4 py-3 text-xs text-muted-foreground">
                             {sentAt ? (
                               <>
@@ -460,13 +462,7 @@ export function EmailClient({
                         <PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>
                       ) : (
                         <PaginationItem key={p}>
-                          <PaginationLink
-                            href="#"
-                            isActive={p === outboxPage}
-                            onClick={(e) => { e.preventDefault(); goToPage(p); }}
-                          >
-                            {p}
-                          </PaginationLink>
+                          <PaginationLink href="#" isActive={p === outboxPage} onClick={(e) => { e.preventDefault(); goToPage(p); }}>{p}</PaginationLink>
                         </PaginationItem>
                       )
                     )}
@@ -487,23 +483,18 @@ export function EmailClient({
 
         {/* Events — 1/3 width */}
         <Card>
-          <CardHeader className="py-4">
+          <CardHeader className="border-b border-border py-4">
             <CardTitle className="text-base font-semibold">Events</CardTitle>
+            <p className="text-xs text-muted-foreground">SMTP delivery, opens, bounces and complaints.</p>
           </CardHeader>
           <CardContent className="p-0">
             {events.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-                <span className="text-muted-foreground/25">
-                  <EnvelopeSimple size={40} weight="duotone" />
-                </span>
+                <span className="text-muted-foreground/25"><EnvelopeSimple size={40} weight="duotone" /></span>
                 <div>
-                  <p className="text-sm font-medium text-foreground">
-                    No email events yet
-                  </p>
+                  <p className="text-sm font-medium text-foreground">No email events yet</p>
                   <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                    SMTP delivery, opens, bounces
-                    <br />
-                    and complaints will appear here.
+                    Events will appear here once<br />your SMTP webhook is configured.
                   </p>
                 </div>
               </div>
@@ -512,16 +503,11 @@ export function EmailClient({
                 {events.map((event) => {
                   const received = formatDate(event.receivedAt);
                   return (
-                    <div
-                      key={event.id}
-                      className="flex items-start justify-between gap-4 border-b border-border px-5 py-3 last:border-0"
-                    >
+                    <div key={event.id} className="flex items-start justify-between gap-4 border-b border-border px-5 py-3 last:border-0">
                       <div className="min-w-0">
                         <EventTypeBadge type={event.eventType} />
                         {event.recipient && (
-                          <p className="mt-1 truncate text-xs text-muted-foreground max-w-[160px]">
-                            {event.recipient}
-                          </p>
+                          <p className="mt-1 max-w-[160px] truncate text-xs text-muted-foreground">{event.recipient}</p>
                         )}
                       </div>
                       <div className="shrink-0 text-right text-xs text-muted-foreground">

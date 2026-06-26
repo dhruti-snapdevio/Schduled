@@ -407,6 +407,13 @@ details[open] .faq-body { animation: schduled-faq-open 0.25s ease-out both; }
   }
 }
 
+/* ── Guided tour — force active sidebar style on spotlit nav link ─── */
+nav a[data-tour-active="true"] {
+  border-left-color: var(--sidebar-primary) !important;
+  background-color: var(--sidebar-primary) !important;
+  color: var(--sidebar-primary-foreground) !important;
+}
+
 /* ── NProgress route-change bar ─────────────────────────────────────────────── */
 #nprogress .bar { background: var(--primary) !important; }
 #nprogress .peg { display: none !important; }

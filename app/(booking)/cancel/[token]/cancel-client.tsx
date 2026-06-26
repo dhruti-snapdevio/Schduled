@@ -89,6 +89,16 @@ export function CancelClient(props: Props) {
               </p>
             )}
           </div>
+          <div className="border-t border-border px-5 sm:px-8 py-5">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex h-10 w-full items-center justify-center gap-2 border border-border text-sm font-semibold text-foreground transition-all hover:bg-muted"
+            >
+              <ArrowLeft size={14} />
+              Go Back
+            </button>
+          </div>
         </div>
       </main>
     );
@@ -98,27 +108,51 @@ export function CancelClient(props: Props) {
     <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md overflow-hidden bg-card border border-border">
         {done ? (
-          <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
-            <CheckCircle className="text-primary" size={48} weight="fill" />
-            <h1 className="text-lg font-bold text-foreground">
-              Booking cancelled
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Your {props.eventName} with {props.hostName} has been cancelled. A
-              confirmation email is on its way.
-            </p>
-          </div>
+          <>
+            <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
+              <CheckCircle className="text-primary" size={48} weight="fill" />
+              <h1 className="text-lg font-bold text-foreground">
+                Booking cancelled
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Your {props.eventName} with {props.hostName} has been cancelled. A
+                confirmation email is on its way.
+              </p>
+            </div>
+            <div className="border-t border-border px-5 sm:px-8 py-5">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="flex h-10 w-full items-center justify-center gap-2 border border-border text-sm font-semibold text-foreground transition-all hover:bg-muted"
+              >
+                <ArrowLeft size={14} />
+                Go Back
+              </button>
+            </div>
+          </>
         ) : props.isPast ? (
-          <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
-            <Warning className="text-amber-500" size={48} weight="fill" />
-            <h1 className="text-lg font-bold text-foreground">
-              This booking has passed
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              It&apos;s no longer possible to cancel a meeting that has already
-              taken place.
-            </p>
-          </div>
+          <>
+            <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
+              <Warning className="text-amber-500" size={48} weight="fill" />
+              <h1 className="text-lg font-bold text-foreground">
+                This booking has passed
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                It&apos;s no longer possible to cancel a meeting that has already
+                taken place.
+              </p>
+            </div>
+            <div className="border-t border-border px-5 sm:px-8 py-5">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="flex h-10 w-full items-center justify-center gap-2 border border-border text-sm font-semibold text-foreground transition-all hover:bg-muted"
+              >
+                <ArrowLeft size={14} />
+                Go Back
+              </button>
+            </div>
+          </>
         ) : (
           <>
             <div className="border-b border-border bg-muted/30 px-5 sm:px-8 py-5">

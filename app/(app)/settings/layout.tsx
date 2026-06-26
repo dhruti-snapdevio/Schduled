@@ -12,8 +12,8 @@ export default function SettingsLayout({
         <SettingsMobileNav />
       </div>
 
-      <div className="flex gap-8">
-        <aside className="hidden w-48 shrink-0 md:block">
+      <div className="flex items-start gap-8">
+        <aside className="hidden w-48 shrink-0 md:block md:sticky md:top-6 md:self-start">
           <SettingsNav />
         </aside>
         <div className="min-w-0 flex-1">{children}</div>

@@ -50,6 +50,20 @@
       "when": 1782373661245,
       "tag": "0006_conscious_thunderbolt_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782453167436,
+      "tag": "0007_safe_living_lightning",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782453603507,
+      "tag": "0008_clever_ikaris",
+      "breakpoints": true
     }
   ]
 }

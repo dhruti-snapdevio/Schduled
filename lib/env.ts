@@ -33,6 +33,15 @@ const envSchema = z.object({
   ZOOM_CLIENT_ID: optionalString,
   ZOOM_CLIENT_SECRET: optionalString,
 
+  // Address autocomplete geocoder. Defaults to free, keyless Photon (OSM).
+  // Set a Google or Mapbox key for richer village/street/building coverage —
+  // the provider is auto-detected, or pin it with GEOCODER_PROVIDER.
+  GEOCODER_PROVIDER: z
+    .enum(["photon", "google", "mapbox"])
+    .optional(),
+  GOOGLE_MAPS_API_KEY: optionalString,
+  MAPBOX_TOKEN: optionalString,
+
   // File storage driver: 'local' (default, saves to public/uploads/) or 's3' (Cloudflare R2 / AWS S3)
   STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
 
