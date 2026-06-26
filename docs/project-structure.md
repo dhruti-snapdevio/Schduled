@@ -2,7 +2,7 @@
 
 Complete folder and file structure with explanations for every directory. A new developer should be able to read this document and know exactly where to find any piece of code and where to add new code.
 
-> **Reference:** Structure follows the same conventions as Krova — Next.js App Router, lib/ for business logic, db/ for data layer, worker/ for background jobs.
+> **Structure:** Next.js App Router, lib/ for business logic, db/ for data layer, worker/ for background jobs.
 
 ---
 
@@ -182,7 +182,7 @@ src/lib/
 ├── encrypt.ts                      ← AES-256-GCM encrypt/decrypt (for OAuth tokens at rest)
 │
 ├── db/                             ← Drizzle ORM — schema + query helpers
-│   ├── schema/                     ← ONE file per domain (Krova pattern)
+│   ├── schema/                     ← ONE file per domain
 │   │   ├── enums.ts                ← ALL pgEnum definitions (imported by every domain file)
 │   │   ├── auth.ts                 ← users, sessions, accounts, verifications
 │   │   ├── profile.ts              ← user_profiles, user_branding, username_redirects

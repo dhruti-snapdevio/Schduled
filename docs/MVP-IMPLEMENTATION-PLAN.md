@@ -766,7 +766,7 @@ icons: {
 
 ## STEP 2 — Rename + Update Branding in Existing Files ✅ DONE
 
-> **Status: Complete.** `config/platform.ts` has `PRODUCT_NAME = "Schduled"`. App shell has correct nav. No "KROVA" references remain.
+> **Status: Complete.** `config/platform.ts` has `PRODUCT_NAME = "Schduled"`. App shell has correct nav.
 
 For reference only — what was changed:
 
@@ -788,7 +788,7 @@ const navLinks = [
 ]
 ```
 
-**Done when:** App shell shows correct Schduled nav. "KROVA" text is gone.
+**Done when:** App shell shows correct Schduled nav and branding.
 
 ---
 
@@ -2108,7 +2108,7 @@ The `(orbit)` admin already exists with: overview, users list, email outbox, job
 
 **Audit results:**
 - ✅ Zero `Powered by` strings remaining
-- ✅ Zero `KROVA` (old brand) references
+- ✅ Zero old brand references
 - ✅ Zero SaaS upsell strings (`upgrade to`, `go pro`, `unlock`, `subscribe`)
 - ✅ No `/pricing` page
 - ✅ No billing tables in schema
@@ -2276,7 +2276,7 @@ ALREADY DONE ✅ (re-audited 2026-06-18, session 7):
   Notification system — bell + dismiss + clear-all + mark-read + API routes
 
 Step 1   → ✅ globals.css + fonts
-Step 2   → ✅ Renamed KROVA → Schduled
+Step 2   → ✅ Branding set to Schduled
 Step 3   → ✅ All packages + Shadcn components installed
 Step 4   → ✅ All common components — logo, theme-provider, theme-toggle, page-header,
              spinner, empty, data-table, kbd, nav-progress — ALL confirmed present
@@ -2314,7 +2314,7 @@ Step 24  → ✅ DONE — Landing page + /privacy + /terms + /cookies + /about +
 Step 25  → ✅ DONE — overview/users/email/queues/audit/settings + /orbit/users/[id] detail
              ⚠️  Impersonation amber banner (session.impersonatedBy) still missing
 Step 26  → ✅ DONE — watermark removed (5 locations), open source audit clean
-             ✅ Zero "Powered by" strings, zero SaaS upsell strings, zero KROVA references
+             ✅ Zero "Powered by" strings, zero SaaS upsell strings, zero old brand references
 Step 27  → ❌ QA (10 test sequences) + launch checklist
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

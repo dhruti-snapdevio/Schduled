@@ -2,7 +2,7 @@
 
 All background work in Schedica runs through **pg-boss** — a PostgreSQL-backed job queue. No Redis, no separate message broker. The same PostgreSQL database used for application data also stores all job state. pg-boss runs as a **separate worker process** (`pnpm worker`) alongside the Next.js server.
 
-> **Pattern adopted from Krova:** Every job uses a deterministic `singletonKey` in the format `{entityId}_{jobType}`. This ensures each job is uniquely identifiable, cancellable by key, and cannot create duplicates if the same event fires twice.
+> Every job uses a deterministic `singletonKey` in the format `{entityId}_{jobType}`. This ensures each job is uniquely identifiable, cancellable by key, and cannot create duplicates if the same event fires twice.
 
 ---
 
@@ -110,7 +110,7 @@ export const EMAIL_SEND_CONFIG = {
 
 // Retry backoff when SMTP call fails but is retryable (5xx, 429, network error):
 // handler backs the row to 'queued' and re-enqueues EMAIL_SEND with this delay.
-// These match Krova's proven production values.
+// Retry backoff values: attempt 0 → 1min, 1 → 5min, 2 → 15min.
 const EMAIL_RETRY_BACKOFF_SECONDS = [60, 300, 900]  // attempt 0 → 1min, 1 → 5min, 2 → 15min
 
 // Handler pattern
@@ -519,7 +519,7 @@ Raising it only where the handler is provably safe to run in parallel avoids rac
 
 ## Queue Policy — `"exclusive"` Requirement
 
-> **Adopted from Krova.** This is a silent failure mode: without the correct policy, `singletonKey` deduplication does nothing. There is no error — duplicates just stack up silently.
+> **Important:** This is a silent failure mode — without the correct policy, `singletonKey` deduplication does nothing. There is no error — duplicates just stack up silently.
 
 ### The Problem
 

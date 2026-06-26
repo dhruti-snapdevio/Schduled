@@ -684,9 +684,9 @@ S3_ENDPOINT=                                 # leave empty for AWS; set for Clou
 
 ---
 
-## Tools NOT in Schedica (from Krova, excluded intentionally)
+## Tools NOT in Schduled (excluded intentionally)
 
-| Krova Tool | Why Not in Schedica |
+| Tool | Why Not in Schduled |
 |-----------|---------------------|
 | Pusher / Soketi | Real-time WebSockets not needed for scheduling; no live VM state to sync |
 | Polar SDK | Schedica is free/open source — no billing, no subscriptions |

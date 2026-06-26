@@ -1,6 +1,6 @@
 # Design System
 
-This document defines the complete visual design and UI implementation for Schedica. Every screen, component, color, font, layout, and interaction pattern is specified here. All decisions are adopted from the Krova reference implementation and adapted for Schedica's scheduling context.
+This document defines the complete visual design and UI implementation for Schduled. Every screen, component, color, font, layout, and interaction pattern is specified here.
 
 ---
 
