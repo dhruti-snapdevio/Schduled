@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { BuilderFormValues } from "./builder";
@@ -226,12 +227,26 @@ export function TabLocation({
             <FormItem>
               <FormLabel>{selected.valueLabel}</FormLabel>
               <FormControl>
-                <Input
-                  placeholder={selected.valuePlaceholder}
-                  {...field}
-                  value={field.value ?? ""}
-                />
+                {locationType === "in_person" ? (
+                  <AddressAutocomplete
+                    placeholder={selected.valuePlaceholder}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                ) : (
+                  <Input
+                    placeholder={selected.valuePlaceholder}
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                )}
               </FormControl>
+              {locationType === "in_person" && (
+                <FormDescription>
+                  Start typing to search for an address, or enter it manually.
+                </FormDescription>
+              )}
               <FormMessage />
             </FormItem>
           )}

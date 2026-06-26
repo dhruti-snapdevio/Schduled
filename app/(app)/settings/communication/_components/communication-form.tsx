@@ -8,6 +8,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+const JOIN_SOON_OPTIONS = [
+  { value: 0,  label: 'Off' },
+  { value: 5,  label: '5 minutes before' },
+  { value: 10, label: '10 minutes before' },
+  { value: 15, label: '15 minutes before' },
+  { value: 30, label: '30 minutes before' },
+  { value: 60, label: '1 hour before' },
+]
 
 interface CommunicationFormProps {
   initial: CommPrefs
@@ -91,6 +101,37 @@ export function CommunicationForm({ initial }: CommunicationFormProps) {
               />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* In-app "Join soon" bar */}
+      <Card>
+        <CardHeader>
+          <CardTitle>In-App Reminders</CardTitle>
+          <CardDescription>The &ldquo;Join soon&rdquo; bar that slides in before a meeting starts.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">Show &ldquo;Join soon&rdquo; bar</p>
+              <p className="text-sm text-muted-foreground">
+                Appears at the top of the app with a live countdown and a Join button before your meeting.
+              </p>
+            </div>
+            <Select
+              value={String(prefs.joinSoonLeadMinutes)}
+              onValueChange={(v) => setPrefs((p) => ({ ...p, joinSoonLeadMinutes: Number(v) }))}
+            >
+              <SelectTrigger className="w-44 shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {JOIN_SOON_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 

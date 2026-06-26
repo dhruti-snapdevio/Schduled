@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import Image from 'next/image'
 import {
   addDays,
@@ -16,13 +16,16 @@ import {
 } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
 import {
+  Check,
   Clock,
+  CaretDown,
   CaretLeft,
   CaretRight,
   Globe,
   CheckCircle,
   ArrowLeft,
   ArrowRight,
+  MagnifyingGlass,
   VideoCamera,
   Phone,
   MapPin,
@@ -33,6 +36,7 @@ import {
   Briefcase,
 } from '@phosphor-icons/react'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -214,33 +218,163 @@ const ALL_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'satur
 
 const STEPS = ['Date', 'Time', 'Details']
 
-const BASE_TIMEZONES = [
-  'Pacific/Honolulu',
-  'America/Anchorage',
-  'America/Los_Angeles',
-  'America/Phoenix',
-  'America/Denver',
-  'America/Chicago',
-  'America/New_York',
-  'America/Halifax',
-  'America/Sao_Paulo',
-  'Atlantic/Azores',
-  'Europe/London',
-  'Europe/Paris',
-  'Europe/Helsinki',
-  'Europe/Moscow',
-  'Asia/Dubai',
-  'Asia/Karachi',
-  'Asia/Kolkata',
-  'Asia/Calcutta',
-  'Asia/Dhaka',
-  'Asia/Bangkok',
-  'Asia/Singapore',
-  'Asia/Tokyo',
-  'Australia/Perth',
-  'Australia/Sydney',
-  'Pacific/Auckland',
-]
+// Build the full searchable timezone list once at module load (client-only).
+// Each entry carries a pre-computed offset string and search key so filtering
+// is cheap: no per-keystroke Intl calls.
+interface TzEntry { tz: string; city: string; label: string; searchKey: string }
+
+function buildTzList(): TzEntry[] {
+  const now = new Date()
+  let zones: string[]
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    zones = (Intl as any).supportedValuesOf('timeZone') as string[]
+  } catch {
+    zones = [
+      'Pacific/Honolulu','America/Anchorage','America/Los_Angeles','America/Phoenix',
+      'America/Denver','America/Chicago','America/New_York','America/Sao_Paulo',
+      'Europe/London','Europe/Paris','Europe/Helsinki','Europe/Moscow',
+      'Asia/Dubai','Asia/Karachi','Asia/Kolkata','Asia/Dhaka','Asia/Bangkok',
+      'Asia/Singapore','Asia/Tokyo','Australia/Perth','Australia/Sydney','Pacific/Auckland',
+    ]
+  }
+
+  const offsetMinutes = (tz: string): number => {
+    // Compute numeric UTC offset for sort
+    try {
+      const parts = new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'shortOffset' })
+        .formatToParts(now)
+      const raw = parts.find(p => p.type === 'timeZoneName')?.value ?? 'UTC'
+      const m = raw.match(/([+-])(\d+):(\d+)/)
+      if (!m) return 0
+      return (m[1] === '-' ? -1 : 1) * (parseInt(m[2]) * 60 + parseInt(m[3]))
+    } catch { return 0 }
+  }
+
+  return zones
+    .map(tz => {
+      let offset = 'UTC'
+      try {
+        const parts = new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'shortOffset' })
+          .formatToParts(now)
+        offset = parts.find(p => p.type === 'timeZoneName')?.value ?? 'UTC'
+      } catch { /* keep UTC */ }
+      const city = tz.split('/').pop()?.replace(/_/g, ' ') ?? tz
+      const label = `${city} (${offset})`
+      const searchKey = `${tz.toLowerCase().replace(/_/g, ' ')} ${offset.toLowerCase()}`
+      return { tz, city, label, searchKey }
+    })
+    .sort((a, b) => offsetMinutes(a.tz) - offsetMinutes(b.tz))
+}
+
+const ALL_TIMEZONES: TzEntry[] = typeof window !== 'undefined' ? buildTzList() : []
+
+// ── Timezone Search Component ─────────────────────────────────────────────────
+
+function TimezoneSearch({ value, onChange }: { value: string; onChange: (tz: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const selectedRef = useRef<HTMLButtonElement>(null)
+
+  const list = useMemo(() => {
+    if (!ALL_TIMEZONES.length) return []
+    if (!search.trim()) return ALL_TIMEZONES
+    const q = search.toLowerCase().replace(/[_/]/g, ' ')
+    return ALL_TIMEZONES.filter(e => e.searchKey.includes(q))
+  }, [search])
+
+  const currentLabel = useMemo(() => {
+    const found = ALL_TIMEZONES.find(e => e.tz === value)
+    return found ? found.label : value.split('/').pop()?.replace(/_/g, ' ') ?? value
+  }, [value])
+
+  useEffect(() => {
+    if (open) {
+      // Focus input and scroll selected item into view after paint
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+        selectedRef.current?.scrollIntoView({ block: 'nearest' })
+      })
+    } else {
+      setSearch('')
+    }
+  }, [open])
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Globe size={14} className="shrink-0" />
+          <span className="flex-1 truncate text-left">{currentLabel}</span>
+          <CaretDown size={12} className="shrink-0 opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        side="top"
+        className="w-72 p-0"
+        onOpenAutoFocus={e => e.preventDefault()}
+      >
+        {/* Search input */}
+        <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+          <MagnifyingGlass size={14} className="shrink-0 text-muted-foreground" />
+          <input
+            ref={inputRef}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search city or timezone…"
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="text-muted-foreground/60 hover:text-foreground transition-colors"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Timezone list */}
+        <div className="max-h-60 overflow-y-auto">
+          {list.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">No timezones found</p>
+          ) : (
+            list.map(entry => {
+              const isSelected = entry.tz === value
+              return (
+                <button
+                  key={entry.tz}
+                  ref={isSelected ? selectedRef : undefined}
+                  type="button"
+                  onClick={() => { onChange(entry.tz); setOpen(false) }}
+                  className={cn(
+                    'flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-muted',
+                    isSelected && 'bg-primary/8 font-medium text-primary',
+                  )}
+                >
+                  <span className="truncate">{entry.label}</span>
+                  {isSelected && <Check size={13} weight="bold" className="ml-2 shrink-0" />}
+                </button>
+              )
+            })
+          )}
+        </div>
+
+        {!search && (
+          <p className="border-t border-border px-3 py-2 text-xs text-muted-foreground/60">
+            {ALL_TIMEZONES.length} timezones · type to search
+          </p>
+        )}
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 function locationMeta(type: string): { icon: React.ReactNode; label: string } {
   if (type === 'zoom' || type === 'google_meet')
@@ -271,12 +405,6 @@ export function BookingCalendar({
     30
 
   const [selectedDuration, setSelectedDuration] = useState(defaultDuration)
-  const [commonTimezones] = useState(() => {
-    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
-    return BASE_TIMEZONES.includes(detected)
-      ? BASE_TIMEZONES
-      : [...BASE_TIMEZONES, detected]
-  })
   const [inviteeTz, setInviteeTz] = useState(() =>
     Intl.DateTimeFormat().resolvedOptions().timeZone
   )
@@ -858,19 +986,7 @@ export function BookingCalendar({
 
               {/* Timezone picker */}
               <div className="mt-5 border-t border-border pt-4">
-                <Select value={inviteeTz} onValueChange={setInviteeTz}>
-                  <SelectTrigger className="h-auto w-full gap-1.5 border-0 bg-transparent p-0 text-sm text-muted-foreground shadow-none focus-visible:ring-0">
-                    <Globe size={14} className="shrink-0" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent style={{ maxHeight: 280 }}>
-                    {commonTimezones.map((tz) => (
-                      <SelectItem key={tz} value={tz} className="text-sm">
-                        {tz.replace(/_/g, ' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <TimezoneSearch value={inviteeTz} onChange={setInviteeTz} />
               </div>
             </div>
           )}

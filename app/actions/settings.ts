@@ -190,11 +190,14 @@ export interface CommPrefs {
   bookingNotificationEmail: boolean;
   cancellationEmail: boolean;
   fromName: string;
+  joinSoonLeadMinutes: number;
   reminderEmail1h: boolean;
   reminderEmail24h: boolean;
   replyToEmail: string;
   rescheduleEmail: boolean;
 }
+
+const JOIN_SOON_LEAD_OPTIONS = [0, 5, 10, 15, 30, 60];
 
 export async function updateCommunicationPrefs(
   data: CommPrefs
@@ -215,6 +218,11 @@ export async function updateCommunicationPrefs(
       .where(eq(notificationPreference.userId, session.user.id))
       .limit(1);
 
+    // Only accept one of the allowed lead-time choices; default to 15.
+    const joinSoonLeadMinutes = JOIN_SOON_LEAD_OPTIONS.includes(data.joinSoonLeadMinutes)
+      ? data.joinSoonLeadMinutes
+      : 15;
+
     const values = {
       bookingConfirmationEmail: data.bookingConfirmationEmail,
       bookingNotificationEmail: data.bookingNotificationEmail,
@@ -222,6 +230,7 @@ export async function updateCommunicationPrefs(
       reminderEmail1h: data.reminderEmail1h,
       cancellationEmail: data.cancellationEmail,
       rescheduleEmail: data.rescheduleEmail,
+      joinSoonLeadMinutes,
       fromName: fromName || null,
       replyToEmail: replyTo || null,
       updatedAt: new Date(),

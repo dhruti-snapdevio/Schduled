@@ -3,6 +3,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { HeaderAvatar } from "./header-avatar";
 import { GlobalSearch } from "./global-search";
 import { ImpersonationBanner } from "./impersonation-banner";
+import { JoinSoonBar } from "./join-soon-bar";
 import { MobileNav } from "./mobile-nav";
 import { NotificationBell } from "./notification-bell";
 import { SidebarNav } from "./sidebar-nav";
@@ -57,6 +58,9 @@ export function AppShell({
             <HeaderAvatar />
           </div>
         </header>
+
+        {/* "Join soon" countdown bar — slides in when a meeting is imminent */}
+        <JoinSoonBar />
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto overflow-x-clip bg-page pb-16 md:pb-0">

@@ -1,13 +1,16 @@
 "use client";
 
 import {
+  CalendarBlank,
   Check,
   CheckCircle,
+  House,
   Spinner,
   Warning,
   X,
 } from "@phosphor-icons/react";
 import { formatInTimeZone } from "date-fns-tz";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 interface Props {
@@ -138,6 +141,22 @@ export function ReviewClient(props: Props) {
               It&apos;s no longer possible to approve or decline a past booking.
             </p>
           </div>
+          <div className="border-t border-border px-5 sm:px-8 py-5 flex flex-col sm:flex-row gap-3">
+            <Link
+              href="/dashboard"
+              className="flex h-10 flex-1 items-center justify-center gap-2 border border-border text-sm font-semibold text-foreground transition-all hover:bg-muted"
+            >
+              <House size={15} />
+              Dashboard
+            </Link>
+            <Link
+              href="/bookings"
+              className="flex h-10 flex-1 items-center justify-center gap-2 bg-primary text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <CalendarBlank size={15} />
+              View Bookings
+            </Link>
+          </div>
         </div>
       </main>
     );
@@ -155,6 +174,22 @@ export function ReviewClient(props: Props) {
               booking details.
             </p>
           </div>
+          <div className="border-t border-border px-5 sm:px-8 py-5 flex flex-col sm:flex-row gap-3">
+            <Link
+              href="/dashboard"
+              className="flex h-10 flex-1 items-center justify-center gap-2 border border-border text-sm font-semibold text-foreground transition-all hover:bg-muted"
+            >
+              <House size={15} />
+              Dashboard
+            </Link>
+            <Link
+              href="/bookings"
+              className="flex h-10 flex-1 items-center justify-center gap-2 bg-primary text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <CalendarBlank size={15} />
+              View Bookings
+            </Link>
+          </div>
         </div>
       </main>
     );
@@ -171,6 +206,22 @@ export function ReviewClient(props: Props) {
               {props.inviteeName} will be notified that their booking request was
               declined.
             </p>
+          </div>
+          <div className="border-t border-border px-5 sm:px-8 py-5 flex flex-col sm:flex-row gap-3">
+            <Link
+              href="/dashboard"
+              className="flex h-10 flex-1 items-center justify-center gap-2 border border-border text-sm font-semibold text-foreground transition-all hover:bg-muted"
+            >
+              <House size={15} />
+              Dashboard
+            </Link>
+            <Link
+              href="/bookings"
+              className="flex h-10 flex-1 items-center justify-center gap-2 bg-primary text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <CalendarBlank size={15} />
+              View Bookings
+            </Link>
           </div>
         </div>
       </main>

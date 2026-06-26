@@ -193,6 +193,10 @@ export async function POST(request: Request) {
       }
     }
 
+    // A confirmed booking on an approval-required event type must go back to
+    // pending when rescheduled — the host needs to approve the new time.
+    const needsReApproval = et.requiresApproval && b.status === "confirmed";
+
     // ── Transaction: advisory lock → conflict re-check → UPDATE ──────────────
     const result = await db.transaction(async (tx) => {
       // Serialise concurrent writes targeting the same host + slot.
@@ -224,8 +228,9 @@ export async function POST(request: Request) {
         .set({
           startTime: newStart,
           endTime: newEnd,
-          // Preserve approval state — a pending booking stays pending so the
-          // host still has to approve the new time; never silently confirm.
+          // Drop back to pending when the event requires host approval so the
+          // host approves the new time. Pending bookings stay pending.
+          ...(needsReApproval ? { status: "pending" } : {}),
           rescheduleCount: b.rescheduleCount + 1,
           // Keep the reschedule/cancel links usable for the new time.
           rescheduleTokenExpiresAt: addHours(newEnd, 24),
@@ -244,9 +249,8 @@ export async function POST(request: Request) {
       );
     }
 
-    if (b.status === "pending") {
-      // Still awaiting host approval — re-notify the host of the new time
-      // instead of sending "rescheduled" confirmations to the invitee.
+    if (b.status === "pending" || needsReApproval) {
+      // Awaiting (or returning to) host approval — notify host of the new time.
       await enqueueJob(JOB_NAMES.BOOKING_APPROVAL_REQUEST, { bookingId: b.id });
     } else {
       await Promise.allSettled([
@@ -265,6 +269,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
+      requiresApproval: needsReApproval,
       startUtc: newStart.toISOString(),
       endUtc: newEnd.toISOString(),
     });

@@ -8,3 +8,9 @@ export const idempotencyKey = pgTable('idempotency_key', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const newsletterSubscriber = pgTable('newsletter_subscriber', {
+  id:        text('id').primaryKey().$defaultFn(createId),
+  email:     text('email').notNull().unique(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
