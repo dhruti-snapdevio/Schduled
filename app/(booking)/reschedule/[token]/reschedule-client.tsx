@@ -49,10 +49,14 @@ const DATE_FMT = "EEE, MMM d 'at' h:mm a";
 
 export function RescheduleClient(props: Props) {
   const router = useRouter();
-  const [inviteeTz] = useState(
-    () =>
-      Intl.DateTimeFormat().resolvedOptions().timeZone || props.inviteeTimezone
-  );
+  // Seed from the server-known timezone so SSR and the first client render
+  // match (avoids a hydration mismatch when the server tz differs from the
+  // visitor's), then correct to the browser's timezone on mount.
+  const [inviteeTz, setInviteeTz] = useState(props.inviteeTimezone);
+  useEffect(() => {
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (detected && detected !== props.inviteeTimezone) setInviteeTz(detected);
+  }, [props.inviteeTimezone]);
   const [today, setToday] = useState(props.today);
   const [month, setMonth] = useState(() => {
     const [y, m] = props.today.split("-").map(Number);
