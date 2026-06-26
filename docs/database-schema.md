@@ -1,6 +1,6 @@
 # Schedica — Database Schema
 
-Following the Krova pattern: **one schema file per domain**, all files in `src/lib/db/schema/`, re-exported from a single `index.ts`. All enums live in a shared `enums.ts`. All Drizzle relations live in `relations.ts` to avoid circular imports.
+**One schema file per domain**, all files in `db/schema/`, re-exported from a single `index.ts`. All enums live in a shared `enums.ts`. All Drizzle relations live in `relations.ts` to avoid circular imports.
 
 ---
 

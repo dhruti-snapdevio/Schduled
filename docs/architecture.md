@@ -2,7 +2,7 @@
 
 This document describes the complete system architecture of Schedica: how the components are structured, how data flows between them, and why each architectural decision was made.
 
-> **Reference:** Architecture follows the same two-process pattern as Krova — Next.js web server + pg-boss worker, both sharing one PostgreSQL database.
+> **Architecture:** Two-process pattern — Next.js web server + pg-boss worker, both sharing one PostgreSQL database.
 
 ---
 
@@ -222,7 +222,7 @@ Admin-only routes        /admin/*                 (admin panel)
 │  └──────────────────────────────────────────────────────┘  │
 │                                                             │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │  PLATFORM (new tables from Krova patterns)           │  │
+│  │  PLATFORM                                            │  │
 │  │  audit_logs  platform_settings                       │  │
 │  │  idempotency_keys  disposable_email_domains          │  │
 │  └──────────────────────────────────────────────────────┘  │

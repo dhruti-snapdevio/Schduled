@@ -1,4 +1,4 @@
-# KROVA Scaffold Notes
+# Schduled Scaffold Notes
 
 This repo is intentionally reduced to the reusable scaffold:
 

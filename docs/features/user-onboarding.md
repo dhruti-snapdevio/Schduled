@@ -77,7 +77,7 @@ Target completion time for new user wizard (steps 5–8): **under 3 minutes** fo
 
 ### Email Validation on Signup
 
-Before creating an account with an email address, Schedica performs two server-side checks (same pattern as Krova):
+Before creating an account with an email address, Schduled performs two server-side checks:
 
 **1. Disposable Domain Check**
 - The email's domain is looked up in the `disposable_email_domains` table (seeded with ~50,000 known throwaway providers: mailinator.com, guerrillamail.com, 10minutemail.com, etc.)

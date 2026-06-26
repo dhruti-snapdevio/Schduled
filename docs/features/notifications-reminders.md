@@ -463,7 +463,7 @@ Both hosts and invitees can manage notification preferences.
 
 ## Email Queue Architecture
 
-All emails are sent **asynchronously via pg-boss** — never inline in an API route or Server Action. This matches Krova's email outbox pattern.
+All emails are sent **asynchronously via pg-boss** — never inline in an API route or Server Action.
 
 ### Flow: Booking Confirmed → Emails Sent
 
