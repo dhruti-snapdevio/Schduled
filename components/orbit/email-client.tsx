@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import {
   ArrowClockwise,
   CheckCircle,
   Clock,
   Envelope,
   EnvelopeSimple,
+  MagnifyingGlass,
   XCircle,
 } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
@@ -19,8 +23,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { paginationRange } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -29,12 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { cn, paginationRange } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -65,53 +62,70 @@ export type EmailStats = {
 
 function getFriendlySubject(subject: string): string {
   const s = subject.toLowerCase();
-  if (s.includes("sign in") || s.includes("magic link") || s.includes("log in"))
+  if (
+    s.includes("sign in") ||
+    s.includes("magic link") ||
+    s.includes("log in")
+  ) {
     return "Magic Link Login";
-  if (s.includes("booking confirmation") || s.includes("confirmed your booking"))
+  }
+  if (
+    s.includes("booking confirmation") ||
+    s.includes("confirmed your booking")
+  ) {
     return "Booking Confirmation";
-  if (s.includes("reminder") || s.includes("upcoming meeting"))
+  }
+  if (s.includes("reminder") || s.includes("upcoming meeting")) {
     return "Meeting Reminder";
-  if (s.includes("password reset") || s.includes("reset your password"))
+  }
+  if (s.includes("password reset") || s.includes("reset your password")) {
     return "Password Reset";
-  if (s.includes("welcome"))
+  }
+  if (s.includes("welcome")) {
     return "Welcome Email";
-  if (s.includes("reschedule") || s.includes("rescheduled"))
+  }
+  if (s.includes("reschedule") || s.includes("rescheduled")) {
     return "Booking Rescheduled";
-  if (s.includes("cancel"))
+  }
+  if (s.includes("cancel")) {
     return "Booking Cancelled";
+  }
   return subject;
 }
 
 // ── Outbox status badge ───────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<string, { label: string; cls: string; dot: string }> = {
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; cls: string; dot: string }
+> = {
   sent: {
     label: "Sent",
-    cls:   "bg-success/10 text-success border-success/25",
-    dot:   "bg-success",
+    cls: "bg-success/10 text-success border-success/25",
+    dot: "bg-success",
   },
   failed: {
     label: "Failed",
-    cls:   "bg-destructive/10 text-destructive border-destructive/20",
-    dot:   "bg-destructive",
+    cls: "bg-destructive/10 text-destructive border-destructive/20",
+    dot: "bg-destructive",
   },
   queued: {
     label: "Queued",
-    cls:   "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400",
-    dot:   "bg-amber-500",
+    cls: "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400",
+    dot: "bg-amber-500",
   },
   sending: {
     label: "Sending",
-    cls:   "bg-primary/10 text-primary border-primary/20",
-    dot:   "bg-primary",
+    cls: "bg-primary/10 text-primary border-primary/20",
+    dot: "bg-primary",
   },
 };
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] ?? {
     label: status,
-    cls:   "bg-muted text-muted-foreground border-border",
-    dot:   "bg-muted-foreground",
+    cls: "bg-muted text-muted-foreground border-border",
+    dot: "bg-muted-foreground",
   };
   return (
     <span
@@ -125,41 +139,44 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Event type badge ──────────────────────────────────────────────────────────
 
-const EVENT_CONFIG: Record<string, { label: string; cls: string; dot: string }> = {
+const EVENT_CONFIG: Record<
+  string,
+  { label: string; cls: string; dot: string }
+> = {
   delivered: {
     label: "Delivered",
-    cls:   "bg-success/10 text-success border-success/25",
-    dot:   "bg-success",
+    cls: "bg-success/10 text-success border-success/25",
+    dot: "bg-success",
   },
   opened: {
     label: "Opened",
-    cls:   "bg-blue-500/10 text-blue-600 border-blue-500/25 dark:text-blue-400",
-    dot:   "bg-blue-500",
+    cls: "bg-blue-500/10 text-blue-600 border-blue-500/25 dark:text-blue-400",
+    dot: "bg-blue-500",
   },
   open: {
     label: "Opened",
-    cls:   "bg-blue-500/10 text-blue-600 border-blue-500/25 dark:text-blue-400",
-    dot:   "bg-blue-500",
+    cls: "bg-blue-500/10 text-blue-600 border-blue-500/25 dark:text-blue-400",
+    dot: "bg-blue-500",
   },
   bounced: {
     label: "Bounced",
-    cls:   "bg-destructive/10 text-destructive border-destructive/20",
-    dot:   "bg-destructive",
+    cls: "bg-destructive/10 text-destructive border-destructive/20",
+    dot: "bg-destructive",
   },
   bounce: {
     label: "Bounced",
-    cls:   "bg-destructive/10 text-destructive border-destructive/20",
-    dot:   "bg-destructive",
+    cls: "bg-destructive/10 text-destructive border-destructive/20",
+    dot: "bg-destructive",
   },
   complained: {
     label: "Complained",
-    cls:   "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",
-    dot:   "bg-orange-500",
+    cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",
+    dot: "bg-orange-500",
   },
   complaint: {
     label: "Complained",
-    cls:   "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",
-    dot:   "bg-orange-500",
+    cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",
+    dot: "bg-orange-500",
   },
 };
 
@@ -167,8 +184,8 @@ function EventTypeBadge({ type }: { type: string }) {
   const key = type.toLowerCase();
   const cfg = EVENT_CONFIG[key] ?? {
     label: type,
-    cls:   "bg-muted text-muted-foreground border-border",
-    dot:   "bg-muted-foreground",
+    cls: "bg-muted text-muted-foreground border-border",
+    dot: "bg-muted-foreground",
   };
   return (
     <span
@@ -201,8 +218,8 @@ function StatCard({
         accent
           ? "border-primary/40 bg-primary/[0.04]"
           : danger
-          ? "border-destructive/30 bg-destructive/[0.03]"
-          : ""
+            ? "border-destructive/30 bg-destructive/[0.03]"
+            : ""
       }
     >
       <CardContent className="px-5 pb-4 pt-5">
@@ -220,8 +237,8 @@ function StatCard({
               accent
                 ? "text-primary"
                 : danger
-                ? "text-destructive"
-                : "text-muted-foreground/60"
+                  ? "text-destructive"
+                  : "text-muted-foreground/60"
             }
           >
             {icon}
@@ -235,19 +252,45 @@ function StatCard({
 // ── Timer ─────────────────────────────────────────────────────────────────────
 
 function formatSecondsAgo(s: number): string {
-  if (s < 60) return `${s}s ago`;
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 60) {
+    return `${s}s ago`;
+  }
+  if (s < 3600) {
+    return `${Math.floor(s / 60)}m ago`;
+  }
   return `${Math.floor(s / 3600)}h ago`;
 }
 
 function formatDate(iso: string): { date: string; time: string } {
   const d = new Date(iso);
-  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const date = d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const time = d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
   return { date, time };
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
+
+export type EmailFilter = {
+  status: string;
+  q: string;
+  from: string;
+  to: string;
+};
+
+const OUTBOX_STATUS_TABS: { key: string; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "sent", label: "Sent" },
+  { key: "failed", label: "Failed" },
+  { key: "queued", label: "Queued" },
+  { key: "sending", label: "Sending" },
+];
 
 export function EmailClient({
   outbox,
@@ -255,6 +298,8 @@ export function EmailClient({
   stats,
   outboxPage,
   outboxTotalPages,
+  filter,
+  filteredTotal,
   fetchedAt,
 }: {
   outbox: OutboxRow[];
@@ -262,10 +307,13 @@ export function EmailClient({
   stats: EmailStats;
   outboxPage: number;
   outboxTotalPages: number;
+  filter: EmailFilter;
+  filteredTotal: number;
   fetchedAt: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const [secondsAgo, setSecondsAgo] = useState(0);
+  const [searchInput, setSearchInput] = useState(filter.q);
   const router = useRouter();
 
   useEffect(() => {
@@ -274,12 +322,61 @@ export function EmailClient({
     return () => clearInterval(id);
   }, [fetchedAt]);
 
+  // Keep the search box in sync if the URL filter changes externally.
+  useEffect(() => {
+    setSearchInput(filter.q);
+  }, [filter.q]);
+
+  function buildUrl(next: Partial<EmailFilter> & { page?: number }): string {
+    const status = next.status ?? filter.status;
+    const q = next.q ?? filter.q;
+    const from = next.from ?? filter.from;
+    const to = next.to ?? filter.to;
+    // Any filter change resets to page 1; only explicit paging keeps a page.
+    const page = next.page ?? 1;
+    const params = new URLSearchParams();
+    if (status && status !== "all") {
+      params.set("outboxStatus", status);
+    }
+    if (q) {
+      params.set("outboxQ", q);
+    }
+    if (from) {
+      params.set("outboxFrom", from);
+    }
+    if (to) {
+      params.set("outboxTo", to);
+    }
+    if (page > 1) {
+      params.set("outboxPage", String(page));
+    }
+    const qs = params.toString();
+    return qs ? `/orbit/email?${qs}` : "/orbit/email";
+  }
+
+  function navigate(next: Partial<EmailFilter> & { page?: number }) {
+    startTransition(() => router.push(buildUrl(next)));
+  }
+
+  // Debounce the search box → URL.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only react to the typed value
+  useEffect(() => {
+    if (searchInput === filter.q) {
+      return;
+    }
+    const id = setTimeout(() => navigate({ q: searchInput }), 350);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
+  const filtersActive =
+    filter.status !== "all" || !!filter.q || !!filter.from || !!filter.to;
+
   function handleRefresh() {
     startTransition(() => router.refresh());
   }
 
   function goToPage(p: number) {
-    startTransition(() => router.push(`/orbit/email?outboxPage=${p}`));
+    startTransition(() => router.push(buildUrl({ page: p })));
   }
 
   return (
@@ -297,15 +394,15 @@ export function EmailClient({
             Updated {formatSecondsAgo(secondsAgo)}
           </p>
           <Button
-            variant="outline"
-            size="sm"
             className="h-8 gap-1.5 text-xs"
-            onClick={handleRefresh}
             disabled={isPending}
+            onClick={handleRefresh}
+            size="sm"
+            variant="outline"
           >
             <ArrowClockwise
-              size={13}
               className={isPending ? "animate-spin" : ""}
+              size={13}
             />
             {isPending ? "Refreshing…" : "Refresh"}
           </Button>
@@ -315,26 +412,26 @@ export function EmailClient({
       {/* ── Summary stat cards ───────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
+          icon={<Envelope size={20} weight="duotone" />}
           label="Total Emails"
           value={stats.total}
-          icon={<Envelope size={20} weight="duotone" />}
         />
         <StatCard
+          accent
+          icon={<CheckCircle size={20} weight="duotone" />}
           label="Sent"
           value={stats.sent}
-          icon={<CheckCircle size={20} weight="duotone" />}
-          accent
         />
         <StatCard
+          danger={stats.failed > 0}
+          icon={<XCircle size={20} weight="duotone" />}
           label="Failed"
           value={stats.failed}
-          icon={<XCircle size={20} weight="duotone" />}
-          danger={stats.failed > 0}
         />
         <StatCard
+          icon={<Clock size={20} weight="duotone" />}
           label="Pending"
           value={stats.pending}
-          icon={<Clock size={20} weight="duotone" />}
         />
       </div>
 
@@ -343,18 +440,91 @@ export function EmailClient({
         {/* Outbox — 2/3 width */}
         <Card className="xl:col-span-2">
           <CardHeader className="py-4">
-            <CardTitle className="text-base font-semibold">Outbox</CardTitle>
+            <CardTitle className="text-base font-semibold">
+              Outbox{" "}
+              <span className="font-normal text-muted-foreground">
+                ({filteredTotal})
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
+            {/* ── Filter toolbar ─────────────────────────────────────── */}
+            <div className="flex flex-col gap-3 border-b border-border px-5 py-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="relative sm:max-w-xs sm:flex-1">
+                  <MagnifyingGlass
+                    className="-translate-y-1/2 absolute top-1/2 left-2.5 text-muted-foreground"
+                    size={15}
+                  />
+                  <Input
+                    className="h-9 pl-8 text-sm"
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder="Search recipient or subject…"
+                    value={searchInput}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    aria-label="From date"
+                    className="h-9 w-36 text-sm"
+                    onChange={(e) => navigate({ from: e.target.value })}
+                    type="date"
+                    value={filter.from}
+                  />
+                  <span className="text-xs text-muted-foreground">to</span>
+                  <Input
+                    aria-label="To date"
+                    className="h-9 w-36 text-sm"
+                    onChange={(e) => navigate({ to: e.target.value })}
+                    type="date"
+                    value={filter.to}
+                  />
+                  {filtersActive && (
+                    <Button
+                      className="h-9 text-xs"
+                      onClick={() =>
+                        navigate({ status: "all", q: "", from: "", to: "" })
+                      }
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {OUTBOX_STATUS_TABS.map((tab) => (
+                  <button
+                    className={cn(
+                      "border px-2.5 py-1 text-xs font-semibold uppercase tracking-ui transition-colors",
+                      filter.status === tab.key
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:bg-muted"
+                    )}
+                    key={tab.key}
+                    onClick={() => navigate({ status: tab.key })}
+                    type="button"
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {outbox.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
                 <span className="text-muted-foreground/25">
                   <Envelope size={40} weight="duotone" />
                 </span>
                 <div>
-                  <p className="text-sm font-medium text-foreground">No emails yet</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {filtersActive ? "No emails match" : "No emails yet"}
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Emails will appear here once the queue starts processing.
+                    {filtersActive
+                      ? "Try a different search, status, or date range."
+                      : "Emails will appear here once the queue starts processing."}
                   </p>
                 </div>
               </div>
@@ -382,11 +552,13 @@ export function EmailClient({
                   </TableHeader>
                   <TableBody>
                     {outbox.map((email) => {
-                      const sentAt = email.sentAt ? formatDate(email.sentAt) : null;
+                      const sentAt = email.sentAt
+                        ? formatDate(email.sentAt)
+                        : null;
                       return (
                         <TableRow
-                          key={email.id}
                           className="border-b border-border transition-colors hover:bg-muted/20 last:border-0"
+                          key={email.id}
                         >
                           {/* Recipient */}
                           <TableCell className="px-6 py-3">
@@ -425,10 +597,14 @@ export function EmailClient({
                             {sentAt ? (
                               <>
                                 <p>{sentAt.date}</p>
-                                <p className="text-muted-foreground/60">{sentAt.time}</p>
+                                <p className="text-muted-foreground/60">
+                                  {sentAt.time}
+                                </p>
                               </>
                             ) : (
-                              <span className="text-muted-foreground/40">—</span>
+                              <span className="text-muted-foreground/40">
+                                —
+                              </span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -443,39 +619,67 @@ export function EmailClient({
             {outboxTotalPages > 1 && (
               <div className="flex items-center justify-between border-t border-border px-5 py-3">
                 <p className="text-xs text-muted-foreground">
-                  Page <span className="font-semibold text-foreground">{outboxPage}</span> of {outboxTotalPages}
+                  Page{" "}
+                  <span className="font-semibold text-foreground">
+                    {outboxPage}
+                  </span>{" "}
+                  of {outboxTotalPages}
                 </p>
                 <Pagination className="mx-0 w-auto">
                   <PaginationContent>
                     <PaginationItem>
                       <PaginationPrevious
-                        href="#"
                         aria-disabled={outboxPage <= 1}
-                        className={outboxPage <= 1 ? "pointer-events-none opacity-40" : ""}
-                        onClick={(e) => { e.preventDefault(); if (outboxPage > 1) goToPage(outboxPage - 1); }}
+                        className={
+                          outboxPage <= 1
+                            ? "pointer-events-none opacity-40"
+                            : ""
+                        }
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (outboxPage > 1) {
+                            goToPage(outboxPage - 1);
+                          }
+                        }}
                       />
                     </PaginationItem>
-                    {paginationRange(outboxPage, outboxTotalPages).map((p, i) =>
-                      p === "ellipsis" ? (
-                        <PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>
-                      ) : (
-                        <PaginationItem key={p}>
-                          <PaginationLink
-                            href="#"
-                            isActive={p === outboxPage}
-                            onClick={(e) => { e.preventDefault(); goToPage(p); }}
-                          >
-                            {p}
-                          </PaginationLink>
-                        </PaginationItem>
-                      )
+                    {paginationRange(outboxPage, outboxTotalPages).map(
+                      (p, i) =>
+                        p === "ellipsis" ? (
+                          <PaginationItem key={`e-${i}`}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        ) : (
+                          <PaginationItem key={p}>
+                            <PaginationLink
+                              href="#"
+                              isActive={p === outboxPage}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                goToPage(p);
+                              }}
+                            >
+                              {p}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
                     )}
                     <PaginationItem>
                       <PaginationNext
-                        href="#"
                         aria-disabled={outboxPage >= outboxTotalPages}
-                        className={outboxPage >= outboxTotalPages ? "pointer-events-none opacity-40" : ""}
-                        onClick={(e) => { e.preventDefault(); if (outboxPage < outboxTotalPages) goToPage(outboxPage + 1); }}
+                        className={
+                          outboxPage >= outboxTotalPages
+                            ? "pointer-events-none opacity-40"
+                            : ""
+                        }
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (outboxPage < outboxTotalPages) {
+                            goToPage(outboxPage + 1);
+                          }
+                        }}
                       />
                     </PaginationItem>
                   </PaginationContent>
@@ -513,8 +717,8 @@ export function EmailClient({
                   const received = formatDate(event.receivedAt);
                   return (
                     <div
-                      key={event.id}
                       className="flex items-start justify-between gap-4 border-b border-border px-5 py-3 last:border-0"
+                      key={event.id}
                     >
                       <div className="min-w-0">
                         <EventTypeBadge type={event.eventType} />
@@ -526,7 +730,9 @@ export function EmailClient({
                       </div>
                       <div className="shrink-0 text-right text-xs text-muted-foreground">
                         <p>{received.date}</p>
-                        <p className="text-muted-foreground/60">{received.time}</p>
+                        <p className="text-muted-foreground/60">
+                          {received.time}
+                        </p>
                       </div>
                     </div>
                   );

@@ -1,4 +1,4 @@
-import { and, eq, lt, sql } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import type { Job } from "pg-boss";
 import { emailOutbox } from "@/db/schema";
 import { db } from "@/lib/db";
@@ -18,7 +18,7 @@ export async function handleEmailOutboxReap(
     .where(
       and(
         eq(emailOutbox.status, "sending"),
-        lt(sql`${emailOutbox.claimedAt}`, cutoff)
+        lt(emailOutbox.claimedAt, cutoff)
       )
     );
 }
