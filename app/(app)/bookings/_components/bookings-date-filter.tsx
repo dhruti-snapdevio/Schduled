@@ -2,7 +2,7 @@
 
 import { X } from '@phosphor-icons/react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { Input } from '@/components/ui/input'
 
 interface BookingsDateFilterProps {
@@ -17,36 +17,61 @@ export function BookingsDateFilter({ tab, dateFrom, dateTo }: BookingsDateFilter
   const searchParams = useSearchParams()
   const [, startTransition] = useTransition()
 
-  function push(from: string, to: string) {
+  // Local draft state: typing/picking a date updates this only. We apply the
+  // filter (navigate) when the field is committed — on blur or Enter — so a
+  // half-typed date never triggers a reload. Stays in sync with the URL props.
+  const [from, setFrom] = useState(dateFrom)
+  const [to, setTo] = useState(dateTo)
+  useEffect(() => { setFrom(dateFrom) }, [dateFrom])
+  useEffect(() => { setTo(dateTo) }, [dateTo])
+
+  function push(nextFrom: string, nextTo: string) {
     const params = new URLSearchParams(searchParams.toString())
     params.set('tab', tab)
     params.delete('page')
-    if (from) params.set('dateFrom', from)
+    if (nextFrom) params.set('dateFrom', nextFrom)
     else params.delete('dateFrom')
-    if (to) params.set('dateTo', to)
+    if (nextTo) params.set('dateTo', nextTo)
     else params.delete('dateTo')
     startTransition(() => {
       router.replace(`${pathname}?${params.toString()}`, { scroll: false })
     })
   }
 
-  const hasFilter = dateFrom || dateTo
+  // Apply only when the committed values actually differ from the URL — avoids
+  // a redundant navigation when blurring a field that wasn't changed.
+  function commit() {
+    if (from === dateFrom && to === dateTo) return
+    push(from, to)
+  }
+
+  function clear() {
+    setFrom('')
+    setTo('')
+    push('', '')
+  }
+
+  const hasFilter = from || to
 
   return (
     <div className="flex items-center gap-1.5">
       <Input
         type="date"
-        value={dateFrom}
-        onChange={(e) => push(e.target.value, dateTo)}
+        value={from}
+        onChange={(e) => setFrom(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === 'Enter' && commit()}
         title="From date"
         className="h-9 w-[150px] shrink-0 px-2 text-sm"
       />
       <span className="text-xs text-muted-foreground shrink-0">to</span>
       <Input
         type="date"
-        value={dateTo}
-        min={dateFrom || undefined}
-        onChange={(e) => push(dateFrom, e.target.value)}
+        value={to}
+        min={from || undefined}
+        onChange={(e) => setTo(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === 'Enter' && commit()}
         title="To date"
         className="h-9 w-[150px] shrink-0 px-2 text-sm"
       />
@@ -54,7 +79,7 @@ export function BookingsDateFilter({ tab, dateFrom, dateTo }: BookingsDateFilter
         <button
           type="button"
           title="Clear date filter"
-          onClick={() => push('', '')}
+          onClick={clear}
           className="flex h-9 w-9 items-center justify-center border border-border text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive"
         >
           <X size={14} />

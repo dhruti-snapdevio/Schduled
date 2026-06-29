@@ -15,11 +15,11 @@ export async function handleBookingApprovalRequest(
   jobs: Job<BookingApprovalRequestPayload>[]
 ) {
   for (const job of jobs) {
-    await processOne(job.data.bookingId);
+    await processOne(job.data.bookingId, job.data.isReschedule ?? false);
   }
 }
 
-async function processOne(bookingId: string) {
+async function processOne(bookingId: string, isReschedule: boolean) {
   const b = await loadBookingForLifecycle(bookingId);
   if (!b) {
     console.warn(`[booking-approval-request] booking ${bookingId} not found`);
@@ -42,8 +42,10 @@ async function processOne(bookingId: string) {
   const locationLabelHost = resolveLocationLabelHost(b.etLocationType, b.etLocationValue, b.inviteePhone);
   const startUtc = new Date(b.startTime);
 
-  // Invitee: "your request is awaiting approval"
-  {
+  // Invitee: only on first submission — reschedules skip this to avoid the
+  // confusing "Booking request received" email when the host/invitee just
+  // changed the time on an already-pending booking.
+  if (!isReschedule) {
     const mail = await approvalPendingTemplate({
       cancelToken: b.cancelToken,
       eventName: b.etName,

@@ -98,7 +98,7 @@ export function CancelClient(props: Props) {
           <div className="border-t border-border px-5 sm:px-8 py-5">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
               className="flex h-10 w-full items-center justify-center gap-2 border border-border text-sm font-semibold text-foreground transition-all hover:bg-muted"
             >
               <ArrowLeft size={14} />
@@ -128,7 +128,7 @@ export function CancelClient(props: Props) {
             <div className="border-t border-border px-5 sm:px-8 py-5">
               <button
                 type="button"
-                onClick={() => router.back()}
+                onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
                 className="flex h-10 w-full items-center justify-center gap-2 border border-border text-sm font-semibold text-foreground transition-all hover:bg-muted"
               >
                 <ArrowLeft size={14} />
@@ -151,7 +151,7 @@ export function CancelClient(props: Props) {
             <div className="border-t border-border px-5 sm:px-8 py-5">
               <button
                 type="button"
-                onClick={() => router.back()}
+                onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
                 className="flex h-10 w-full items-center justify-center gap-2 border border-border text-sm font-semibold text-foreground transition-all hover:bg-muted"
               >
                 <ArrowLeft size={14} />
@@ -164,7 +164,7 @@ export function CancelClient(props: Props) {
             <div className="border-b border-border bg-muted/30 px-5 sm:px-8 py-5">
               <button
                 type="button"
-                onClick={() => router.back()}
+                onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
                 className="mb-4 inline-flex items-center gap-2 border border-border bg-background px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
               >
                 <ArrowLeft size={14} />

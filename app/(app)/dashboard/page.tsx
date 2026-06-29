@@ -375,12 +375,8 @@ export default async function DashboardPage() {
                 bookingUrl={bookingUrl}
                 hasEventTypes={stats.activeEventTypes > 0}
               />
-            ) : upcomingMeetings.length === 1 ? (
-              <div className="px-6 py-8 text-center text-sm text-muted-foreground">
-                Your next meeting is shown above.
-              </div>
             ) : (
-              upcomingMeetings.slice(1).map((m) => (
+              upcomingMeetings.map((m) => (
                 <Link
                   key={m.id}
                   href="/bookings"

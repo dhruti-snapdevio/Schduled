@@ -197,9 +197,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // A confirmed booking on an approval-required event type must go back to
-    // pending when rescheduled — the host needs to approve the new time.
-    const needsReApproval = et.requiresApproval && b.status === "confirmed";
 
     // ── Transaction: advisory lock → conflict re-check → UPDATE ──────────────
     const result = await db.transaction(async (tx) => {
@@ -232,9 +229,9 @@ export async function POST(request: Request) {
         .set({
           startTime: newStart,
           endTime: newEnd,
-          // Drop back to pending when the event requires host approval so the
-          // host approves the new time. Pending bookings stay pending.
-          ...(needsReApproval ? { status: "pending" } : {}),
+          // A reschedule never changes approval state: a confirmed booking
+          // stays confirmed (the host picked the new time, so no re-approval
+          // is needed) and a still-pending booking stays pending.
           rescheduleCount: b.rescheduleCount + 1,
           // Keep the reschedule/cancel links usable for the new time.
           rescheduleTokenExpiresAt: addHours(newEnd, 24),
@@ -253,9 +250,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (b.status === "pending" || needsReApproval) {
-      // Awaiting (or returning to) host approval — notify host of the new time.
-      await enqueueJob(JOB_NAMES.BOOKING_APPROVAL_REQUEST, { bookingId: b.id });
+    if (b.status === "pending") {
+      // Pending booking rescheduled — notify the host of the new time to review.
+      // isReschedule=true prevents the invitee from getting a redundant "pending" email
+      // (they already received one when they first submitted the booking request).
+      await enqueueJob(JOB_NAMES.BOOKING_APPROVAL_REQUEST, { bookingId: b.id, isReschedule: true });
     } else {
       await Promise.allSettled([
         enqueueJob(JOB_NAMES.BOOKING_RESCHEDULE_NOTIFY, {
@@ -273,7 +272,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      requiresApproval: needsReApproval,
+      requiresApproval: b.status === "pending",
       startUtc: newStart.toISOString(),
       endUtc: newEnd.toISOString(),
     });
