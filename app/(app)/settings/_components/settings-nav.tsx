@@ -12,7 +12,6 @@ const PROFILE_LINKS = [
 
 const SETTINGS_LINKS = [
   { href: "/settings/my-link",       label: "Booking Link" },
-  { href: "/settings/branding",      label: "Branding" },
   { href: "/settings/calendars",     label: "Calendar Sync" },
   { href: "/settings/integrations",  label: "Integrations" },
   { href: "/settings/communication", label: "Notifications" },

@@ -102,6 +102,8 @@ export interface CalendarDisconnectAlertPayload {
 
 export interface BookingApprovalRequestPayload {
   bookingId: string;
+  /** True when triggered by a reschedule of a pending booking, not a new submission. */
+  isReschedule?: boolean;
 }
 
 export interface BookingApprovedPayload {

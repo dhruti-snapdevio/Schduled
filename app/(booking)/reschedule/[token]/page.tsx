@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 import { addDays } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { and, eq } from "drizzle-orm";
@@ -10,6 +13,28 @@ import { RescheduleClient } from "./reschedule-client";
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
+
+// Shared "can't reschedule" notice with a way back to the booking page.
+function RescheduleNotice({ children, backHref }: { children: ReactNode; backHref: string }) {
+  return (
+    <main className="mx-auto max-w-lg px-4 py-16">
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="text-sm text-muted-foreground">{children}</p>
+          <div className="mt-6 flex justify-center">
+            <Link
+              href={backHref}
+              className="inline-flex items-center gap-2 border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+            >
+              <ArrowLeft size={14} />
+              Back to booking page
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
 
 export default async function ReschedulePage({
   params,
@@ -54,25 +79,17 @@ export default async function ReschedulePage({
 
   if (b.status === "cancelled") {
     return (
-      <main className="mx-auto max-w-lg px-4 py-16">
-        <Card>
-          <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            This booking has been cancelled and can no longer be rescheduled.
-          </CardContent>
-        </Card>
-      </main>
+      <RescheduleNotice backHref={`/${b.hostUsername}/${b.etSlug}`}>
+        This booking has been cancelled and can no longer be rescheduled.
+      </RescheduleNotice>
     );
   }
 
   if (b.startTime < new Date()) {
     return (
-      <main className="mx-auto max-w-lg px-4 py-16">
-        <Card>
-          <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            This meeting has already passed and can no longer be rescheduled.
-          </CardContent>
-        </Card>
-      </main>
+      <RescheduleNotice backHref={`/${b.hostUsername}/${b.etSlug}`}>
+        This meeting has already passed and can no longer be rescheduled.
+      </RescheduleNotice>
     );
   }
 
@@ -88,13 +105,9 @@ export default async function ReschedulePage({
 
   if (reschedulePolicy && !reschedulePolicy.allowRescheduling) {
     return (
-      <main className="mx-auto max-w-lg px-4 py-16">
-        <Card>
-          <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            Rescheduling is not allowed for this event type. Please contact the host directly.
-          </CardContent>
-        </Card>
-      </main>
+      <RescheduleNotice backHref={`/${b.hostUsername}/${b.etSlug}`}>
+        Rescheduling is not allowed for this event type. Please contact the host directly.
+      </RescheduleNotice>
     );
   }
 
@@ -103,15 +116,11 @@ export default async function ReschedulePage({
     const hoursUntil = (b.startTime.getTime() - Date.now()) / 3_600_000;
     if (hoursUntil < cutoff) {
       return (
-        <main className="mx-auto max-w-lg px-4 py-16">
-          <Card>
-            <CardContent className="py-12 text-center text-sm text-muted-foreground">
-              Rescheduling must be done at least{" "}
-              <strong>{cutoff} hour{cutoff === 1 ? "" : "s"}</strong> before the meeting.
-              Please contact the host directly.
-            </CardContent>
-          </Card>
-        </main>
+        <RescheduleNotice backHref={`/${b.hostUsername}/${b.etSlug}`}>
+          Rescheduling must be done at least{" "}
+          <strong>{cutoff} hour{cutoff === 1 ? "" : "s"}</strong> before the meeting.
+          Please contact the host directly.
+        </RescheduleNotice>
       );
     }
   }

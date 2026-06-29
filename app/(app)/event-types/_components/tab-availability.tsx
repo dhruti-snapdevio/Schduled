@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowSquareOut, Check, Info, Plus, X } from '@phosphor-icons/react'
+import { ArrowSquareOut, CaretDown, Check, Info, Plus, X } from '@phosphor-icons/react'
 import Link from 'next/link'
 import type { UseFormReturn } from 'react-hook-form'
 import type { BuilderFormValues, ScheduleOption } from './builder'
@@ -48,6 +48,9 @@ interface TabAvailabilityProps {
 export function TabAvailability({ form, schedules, globalLimits: initialLimits }: TabAvailabilityProps) {
   const [customInput, setCustomInput] = useState('')
   const [showCustom, setShowCustom] = useState(false)
+  // Booking Rules are advanced/optional (sensible defaults already apply), so
+  // the whole section is collapsed by default to keep the form uncluttered.
+  const [showBookingRules, setShowBookingRules] = useState(false)
   const limits = initialLimits
 
   const durations = form.watch('durations')
@@ -316,13 +319,30 @@ export function TabAvailability({ form, schedules, globalLimits: initialLimits }
         </div>
       )}
 
-      {/* ── Section 3: Booking Rules ─────────────────────────────────── */}
+      {/* ── Section 3: Booking Rules (collapsible — advanced/optional) ──── */}
       <div className="border border-border bg-background">
-        <div className="px-5 py-4 border-b border-border/60">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Booking Rules</p>
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowBookingRules((v) => !v)}
+          aria-expanded={showBookingRules}
+          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted/30"
+        >
+          <span className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Booking Rules
+            </span>
+            <span className="text-xs text-muted-foreground/70 normal-case tracking-normal">
+              · advanced (optional)
+            </span>
+          </span>
+          <CaretDown
+            size={14}
+            className={cn('shrink-0 text-muted-foreground transition-transform', showBookingRules && 'rotate-180')}
+          />
+        </button>
 
-        <div className="px-5 py-5 space-y-5">
+        {showBookingRules && (
+        <div className="px-5 py-5 space-y-5 border-t border-border/60">
 
           {/* Booking Window — type selector + (rolling days | fixed range) on one row */}
           <div className="flex flex-wrap items-center gap-3">
@@ -605,6 +625,7 @@ export function TabAvailability({ form, schedules, globalLimits: initialLimits }
           </div>
 
         </div>
+        )}
       </div>
 
     </div>

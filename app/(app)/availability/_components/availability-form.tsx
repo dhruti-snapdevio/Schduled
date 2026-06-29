@@ -1166,23 +1166,8 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
       {pageTab === 'advanced' && (
         <div className="space-y-0 max-w-2xl divide-y divide-border">
 
-          {/* Schedule name */}
-          <div className="pb-8">
-            <h2 className="font-semibold mb-0.5">Schedule name</h2>
-            <p className="text-sm text-muted-foreground mb-4">Rename this availability schedule.</p>
-            <div className="flex items-center gap-3">
-              <Input id="adv-name" value={advName} onChange={(e) => setAdvName(e.target.value)}
-                className="max-w-xs" maxLength={80} />
-              <Button size="sm" disabled={isPending || advName.trim() === scheduleName}
-                onClick={() => handleSave(advName.trim())} className="gap-1.5 shrink-0">
-                <FloppyDisk size={13} />
-                {isPending ? 'Saving…' : 'Save'}
-              </Button>
-            </div>
-          </div>
-
           {/* Timezone */}
-          <div className="py-8">
+          <div className="pb-8">
             <h2 className="font-semibold mb-0.5">Timezone</h2>
             <p className="text-sm text-muted-foreground mb-4">All booking times are displayed in this timezone.</p>
             <button type="button" onClick={() => setTzDialogOpen(true)}

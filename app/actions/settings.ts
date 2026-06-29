@@ -57,62 +57,6 @@ function validateUsername(raw: string): string | null {
   return null;
 }
 
-// ── Branding ──────────────────────────────────────────────────────────────────
-
-export async function updateBranding(data: {
-  displayName: string;
-}): Promise<ActionResult> {
-  try {
-    const session = await requireSession();
-    const displayName = data.displayName.trim();
-    if (!displayName) {
-      return { error: "Display name is required" };
-    }
-    if (displayName.length > 64) {
-      return { error: "Display name must be 64 characters or less" };
-    }
-
-    // Upsert userProfile row
-    const [existing] = await db
-      .select({ id: userProfile.id })
-      .from(userProfile)
-      .where(eq(userProfile.userId, session.user.id))
-      .limit(1);
-
-    if (existing) {
-      await db
-        .update(userProfile)
-        .set({ displayName, updatedAt: new Date() })
-        .where(eq(userProfile.userId, session.user.id));
-    } else {
-      await db.insert(userProfile).values({
-        userId: session.user.id,
-        displayName,
-      });
-    }
-
-    // Also keep user.name in sync
-    await db
-      .update(user)
-      .set({ name: displayName, updatedAt: new Date() })
-      .where(eq(user.id, session.user.id));
-
-    await audit({
-      action: "user.branding_updated",
-      actorId: session.user.id,
-      actorEmail: session.user.email,
-      entityType: "user",
-      entityId: session.user.id,
-      description: "Updated display name",
-    });
-
-    revalidatePath("/settings/branding");
-    return { ok: true };
-  } catch {
-    return { error: "Something went wrong. Please try again." };
-  }
-}
-
 // ── My Link ───────────────────────────────────────────────────────────────────
 
 export async function changeUsername(data: {
