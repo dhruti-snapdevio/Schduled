@@ -83,7 +83,14 @@ const schema = z.object({
     "invitees_choice",
   ]),
   locationValue: z.string().max(500).optional(),
-  hostPhoneNumber: z.string().max(20).optional(),
+  hostPhoneNumber: z
+    .string()
+    .max(25)
+    .refine(
+      (v) => !v || v.trim() === '' || /^\+[1-9][\d\s\-().]{5,20}$/.test(v.trim()),
+      { message: 'Enter a valid number with country code (e.g. +91 98765 43210)' }
+    )
+    .optional(),
   confirmationNote: z.string().max(1000).optional(),
   meetingType: z.enum(['one_on_one', 'group', 'round_robin', 'collective']),
   requiresApproval: z.boolean(),
@@ -337,16 +344,6 @@ export function EventTypeBuilder({
                   {form.watch("name") ||
                     (mode === "create" ? "New Meeting Type" : "Untitled")}
                 </h1>
-                <span
-                  className={cn(
-                    "shrink-0 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide",
-                    form.watch("isActive")
-                      ? "bg-primary/10 text-primary"
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {form.watch("isActive") ? "Active" : "Inactive"}
-                </span>
               </div>
               {/* Event type badge */}
               <span className="mt-1 inline-block text-xs font-medium text-muted-foreground">
@@ -411,11 +408,9 @@ export function EventTypeBuilder({
           <div className="flex-1 min-w-0 max-w-3xl">
             {activeTab === "general" && (
               <TabGeneral
-                eventTypeId={eventTypeId}
                 form={form}
                 meetingType={form.watch('meetingType')}
                 onMeetingTypeChange={(t) => form.setValue('meetingType', t as BuilderFormValues['meetingType'], { shouldDirty: true })}
-                username={username}
               />
             )}
             {activeTab === "availability" && (

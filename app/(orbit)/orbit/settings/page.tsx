@@ -43,7 +43,6 @@ export default async function OrbitSettingsPage() {
     <div className="space-y-6">
       <OrbitPageHeader
         description="Read-only view of environment configuration and feature status."
-        eyebrow="Admin"
         title="Platform Settings"
       />
 

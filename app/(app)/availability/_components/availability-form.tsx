@@ -46,7 +46,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
+import { cn, normalizeTzName } from '@/lib/utils'
 
 // ── Time helpers ──────────────────────────────────────────────────────────────
 
@@ -97,8 +97,8 @@ function getTzLabel(tz: string) {
   try {
     const offset = new Intl.DateTimeFormat('en', { timeZoneName: 'short', timeZone: tz })
       .formatToParts(new Date()).find((p) => p.type === 'timeZoneName')?.value ?? ''
-    return `(${offset}) ${tz.replace(/_/g, ' ')}`
-  } catch { return tz.replace(/_/g, ' ') }
+    return `(${offset}) ${normalizeTzName(tz)}`
+  } catch { return normalizeTzName(tz) }
 }
 
 // ── Day config ────────────────────────────────────────────────────────────────
@@ -568,7 +568,7 @@ function FullCalendarView({ grid, overrides, currentTz, onTzClick, onEditDate, o
         </div>
         <button type="button" onClick={onTzClick}
           className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors">
-          <Globe size={13} />{currentTz.replace(/_/g, ' ')}<CaretDown size={11} />
+          <Globe size={13} />{normalizeTzName(currentTz)}<CaretDown size={11} />
         </button>
       </div>
 
@@ -1188,7 +1188,7 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
             <button type="button" onClick={() => setTzDialogOpen(true)}
               className="flex items-center gap-2 h-9 px-3 border border-input text-sm hover:bg-muted transition-colors max-w-xs w-full text-left">
               <Globe size={14} className="text-muted-foreground shrink-0" />
-              <span className="flex-1 truncate">{currentTz.replace(/_/g, ' ')}</span>
+              <span className="flex-1 truncate">{normalizeTzName(currentTz)}</span>
               <CaretDown size={12} className="text-muted-foreground shrink-0" />
             </button>
           </div>
@@ -1468,13 +1468,15 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
                                 <TimeCombobox value={slot.startTime} onChange={(v) => updateSlot(key, i, 'startTime', v)} format={fmt12} triggerClassName="w-[105px]" />
                                 <span className="text-muted-foreground text-xs shrink-0">-</span>
                                 <TimeCombobox value={slot.endTime} onChange={(v) => updateSlot(key, i, 'endTime', v)} format={fmt12} triggerClassName="w-[105px]" />
-                                {/* Remove slot — only when there are multiple slots */}
-                                {slots.length > 1 && (
-                                  <button type="button" onClick={() => removeSlot(key, i)}
-                                    className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                                    <X size={13} />
-                                  </button>
-                                )}
+                                {/* X always visible: removes slot if multiple, disables day if last slot */}
+                                <button
+                                  type="button"
+                                  title={slots.length === 1 ? `Mark ${label} unavailable` : 'Remove this interval'}
+                                  onClick={() => slots.length > 1 ? removeSlot(key, i) : setDay(key, false)}
+                                  className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                                >
+                                  <X size={13} />
+                                </button>
                                 {/* Add slot — only on the last row */}
                                 {i === slots.length - 1 && (
                                   <button type="button" onClick={() => addSlot(key)}

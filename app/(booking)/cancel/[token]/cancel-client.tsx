@@ -21,6 +21,8 @@ interface Props {
   inviteeTimezone: string;
   isPast: boolean;
   policyText: string | null;
+  requireCancellationReason: boolean;
+  showPolicyText: boolean;
   startUtc: string;
   token: string;
 }
@@ -41,6 +43,10 @@ export function CancelClient(props: Props) {
   );
 
   async function handleCancel() {
+    if (props.requireCancellationReason && !reason.trim()) {
+      setError("Please provide a reason for cancellation.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -185,17 +191,31 @@ export function CancelClient(props: Props) {
                 </p>
               </div>
 
+              {props.showPolicyText && props.policyText && (
+                <div className="mb-4 border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/30">
+                  <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 mb-1">
+                    Cancellation Policy
+                  </p>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    {props.policyText}
+                  </p>
+                </div>
+              )}
+
               <label
                 className="mb-1.5 block text-xs font-semibold text-muted-foreground"
                 htmlFor="cancel-reason"
               >
-                Reason (optional)
+                Reason{props.requireCancellationReason
+                  ? <span className="text-destructive ml-0.5">*</span>
+                  : <span className="font-normal"> (optional)</span>}
               </label>
               <textarea
                 className="w-full resize-none border border-input bg-background px-3 py-2 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
                 id="cancel-reason"
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Let the host know why you're cancelling…"
+                required={props.requireCancellationReason}
                 rows={3}
                 value={reason}
               />

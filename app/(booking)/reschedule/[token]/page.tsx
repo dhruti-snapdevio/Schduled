@@ -3,7 +3,7 @@ import { addDays } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { and, eq } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
-import { availabilitySchedule, booking, eventType, user } from "@/db/schema";
+import { availabilitySchedule, booking, cancellationPolicy, eventType, user } from "@/db/schema";
 import { db } from "@/lib/db";
 import { RescheduleClient } from "./reschedule-client";
 
@@ -24,6 +24,7 @@ export default async function ReschedulePage({
       status: booking.status,
       startTime: booking.startTime,
       duration: booking.duration,
+      eventTypeId: booking.eventTypeId,
       inviteeTimezone: booking.inviteeTimezone,
       etName: eventType.name,
       etSlug: eventType.slug,
@@ -39,8 +40,7 @@ export default async function ReschedulePage({
     .where(eq(booking.rescheduleToken, token))
     .limit(1);
 
-  const invalid = !b?.hostUsername;
-  if (invalid) {
+  if (!b?.hostUsername) {
     return (
       <main className="mx-auto max-w-lg px-4 py-16">
         <Card>
@@ -74,6 +74,46 @@ export default async function ReschedulePage({
         </Card>
       </main>
     );
+  }
+
+  // Enforce reschedule policy before showing the UI — no late 403 surprises
+  const [reschedulePolicy] = await db
+    .select({
+      allowRescheduling:     cancellationPolicy.allowRescheduling,
+      rescheduleCutoffHours: cancellationPolicy.rescheduleCutoffHours,
+    })
+    .from(cancellationPolicy)
+    .where(eq(cancellationPolicy.eventTypeId, b.eventTypeId))
+    .limit(1);
+
+  if (reschedulePolicy && !reschedulePolicy.allowRescheduling) {
+    return (
+      <main className="mx-auto max-w-lg px-4 py-16">
+        <Card>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            Rescheduling is not allowed for this event type. Please contact the host directly.
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  const cutoff = reschedulePolicy?.rescheduleCutoffHours ?? 0;
+  if (cutoff > 0) {
+    const hoursUntil = (b.startTime.getTime() - Date.now()) / 3_600_000;
+    if (hoursUntil < cutoff) {
+      return (
+        <main className="mx-auto max-w-lg px-4 py-16">
+          <Card>
+            <CardContent className="py-12 text-center text-sm text-muted-foreground">
+              Rescheduling must be done at least{" "}
+              <strong>{cutoff} hour{cutoff === 1 ? "" : "s"}</strong> before the meeting.
+              Please contact the host directly.
+            </CardContent>
+          </Card>
+        </main>
+      );
+    }
   }
 
   const schedule = await db.query.availabilitySchedule.findFirst({

@@ -64,6 +64,20 @@
       "when": 1782453603507,
       "tag": "0008_clever_ikaris",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1782540000000,
+      "tag": "0009_audit_availability_enum",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1782710693900,
+      "tag": "0010_shiny_tenebrous",
+      "breakpoints": true
     }
   ]
 }

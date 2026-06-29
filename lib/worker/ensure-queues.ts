@@ -60,6 +60,7 @@ export const QUEUE_OPTIONS: Record<
   // Booking approval
   [JOB_NAMES.BOOKING_APPROVAL_REQUEST]: { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
   [JOB_NAMES.BOOKING_APPROVED]:         { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
+  [JOB_NAMES.BOOKING_APPROVED_NOTIFY]:  { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
   [JOB_NAMES.BOOKING_REJECTED]:         { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
 };
 

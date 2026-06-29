@@ -31,7 +31,8 @@ interface Props {
 const DATE_FMT = "EEEE, MMMM d, yyyy 'at' h:mm a";
 
 export function ReviewClient(props: Props) {
-  const autoApproving = !props.isAlreadyActioned && props.initialAction === "approve";
+  const autoApproving =
+    !props.isAlreadyActioned && !props.isPast && props.initialAction === "approve";
 
   function initialView(): "main" | "reject" | "approved" | "rejected" {
     if (!props.isAlreadyActioned) return "main";
@@ -116,8 +117,10 @@ export function ReviewClient(props: Props) {
     </div>
   );
 
-  // Show spinner while auto-approving from email link (prevents flash of main view)
-  if (autoApproving && view === "main") {
+  // Show spinner only while the auto-approve request is in flight. Once it
+  // resolves, a failure falls through to the review screen (which shows the
+  // error + Approve/Decline) instead of spinning forever.
+  if (autoApproving && view === "main" && submitting) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
         <div className="w-full max-w-md overflow-hidden bg-card border border-border">

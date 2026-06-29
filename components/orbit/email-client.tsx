@@ -27,6 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { OrbitPageHeader } from "@/components/admin/orbit-page-header";
 import {
   Pagination,
   PaginationContent,
@@ -395,32 +396,30 @@ export function EmailClient({
   return (
     <div className="space-y-8">
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="mb-8 flex items-start justify-between border-b border-border pb-5">
-        <div>
-          <h1 className="font-black text-2xl tracking-normal">Email</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Transactional email queue and inbound delivery events.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <p className="text-xs text-muted-foreground">
-            Updated {formatSecondsAgo(secondsAgo)}
-          </p>
-          <Button
-            className="h-8 gap-1.5 text-xs"
-            disabled={isPending}
-            onClick={handleRefresh}
-            size="sm"
-            variant="outline"
-          >
-            <ArrowClockwise
-              className={isPending ? "animate-spin" : ""}
-              size={13}
-            />
-            {isPending ? "Refreshing…" : "Refresh"}
-          </Button>
-        </div>
-      </div>
+      <OrbitPageHeader
+        title="Email"
+        description="Transactional email queue and inbound delivery events."
+        actions={
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-muted-foreground">
+              Updated {formatSecondsAgo(secondsAgo)}
+            </p>
+            <Button
+              className="h-8 gap-1.5 text-xs"
+              disabled={isPending}
+              onClick={handleRefresh}
+              size="sm"
+              variant="outline"
+            >
+              <ArrowClockwise
+                className={isPending ? "animate-spin" : ""}
+                size={13}
+              />
+              {isPending ? "Refreshing…" : "Refresh"}
+            </Button>
+          </div>
+        }
+      />
 
       {/* ── Summary stat cards ───────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -452,77 +451,73 @@ export function EmailClient({
       <div className="grid gap-6 xl:grid-cols-3">
         {/* Outbox — 2/3 width */}
         <Card className="xl:col-span-2">
-          <CardHeader className="py-4">
+          <CardHeader className="flex flex-col gap-3 border-b border-border py-4 lg:flex-row lg:items-center lg:justify-between">
             <CardTitle className="text-base font-semibold">
               Outbox{" "}
               <span className="font-normal text-muted-foreground">
                 ({filteredTotal})
               </span>
             </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {/* ── Filter toolbar ─────────────────────────────────────── */}
-            <div className="flex flex-col gap-3 border-b border-border px-5 py-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div className="relative sm:max-w-xs sm:flex-1">
-                  <MagnifyingGlass
-                    className="-translate-y-1/2 absolute top-1/2 left-2.5 text-muted-foreground"
-                    size={15}
-                  />
-                  <Input
-                    className="h-9 pl-8 text-sm"
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="Search recipient or subject…"
-                    value={searchInput}
-                  />
-                </div>
-                <Select
-                  value={filter.status}
-                  onValueChange={(v) => navigate({ status: v })}
-                >
-                  <SelectTrigger className="h-9 w-full text-sm sm:w-36" aria-label="Status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {OUTBOX_STATUS_TABS.map((tab) => (
-                      <SelectItem key={tab.key} value={tab.key}>
-                        {tab.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center gap-2">
-                  <Input
-                    aria-label="From date"
-                    className="h-9 w-36 text-sm"
-                    onChange={(e) => navigate({ from: e.target.value })}
-                    type="date"
-                    value={filter.from}
-                  />
-                  <span className="text-xs text-muted-foreground">to</span>
-                  <Input
-                    aria-label="To date"
-                    className="h-9 w-36 text-sm"
-                    onChange={(e) => navigate({ to: e.target.value })}
-                    type="date"
-                    value={filter.to}
-                  />
-                  {filtersActive && (
-                    <Button
-                      className="h-9 text-xs"
-                      onClick={() =>
-                        navigate({ status: "all", q: "", from: "", to: "" })
-                      }
-                      size="sm"
-                      variant="ghost"
-                    >
-                      Clear
-                    </Button>
-                  )}
-                </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative sm:w-52">
+                <MagnifyingGlass
+                  className="-translate-y-1/2 absolute top-1/2 left-2.5 text-muted-foreground"
+                  size={15}
+                />
+                <Input
+                  className="h-9 pl-8 text-sm"
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Search recipient or subject…"
+                  value={searchInput}
+                />
+              </div>
+              <Select
+                value={filter.status}
+                onValueChange={(v) => navigate({ status: v })}
+              >
+                <SelectTrigger className="h-9 w-full text-sm sm:w-32" aria-label="Status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {OUTBOX_STATUS_TABS.map((tab) => (
+                    <SelectItem key={tab.key} value={tab.key}>
+                      {tab.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2">
+                <Input
+                  aria-label="From date"
+                  className="h-9 w-32 text-sm"
+                  onChange={(e) => navigate({ from: e.target.value })}
+                  type="date"
+                  value={filter.from}
+                />
+                <span className="text-xs text-muted-foreground">to</span>
+                <Input
+                  aria-label="To date"
+                  className="h-9 w-32 text-sm"
+                  onChange={(e) => navigate({ to: e.target.value })}
+                  type="date"
+                  value={filter.to}
+                />
+                {filtersActive && (
+                  <Button
+                    className="h-9 text-xs"
+                    onClick={() =>
+                      navigate({ status: "all", q: "", from: "", to: "" })
+                    }
+                    size="sm"
+                    variant="ghost"
+                  >
+                    Clear
+                  </Button>
+                )}
               </div>
             </div>
-
+          </CardHeader>
+          <CardContent className="p-0">
             {outbox.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
                 <span className="text-muted-foreground/25">

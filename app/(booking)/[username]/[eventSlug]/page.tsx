@@ -4,6 +4,7 @@ import { and, asc, eq, gte } from 'drizzle-orm'
 import { addDays } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
 import { db } from '@/lib/db'
+import { getCurrentSession } from '@/lib/authz'
 import {
   user,
   userProfile,
@@ -11,6 +12,7 @@ import {
   eventTypeQuestion,
   availabilitySchedule,
   availabilityOverride,
+  cancellationPolicy,
 } from '@/db/schema'
 import { BookingCalendar } from './_components/booking-calendar'
 
@@ -68,6 +70,7 @@ export default async function BookingPage({
       eq(eventType.userId, host.id),
       eq(eventType.slug, eventSlug),
       eq(eventType.isActive, true),
+      eq(eventType.isHidden, false),
     ),
     with: {
       durations: true,
@@ -96,9 +99,18 @@ export default async function BookingPage({
   const hostTz = schedule?.timezone ?? 'UTC'
   const now = new Date()
   const today = formatInTimeZone(now, hostTz, 'yyyy-MM-dd')
-  const maxDate = formatInTimeZone(addDays(now, et.bookingWindow ?? 60), hostTz, 'yyyy-MM-dd')
+  // Fixed-window events use bookingRangeEnd as the cap; rolling events use bookingWindow days
+  const maxDate = et.bookingWindowType === 'fixed' && et.bookingRangeEnd
+    ? et.bookingRangeEnd
+    : formatInTimeZone(addDays(now, et.bookingWindow ?? 60), hostTz, 'yyyy-MM-dd')
 
   const availableDaysOfWeek = new Set(schedule?.windows.map((w) => w.dayOfWeek) ?? [])
+
+  const [cancelPolicy] = await db
+    .select({ showPolicyText: cancellationPolicy.showPolicyText, policyText: cancellationPolicy.policyText })
+    .from(cancellationPolicy)
+    .where(eq(cancellationPolicy.eventTypeId, et.id))
+    .limit(1)
 
   const overrideRows = await db
     .select({ date: availabilityOverride.date, isBlocked: availabilityOverride.isBlocked })
@@ -113,8 +125,13 @@ export default async function BookingPage({
 
   const sortedDurations = [...et.durations].sort((a, b) => a.duration - b.duration)
 
+  // Only the logged-in owner previewing their own page sees the "Back" control.
+  const session = await getCurrentSession()
+  const isOwner = session?.user?.id === host.id
+
   return (
     <BookingCalendar
+      isOwner={isOwner}
       host={{
         id: host.id,
         name: host.name,
@@ -132,6 +149,7 @@ export default async function BookingPage({
         durations: sortedDurations.map((d) => ({ duration: d.duration, isDefault: d.isDefault })),
         locationType: et.locationType,
         bookingWindow: et.bookingWindow ?? 60,
+        policyText: (cancelPolicy?.showPolicyText && cancelPolicy.policyText) ? cancelPolicy.policyText : null,
         questions: et.questions.map((q) => ({
           id: q.id,
           label: q.label,

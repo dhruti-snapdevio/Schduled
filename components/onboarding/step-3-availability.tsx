@@ -5,6 +5,7 @@ import { Plus, X, Globe } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { TimeCombobox } from '@/components/ui/time-combobox'
 import { saveAvailabilityStep } from '@/app/actions/onboarding'
+import { normalizeTzName } from '@/lib/utils'
 
 function fmt12(t: string): string {
   const [h, m] = t.split(':').map(Number)
@@ -101,8 +102,7 @@ export function StepAvailability({ onNext, onBack }: StepAvailabilityProps) {
     onNext()
   }
 
-  // Format timezone for display: "America/New_York" → "America/New York"
-  const tzDisplay = timezone.replace(/_/g, ' ')
+  const tzDisplay = normalizeTzName(timezone)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">

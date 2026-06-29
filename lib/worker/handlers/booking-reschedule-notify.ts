@@ -1,6 +1,7 @@
 import { formatInTimeZone } from "date-fns-tz";
 import type { Job } from "pg-boss";
 import { enqueueEmail } from "@/lib/email";
+import { generateBookingICS } from "@/lib/calendar/ics";
 import { bookingEmail } from "@/lib/email/templates/booking-emails";
 import { createNotification } from "@/lib/notifications/create";
 import type { BookingRescheduleNotifyPayload } from "@/lib/worker/job-types";
@@ -8,6 +9,7 @@ import {
   loadBookingForLifecycle,
   loadHostPrefs,
   resolveLocationLabel,
+  resolveLocationLabelHost,
   resolveMeetButtonLabel,
 } from "./booking-lifecycle-data";
 
@@ -34,20 +36,17 @@ async function processOne(bookingId: string, previousStartUtc: string) {
 
   const prefs = await loadHostPrefs(b.hostUserId);
   const hostTimezone = b.hostTimezone ?? "UTC";
-  const locationLabel = resolveLocationLabel(
-    b.etLocationType,
-    b.etLocationValue
-  );
+  const locationLabelInvitee = resolveLocationLabel(b.etLocationType, b.etLocationValue, b.inviteePhone);
+  const locationLabelHost = resolveLocationLabelHost(b.etLocationType, b.etLocationValue, b.inviteePhone);
   const meetLabel = resolveMeetButtonLabel(b.etLocationType);
 
-  const base = {
+  const baseShared = {
     variant: "reschedule" as const,
     eventName: b.etName,
     startUtc: new Date(b.startTime),
     previousStartUtc: new Date(previousStartUtc),
     hostTimezone,
     inviteeTimezone: b.inviteeTimezone,
-    locationLabel,
     cancelToken: b.cancelToken,
     rescheduleToken: b.rescheduleToken,
     reason: null,
@@ -55,13 +54,30 @@ async function processOne(bookingId: string, previousStartUtc: string) {
 
   // Invitee
   {
+    const startUtc = new Date(b.startTime);
     const mail = await bookingEmail({
-      ...base,
+      ...baseShared,
+      locationLabel: locationLabelInvitee,
       audience: "invitee",
       recipientName: b.inviteeName,
       otherPartyName: b.hostName ?? "your host",
       meetLink: b.videoLinkInvitee,
       meetLabel,
+    });
+    const icsAttachment = generateBookingICS({
+      uid: b.id,
+      title: `${b.etName} with ${b.hostName ?? "your host"}`,
+      description: `${b.etName} meeting via Schduled`,
+      startUtc,
+      durationMinutes: Math.round(
+        (new Date(b.endTime).getTime() - startUtc.getTime()) / 60000
+      ),
+      organizerName: b.hostName ?? "Your host",
+      organizerEmail: b.hostEmail ?? "",
+      attendeeEmail: b.inviteeEmail,
+      attendeeName: b.inviteeName,
+      location: locationLabelInvitee,
+      meetUrl: b.videoLinkInvitee ?? undefined,
     });
     await enqueueEmail(
       {
@@ -69,6 +85,7 @@ async function processOne(bookingId: string, previousStartUtc: string) {
         subject: mail.subject,
         html: mail.html,
         text: mail.text,
+        attachments: [icsAttachment],
       },
       // Key on the reschedule event (previous start) so each reschedule sends
       // but a handler retry for the same event doesn't double-send.
@@ -79,7 +96,8 @@ async function processOne(bookingId: string, previousStartUtc: string) {
   // Host
   if (b.hostEmail && prefs?.rescheduleEmail !== false) {
     const mail = await bookingEmail({
-      ...base,
+      ...baseShared,
+      locationLabel: locationLabelHost,
       audience: "host",
       recipientName: b.hostName ?? "there",
       otherPartyName: b.inviteeName,

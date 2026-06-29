@@ -7,6 +7,7 @@ export interface BookingLifecycleRow {
   cancellationReason: string | null;
   cancelToken: string;
   endTime: Date;
+  etConfirmationNote: string | null;
   etLocationType: string;
   etLocationValue: string | null;
   etName: string;
@@ -17,6 +18,7 @@ export interface BookingLifecycleRow {
   id: string;
   inviteeEmail: string;
   inviteeName: string;
+  inviteePhone: string | null;
   inviteeTimezone: string;
   rejectionReason: string | null;
   rescheduleToken: string;
@@ -34,6 +36,7 @@ export async function loadBookingForLifecycle(
       id: booking.id,
       inviteeName: booking.inviteeName,
       inviteeEmail: booking.inviteeEmail,
+      inviteePhone: booking.inviteePhone,
       inviteeTimezone: booking.inviteeTimezone,
       startTime: booking.startTime,
       endTime: booking.endTime,
@@ -46,6 +49,7 @@ export async function loadBookingForLifecycle(
       cancellationReason: booking.cancellationReason,
       rejectionReason: booking.rejectionReason,
       etName: eventType.name,
+      etConfirmationNote: eventType.confirmationNote,
       etLocationType: eventType.locationType,
       etLocationValue: eventType.locationValue,
       hostUserId: user.id,
@@ -71,9 +75,11 @@ export async function loadHostPrefs(userId: string) {
   return prefs ?? null;
 }
 
+/** Location label shown in the invitee's email. */
 export function resolveLocationLabel(
   locationType: string,
-  locationValue: string | null
+  locationValue: string | null,
+  inviteePhone?: string | null
 ): string {
   switch (locationType) {
     case "google_meet":
@@ -81,9 +87,11 @@ export function resolveLocationLabel(
     case "zoom":
       return "Zoom";
     case "phone_host_calls":
-      return "Phone (host will call you)";
+      return inviteePhone
+        ? `Phone — your host will call you at ${inviteePhone}`
+        : "Phone (your host will call you)";
     case "phone_invitee_calls":
-      return locationValue ? `Call: ${locationValue}` : "Phone (you call host)";
+      return locationValue ? `Phone — call your host at ${locationValue}` : "Phone (call your host)";
     case "in_person":
       return locationValue ?? "In person (see invite for address)";
     case "custom":
@@ -93,14 +101,47 @@ export function resolveLocationLabel(
   }
 }
 
-/** Provider-specific label for the "Join …" button in lifecycle emails. */
-export function resolveMeetButtonLabel(locationType: string): string {
+/** Location label shown in the HOST's email — phone labels are reversed. */
+export function resolveLocationLabelHost(
+  locationType: string,
+  locationValue: string | null,
+  inviteePhone: string | null
+): string {
   switch (locationType) {
     case "google_meet":
-      return "Join Google Meet";
+      return "Google Meet";
     case "zoom":
-      return "Join Zoom Meeting";
+      return "Zoom";
+    case "phone_host_calls":
+      return inviteePhone
+        ? `Phone — call invitee at ${inviteePhone}`
+        : "Phone (call invitee — number not provided)";
+    case "phone_invitee_calls":
+      return locationValue
+        ? `Phone — invitee will call you at ${locationValue}`
+        : "Phone (invitee will call you)";
+    case "in_person":
+      return locationValue ?? "In person";
+    case "custom":
+      return locationValue ?? "See details";
     default:
-      return "Join Meeting";
+      return locationValue ?? "See details";
   }
+}
+
+/** Provider-specific button labels for lifecycle emails (invitee and host views). */
+export function resolveMeetLabels(locationType: string): { invitee: string; host: string } {
+  switch (locationType) {
+    case "google_meet":
+      return { invitee: "Join Google Meet", host: "Start Google Meet" };
+    case "zoom":
+      return { invitee: "Join Zoom Meeting", host: "Start Zoom Meeting" };
+    default:
+      return { invitee: "Join Meeting", host: "Start Meeting" };
+  }
+}
+
+/** Convenience wrapper — returns the invitee-facing meet button label. */
+export function resolveMeetButtonLabel(locationType: string): string {
+  return resolveMeetLabels(locationType).invitee;
 }

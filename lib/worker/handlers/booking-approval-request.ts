@@ -1,11 +1,14 @@
 import type { Job } from "pg-boss";
 import { createNotification } from "@/lib/notifications/create";
 import { enqueueEmail } from "@/lib/email";
+import { approvalPendingTemplate } from "@/lib/email/templates/approval-pending";
 import { approvalRequestTemplate } from "@/lib/email/templates/approval-request";
 import type { BookingApprovalRequestPayload } from "@/lib/worker/job-types";
 import {
   loadBookingForLifecycle,
+  loadHostPrefs,
   resolveLocationLabel,
+  resolveLocationLabelHost,
 } from "./booking-lifecycle-data";
 
 export async function handleBookingApprovalRequest(
@@ -33,10 +36,32 @@ async function processOne(bookingId: string) {
     return;
   }
 
+  const prefs = await loadHostPrefs(b.hostUserId);
   const hostTimezone = b.hostTimezone ?? "UTC";
-  const locationLabel = resolveLocationLabel(b.etLocationType, b.etLocationValue);
+  const locationLabelInvitee = resolveLocationLabel(b.etLocationType, b.etLocationValue, b.inviteePhone);
+  const locationLabelHost = resolveLocationLabelHost(b.etLocationType, b.etLocationValue, b.inviteePhone);
+  const startUtc = new Date(b.startTime);
 
-  if (b.hostEmail) {
+  // Invitee: "your request is awaiting approval"
+  {
+    const mail = await approvalPendingTemplate({
+      cancelToken: b.cancelToken,
+      eventName: b.etName,
+      hostName: b.hostName ?? "your host",
+      hostTimezone,
+      inviteeName: b.inviteeName,
+      inviteeTimezone: b.inviteeTimezone,
+      locationLabel: locationLabelInvitee,
+      startUtc,
+    });
+    await enqueueEmail(
+      { to: b.inviteeEmail, subject: mail.subject, html: mail.html, text: mail.text },
+      { idempotencyKey: `approval-request:${b.id}:${startUtc.getTime()}:invitee` }
+    );
+  }
+
+  // Host: "someone wants to book with you — approve or decline"
+  if (b.hostEmail && prefs?.bookingNotificationEmail !== false) {
     const mail = await approvalRequestTemplate({
       approvalToken: b.approvalToken,
       eventName: b.etName,
@@ -44,8 +69,8 @@ async function processOne(bookingId: string) {
       hostTimezone,
       inviteeEmail: b.inviteeEmail,
       inviteeName: b.inviteeName,
-      locationLabel,
-      startUtc: new Date(b.startTime),
+      locationLabel: locationLabelHost,
+      startUtc,
     });
 
     await enqueueEmail(
@@ -57,7 +82,7 @@ async function processOne(bookingId: string) {
       },
       // Key on the current start time so a re-request after a reschedule still
       // sends, but a handler retry for the same time does not double-send.
-      { idempotencyKey: `approval-request:${b.id}:${new Date(b.startTime).getTime()}:host` }
+      { idempotencyKey: `approval-request:${b.id}:${startUtc.getTime()}:host` }
     );
   }
 

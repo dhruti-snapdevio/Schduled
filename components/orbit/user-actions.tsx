@@ -1,5 +1,19 @@
+"use client";
+
+import { useTransition } from "react";
 import { toggleUserBanAction } from "@/app/actions/orbit-users";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function UserSuspendForm({
   banned,
@@ -8,18 +22,63 @@ export function UserSuspendForm({
   banned: boolean;
   userId: string;
 }) {
-  return (
-    <form action={toggleUserBanAction}>
-      <input name="userId" type="hidden" value={userId} />
-      <input name="banned" type="hidden" value={String(!banned)} />
+  const [isPending, startTransition] = useTransition();
+
+  function run() {
+    const fd = new FormData();
+    fd.append("userId", userId);
+    fd.append("banned", String(!banned));
+    startTransition(() => toggleUserBanAction(fd));
+  }
+
+  // Reactivate is non-destructive — run immediately. Suspend asks to confirm.
+  if (banned) {
+    return (
       <Button
-        type="submit"
-        variant={banned ? "secondary" : "outline"}
+        type="button"
+        variant="secondary"
         size="sm"
         className="text-xs h-7"
+        onClick={run}
+        disabled={isPending}
       >
-        {banned ? "Reactivate" : "Suspend"}
+        {isPending ? "Reactivating…" : "Reactivate"}
       </Button>
-    </form>
+    );
+  }
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="text-xs h-7"
+          disabled={isPending}
+        >
+          Suspend
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Suspend this account?</AlertDialogTitle>
+          <AlertDialogDescription>
+            The user will be signed out immediately and blocked from logging in
+            until you reactivate them. This can be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={run}
+            disabled={isPending}
+          >
+            {isPending ? "Suspending…" : "Suspend"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

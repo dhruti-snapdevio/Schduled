@@ -8,6 +8,7 @@ import {
   loadBookingForLifecycle,
   loadHostPrefs,
   resolveLocationLabel,
+  resolveLocationLabelHost,
 } from "./booking-lifecycle-data";
 
 export async function handleBookingCancellation(
@@ -33,19 +34,17 @@ async function processOne(bookingId: string) {
 
   const prefs = await loadHostPrefs(b.hostUserId);
   const hostTimezone = b.hostTimezone ?? "UTC";
-  const locationLabel = resolveLocationLabel(
-    b.etLocationType,
-    b.etLocationValue
-  );
+  const locationLabelInvitee = resolveLocationLabel(b.etLocationType, b.etLocationValue, b.inviteePhone);
+  const locationLabelHost = resolveLocationLabelHost(b.etLocationType, b.etLocationValue, b.inviteePhone);
+  const startUtc = new Date(b.startTime);
 
-  const base = {
+  const baseShared = {
     variant: "cancellation" as const,
     eventName: b.etName,
-    startUtc: new Date(b.startTime),
+    startUtc,
     previousStartUtc: null,
     hostTimezone,
     inviteeTimezone: b.inviteeTimezone,
-    locationLabel,
     meetLink: null,
     cancelToken: b.cancelToken,
     rescheduleToken: b.rescheduleToken,
@@ -55,8 +54,9 @@ async function processOne(bookingId: string) {
   // Always notify invitee of cancellation (transactional)
   {
     const mail = await bookingEmail({
-      ...base,
+      ...baseShared,
       audience: "invitee",
+      locationLabel: locationLabelInvitee,
       recipientName: b.inviteeName,
       otherPartyName: b.hostName ?? "your host",
     });
@@ -74,8 +74,9 @@ async function processOne(bookingId: string) {
   // Host
   if (b.hostEmail && prefs?.cancellationEmail !== false) {
     const mail = await bookingEmail({
-      ...base,
+      ...baseShared,
       audience: "host",
+      locationLabel: locationLabelHost,
       recipientName: b.hostName ?? "there",
       otherPartyName: b.inviteeName,
     });

@@ -62,7 +62,7 @@ export default async function EditEventTypePage({ params }: { params: Promise<{ 
     allowRescheduling:       et.cancellationPolicy?.allowRescheduling ?? true,
     rescheduleCutoffHours:   et.cancellationPolicy?.rescheduleCutoffHours ?? 0,
     requireCancellationReason: et.cancellationPolicy?.requireCancellationReason ?? false,
-    showPolicyText:          et.cancellationPolicy?.showPolicyText ?? false,
+    showPolicyText:          et.cancellationPolicy?.showPolicyText ?? true,
     policyText:              et.cancellationPolicy?.policyText ?? '',
   }
 

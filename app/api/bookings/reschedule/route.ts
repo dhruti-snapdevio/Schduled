@@ -70,6 +70,10 @@ export async function POST(request: Request) {
       return jsonError("This booking has been cancelled.", 409);
     }
 
+    if (new Date(b.startTime).getTime() < nowMs) {
+      return jsonError("This booking has already taken place.", 409);
+    }
+
     if (
       b.rescheduleTokenExpiresAt &&
       b.rescheduleTokenExpiresAt.getTime() < nowMs

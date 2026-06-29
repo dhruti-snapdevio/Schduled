@@ -47,9 +47,11 @@ export default async function CancelPage({
 
   const [policy] = await db
     .select({
-      allowCancellation: cancellationPolicy.allowCancellation,
-      cutoffHours: cancellationPolicy.cutoffHours,
-      policyText: cancellationPolicy.policyText,
+      allowCancellation:         cancellationPolicy.allowCancellation,
+      cutoffHours:               cancellationPolicy.cutoffHours,
+      requireCancellationReason: cancellationPolicy.requireCancellationReason,
+      showPolicyText:            cancellationPolicy.showPolicyText,
+      policyText:                cancellationPolicy.policyText,
     })
     .from(cancellationPolicy)
     .where(eq(cancellationPolicy.eventTypeId, b.etId))
@@ -75,6 +77,8 @@ export default async function CancelPage({
       inviteeTimezone={b.inviteeTimezone}
       isPast={new Date(b.startTime).getTime() < Date.now()}
       policyText={policy?.policyText ?? null}
+      requireCancellationReason={policy?.requireCancellationReason ?? false}
+      showPolicyText={policy?.showPolicyText ?? false}
       startUtc={b.startTime.toISOString()}
       token={token}
     />

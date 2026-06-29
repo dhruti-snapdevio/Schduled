@@ -4,48 +4,13 @@ import { createId } from "@paralleldrive/cuid2";
 import { formatInTimeZone } from "date-fns-tz";
 import { db } from "@/lib/db";
 import { booking, emailOutbox, eventType, user } from "@/db/schema";
-import { enqueueEmail } from "@/lib/email";
 import { reminderHostTemplate } from "@/lib/email/templates/reminder-host";
 import { reminderInviteeTemplate } from "@/lib/email/templates/reminder-invitee";
 import { createNotification } from "@/lib/notifications/create";
 import { enqueueJob } from "@/lib/worker/enqueue";
 import { type BookingReminderPayload, JOB_NAMES } from "@/lib/worker/job-types";
+import { loadHostPrefs, resolveLocationLabel, resolveLocationLabelHost, resolveMeetLabels } from "./booking-lifecycle-data";
 
-function resolveLocationLabel(
-  locationType: string,
-  locationValue: string | null
-): string {
-  switch (locationType) {
-    case "google_meet":
-      return "Google Meet";
-    case "zoom":
-      return "Zoom";
-    case "phone_host_calls":
-      return "Phone (host will call you)";
-    case "phone_invitee_calls":
-      return locationValue ? `Call: ${locationValue}` : "Phone (you call host)";
-    case "in_person":
-      return locationValue ?? "In person (see invite for address)";
-    case "custom":
-      return locationValue ?? "See invite for details";
-    default:
-      return locationValue ?? "See invite for details";
-  }
-}
-
-function resolveMeetLabel(locationType: string): {
-  inviteeLabel: string;
-  hostLabel: string;
-} {
-  switch (locationType) {
-    case "google_meet":
-      return { inviteeLabel: "Join Google Meet", hostLabel: "Start Google Meet" };
-    case "zoom":
-      return { inviteeLabel: "Join Zoom Meeting", hostLabel: "Start Zoom Meeting" };
-    default:
-      return { inviteeLabel: "Join Meeting", hostLabel: "Start Meeting" };
-  }
-}
 
 export async function handleBookingReminder24h(
   jobs: Job<BookingReminderPayload>[]
@@ -74,6 +39,7 @@ async function processReminder(
       id: booking.id,
       inviteeName: booking.inviteeName,
       inviteeEmail: booking.inviteeEmail,
+      inviteePhone: booking.inviteePhone,
       inviteeTimezone: booking.inviteeTimezone,
       startTime: booking.startTime,
       videoLinkInvitee: booking.videoLinkInvitee,
@@ -118,34 +84,43 @@ async function processReminder(
     return;
   }
 
+  const prefs = await loadHostPrefs(b.hostUserId);
   const hostTimezone = b.hostTimezone ?? "UTC";
-  const locationLabel = resolveLocationLabel(b.etLocationType, b.etLocationValue);
-  const { inviteeLabel, hostLabel } = resolveMeetLabel(b.etLocationType);
+  const locationLabelInvitee = resolveLocationLabel(b.etLocationType, b.etLocationValue, b.inviteePhone);
+  const locationLabelHost = resolveLocationLabelHost(b.etLocationType, b.etLocationValue, b.inviteePhone);
+  const { invitee: inviteeLabel, host: hostLabel } = resolveMeetLabels(b.etLocationType);
   const tag = timeUntil === "24 hours" ? "24h" : "1h";
 
-  // ── Invitee reminder email ─────────────────────────────────────────────
-  const inviteeMail = await reminderInviteeTemplate({
-    inviteeName: b.inviteeName,
-    hostName: b.hostName ?? "Your host",
-    eventName: b.etName,
-    startUtc: new Date(b.startTime),
-    hostTimezone,
-    inviteeTimezone: b.inviteeTimezone,
-    locationLabel,
-    meetLink: b.videoLinkInvitee,
-    meetLabel: inviteeLabel,
-    cancelToken: b.cancelToken,
-    rescheduleToken: b.rescheduleToken,
-    timeUntil,
-  });
+  // "reminderEmail24h/1h" pref controls INVITEE reminders ("Send invitees a reminder").
+  // The host always receives their own reminder regardless of this setting.
+  const inviteeReminderEnabled = timeUntil === "24 hours"
+    ? prefs?.reminderEmail24h !== false
+    : prefs?.reminderEmail1h !== false;
 
-  const inviteeKey = `reminder-invitee-${tag}-${bookingId}-${scheduledFor.toISOString()}`;
-  await insertAndEnqueueEmail(
-    b.inviteeEmail,
-    `Reminder: ${b.etName} with ${b.hostName ?? "your host"} in ${timeUntil}`,
-    inviteeMail,
-    inviteeKey
-  );
+  // ── Invitee reminder email ─────────────────────────────────────────────
+  if (inviteeReminderEnabled) {
+    const inviteeMail = await reminderInviteeTemplate({
+      inviteeName: b.inviteeName,
+      hostName: b.hostName ?? "Your host",
+      eventName: b.etName,
+      startUtc: new Date(b.startTime),
+      hostTimezone,
+      inviteeTimezone: b.inviteeTimezone,
+      locationLabel: locationLabelInvitee,
+      meetLink: b.videoLinkInvitee,
+      meetLabel: inviteeLabel,
+      cancelToken: b.cancelToken,
+      rescheduleToken: b.rescheduleToken,
+      timeUntil,
+    });
+    const inviteeKey = `reminder-invitee-${tag}-${bookingId}-${scheduledFor.toISOString()}`;
+    await insertAndEnqueueEmail(
+      b.inviteeEmail,
+      `Reminder: ${b.etName} with ${b.hostName ?? "your host"} in ${timeUntil}`,
+      inviteeMail,
+      inviteeKey
+    );
+  }
 
   // ── Host reminder email ────────────────────────────────────────────────
   if (b.hostEmail) {
@@ -159,7 +134,7 @@ async function processReminder(
       startUtc: new Date(b.startTime),
       hostTimezone,
       inviteeTimezone: b.inviteeTimezone,
-      locationLabel,
+      locationLabel: locationLabelHost,
       startMeetLink,
       meetLabel: hostLabel,
       timeUntil,

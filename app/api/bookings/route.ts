@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     if (!host) return jsonError("Host not found", 404);
 
     const et = await db.query.eventType.findFirst({
-      where: and(eq(eventType.userId, host.id), eq(eventType.slug, eventSlug), eq(eventType.isActive, true)),
+      where: and(eq(eventType.userId, host.id), eq(eventType.slug, eventSlug), eq(eventType.isActive, true), eq(eventType.isHidden, false)),
       with: { durations: true },
     });
 
@@ -161,10 +161,15 @@ export async function POST(request: Request) {
       }
     }
 
+    // Phone required server-side for phone_host_calls
+    if (et.locationType === 'phone_host_calls' && !phone?.trim()) {
+      return jsonError('Phone number is required for this meeting type.', 400);
+    }
+
     // ── Idempotency check ────────────────────────────────────────────────────
-    // Key is deterministic for the same (invitee, host, event, slot) combination.
-    // A 2nd submit of the same form returns the already-created booking instantly.
-    const idemKey = `booking:${email.toLowerCase().trim()}:${et.id}:${startTime.toISOString()}`;
+    // Key includes duration so two requests for the same slot but different
+    // durations are treated as distinct (both are valid for multi-duration events).
+    const idemKey = `booking:${email.toLowerCase().trim()}:${et.id}:${startTime.toISOString()}:${duration}`;
     const now = new Date();
 
     const [existing] = await db
@@ -406,12 +411,12 @@ async function enqueueBookingJobs(opts: {
   jobs.push(enqueueJob(JOB_NAMES.CALENDAR_WRITE, { bookingId }));
 
   // Confirmation emails + in-app notification
-  // For video events, delay 20 s so CALENDAR_WRITE can create the Meet link first
+  // For video events, delay 30 s so CALENDAR_WRITE / VIDEO_LINK_GENERATE can run first
   jobs.push(
     enqueueJob(
       JOB_NAMES.BOOKING_CONFIRMATION,
       { bookingId },
-      needsVideoLink ? { startAfter: 20 } : undefined
+      needsVideoLink ? { startAfter: 30 } : undefined
     )
   );
 

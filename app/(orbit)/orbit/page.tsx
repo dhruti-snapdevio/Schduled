@@ -1,6 +1,7 @@
 import { count, desc, eq, gte, max } from "drizzle-orm";
 import { format, formatDistanceToNow, startOfMonth } from "date-fns";
 import Link from "next/link";
+import { OrbitPageHeader } from "@/components/admin/orbit-page-header";
 import {
   ArrowRight,
   CalendarCheck,
@@ -105,19 +106,10 @@ export default async function OrbitPage() {
   return (
     <div className="space-y-8">
       {/* ── Page heading ────────────────────────────────────────────── */}
-      <div className="border-b border-border pb-6">
-        <div className="border-l-[3px] border-l-primary pl-4">
-          <p className="mb-1.5 text-xs font-bold uppercase tracking-eyebrow text-primary">
-            Admin Panel
-          </p>
-          <h1 className="font-black text-4xl tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
-            Workspace Administration
-          </h1>
-          <p className="mt-2 text-base text-muted-foreground">
-            Manage users, bookings, emails and monitor system health.
-          </p>
-        </div>
-      </div>
+      <OrbitPageHeader
+        title="Workspace Administration"
+        description="Manage users, bookings, emails and monitor system health."
+      />
 
       {/* ── Stat cards ──────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

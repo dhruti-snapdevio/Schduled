@@ -1,4 +1,4 @@
-import ical, { ICalAttendeeRole, ICalAttendeeStatus } from "ical-generator";
+import ical, { ICalCalendarMethod, ICalAttendeeRole, ICalAttendeeStatus } from "ical-generator";
 import type { EmailAttachment } from "@/db/schema";
 
 export interface GenerateICSParams {
@@ -24,7 +24,7 @@ export function generateBookingICS(params: GenerateICSParams): EmailAttachment {
     params.startUtc.getTime() + params.durationMinutes * 60 * 1000
   );
 
-  const cal = ical({ name: "Schduled" });
+  const cal = ical({ name: "Schduled", method: ICalCalendarMethod.REQUEST });
 
   const event = cal.createEvent({
     id: params.uid,

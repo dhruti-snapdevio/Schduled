@@ -11,6 +11,7 @@ import {
   loadBookingForLifecycle,
   loadHostPrefs,
   resolveLocationLabel,
+  resolveLocationLabelHost,
   resolveMeetButtonLabel,
 } from "./booking-lifecycle-data";
 
@@ -37,30 +38,26 @@ async function processOne(bookingId: string) {
 
   const prefs = await loadHostPrefs(b.hostUserId);
   const hostTimezone = b.hostTimezone ?? "UTC";
-  const locationLabel = resolveLocationLabel(
-    b.etLocationType,
-    b.etLocationValue
-  );
+  const locationLabelInvitee = resolveLocationLabel(b.etLocationType, b.etLocationValue, b.inviteePhone);
+  const locationLabelHost = resolveLocationLabelHost(b.etLocationType, b.etLocationValue, b.inviteePhone);
   const meetLabel = resolveMeetButtonLabel(b.etLocationType);
-
-  const base = {
-    variant: "confirmation" as const,
-    eventName: b.etName,
-    startUtc: new Date(b.startTime),
-    previousStartUtc: null,
-    hostTimezone,
-    inviteeTimezone: b.inviteeTimezone,
-    locationLabel,
-    cancelToken: b.cancelToken,
-    rescheduleToken: b.rescheduleToken,
-    reason: null,
-  };
+  const startUtc = new Date(b.startTime);
 
   // Invitee confirmation (with ICS calendar attachment)
   if (prefs?.bookingConfirmationEmail !== false) {
     const mail = await bookingEmail({
-      ...base,
+      variant: "confirmation",
       audience: "invitee",
+      eventName: b.etName,
+      startUtc,
+      previousStartUtc: null,
+      hostTimezone,
+      inviteeTimezone: b.inviteeTimezone,
+      locationLabel: locationLabelInvitee,
+      cancelToken: b.cancelToken,
+      rescheduleToken: b.rescheduleToken,
+      reason: null,
+      confirmationNote: b.etConfirmationNote ?? null,
       recipientName: b.inviteeName,
       otherPartyName: b.hostName ?? "your host",
       meetLink: b.videoLinkInvitee,
@@ -71,15 +68,15 @@ async function processOne(bookingId: string) {
       uid: b.id,
       title: `${b.etName} with ${b.hostName ?? "your host"}`,
       description: `${b.etName} meeting via Schduled`,
-      startUtc: new Date(b.startTime),
+      startUtc,
       durationMinutes: Math.round(
-        (new Date(b.endTime).getTime() - new Date(b.startTime).getTime()) / 60000
+        (new Date(b.endTime).getTime() - startUtc.getTime()) / 60000
       ),
       organizerName: b.hostName ?? "Your host",
       organizerEmail: b.hostEmail ?? "",
       attendeeEmail: b.inviteeEmail,
       attendeeName: b.inviteeName,
-      location: resolveLocationLabel(b.etLocationType, b.etLocationValue),
+      location: locationLabelInvitee,
       meetUrl: b.videoLinkInvitee ?? undefined,
     });
 
@@ -98,8 +95,18 @@ async function processOne(bookingId: string) {
   // Host notification
   if (b.hostEmail && prefs?.bookingNotificationEmail !== false) {
     const mail = await bookingEmail({
-      ...base,
+      variant: "confirmation",
       audience: "host",
+      eventName: b.etName,
+      startUtc,
+      previousStartUtc: null,
+      hostTimezone,
+      inviteeTimezone: b.inviteeTimezone,
+      locationLabel: locationLabelHost,
+      cancelToken: b.cancelToken,
+      rescheduleToken: b.rescheduleToken,
+      reason: null,
+      confirmationNote: null,
       recipientName: b.hostName ?? "there",
       otherPartyName: b.inviteeName,
       meetLink: b.videoLinkHost,

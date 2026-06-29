@@ -294,7 +294,7 @@ export default async function LandingPage() {
   const todayDayName = DAY_SHORT[now.getDay()]
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background text-foreground antialiased">
+    <div className="min-h-screen overflow-x-clip bg-background text-foreground antialiased">
 
       {/* ─── NAVBAR ──────────────────────────────────────────────────────────── */}
       <LandingHeader />
@@ -580,9 +580,12 @@ export default async function LandingPage() {
         {/* ─── STATS ───────────────────────────────────────────────────────────── */}
         <section className="py-24">
           <div className="mx-auto max-w-5xl px-5 sm:px-8">
-            <p className="scroll-reveal mb-12 text-center text-xs font-black uppercase tracking-[0.22em] text-muted-foreground/50">
+            <p className="scroll-reveal mb-3 text-center text-xs font-bold uppercase tracking-[0.22em] text-primary/70">
               Why people choose Schduled
             </p>
+            <h2 className="scroll-reveal mb-12 text-center text-3xl font-black text-foreground sm:text-4xl">
+              Scheduling that just works.
+            </h2>
 
             <div className="grid gap-6 sm:grid-cols-3">
               {STATS.map((s, i) => {
@@ -619,8 +622,8 @@ export default async function LandingPage() {
                       >
                         {s.value}
                       </div>
-                      <p className="mt-2 text-sm font-bold text-foreground">{s.title}</p>
-                      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{s.sub}</p>
+                      <p className="mt-2 text-base font-bold text-foreground">{s.title}</p>
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{s.sub}</p>
                     </div>
                   </div>
                 )

@@ -57,18 +57,40 @@ const PAGE_SIZE = 20
 export default async function BookingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; page?: string; dateFrom?: string; dateTo?: string }>
+  searchParams: Promise<{ tab?: string; q?: string; page?: string; dateFrom?: string; dateTo?: string; highlight?: string }>
 }) {
   const session = await requireSession()
-  const { tab: rawTab, q, page: rawPage, dateFrom: rawDateFrom, dateTo: rawDateTo } = await searchParams
-  const tab: Tab =
-    rawTab === 'past' || rawTab === 'cancelled' || rawTab === 'pending' ? rawTab : 'upcoming'
+  const { tab: rawTab, q, page: rawPage, dateFrom: rawDateFrom, dateTo: rawDateTo, highlight } = await searchParams
   const search = q?.trim() ?? ''
   const page = Math.max(1, parseInt(rawPage ?? '1', 10) || 1)
   const dateFrom = rawDateFrom?.match(/^\d{4}-\d{2}-\d{2}$/) ? rawDateFrom : ''
   const dateTo   = rawDateTo?.match(/^\d{4}-\d{2}-\d{2}$/)   ? rawDateTo   : ''
 
   const now = new Date()
+
+  // When opened from a notification (?highlight=<id>) with no explicit tab,
+  // resolve the tab from the booking's own status so it lands on the list that
+  // actually contains it (e.g. a cancelled booking opens the Cancelled tab).
+  let resolvedTab: Tab | null = null
+  if (!rawTab && highlight) {
+    const [hb] = await db
+      .select({ status: booking.status, startTime: booking.startTime })
+      .from(booking)
+      .where(and(eq(booking.id, highlight), eq(booking.hostUserId, session.user.id)))
+      .limit(1)
+    if (hb) {
+      resolvedTab =
+        hb.status === 'pending' ? 'pending'
+        : hb.status === 'cancelled' || hb.status === 'rescheduled' ? 'cancelled'
+        : hb.startTime > now ? 'upcoming'
+        : 'past'
+    }
+  }
+
+  const tab: Tab =
+    rawTab === 'past' || rawTab === 'cancelled' || rawTab === 'pending' || rawTab === 'upcoming'
+      ? (rawTab as Tab)
+      : resolvedTab ?? 'upcoming'
 
   // ── Tab counts ───────────────────────────────────────────────────────────────
   const [upcomingCount, pastCount, cancelledCount, pendingCount] = await Promise.all([
@@ -79,7 +101,7 @@ export default async function BookingsPage({
       and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), lte(booking.startTime, now))
     ),
     db.select({ value: count() }).from(booking).where(
-      and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'cancelled'))
+      and(eq(booking.hostUserId, session.user.id), or(eq(booking.status, 'cancelled'), eq(booking.status, 'rescheduled')))
     ),
     db.select({ value: count() }).from(booking).where(
       and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'pending'))
@@ -101,7 +123,7 @@ export default async function BookingsPage({
         ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), lte(booking.startTime, now))
         : tab === 'pending'
           ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'pending'))
-          : and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'cancelled'))
+          : and(eq(booking.hostUserId, session.user.id), or(eq(booking.status, 'cancelled'), eq(booking.status, 'rescheduled')))
 
   const dateFromFilter = dateFrom ? gte(booking.startTime, new Date(`${dateFrom}T00:00:00`)) : undefined
   const dateToFilter   = dateTo   ? lte(booking.startTime, new Date(`${dateTo}T23:59:59`))   : undefined
@@ -247,6 +269,9 @@ export default async function BookingsPage({
                 {g.items.map((b) => {
                   const isUpcoming = tab === 'upcoming'
                   const isPending = tab === 'pending'
+                  // A pending request whose slot has passed can no longer be
+                  // approved — show it as expired and drop the action buttons.
+                  const isExpired = isPending && b.startTime < now
                   const statusMeta = STATUS_STYLES[b.status] ?? STATUS_STYLES.no_show
                   const platform = PLATFORM_META[b.locationType ?? 'custom'] ?? PLATFORM_META.custom
                   const PlatformIcon = platform.icon
@@ -297,10 +322,17 @@ export default async function BookingsPage({
                               </span>
                             )}
                             {isPending && (
-                              <span className="inline-flex items-center gap-1 text-amber-600">
-                                <Hourglass size={12} weight="fill" />
-                                Awaiting your review
-                              </span>
+                              isExpired ? (
+                                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                                  <Hourglass size={12} weight="fill" />
+                                  Expired — time passed
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-amber-600">
+                                  <Hourglass size={12} weight="fill" />
+                                  Awaiting your review
+                                </span>
+                              )
                             )}
                           </div>
                         </div>
@@ -345,7 +377,7 @@ export default async function BookingsPage({
                           </div>
                         )}
 
-                        {tab === 'pending' && b.approvalToken && (
+                        {tab === 'pending' && b.approvalToken && !isExpired && (
                           <div className="flex items-center gap-1">
                             <Button asChild size="sm" className="h-7 gap-1 bg-primary px-2.5 text-xs hover:bg-primary/90">
                               <Link href={`/booking/review/${b.approvalToken}?action=approve`}>

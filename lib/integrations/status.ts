@@ -17,7 +17,7 @@ export async function getMeetingIntegrations(userId: string): Promise<MeetingInt
     db
       .select({ status: connectedCalendar.status })
       .from(connectedCalendar)
-      .where(eq(connectedCalendar.userId, userId))
+      .where(and(eq(connectedCalendar.userId, userId), eq(connectedCalendar.provider, 'google')))
       .limit(1)
       .then((r) => r[0]),
     db
