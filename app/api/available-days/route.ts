@@ -47,7 +47,8 @@ export async function GET(request: Request) {
     where: and(
       eq(eventType.userId, host.id),
       eq(eventType.slug, slug),
-      eq(eventType.isActive, true)
+      eq(eventType.isActive, true),
+      eq(eventType.isHidden, false)
     ),
     with: { durations: true },
   });

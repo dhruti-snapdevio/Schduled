@@ -1,47 +1,37 @@
 import { createElement } from "react";
 import { formatInTimeZone } from "date-fns-tz";
-import { ApprovalOutcomeEmail } from "@/lib/email/components/approval-outcome";
+import { ApprovalPendingEmail } from "@/lib/email/components/approval-pending-email";
 import { renderEmailTemplate } from "@/lib/email/renderer";
 import { env } from "@/lib/env";
 
 const DATE_FMT = "EEEE, MMMM d, yyyy 'at' h:mm a";
 
-interface ApprovalApprovedParams {
+interface ApprovalPendingParams {
   cancelToken: string;
-  confirmationNote?: string | null;
   eventName: string;
   hostName: string;
   hostTimezone: string;
   inviteeName: string;
   inviteeTimezone: string;
   locationLabel: string;
-  meetLabel: string;
-  meetLink: string | null;
-  rescheduleToken: string;
   startUtc: Date;
 }
 
-export async function approvalApprovedTemplate(p: ApprovalApprovedParams) {
+export async function approvalPendingTemplate(p: ApprovalPendingParams) {
   const base = env.NEXT_PUBLIC_APP_URL;
   const whenHost = formatInTimeZone(p.startUtc, p.hostTimezone, DATE_FMT);
   const whenInvitee = formatInTimeZone(p.startUtc, p.inviteeTimezone, DATE_FMT);
   const cancelUrl = `${base}/cancel/${p.cancelToken}`;
-  const rescheduleUrl = `${base}/reschedule/${p.rescheduleToken}`;
 
   const html = await renderEmailTemplate(
-    createElement(ApprovalOutcomeEmail, {
-      approved: true,
+    createElement(ApprovalPendingEmail, {
       cancelUrl,
-      confirmationNote: p.confirmationNote ?? null,
       eventName: p.eventName,
       hostName: p.hostName,
       hostTimezone: p.hostTimezone,
       inviteeName: p.inviteeName,
       inviteeTimezone: p.inviteeTimezone,
       locationLabel: p.locationLabel,
-      meetLabel: p.meetLabel,
-      meetLink: p.meetLink,
-      rescheduleUrl,
       whenHost,
       whenInvitee,
     })
@@ -49,20 +39,19 @@ export async function approvalApprovedTemplate(p: ApprovalApprovedParams) {
 
   const text = `Hi ${p.inviteeName},
 
-Your booking request for ${p.eventName} with ${p.hostName} has been approved!
+Your booking request for ${p.eventName} with ${p.hostName} has been received and is awaiting approval.
 
 Date & Time (${p.hostTimezone}): ${whenHost}
 ${p.inviteeTimezone !== p.hostTimezone ? `Date & Time (${p.inviteeTimezone}): ${whenInvitee}\n` : ""}Location: ${p.locationLabel}
-${p.meetLink ? `\nJoin: ${p.meetLink}` : ""}
+Status: Awaiting host approval
 
-Reschedule: ${rescheduleUrl}
-Cancel: ${cancelUrl}
+Changed your mind? Cancel: ${cancelUrl}
 
 — Schduled`;
 
   return {
     html,
     text,
-    subject: `Confirmed: ${p.eventName} with ${p.hostName}`,
+    subject: `Request received: ${p.eventName} with ${p.hostName}`,
   };
 }

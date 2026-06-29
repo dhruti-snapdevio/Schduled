@@ -363,7 +363,7 @@ export function TabAvailability({ form, schedules, globalLimits: initialLimits }
                         value={field.value ?? ''}
                         onChange={(e) => {
                           const n = parseInt(e.target.value, 10)
-                          field.onChange(Number.isFinite(n) ? n : 0)
+                          field.onChange(Number.isFinite(n) ? n : field.value)
                         }}
                       />
                       <span className="flex items-center bg-muted px-2.5 text-xs text-muted-foreground border-l border-input shrink-0">

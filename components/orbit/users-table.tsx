@@ -11,6 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -45,7 +56,7 @@ type UserRow = {
   email: string;
   role: string | null;
   banned: boolean;
-  createdAt: Date;
+  createdAt: string;
 };
 
 type Filter = "all" | "active" | "admins" | "suspended";
@@ -60,8 +71,6 @@ export function UsersTable({
   const [search, setSearch]       = useState("");
   const [filter, setFilter]       = useState<Filter>("all");
   const [selected, setSelected]   = useState<Set<string>>(new Set());
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [confirmSuspend, setConfirmSuspend] = useState(false);
   const [page, setPage] = useState(1);
   const [isPending, startTransition] = useTransition();
 
@@ -113,55 +122,60 @@ export function UsersTable({
   }
 
   function handleBulkSuspend() {
-    if (!confirmSuspend) { setConfirmSuspend(true); return; }
     startTransition(async () => {
       await bulkBanUsersAction(buildFormData());
       setSelected(new Set());
-      setConfirmSuspend(false);
     });
   }
 
   function handleBulkDelete() {
-    if (!confirmDelete) { setConfirmDelete(true); return; }
     startTransition(async () => {
       await bulkDeleteUsersAction(buildFormData());
       setSelected(new Set());
-      setConfirmDelete(false);
     });
   }
 
   return (
     <div className="relative">
-      {/* ── Search + Filter bar ─────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative">
-          <MagnifyingGlass
-            size={15}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <input
-            type="search"
-            placeholder="Search by name or email..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setSelected(new Set()); }}
-            className="h-9 w-full rounded-none border border-border bg-page pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:w-64"
-          />
+      {/* ── Title + Search/Filter bar ───────────────────────────────── */}
+      <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-base font-semibold text-foreground">All Users</p>
+          <p className="text-sm text-muted-foreground">
+            All registered accounts ordered by sign-up date.
+          </p>
         </div>
 
-        <Select
-          value={filter}
-          onValueChange={(v) => { setFilter(v as Filter); setSelected(new Set()); }}
-        >
-          <SelectTrigger className="h-9 w-40 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Users</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="admins">Admins</SelectItem>
-            <SelectItem value="suspended">Suspended</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative">
+            <MagnifyingGlass
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              type="search"
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setSelected(new Set()); }}
+              className="h-9 w-full rounded-none border border-border bg-page pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:w-64"
+            />
+          </div>
+
+          <Select
+            value={filter}
+            onValueChange={(v) => { setFilter(v as Filter); setSelected(new Set()); }}
+          >
+            <SelectTrigger className="h-9 w-40 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Users</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="admins">Admins</SelectItem>
+              <SelectItem value="suspended">Suspended</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* ── Summary strip ───────────────────────────────────────────── */}
@@ -277,7 +291,7 @@ export function UsersTable({
 
                     {/* Created */}
                     <TableCell className="px-4 py-3 text-xs text-muted-foreground">
-                      {format(u.createdAt, "MMM d, yyyy")}
+                      {format(new Date(u.createdAt), "MMM d, yyyy")}
                     </TableCell>
 
                     {/* Actions */}
@@ -360,81 +374,83 @@ export function UsersTable({
               variant="ghost"
               size="sm"
               className="text-xs"
-              onClick={() => { setSelected(new Set()); setConfirmDelete(false); setConfirmSuspend(false); }}
+              onClick={() => setSelected(new Set())}
               disabled={isPending}
             >
               Clear
             </Button>
 
-            {confirmSuspend ? (
-              <div className="flex items-center gap-1.5">
-                <p className="text-xs text-destructive font-medium">Suspend {selected.size} account{selected.size > 1 ? "s" : ""}?</p>
+            {/* Suspend — confirmation dialog */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
                 <Button
-                  variant="destructive"
+                  variant="outline"
                   size="sm"
-                  className="text-xs"
-                  onClick={handleBulkSuspend}
+                  className="gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   disabled={isPending}
                 >
-                  {isPending ? "Suspending…" : "Yes, suspend"}
+                  <ProhibitInset size={13} />
+                  Suspend {selected.size}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => setConfirmSuspend(false)}
-                  disabled={isPending}
-                >
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={handleBulkSuspend}
-                disabled={isPending}
-              >
-                <ProhibitInset size={13} />
-                Suspend {selected.size}
-              </Button>
-            )}
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Suspend {selected.size} account{selected.size > 1 ? "s" : ""}?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {selected.size > 1 ? "These users" : "This user"} will be signed out
+                    immediately and blocked from logging in until reactivated. This can be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleBulkSuspend}
+                    disabled={isPending}
+                  >
+                    {isPending ? "Suspending…" : "Suspend"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
-            {confirmDelete ? (
-              <div className="flex items-center gap-1.5">
-                <p className="text-xs text-destructive font-medium">Delete {selected.size} accounts permanently?</p>
+            {/* Delete — confirmation dialog */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
                 <Button
-                  variant="destructive"
+                  variant="outline"
                   size="sm"
-                  className="text-xs"
-                  onClick={handleBulkDelete}
+                  className="gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   disabled={isPending}
                 >
-                  {isPending ? "Deleting…" : "Yes, delete"}
+                  <Trash size={13} />
+                  Delete {selected.size}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => setConfirmDelete(false)}
-                  disabled={isPending}
-                >
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={handleBulkDelete}
-                disabled={isPending}
-              >
-                <Trash size={13} />
-                Delete {selected.size}
-              </Button>
-            )}
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Delete {selected.size} account{selected.size > 1 ? "s" : ""} permanently?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This permanently removes {selected.size > 1 ? "these accounts" : "this account"}{" "}
+                    and all of their bookings, sessions, and data. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleBulkDelete}
+                    disabled={isPending}
+                  >
+                    {isPending ? "Deleting…" : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       )}

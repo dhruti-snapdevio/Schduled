@@ -51,8 +51,9 @@ export async function POST(request: Request) {
     // Enforce cancellation policy
     const [policy] = await db
       .select({
-        allowCancellation: cancellationPolicy.allowCancellation,
-        cutoffHours: cancellationPolicy.cutoffHours,
+        allowCancellation:         cancellationPolicy.allowCancellation,
+        cutoffHours:               cancellationPolicy.cutoffHours,
+        requireCancellationReason: cancellationPolicy.requireCancellationReason,
       })
       .from(cancellationPolicy)
       .where(eq(cancellationPolicy.eventTypeId, b.eventTypeId))
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
             403
           );
         }
+      }
+      if (policy.requireCancellationReason && !reason?.trim()) {
+        return jsonError("A cancellation reason is required.", 400);
       }
     }
 

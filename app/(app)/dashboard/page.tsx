@@ -194,6 +194,7 @@ export default async function DashboardPage() {
         startTime: booking.startTime,
         status: booking.status,
         eventName: eventType.name,
+        eventColor: eventType.color,
         locationType: eventType.locationType,
       })
       .from(booking)
@@ -215,6 +216,7 @@ export default async function DashboardPage() {
         createdAt: booking.createdAt,
         status: booking.status,
         eventName: eventType.name,
+        eventColor: eventType.color,
       })
       .from(booking)
       .innerJoin(eventType, eq(booking.eventTypeId, eventType.id))
@@ -273,7 +275,10 @@ export default async function DashboardPage() {
           href="/bookings"
           className="group flex flex-wrap items-center gap-4 border border-primary/30 bg-primary/[0.04] px-5 py-4 transition-colors hover:bg-primary/[0.07]"
         >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center bg-primary text-primary-foreground">
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center text-white"
+            style={{ backgroundColor: upcomingMeetings[0].eventColor ?? "var(--primary)" }}
+          >
             <Clock size={22} weight="duotone" />
           </div>
           <div className="min-w-0 flex-1">
@@ -386,6 +391,10 @@ export default async function DashboardPage() {
                       {m.inviteeName}
                     </p>
                     <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className="size-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: m.eventColor ?? "var(--primary)" }}
+                      />
                       <p className="truncate text-sm text-muted-foreground">
                         {m.eventName}
                       </p>
@@ -436,9 +445,15 @@ export default async function DashboardPage() {
                     <p className="truncate text-sm font-semibold group-hover:text-primary transition-colors">
                       {b.inviteeName}
                     </p>
-                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                      {b.eventName}
-                    </p>
+                    <div className="mt-0.5 flex items-center gap-1.5">
+                      <span
+                        className="size-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: b.eventColor ?? "var(--primary)" }}
+                      />
+                      <p className="truncate text-sm text-muted-foreground">
+                        {b.eventName}
+                      </p>
+                    </div>
                   </div>
                   <div className="shrink-0 flex flex-col items-end gap-1.5">
                     <StatusBadge status={b.status} />

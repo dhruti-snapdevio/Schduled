@@ -13,6 +13,7 @@ const DATE_FMT = "EEEE, MMMM d, yyyy 'at' h:mm a";
 export interface BookingEmailInput {
   audience: BookingEmailAudience;
   cancelToken: string;
+  confirmationNote?: string | null;
   eventName: string;
   hostTimezone: string;
   inviteeTimezone: string;
@@ -68,6 +69,7 @@ export async function bookingEmail(p: BookingEmailInput) {
       cancelUrl: p.variant === "cancellation" ? null : cancelUrl,
       previousWhen: p.variant === "reschedule" ? previousWhen : null,
       reason: p.variant === "cancellation" ? p.reason : null,
+      confirmationNote: p.variant === "confirmation" && p.audience === "invitee" ? (p.confirmationNote ?? null) : null,
     })
   );
 

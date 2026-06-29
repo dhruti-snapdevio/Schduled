@@ -19,6 +19,7 @@ export type BookingEmailAudience = "invitee" | "host";
 export interface BookingEmailProps {
   audience: BookingEmailAudience;
   cancelUrl: string | null; // invitee only
+  confirmationNote: string | null; // confirmation invitee only
   eventName: string;
   hostTimezone: string;
   inviteeTimezone: string;
@@ -183,6 +184,22 @@ export function BookingEmail(props: BookingEmailProps) {
                 <Row label="Reason" value={props.reason} />
               )}
             </Section>
+
+            {/* Confirmation note (invitee only, confirmation variant) */}
+            {props.confirmationNote && (
+              <Section
+                style={{
+                  backgroundColor: "#F0FDF4",
+                  border: "1px solid #BBF7D0",
+                  padding: "16px 20px",
+                  marginBottom: "24px",
+                }}
+              >
+                <Text style={{ color: "#166534", fontSize: "13px", margin: 0, lineHeight: "1.6" }}>
+                  {props.confirmationNote}
+                </Text>
+              </Section>
+            )}
 
             {/* Meet button */}
             {showMeet && (

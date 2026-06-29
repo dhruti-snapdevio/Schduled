@@ -19,8 +19,8 @@ export const emailStyles = {
       'Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
   button: {
-    backgroundColor: "#111111",
-    borderRadius: "6px",
+    backgroundColor: "#0D9488",
+    borderRadius: "0",
     color: "#ffffff",
     display: "inline-block",
     fontSize: "14px",
@@ -31,7 +31,7 @@ export const emailStyles = {
   container: {
     backgroundColor: "#ffffff",
     border: "1px solid #ded8cc",
-    borderRadius: "10px",
+    borderRadius: "0",
     margin: "40px auto",
     maxWidth: "560px",
     padding: "32px",
@@ -48,7 +48,7 @@ export const emailStyles = {
     lineHeight: "32px",
     margin: "0 0 16px",
   },
-  link: { color: "#006d5b" },
+  link: { color: "#0D9488" },
   muted: {
     color: "#6b665d",
     fontSize: "13px",

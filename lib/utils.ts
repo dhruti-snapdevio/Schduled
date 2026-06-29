@@ -20,6 +20,67 @@ export function formatDateTime(value: Date | string | null | undefined) {
   }).format(date)
 }
 
+// Maps legacy IANA timezone identifiers to their modern equivalents for display only.
+const TZ_DISPLAY_MAP: Record<string, string> = {
+  'Asia/Calcutta':   'Asia/Kolkata',
+  'Asia/Dacca':      'Asia/Dhaka',
+  'Asia/Katmandu':   'Asia/Kathmandu',
+  'Asia/Rangoon':    'Asia/Yangon',
+  'Asia/Ulan_Bator': 'Asia/Ulaanbaatar',
+  'Pacific/Ponape':  'Pacific/Pohnpei',
+  'Pacific/Truk':    'Pacific/Chuuk',
+}
+
+export function normalizeTzName(tz: string): string {
+  return (TZ_DISPLAY_MAP[tz] ?? tz).replace(/_/g, ' ')
+}
+
+// Timezone → international dial code map (shared between event builder + booking calendar)
+export const TZ_DIAL: Record<string, string> = {
+  'Asia/Kolkata': '+91', 'Asia/Calcutta': '+91',
+  'America/New_York': '+1', 'America/Chicago': '+1', 'America/Denver': '+1',
+  'America/Los_Angeles': '+1', 'America/Phoenix': '+1', 'America/Anchorage': '+1',
+  'America/Toronto': '+1', 'America/Vancouver': '+1', 'Pacific/Honolulu': '+1',
+  'Europe/London': '+44',
+  'Europe/Paris': '+33', 'Europe/Berlin': '+49', 'Europe/Rome': '+39',
+  'Europe/Madrid': '+34', 'Europe/Amsterdam': '+31', 'Europe/Brussels': '+32',
+  'Europe/Zurich': '+41', 'Europe/Vienna': '+43', 'Europe/Stockholm': '+46',
+  'Europe/Oslo': '+47', 'Europe/Copenhagen': '+45', 'Europe/Helsinki': '+358',
+  'Europe/Warsaw': '+48', 'Europe/Prague': '+420', 'Europe/Budapest': '+36',
+  'Europe/Bucharest': '+40', 'Europe/Sofia': '+359', 'Europe/Athens': '+30',
+  'Europe/Lisbon': '+351',
+  'Asia/Dubai': '+971', 'Asia/Riyadh': '+966', 'Asia/Kuwait': '+965',
+  'Asia/Qatar': '+974', 'Asia/Bahrain': '+973', 'Asia/Muscat': '+968',
+  'Asia/Tehran': '+98', 'Asia/Jerusalem': '+972', 'Asia/Beirut': '+961',
+  'Asia/Karachi': '+92', 'Asia/Dhaka': '+880', 'Asia/Colombo': '+94',
+  'Asia/Kathmandu': '+977', 'Asia/Katmandu': '+977',
+  'Asia/Bangkok': '+66', 'Asia/Singapore': '+65', 'Asia/Kuala_Lumpur': '+60',
+  'Asia/Jakarta': '+62', 'Asia/Manila': '+63', 'Asia/Ho_Chi_Minh': '+84',
+  'Asia/Rangoon': '+95', 'Asia/Yangon': '+95',
+  'Asia/Tokyo': '+81', 'Asia/Seoul': '+82', 'Asia/Shanghai': '+86',
+  'Asia/Hong_Kong': '+852', 'Asia/Taipei': '+886', 'Asia/Macau': '+853',
+  'Asia/Tashkent': '+998', 'Asia/Almaty': '+7', 'Asia/Tbilisi': '+995',
+  'Asia/Baku': '+994', 'Asia/Yerevan': '+374',
+  'Europe/Moscow': '+7', 'Asia/Yekaterinburg': '+7',
+  'Africa/Lagos': '+234', 'Africa/Nairobi': '+254', 'Africa/Cairo': '+20',
+  'Africa/Johannesburg': '+27', 'Africa/Accra': '+233', 'Africa/Casablanca': '+212',
+  'Africa/Addis_Ababa': '+251', 'Africa/Dar_es_Salaam': '+255',
+  'America/Sao_Paulo': '+55', 'America/Bogota': '+57', 'America/Lima': '+51',
+  'America/Santiago': '+56', 'America/Argentina/Buenos_Aires': '+54',
+  'America/Mexico_City': '+52', 'America/Caracas': '+58',
+  'Australia/Sydney': '+61', 'Australia/Melbourne': '+61', 'Australia/Perth': '+61',
+  'Pacific/Auckland': '+64',
+}
+
+export function dialCodeFromTz(tz: string): string {
+  if (TZ_DIAL[tz]) return TZ_DIAL[tz]
+  // Region fallback: America/* → +1, Australia/* → +61
+  const region = tz.split('/')[0]
+  if (region === 'America') return '+1'
+  if (region === 'Australia') return '+61'
+  return ''
+}
+
 /**
  * Compact page-number list with ellipsis for pagination UIs.
  * e.g. (4, 20) → [1, "ellipsis", 3, 4, 5, "ellipsis", 20]

@@ -5,12 +5,13 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/orbit",          label: "Overview", exact: true },
-  { href: "/orbit/users",    label: "Users",    exact: false },
-  { href: "/orbit/audit",    label: "Audit",    exact: false },
-  { href: "/orbit/queues",   label: "Queues",   exact: false },
-  { href: "/orbit/email",    label: "Email",    exact: false },
-  { href: "/orbit/settings", label: "Settings", exact: false },
+  { href: "/orbit",               label: "Overview",    exact: true },
+  { href: "/orbit/users",         label: "Users",       exact: false },
+  { href: "/orbit/subscribers",   label: "Subscribers", exact: false },
+  { href: "/orbit/audit",         label: "Audit",       exact: false },
+  { href: "/orbit/queues",        label: "Queues",       exact: false },
+  { href: "/orbit/email",         label: "Email",        exact: false },
+  { href: "/orbit/settings",      label: "Settings",     exact: false },
 ];
 
 export function AdminMobileNav() {

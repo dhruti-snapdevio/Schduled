@@ -28,7 +28,7 @@ async function processOne(bookingId: string) {
   }
 
   const hostTimezone = b.hostTimezone ?? "UTC";
-  const locationLabel = resolveLocationLabel(b.etLocationType, b.etLocationValue);
+  const locationLabel = resolveLocationLabel(b.etLocationType, b.etLocationValue, b.inviteePhone);
 
   const mail = await approvalRejectedTemplate({
     eventName: b.etName,
@@ -41,12 +41,15 @@ async function processOne(bookingId: string) {
     startUtc: new Date(b.startTime),
   });
 
-  await enqueueEmail({
-    to: b.inviteeEmail,
-    subject: mail.subject,
-    html: mail.html,
-    text: mail.text,
-  });
+  await enqueueEmail(
+    {
+      to: b.inviteeEmail,
+      subject: mail.subject,
+      html: mail.html,
+      text: mail.text,
+    },
+    { idempotencyKey: `rejected:${b.id}:invitee` }
+  );
 
   await createNotification({
     userId: b.hostUserId,

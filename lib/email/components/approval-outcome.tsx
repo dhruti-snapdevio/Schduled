@@ -4,6 +4,7 @@ import { EmailLayout, emailStyles } from "./layout";
 interface ApprovalOutcomeEmailProps {
   approved: boolean;
   cancelUrl?: string | null;
+  confirmationNote?: string | null;
   eventName: string;
   hostName: string;
   inviteeName: string;
@@ -24,6 +25,7 @@ const red = "#EF4444";
 export function ApprovalOutcomeEmail({
   approved,
   cancelUrl,
+  confirmationNote,
   eventName,
   hostName,
   inviteeName,
@@ -111,6 +113,21 @@ export function ApprovalOutcomeEmail({
         )}
         <DetailRow label="Location" value={locationLabel} />
       </Section>
+
+      {approved && confirmationNote && (
+        <Section
+          style={{
+            backgroundColor: "#F0FDF4",
+            border: "1px solid #BBF7D0",
+            padding: "14px 18px",
+            marginTop: "16px",
+          }}
+        >
+          <Text style={{ ...emailStyles.paragraph, color: "#166534", margin: 0, lineHeight: "1.6" }}>
+            {confirmationNote}
+          </Text>
+        </Section>
+      )}
 
       {approved && (meetLink || cancelUrl) && (
         <>

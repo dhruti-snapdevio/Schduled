@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { formatInTimeZone } from 'date-fns-tz'
 import {
   ArrowLeft,
@@ -125,7 +124,6 @@ export function ConfirmationClient({
   rescheduleToken,
   isPending = false,
 }: Props) {
-  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
@@ -165,16 +163,17 @@ export function ConfirmationClient({
       <div className="relative z-10 mx-auto w-full max-w-[580px]">
         <div className="flex flex-col items-center gap-5 bg-card px-5 py-8 sm:px-8 border border-border">
 
-          {/* Back button — top-left inside the card */}
+          {/* Back button — top-left inside the card. Links to the host's page
+              (their event list) rather than router.back(): this page is reached
+              by submitting the form, so history.back() can land on a blank tab. */}
           <div className="w-full">
-            <button
-              type="button"
-              onClick={() => router.back()}
+            <Link
+              href={hostUsername ? `/${hostUsername}` : '/'}
               className="inline-flex items-center gap-2 border border-border px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
             >
               <ArrowLeft size={14} />
               Back
-            </button>
+            </Link>
           </div>
 
           {/* ── Icon ── */}

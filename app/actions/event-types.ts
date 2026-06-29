@@ -1,6 +1,6 @@
 'use server'
 
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { createId } from '@paralleldrive/cuid2'
 import { requireSession } from '@/lib/authz'
@@ -16,6 +16,8 @@ import {
 } from '@/db/schema'
 import { audit } from '@/lib/audit'
 
+const DUPLICATE_NAME = 'DUPLICATE_NAME'
+
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type ActionResult<T = {}> = { error: string } | ({ ok: true } & T)
 
@@ -27,6 +29,12 @@ function slugify(name: string): string {
     .replace(/^-|-$/g, '') || 'meeting'
 }
 
+// Generates a 5-char alphanumeric suffix for unique slugs (like Calendly).
+function randomSuffix(): string {
+  return Math.random().toString(36).slice(2, 7)
+}
+
+// Fallback: if the random suffix somehow collides, append -1, -2, ...
 async function uniqueSlug(userId: string, base: string, excludeId?: string): Promise<string> {
   let slug = base
   let n = 0
@@ -115,23 +123,29 @@ export async function createEventType(data: EventTypeFormData, initialQuestions?
     if (name.length > 100) return { error: 'Event name must be 100 characters or less' }
     if (data.durations.length === 0) return { error: 'At least one duration is required' }
 
-    const slugBase = slugify(data.slug || name)
+    // Slug = slugified name + random 5-char suffix, guaranteed unique per user.
+    // The suffix means two events with the same name always get different URLs
+    // (like Calendly), and the while-loop fallback is a pure safety net.
+    const slugBase = `${slugify(name)}-${randomSuffix()}`
     const id = createId()
 
-    // Serialise slug allocation per user so two concurrent creates can't both
-    // claim the same slug. The advisory lock is held until this transaction
-    // commits, so a waiting request reads the freshly-committed slug.
     const slug = await db.transaction(async (tx) => {
       await tx.execute(
         sql`SELECT pg_advisory_xact_lock(hashtext(${`et-slug:${session.user.id}`}))`
       )
-      const resolvedSlug = await uniqueSlug(session.user.id, slugBase)
 
-      // Count existing for position
-      const [{ count }] = await tx
-        .select({ count: sql<number>`count(*)::int` })
+      // Load existing types (under the per-user lock) to enforce a unique name
+      // and assign a color the host isn't already using.
+      const existingRows = await tx
+        .select({ name: eventType.name, color: eventType.color })
         .from(eventType)
         .where(eq(eventType.userId, session.user.id))
+
+      if (existingRows.some((r) => r.name.trim().toLowerCase() === name.toLowerCase())) {
+        throw new Error(DUPLICATE_NAME)
+      }
+
+      const resolvedSlug = await uniqueSlug(session.user.id, slugBase)
 
       await tx.insert(eventType).values({
         id,
@@ -158,7 +172,7 @@ export async function createEventType(data: EventTypeFormData, initialQuestions?
         hostPhoneNumber: data.hostPhoneNumber?.trim() || null,
         confirmationNote: data.confirmationNote?.trim() || null,
         requiresApproval: data.requiresApproval,
-        position: count,
+        position: existingRows.length,
       })
 
       return resolvedSlug
@@ -215,6 +229,9 @@ export async function createEventType(data: EventTypeFormData, initialQuestions?
     revalidatePath('/event-types')
     return { ok: true, id, slug }
   } catch (err) {
+    if (err instanceof Error && err.message === DUPLICATE_NAME) {
+      return { error: 'You already have a meeting type with this name. Please choose a different name.' }
+    }
     console.error('[eventTypes]', err)
     return { error: 'Something went wrong. Please try again.' }
   }
@@ -230,29 +247,32 @@ export async function updateEventType(id: string, data: EventTypeFormData): Prom
     if (!name) return { error: 'Event name is required' }
     if (data.durations.length === 0) return { error: 'At least one duration is required' }
 
-    // Verify ownership
+    // Verify ownership and fetch the existing slug — we never change it on update
+    // so that booking URLs are permanent (renaming an event doesn't break links).
     const [existing] = await db
-      .select({ id: eventType.id })
+      .select({ id: eventType.id, slug: eventType.slug })
       .from(eventType)
       .where(and(eq(eventType.id, id), eq(eventType.userId, session.user.id)))
       .limit(1)
     if (!existing) return { error: 'Event type not found' }
 
-    const slugBase = slugify(data.slug || name)
-
-    // Serialise slug allocation per user (same guard as createEventType) so two
-    // concurrent edits can't resolve to the same slug.
-    const slug = await db.transaction(async (tx) => {
-      await tx.execute(
-        sql`SELECT pg_advisory_xact_lock(hashtext(${`et-slug:${session.user.id}`}))`
+    // Block renaming onto a name another of the host's meeting types already uses.
+    const [dup] = await db
+      .select({ id: eventType.id })
+      .from(eventType)
+      .where(
+        and(
+          eq(eventType.userId, session.user.id),
+          ne(eventType.id, id),
+          sql`lower(${eventType.name}) = lower(${name})`
+        )
       )
-      const resolvedSlug = await uniqueSlug(session.user.id, slugBase, id)
-      await tx
-        .update(eventType)
-        .set({ slug: resolvedSlug })
-        .where(eq(eventType.id, id))
-      return resolvedSlug
-    })
+      .limit(1)
+    if (dup) {
+      return { error: 'You already have a meeting type with this name. Please choose a different name.' }
+    }
+
+    const slug = existing.slug
 
     await db
       .update(eventType)
@@ -455,7 +475,7 @@ export async function duplicateEventType(id: string): Promise<ActionResult<{ id:
       await tx.execute(
         sql`SELECT pg_advisory_xact_lock(hashtext(${`et-slug:${session.user.id}`}))`
       )
-      const resolvedSlug = await uniqueSlug(session.user.id, source.slug)
+      const resolvedSlug = await uniqueSlug(session.user.id, `${source.slug}-${randomSuffix()}`)
 
       const [{ count }] = await tx
         .select({ count: sql<number>`count(*)::int` })

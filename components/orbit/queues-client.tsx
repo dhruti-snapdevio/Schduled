@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { OrbitPageHeader } from "@/components/admin/orbit-page-header";
 import {
   Table,
   TableBody,
@@ -308,32 +309,30 @@ export function QueuesClient({
   return (
     <div className="space-y-8">
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="mb-8 flex items-start justify-between border-b border-border pb-5">
-        <div>
-          <h1 className="font-black text-2xl tracking-normal">Job Queues</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            pg-boss queue state grouped by queue name and job state.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <p className="text-xs text-muted-foreground">
-            Updated {formatSecondsAgo(secondsAgo)}
-          </p>
-          <Button
-            className="h-8 gap-1.5 text-xs"
-            disabled={isPending}
-            onClick={handleRefresh}
-            size="sm"
-            variant="outline"
-          >
-            <ArrowClockwise
-              className={isPending ? "animate-spin" : ""}
-              size={13}
-            />
-            {isPending ? "Refreshing…" : "Refresh"}
-          </Button>
-        </div>
-      </div>
+      <OrbitPageHeader
+        title="Job Queues"
+        description="pg-boss queue state grouped by queue name and job state."
+        actions={
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-muted-foreground">
+              Updated {formatSecondsAgo(secondsAgo)}
+            </p>
+            <Button
+              className="h-8 gap-1.5 text-xs"
+              disabled={isPending}
+              onClick={handleRefresh}
+              size="sm"
+              variant="outline"
+            >
+              <ArrowClockwise
+                className={isPending ? "animate-spin" : ""}
+                size={13}
+              />
+              {isPending ? "Refreshing…" : "Refresh"}
+            </Button>
+          </div>
+        }
+      />
 
       {/* ── Summary cards ───────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -359,10 +358,39 @@ export function QueuesClient({
 
       {/* ── Queue details table ──────────────────────────────────────────── */}
       <Card>
-        <CardHeader className="py-4">
+        <CardHeader className="flex flex-col gap-3 border-b border-border py-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base font-semibold">
             Queue Details
           </CardTitle>
+          {queues.length > 0 && (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative sm:w-52">
+                <MagnifyingGlass
+                  className="-translate-y-1/2 absolute top-1/2 left-2.5 text-muted-foreground"
+                  size={15}
+                />
+                <Input
+                  className="h-9 pl-8 text-sm"
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search queue name…"
+                  value={search}
+                />
+              </div>
+              <Select value={stateFilter} onValueChange={setStateFilter}>
+                <SelectTrigger className="h-9 w-full text-sm sm:w-40" aria-label="State">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All states</SelectItem>
+                  {availableStates.map((st) => (
+                    <SelectItem key={st} value={st}>
+                      {stateLabel(st)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           {queues.length === 0 ? (
@@ -383,35 +411,6 @@ export function QueuesClient({
             </div>
           ) : (
             <>
-              {/* ── Search + state filter toolbar ───────────────────────── */}
-              <div className="flex flex-col gap-3 border-b border-border px-5 py-3 sm:flex-row sm:items-center">
-                <div className="relative sm:max-w-xs sm:flex-1">
-                  <MagnifyingGlass
-                    className="-translate-y-1/2 absolute top-1/2 left-2.5 text-muted-foreground"
-                    size={15}
-                  />
-                  <Input
-                    className="h-9 pl-8 text-sm"
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search queue name…"
-                    value={search}
-                  />
-                </div>
-                <Select value={stateFilter} onValueChange={setStateFilter}>
-                  <SelectTrigger className="h-9 w-full text-sm sm:w-40" aria-label="State">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All states</SelectItem>
-                    {availableStates.map((st) => (
-                      <SelectItem key={st} value={st}>
-                        {stateLabel(st)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               {filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
                   <span className="text-muted-foreground/25">

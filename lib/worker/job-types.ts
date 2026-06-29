@@ -20,6 +20,7 @@ export const JOB_NAMES = {
   // ── Booking approval ─────────────────────────────────────────────────────
   BOOKING_APPROVAL_REQUEST: "booking.approval-request",
   BOOKING_APPROVED: "booking.approved",
+  BOOKING_APPROVED_NOTIFY: "booking.approved-notify",
   BOOKING_REJECTED: "booking.rejected",
 
   // ── Calendar integrations ─────────────────────────────────────────────
@@ -133,6 +134,7 @@ export type JobPayloads = {
   [JOB_NAMES.IDEMPOTENCY_KEYS_PRUNE]: Record<string, never>;
   [JOB_NAMES.BOOKING_APPROVAL_REQUEST]: BookingApprovalRequestPayload;
   [JOB_NAMES.BOOKING_APPROVED]: BookingApprovedPayload;
+  [JOB_NAMES.BOOKING_APPROVED_NOTIFY]: BookingApprovedPayload;
   [JOB_NAMES.BOOKING_REJECTED]: BookingRejectedPayload;
   [JOB_NAMES.CALENDAR_SYNC_ALL]: Record<string, never>;
 };

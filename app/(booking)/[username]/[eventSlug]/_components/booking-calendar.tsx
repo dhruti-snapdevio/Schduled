@@ -44,7 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
+import { cn, normalizeTzName, dialCodeFromTz } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -80,6 +80,7 @@ interface EventTypeInfo {
   durations: DurationOption[]
   locationType: string
   bookingWindow: number
+  policyText: string | null
   questions: Question[]
 }
 
@@ -91,6 +92,7 @@ interface SlotInfo {
 type Step = 'calendar' | 'form'
 
 interface Props {
+  isOwner: boolean
   host: HostInfo
   eventType: EventTypeInfo
   today: string       // server-rendered initial value; corrected client-side on mount
@@ -259,7 +261,7 @@ function buildTzList(): TzEntry[] {
           .formatToParts(now)
         offset = parts.find(p => p.type === 'timeZoneName')?.value ?? 'UTC'
       } catch { /* keep UTC */ }
-      const city = tz.split('/').pop()?.replace(/_/g, ' ') ?? tz
+      const city = normalizeTzName(tz).split('/').pop() ?? normalizeTzName(tz)
       const label = `${city} (${offset})`
       const searchKey = `${tz.toLowerCase().replace(/_/g, ' ')} ${offset.toLowerCase()}`
       return { tz, city, label, searchKey }
@@ -399,6 +401,7 @@ function locationMeta(type: string): { icon: React.ReactNode; label: string } {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function BookingCalendar({
+  isOwner,
   host,
   eventType,
   today: todayProp,
@@ -526,6 +529,16 @@ export function BookingCalendar({
   const specialSet = new Set(specialDates)
 
   const progressStep = step === 'form' ? 3 : selectedDate ? 2 : 1
+
+  // "Back" leaves the booking page entirely — returns the host to wherever they
+  // came from (event-type list / dashboard). Falls back to the host's profile.
+  function goBack() {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back()
+    } else {
+      window.location.href = `/${host.username}`
+    }
+  }
 
   function handleDurationChange(d: number) {
     setSelectedDuration(d)
@@ -743,8 +756,38 @@ export function BookingCalendar({
       {/* Card */}
       <div className="relative z-10 mx-auto w-full max-w-[900px] overflow-hidden bg-background border border-border lg:flex lg:h-full lg:max-h-[680px] lg:flex-col">
 
+        {/* ── "Powered by Schduled" corner ribbon (Calendly-style, enlarged) ── */}
+        <a
+          href="/"
+          aria-label="Powered by Schduled"
+          className="pointer-events-auto absolute -right-[70px] top-[34px] z-30 w-[240px] rotate-45 bg-primary py-2 text-center leading-tight text-primary-foreground transition-opacity hover:opacity-90"
+        >
+          <span className="block text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-foreground/85">
+            Powered by
+          </span>
+          <span className="block text-[17px] font-black tracking-tight">Schduled</span>
+        </a>
+
         {/* ── Progress bar ── */}
-        <div className="flex items-center justify-center gap-0 border-b border-border bg-background px-6 py-3">
+        <div className="flex items-center gap-2 border-b border-border bg-background px-3 py-3">
+          {/* Back — shown only to the host previewing their own page; returns
+              them to the event-type list / dashboard they came from. */}
+          <div className="flex w-24 shrink-0 justify-start">
+            {isOwner && (
+              <button
+                type="button"
+                onClick={goBack}
+                aria-label="Go back"
+                className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+              >
+                <ArrowLeft size={14} weight="bold" />
+                <span className="hidden sm:inline">Back</span>
+              </button>
+            )}
+          </div>
+
+          {/* Steps — centered */}
+          <div className="flex flex-1 items-center justify-center gap-0">
           {STEPS.map((label, i) => {
             const n = i + 1
             const done = n < progressStep
@@ -782,6 +825,10 @@ export function BookingCalendar({
               </React.Fragment>
             )
           })}
+          </div>
+
+          {/* Right spacer — balances the back button + leaves room for the ribbon */}
+          <div className="w-24 shrink-0" />
         </div>
 
         <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
@@ -830,6 +877,12 @@ export function BookingCalendar({
                   <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                     {eventType.description}
                   </p>
+                )}
+                {eventType.policyText && (
+                  <div className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800/50 dark:bg-amber-950/20">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-0.5">Cancellation Policy</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">{eventType.policyText}</p>
+                  </div>
                 )}
               </div>
 
@@ -1197,14 +1250,30 @@ export function BookingCalendar({
                     const phoneRequired = needsPhone || (phoneQ?.isRequired ?? false)
                     return (needsPhone || phoneQ) ? (
                       <FormField label="Phone" required={phoneRequired}>
-                        <input
-                          type="tel"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          required={phoneRequired}
-                          placeholder="+1 (555) 000-0000"
-                          className={`${inputCls} h-9`}
-                        />
+                        {(() => {
+                          const dialCode = dialCodeFromTz(inviteeTz)
+                          return (
+                            <div className="flex items-stretch border border-input focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all h-9">
+                              <div className="flex shrink-0 items-center border-r border-input bg-muted px-2.5 text-sm font-mono font-semibold text-foreground min-w-[48px] justify-center select-none">
+                                {dialCode || '+'}
+                              </div>
+                              <input
+                                type="tel"
+                                value={phone}
+                                onChange={(e) => {
+                                  let v = e.target.value
+                                  // Strip invalid chars — only digits, +, space, -, (, ), .
+                                  v = v.replace(/[^\d+\s\-().]/g, '')
+                                  if (v.indexOf('+') > 0) v = '+' + v.replace(/\+/g, '')
+                                  setPhone(v)
+                                }}
+                                required={phoneRequired}
+                                placeholder={dialCode ? `${dialCode} XXXXX XXXXX` : '+91 98765 43210'}
+                                className="flex-1 bg-background px-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 outline-none"
+                              />
+                            </div>
+                          )
+                        })()}
                       </FormField>
                     ) : null
                   })()}
@@ -1255,12 +1324,6 @@ export function BookingCalendar({
           )}
         </div>
 
-      </div>
-
-      {/* Powered by Schduled */}
-      <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/40">
-        <span>Scheduling powered by</span>
-        <span className="font-semibold text-primary/50">Schduled</span>
       </div>
     </div>
   )

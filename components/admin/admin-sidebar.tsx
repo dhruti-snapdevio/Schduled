@@ -12,6 +12,7 @@ import {
   SignOut,
   Stack,
   Users,
+  EnvelopeSimple,
 } from "@phosphor-icons/react";
 import { logoutAction } from "@/app/actions/auth";
 import { Logo } from "@/components/logo";
@@ -19,12 +20,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/orbit",          label: "Overview", icon: ChartBar,              exact: true },
-  { href: "/orbit/users",    label: "Users",    icon: Users,                 exact: false },
-  { href: "/orbit/audit",    label: "Audit",    icon: ClockCounterClockwise, exact: false },
-  { href: "/orbit/queues",   label: "Queues",   icon: Stack,                 exact: false },
-  { href: "/orbit/email",    label: "Email",    icon: Envelope,              exact: false },
-  { href: "/orbit/settings", label: "Settings", icon: GearSix,               exact: false },
+  { href: "/orbit",               label: "Overview",    icon: ChartBar,              exact: true },
+  { href: "/orbit/users",         label: "Users",       icon: Users,                 exact: false },
+  { href: "/orbit/subscribers",   label: "Subscribers", icon: EnvelopeSimple,        exact: false },
+  { href: "/orbit/audit",         label: "Audit",       icon: ClockCounterClockwise, exact: false },
+  { href: "/orbit/queues",        label: "Queues",      icon: Stack,                 exact: false },
+  { href: "/orbit/email",         label: "Email",       icon: Envelope,              exact: false },
+  { href: "/orbit/settings",      label: "Settings",    icon: GearSix,               exact: false },
 ];
 
 export function AdminSidebar({ email }: { email: string }) {

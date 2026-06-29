@@ -1,17 +1,10 @@
 import { subHours } from "date-fns";
 import type { Job } from "pg-boss";
 import { createNotification } from "@/lib/notifications/create";
-import { generateBookingICS } from "@/lib/calendar/ics";
-import { enqueueEmail } from "@/lib/email";
-import { approvalApprovedTemplate } from "@/lib/email/templates/approval-approved";
 import { enqueueJob } from "@/lib/worker/enqueue";
 import { JOB_NAMES } from "@/lib/worker/job-types";
 import type { BookingApprovedPayload } from "@/lib/worker/job-types";
-import {
-  loadBookingForLifecycle,
-  resolveLocationLabel,
-  resolveMeetButtonLabel,
-} from "./booking-lifecycle-data";
+import { loadBookingForLifecycle } from "./booking-lifecycle-data";
 
 export async function handleBookingApproved(jobs: Job<BookingApprovedPayload>[]) {
   for (const job of jobs) {
@@ -32,58 +25,7 @@ async function processOne(bookingId: string) {
     return;
   }
 
-  const hostTimezone = b.hostTimezone ?? "UTC";
-  const locationLabel = resolveLocationLabel(b.etLocationType, b.etLocationValue);
-  const meetLabel = resolveMeetButtonLabel(b.etLocationType);
   const startUtc = new Date(b.startTime);
-
-  // Invitee approval confirmation email with ICS attachment
-  const mail = await approvalApprovedTemplate({
-    cancelToken: b.cancelToken,
-    eventName: b.etName,
-    hostName: b.hostName ?? "your host",
-    hostTimezone,
-    inviteeName: b.inviteeName,
-    inviteeTimezone: b.inviteeTimezone,
-    locationLabel,
-    meetLabel,
-    meetLink: b.videoLinkInvitee,
-    rescheduleToken: b.rescheduleToken,
-    startUtc,
-  });
-
-  const icsAttachment = generateBookingICS({
-    uid: b.id,
-    title: `${b.etName} with ${b.hostName ?? "your host"}`,
-    description: `${b.etName} meeting via Schduled`,
-    startUtc,
-    durationMinutes: Math.round(
-      (new Date(b.endTime).getTime() - startUtc.getTime()) / 60000
-    ),
-    organizerName: b.hostName ?? "Your host",
-    organizerEmail: b.hostEmail ?? "",
-    attendeeEmail: b.inviteeEmail,
-    attendeeName: b.inviteeName,
-    location: locationLabel,
-    meetUrl: b.videoLinkInvitee ?? undefined,
-  });
-
-  // For Zoom events delay 20 s so VIDEO_LINK_GENERATE can populate the link first
-  const emailStartAfter =
-    b.etLocationType === "zoom"
-      ? new Date(Date.now() + 20_000)
-      : undefined;
-
-  await enqueueEmail(
-    {
-      to: b.inviteeEmail,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-      attachments: [icsAttachment],
-    },
-    { startAfter: emailStartAfter, idempotencyKey: `approved:${b.id}:invitee` }
-  );
 
   // In-app notification to host
   await createNotification({
@@ -124,10 +66,25 @@ async function processOne(bookingId: string) {
   // Calendar write (no-op if no connected calendar)
   reminders.push(enqueueJob(JOB_NAMES.CALENDAR_WRITE, { bookingId: b.id }));
 
-  // Zoom: generate meeting link (was not created at booking-time for approval-gated bookings)
-  if (b.etLocationType === "zoom") {
+  // Generate meeting link for approval-gated bookings (was skipped at booking-time)
+  if (b.etLocationType === "zoom" || b.etLocationType === "google_meet") {
     reminders.push(enqueueJob(JOB_NAMES.VIDEO_LINK_GENERATE, { bookingId: b.id }));
   }
+
+  // Send the invitee "approved" email via a delayed job so CALENDAR_WRITE and
+  // VIDEO_LINK_GENERATE have time to populate the meet link before the template
+  // is rendered (the email is built at job-fire time, not here).
+  reminders.push(
+    enqueueJob(
+      JOB_NAMES.BOOKING_APPROVED_NOTIFY,
+      { bookingId: b.id },
+      {
+        startAfter: (b.etLocationType === "zoom" || b.etLocationType === "google_meet")
+          ? new Date(Date.now() + 30_000)
+          : undefined,
+      }
+    )
+  );
 
   await Promise.allSettled(reminders);
 

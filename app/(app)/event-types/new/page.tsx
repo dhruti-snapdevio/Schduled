@@ -1,10 +1,11 @@
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
-import { user } from '@/db/schema'
+import { eventType, user } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { listAvailabilitySchedules } from '@/app/actions/event-types'
 import { getMeetingLimits } from '@/app/actions/availability'
 import { getMeetingIntegrations } from '@/lib/integrations/status'
+import { pickDistinctEventColor } from '@/lib/event-colors'
 import { EventTypeBuilder } from '../_components/builder'
 import type { BuilderFormValues } from '../_components/builder'
 
@@ -47,17 +48,24 @@ const DEFAULT_VALUES: BuilderFormValues = {
 export default async function NewEventTypePage() {
   const session = await requireSession()
 
-  const [[currentUser], schedules, globalLimits, integrations] = await Promise.all([
+  const [[currentUser], existingColors, schedules, globalLimits, integrations] = await Promise.all([
     db.select({ username: user.username }).from(user).where(eq(user.id, session.user.id)).limit(1),
+    db.select({ color: eventType.color }).from(eventType).where(eq(eventType.userId, session.user.id)),
     listAvailabilitySchedules(),
     getMeetingLimits(),
     getMeetingIntegrations(session.user.id),
   ])
 
+  // Preview the same distinct color the create action will assign on save.
+  const suggestedColor = pickDistinctEventColor(
+    existingColors.map((e) => e.color).filter((c): c is string => !!c),
+    existingColors.length
+  )
+
   return (
     <EventTypeBuilder
       mode="create"
-      defaultValues={DEFAULT_VALUES}
+      defaultValues={{ ...DEFAULT_VALUES, color: suggestedColor }}
       schedules={schedules}
       globalLimits={globalLimits}
       integrations={integrations}

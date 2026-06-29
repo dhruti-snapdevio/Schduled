@@ -136,6 +136,8 @@ export const auditActionEnum = pgEnum('audit_action', [
   'event_type.activated',
   'event_type.deactivated',
   // Availability
+  'availability.schedule_created',
+  'availability.schedule_deleted',
   'availability.schedule_updated',
   'availability.override_added',
   'availability.override_removed',

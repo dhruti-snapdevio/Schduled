@@ -7,6 +7,7 @@ import {
   CalendarX,
   CheckCircle,
   Clock,
+  Hourglass,
   X,
 } from "@phosphor-icons/react";
 import Link from "next/link";
@@ -30,10 +31,12 @@ interface NotificationItem {
 }
 
 const ICONS: Record<string, React.ReactNode> = {
-  booking_created:    <CalendarCheck className="text-primary" size={16} />,
-  booking_cancelled:  <CalendarX className="text-red-500" size={16} />,
-  booking_rescheduled: <ArrowsClockwise className="text-amber-500" size={16} />,
-  booking_reminder:   <Clock className="text-amber-500" size={16} />,
+  booking_created:           <CalendarCheck className="text-primary" size={16} />,
+  booking_cancelled:         <CalendarX className="text-red-500" size={16} />,
+  booking_rejected:          <CalendarX className="text-red-500" size={16} />,
+  booking_rescheduled:       <ArrowsClockwise className="text-amber-500" size={16} />,
+  booking_reminder:          <Clock className="text-amber-500" size={16} />,
+  booking_pending_approval:  <Hourglass className="text-amber-500" size={16} />,
 };
 
 function timeAgo(iso: string): string {
@@ -160,9 +163,9 @@ export function NotificationBell() {
           size="icon"
           variant="ghost"
         >
-          <Bell size={18} />
+          <Bell className="size-[18px]" weight="regular" />
           {unread > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center bg-red-500 px-1 text-[9px] font-bold text-white">
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center bg-red-500 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-background">
               {unread > 9 ? "9+" : unread}
             </span>
           )}

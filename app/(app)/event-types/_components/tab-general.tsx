@@ -1,19 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import {
   ArrowsClockwise,
-  Check,
-  CircleNotch,
-  Copy,
-  Link as LinkIcon,
   Stack,
   User,
   Users,
-  Warning,
 } from '@phosphor-icons/react'
-import { toast } from 'sonner'
 import type { BuilderFormValues } from './builder'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -22,22 +16,9 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? ''
-
-const COLOR_SWATCHES = [
-  '#0d9488', // teal (primary)
-  '#6366f1', // indigo
-  '#8b5cf6', // purple
-  '#ec4899', // pink
-  '#ef4444', // red
-  '#f97316', // orange
-  '#eab308', // yellow
-  '#22c55e', // green
-  '#06b6d4', // cyan
-  '#3b82f6', // blue
-  '#64748b', // slate
-  '#292524', // dark
-]
+function slugify(name: string) {
+  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
 
 export const MEETING_TYPES = [
   { id: 'one_on_one', label: 'One-on-One', desc: 'Single invitee', icon: <User size={15} />, disabled: false },
@@ -46,63 +27,25 @@ export const MEETING_TYPES = [
   { id: 'collective', label: 'Collective', desc: 'Coming soon', icon: <Stack size={15} />, disabled: true },
 ]
 
-function slugify(name: string) {
-  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-}
-
 interface TabGeneralProps {
   form: UseFormReturn<BuilderFormValues>
-  username: string | null
   meetingType: string
   onMeetingTypeChange: (type: string) => void
-  eventTypeId?: string
 }
 
-export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, eventTypeId }: TabGeneralProps) {
+export function TabGeneral({ form, meetingType, onMeetingTypeChange }: TabGeneralProps) {
   const name = form.watch('name')
-  const slug = form.watch('slug')
-  const color = form.watch('color')
-  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
 
-  // Auto-generate slug from name (only when slug hasn't been manually edited)
+  // Auto-generate the slug from the name. The color is assigned server-side at
+  // creation (a distinct palette color per meeting type) and preserved on edit,
+  // so we no longer derive it from the name (which made same-named events share
+  // a color).
   useEffect(() => {
     if (!form.formState.dirtyFields.slug) {
       form.setValue('slug', slugify(name), { shouldDirty: false })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name])
-
-  // Slug availability check (debounced 600ms)
-  useEffect(() => {
-    if (!slug || slug.length < 1) {
-      setSlugStatus('idle')
-      return
-    }
-    setSlugStatus('checking')
-    const timer = setTimeout(async () => {
-      try {
-        const params = new URLSearchParams({ slug })
-        if (eventTypeId) params.set('excludeId', eventTypeId)
-        const res = await fetch(`/api/slug-check?${params}`)
-        const data = await res.json()
-        setSlugStatus(data.available ? 'available' : 'taken')
-      } catch {
-        setSlugStatus('idle')
-      }
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [slug, eventTypeId])
-
-  const bookingUrl = username && slug ? `${APP_URL}/${username}/${slug}` : null
-  const displayUrl = username && slug
-    ? `${(APP_URL || 'schduled.com').replace(/^https?:\/\//, '')}/${username}/${slug}`
-    : null
-
-  function copyLink() {
-    if (!bookingUrl) return
-    navigator.clipboard.writeText(bookingUrl)
-    toast.success('Link copied!')
-  }
 
   return (
     <div className="space-y-6">
@@ -181,147 +124,7 @@ export function TabGeneral({ form, username, meetingType, onMeetingTypeChange, e
         )}
       />
 
-      {/* ── Booking URL ────────────────────────────────────────── */}
-      <FormField
-        control={form.control}
-        name="slug"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Booking URL</FormLabel>
-            <FormControl>
-              <div className="flex items-stretch border border-input">
-                {username && (
-                  <span className="flex items-center bg-muted px-3 text-xs text-muted-foreground border-r border-input whitespace-nowrap">
-                    /{username}/
-                  </span>
-                )}
-                <Input
-                  className="border-0 shadow-none focus-visible:ring-0 flex-1"
-                  placeholder="e.g. 30-min-meeting"
-                  maxLength={100}
-                  {...field}
-                  onChange={(e) => {
-                    const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')
-                    field.onChange(val)
-                  }}
-                />
-                {/* Status indicator */}
-                <span className="flex items-center px-2.5 border-l border-input">
-                  {slugStatus === 'checking' && <CircleNotch size={14} className="animate-spin text-muted-foreground" />}
-                  {slugStatus === 'available' && <Check size={14} className="text-green-500" weight="bold" />}
-                  {slugStatus === 'taken' && <Warning size={14} className="text-destructive" weight="fill" />}
-                </span>
-              </div>
-            </FormControl>
-
-            {/* URL preview + copy */}
-            {displayUrl && (
-              <div className="flex items-center justify-between gap-2 mt-1.5 px-3 py-2 bg-muted/50 border border-border">
-                <span className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground truncate">
-                  <LinkIcon size={13} />
-                  {displayUrl}
-                </span>
-                <button
-                  type="button"
-                  onClick={copyLink}
-                  className="shrink-0 flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                >
-                  <Copy size={13} />
-                  Copy
-                </button>
-              </div>
-            )}
-            {slugStatus === 'taken' && (
-              <p className="text-xs text-destructive mt-1">This URL is already taken. Try a different slug.</p>
-            )}
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* ── Event Color ────────────────────────────────────────── */}
-      <FormField
-        control={form.control}
-        name="color"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Event Color</FormLabel>
-            <FormControl>
-              <div className="flex items-center gap-2 flex-wrap">
-                {COLOR_SWATCHES.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => field.onChange(c)}
-                    className="h-7 w-7 shrink-0 border-2 transition-opacity hover:opacity-80"
-                    style={{
-                      backgroundColor: c,
-                      borderColor: field.value === c ? c : 'transparent',
-                      outline: field.value === c ? `2px solid ${c}` : undefined,
-                      outlineOffset: field.value === c ? '2px' : undefined,
-                    }}
-                    aria-label={`Select color ${c}`}
-                  />
-                ))}
-                {/* Custom hex input */}
-                <div className="flex items-center gap-1.5">
-                  <div className="h-7 w-7 shrink-0 border border-input" style={{ backgroundColor: color }} />
-                  <Input
-                    className="h-7 w-24 text-xs font-mono"
-                    maxLength={7}
-                    value={field.value}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      if (/^#[0-9a-fA-F]{0,6}$/.test(val)) field.onChange(val)
-                    }}
-                  />
-                </div>
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
       <Separator />
-
-      {/* ── Active toggle ──────────────────────────────────────── */}
-      <FormField
-        control={form.control}
-        name="isActive"
-        render={({ field }) => (
-          <FormItem className="flex items-center justify-between gap-4">
-            <div>
-              <FormLabel className="text-sm font-medium">Active</FormLabel>
-              <FormDescription className="text-xs">
-                Visible on your booking page when active.
-              </FormDescription>
-            </div>
-            <FormControl>
-              <Switch checked={field.value} onCheckedChange={field.onChange} />
-            </FormControl>
-          </FormItem>
-        )}
-      />
-
-      {/* ── Private Event (was "Hide from profile") ────────────── */}
-      <FormField
-        control={form.control}
-        name="isHidden"
-        render={({ field }) => (
-          <FormItem className="flex items-center justify-between gap-4">
-            <div>
-              <FormLabel className="text-sm font-medium">Private Event</FormLabel>
-              <FormDescription className="text-xs">
-                Only people with the direct link can book this meeting type.
-              </FormDescription>
-            </div>
-            <FormControl>
-              <Switch checked={field.value} onCheckedChange={field.onChange} />
-            </FormControl>
-          </FormItem>
-        )}
-      />
 
       {/* ── Require Approval ───────────────────────────────────── */}
       <FormField

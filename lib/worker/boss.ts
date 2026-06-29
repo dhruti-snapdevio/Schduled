@@ -77,6 +77,7 @@ export async function startWorker() {
   // ── Booking approval handlers ──────────────────────────────────────────────
   const { handleBookingApprovalRequest } = await import("@/lib/worker/handlers/booking-approval-request");
   const { handleBookingApproved } = await import("@/lib/worker/handlers/booking-approved");
+  const { handleBookingApprovedNotify } = await import("@/lib/worker/handlers/booking-approved-notify");
   const { handleBookingRejected } = await import("@/lib/worker/handlers/booking-rejected");
 
   await Promise.all([
@@ -113,6 +114,7 @@ export async function startWorker() {
     // Approval flow
     work(JOB_NAMES.BOOKING_APPROVAL_REQUEST, handleBookingApprovalRequest),
     work(JOB_NAMES.BOOKING_APPROVED,         handleBookingApproved),
+    work(JOB_NAMES.BOOKING_APPROVED_NOTIFY,  handleBookingApprovedNotify),
     work(JOB_NAMES.BOOKING_REJECTED,         handleBookingRejected),
   ]);
 

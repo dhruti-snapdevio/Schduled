@@ -76,7 +76,7 @@ const TEAM = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background text-foreground antialiased">
+    <div className="min-h-screen overflow-x-clip bg-background text-foreground antialiased">
 
       <LandingHeader />
 

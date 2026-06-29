@@ -1,6 +1,6 @@
 import { desc } from "drizzle-orm";
 import { OrbitPageHeader } from "@/components/admin/orbit-page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { UsersTable } from "@/components/orbit/users-table";
 import { user } from "@/db/schema";
 import { requireAdmin } from "@/lib/authz";
@@ -31,14 +31,8 @@ export default async function OrbitUsersPage() {
       />
 
       <Card>
-        <CardHeader className="py-4">
-          <CardTitle className="text-base font-semibold">All Users</CardTitle>
-          <CardDescription>
-            All registered accounts ordered by sign-up date.
-          </CardDescription>
-        </CardHeader>
         <CardContent className="p-0">
-          <UsersTable users={users} currentUserId={session.user.id} />
+          <UsersTable users={users.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() }))} currentUserId={session.user.id} />
         </CardContent>
       </Card>
     </div>
