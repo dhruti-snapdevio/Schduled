@@ -320,7 +320,9 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
             <SelectContent>
               {entityTypes.map((t) => (
                 <SelectItem key={t} value={t}>
-                  {t === "all" ? "All Entities" : t.replace(/_/g, " ").toUpperCase()}
+                  {t === "all"
+                    ? "All Entities"
+                    : t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                 </SelectItem>
               ))}
             </SelectContent>
