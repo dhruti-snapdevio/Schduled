@@ -28,7 +28,7 @@ export function ApprovalPendingEmail({
   whenInvitee,
 }: ApprovalPendingEmailProps) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
-  const logoUrl = appUrl ? `${appUrl}/logo.svg` : undefined;
+  const logoUrl = appUrl ? `${appUrl}/email-logo.png` : undefined;
 
   return (
     <EmailLayout logoUrl={logoUrl} preview={`Request received: ${eventName} with ${hostName}`}>

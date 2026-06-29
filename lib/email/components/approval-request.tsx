@@ -27,7 +27,7 @@ export function ApprovalRequestEmail({
   const amber = "#D97706";
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
-  const logoUrl = appUrl ? `${appUrl}/logo.svg` : undefined;
+  const logoUrl = appUrl ? `${appUrl}/email-logo.png` : undefined;
 
   return (
     <EmailLayout preview={`New booking request: ${eventName} with ${inviteeName}`} logoUrl={logoUrl}>

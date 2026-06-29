@@ -43,7 +43,7 @@ export function ApprovalOutcomeEmail({
   const badgeBg = approved ? "#CCFBF1" : "#FEE2E2";
   const badgeText = approved ? "Booking Confirmed" : "Booking Declined";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
-  const logoUrl = appUrl ? `${appUrl}/logo.svg` : undefined;
+  const logoUrl = appUrl ? `${appUrl}/email-logo.png` : undefined;
 
   return (
     <EmailLayout logoUrl={logoUrl}

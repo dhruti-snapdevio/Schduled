@@ -80,7 +80,7 @@ export function EmailLayout({
         <Container style={emailStyles.container}>
           <Section style={{ marginBottom: "24px" }}>
             {logoUrl ? (
-              <Img alt={productName} height="32" src={logoUrl} />
+              <Img alt={productName} width="151" height="32" src={logoUrl} />
             ) : (
               <Text style={{ fontWeight: 900, letterSpacing: "0" }}>
                 {productName}

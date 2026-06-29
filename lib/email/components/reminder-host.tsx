@@ -73,7 +73,7 @@ export function ReminderHostEmail({
           {/* Teal header */}
           <Section style={{ backgroundColor: teal, padding: "28px 32px" }}>
             {process.env.NEXT_PUBLIC_APP_URL ? (
-              <Img src={`${process.env.NEXT_PUBLIC_APP_URL}/logo1.svg`} height="28" alt="Schduled" style={{ display: 'block', marginBottom: '8px' }} />
+              <Img src={`${process.env.NEXT_PUBLIC_APP_URL}/email-logo-white.png`} width="132" height="28" alt="Schduled" style={{ display: 'block', marginBottom: '8px' }} />
             ) : (
               <Text style={{ color: white, fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>Schduled</Text>
             )}

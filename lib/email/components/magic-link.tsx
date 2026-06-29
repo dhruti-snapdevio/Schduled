@@ -12,7 +12,7 @@ export function MagicLinkEmail({
   productName?: string;
 }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
-  const logoUrl = appUrl ? `${appUrl}/logo.svg` : undefined;
+  const logoUrl = appUrl ? `${appUrl}/email-logo.png` : undefined;
 
   return (
     <EmailLayout
