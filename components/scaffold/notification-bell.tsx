@@ -223,7 +223,7 @@ export function NotificationBell() {
                   {ICONS[n.type] ?? <Bell size={16} />}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">
+                  <p className="truncate text-sm font-medium text-foreground" title={n.title}>
                     {n.title}
                   </p>
                   {n.body && (

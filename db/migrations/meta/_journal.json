@@ -78,6 +78,20 @@
       "when": 1782710693900,
       "tag": "0010_shiny_tenebrous",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1782728900735,
+      "tag": "0011_heavy_lord_hawal",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1782793884194,
+      "tag": "0012_join_soon_default_30",
+      "breakpoints": true
     }
   ]
 }

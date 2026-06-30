@@ -73,9 +73,19 @@ const TIMEZONES: { label: string; value: string }[] = [
   { label: 'Warsaw — Poland (CET/CEST)',                value: 'Europe/Warsaw' },
 ]
 
+// Normalize deprecated/alternate IANA names to the canonical values above.
+const TZ_ALIASES: Record<string, string> = {
+  'Asia/Calcutta':                    'Asia/Kolkata',
+  'Asia/Saigon':                      'Asia/Ho_Chi_Minh',
+  'America/Buenos_Aires':             'America/Argentina/Buenos_Aires',
+  'Europe/Kiev':                      'Europe/Kyiv',
+  'America/Indiana/Indianapolis':     'America/New_York',
+}
+
 function detectBrowserTimezone(): string {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone
+    const raw = Intl.DateTimeFormat().resolvedOptions().timeZone
+    return TZ_ALIASES[raw] ?? raw
   } catch {
     return 'UTC'
   }
@@ -97,10 +107,14 @@ export function StepTimezone({ onNext, onBack }: StepTimezoneProps) {
     setTimezone(match ? detected : 'UTC')
   }, [])
 
-  // Focus search input when dropdown opens
+  // Focus search when dropdown opens; scroll selected into view
   useEffect(() => {
     if (open) {
-      setTimeout(() => searchRef.current?.focus(), 30)
+      setTimeout(() => {
+        searchRef.current?.focus()
+        const selected = listRef.current?.querySelector('[data-selected="true"]') as HTMLElement | null
+        selected?.scrollIntoView({ block: 'center' })
+      }, 30)
     } else {
       setSearch('')
     }
@@ -122,16 +136,6 @@ export function StepTimezone({ onNext, onBack }: StepTimezoneProps) {
       document.removeEventListener('touchstart', handleOutside)
     }
   }, [open])
-
-  // Scroll selected item into view when opening
-  useEffect(() => {
-    if (open && listRef.current && timezone) {
-      const selected = listRef.current.querySelector('[data-selected="true"]') as HTMLElement | null
-      if (selected) {
-        selected.scrollIntoView({ block: 'center' })
-      }
-    }
-  }, [open, timezone])
 
   const filtered = search.trim()
     ? TIMEZONES.filter((tz) => tz.label.toLowerCase().includes(search.toLowerCase()))
@@ -165,8 +169,8 @@ export function StepTimezone({ onNext, onBack }: StepTimezoneProps) {
       <div className="space-y-1.5">
         <Label>Timezone</Label>
 
-        {/* Custom dropdown — avoids Radix DismissableLayer swallowing scroll events */}
-        <div ref={containerRef} className="relative">
+        {/* Inline dropdown — no portal/absolute so Radix FocusScope never blocks it */}
+        <div ref={containerRef}>
           {/* Trigger */}
           <button
             type="button"
@@ -180,9 +184,9 @@ export function StepTimezone({ onNext, onBack }: StepTimezoneProps) {
             <CaretUpDown size={14} className="shrink-0 text-muted-foreground" />
           </button>
 
-          {/* Dropdown panel */}
+          {/* Dropdown panel — inline, expands in flow; parent scroll area handles overflow */}
           {open && (
-            <div className="absolute left-0 right-0 top-full z-50 mt-1 border border-border bg-background ring-1 ring-foreground/10">
+            <div className="mt-1 border border-border bg-background ring-1 ring-foreground/10">
               {/* Search */}
               <div className="flex items-center gap-2 border-b border-border px-3 py-2">
                 <MagnifyingGlass size={14} className="shrink-0 text-muted-foreground" />
@@ -196,11 +200,13 @@ export function StepTimezone({ onNext, onBack }: StepTimezoneProps) {
                 />
               </div>
 
-              {/* Scrollable list — native overflow, no Radix interference */}
+              {/* Scrollable list */}
               <div
                 ref={listRef}
-                className="max-h-60 overflow-y-auto overscroll-contain"
+                className="max-h-52 overflow-y-auto overscroll-contain"
                 style={{ WebkitOverflowScrolling: 'touch' }}
+                onWheel={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
               >
                 {filtered.length === 0 ? (
                   <p className="px-3 py-4 text-center text-sm text-muted-foreground">
@@ -228,7 +234,7 @@ export function StepTimezone({ onNext, onBack }: StepTimezoneProps) {
         </div>
       </div>
 
-      {localTime && (
+      {!open && localTime && (
         <div className="flex items-center gap-2 border border-border bg-muted/40 px-4 py-3">
           <Globe size={16} className="shrink-0 text-primary" />
           <span className="text-sm">

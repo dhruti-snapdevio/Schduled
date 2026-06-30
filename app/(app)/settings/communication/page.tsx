@@ -31,7 +31,7 @@ export default async function CommunicationPage() {
           reminderEmail1h:          prefs?.reminderEmail1h          ?? true,
           cancellationEmail:        prefs?.cancellationEmail        ?? true,
           rescheduleEmail:          prefs?.rescheduleEmail          ?? true,
-          joinSoonLeadMinutes:      prefs?.joinSoonLeadMinutes      ?? 15,
+          joinSoonLeadMinutes:      prefs?.joinSoonLeadMinutes      ?? 30,
           fromName:                 prefs?.fromName                 ?? '',
           replyToEmail:             prefs?.replyToEmail             ?? '',
         }}

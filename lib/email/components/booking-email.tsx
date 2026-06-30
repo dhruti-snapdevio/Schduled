@@ -24,6 +24,7 @@ export interface BookingEmailProps {
   hostTimezone: string;
   inviteeTimezone: string;
   locationLabel: string;
+  locationType: string; // e.g. "google_meet" | "zoom" | "phone_host_calls" | …
   meetLabel: string; // button text, e.g. "Join Google Meet" / "Join Zoom Meeting"
   meetLink: string | null;
   otherPartyName: string; // invitee email → host name; host email → invitee name
@@ -93,6 +94,23 @@ export function BookingEmail(props: BookingEmailProps) {
     props.audience === "invitee" &&
     (props.rescheduleUrl || props.cancelUrl);
   const showMeet = props.variant !== "cancellation" && props.meetLink;
+
+  // A video meeting whose link couldn't be generated (e.g. the host hasn't
+  // connected Google Meet / Zoom). Surface a clear message instead of a
+  // silently missing link.
+  const VIDEO_TYPES = ["google_meet", "zoom", "teams"];
+  const linkMissing =
+    props.variant !== "cancellation" &&
+    !props.meetLink &&
+    VIDEO_TYPES.includes(props.locationType);
+  const providerName =
+    props.locationType === "google_meet"
+      ? "Google Meet"
+      : props.locationType === "zoom"
+        ? "Zoom"
+        : props.locationType === "teams"
+          ? "Microsoft Teams"
+          : "video";
 
   return (
     <Html>
@@ -218,6 +236,26 @@ export function BookingEmail(props: BookingEmailProps) {
                 >
                   {props.meetLabel}
                 </a>
+              </Section>
+            )}
+
+            {/* Video link couldn't be generated — explain instead of silently
+                omitting it. Invitee gets a reassuring note; host gets a fix-it
+                warning. */}
+            {linkMissing && (
+              <Section
+                style={{
+                  backgroundColor: "#FFFBEB",
+                  border: "1px solid #FDE68A",
+                  padding: "14px 18px",
+                  marginBottom: "24px",
+                }}
+              >
+                <Text style={{ color: "#92400E", fontSize: "13px", margin: 0, lineHeight: "1.6" }}>
+                  {props.audience === "host"
+                    ? `⚠ No ${providerName} link was generated for this meeting. Connect ${providerName} in Settings → Integrations so links are created automatically, then share the link with your invitee.`
+                    : `The ${providerName} link isn't ready yet — ${props.otherPartyName} will share it with you before the meeting.`}
+                </Text>
               </Section>
             )}
 

@@ -176,16 +176,16 @@ export function StepProfile({ defaultName, defaultUsername, defaultImage, onNext
       {/* Username */}
       <div className="space-y-1.5">
         <Label htmlFor="ob-username">Username</Label>
-        <div className="relative">
-          <span className="absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground select-none">
-            schduled.com/
+        <div className={`flex h-9 items-center border bg-background px-3 text-sm transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15 ${borderColor}`}>
+          <span className="shrink-0 select-none whitespace-nowrap text-muted-foreground">
+            {(process.env.NEXT_PUBLIC_APP_URL ?? 'schduled.com').replace(/^https?:\/\//, '')}/
           </span>
-          <Input
+          <input
             id="ob-username"
             value={username}
             onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
             placeholder="jane-smith"
-            className={`pl-[7.5rem] ${borderColor}`}
+            className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground/50"
             autoComplete="off"
             spellCheck={false}
             maxLength={30}

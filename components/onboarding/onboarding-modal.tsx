@@ -39,7 +39,7 @@ export function OnboardingModal({ name, username: initialUsername, onboardingSte
     <Dialog open modal>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-lg w-full p-0 gap-0 overflow-hidden"
+        className="sm:max-w-lg w-full p-0 gap-0 flex flex-col max-h-[90vh]"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
@@ -50,16 +50,16 @@ export function OnboardingModal({ name, username: initialUsername, onboardingSte
           Complete your Schduled profile setup to get started.
         </DialogDescription>
 
-        {/* Progress bar */}
-        <div className="h-1 w-full bg-muted">
+        {/* Progress bar — never scrolls */}
+        <div className="h-1 w-full bg-muted flex-shrink-0">
           <div
             className="h-full bg-primary transition-all duration-500"
             style={{ width: `${progressPct}%` }}
           />
         </div>
 
-        {/* Step label + heading */}
-        <div className="px-6 pt-5 pb-0">
+        {/* Step label + heading — never scrolls */}
+        <div className="px-6 pt-5 pb-0 flex-shrink-0">
           <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
             Step {step} of {TOTAL_STEPS}
           </p>
@@ -67,8 +67,13 @@ export function OnboardingModal({ name, username: initialUsername, onboardingSte
           <p className="mt-0.5 text-sm text-muted-foreground">{sub}</p>
         </div>
 
-        {/* Step content */}
-        <div className="px-6 pb-6 pt-4">
+        {/* Step content — scrolls independently so header always stays visible */}
+        {/* onWheel stopPropagation prevents Radix DismissableLayer from eating scroll events */}
+        <div
+          className="px-6 pb-6 pt-4 overflow-y-auto flex-1 min-h-0"
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           {step === 1 && (
             <StepProfile
               defaultName={name}

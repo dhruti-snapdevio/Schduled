@@ -57,6 +57,7 @@ async function processOne(bookingId: string) {
       ...baseShared,
       audience: "invitee",
       locationLabel: locationLabelInvitee,
+      locationType: b.etLocationType,
       recipientName: b.inviteeName,
       otherPartyName: b.hostName ?? "your host",
     });
@@ -77,6 +78,7 @@ async function processOne(bookingId: string) {
       ...baseShared,
       audience: "host",
       locationLabel: locationLabelHost,
+      locationType: b.etLocationType,
       recipientName: b.hostName ?? "there",
       otherPartyName: b.inviteeName,
     });

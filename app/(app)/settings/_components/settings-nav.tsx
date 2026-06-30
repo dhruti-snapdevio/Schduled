@@ -15,7 +15,7 @@ const SETTINGS_LINKS = [
   { href: "/settings/calendars",     label: "Calendar Sync" },
   { href: "/settings/integrations",  label: "Integrations" },
   { href: "/settings/communication", label: "Notifications" },
-  { href: "/settings/contacts",      label: "Contacts" },
+  { href: "/settings/contacts",      label: "Contact settings" },
   { href: "/settings/cookies",       label: "Cookies" },
 ];
 

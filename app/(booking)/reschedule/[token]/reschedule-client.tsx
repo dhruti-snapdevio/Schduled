@@ -45,7 +45,7 @@ interface Props {
   username: string;
 }
 
-const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DATE_FMT = "EEE, MMM d 'at' h:mm a";
 
 export function RescheduleClient(props: Props) {
@@ -163,8 +163,8 @@ export function RescheduleClient(props: Props) {
   }
 
   const calendarDays = eachDayOfInterval({
-    start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
-    end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
+    start: startOfWeek(startOfMonth(month), { weekStartsOn: 0 }),
+    end: endOfWeek(endOfMonth(month), { weekStartsOn: 0 }),
   });
 
   const currentWhen = formatInTimeZone(
@@ -219,7 +219,7 @@ export function RescheduleClient(props: Props) {
               )}
             </p>
           </div>
-          <div className="border-t border-border px-8 py-5">
+          <div className="border-t border-border px-5 py-5 sm:px-8">
             <button
               type="button"
               onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
@@ -237,7 +237,7 @@ export function RescheduleClient(props: Props) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-3xl overflow-hidden bg-card border border-border">
-        <div className="border-b border-border bg-muted/30 px-8 py-5">
+        <div className="border-b border-border bg-muted/30 px-5 py-5 sm:px-8">
           <button
             type="button"
             onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}

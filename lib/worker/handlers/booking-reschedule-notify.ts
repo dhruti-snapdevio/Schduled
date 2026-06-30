@@ -58,6 +58,7 @@ async function processOne(bookingId: string, previousStartUtc: string) {
     const mail = await bookingEmail({
       ...baseShared,
       locationLabel: locationLabelInvitee,
+      locationType: b.etLocationType,
       audience: "invitee",
       recipientName: b.inviteeName,
       otherPartyName: b.hostName ?? "your host",
@@ -98,6 +99,7 @@ async function processOne(bookingId: string, previousStartUtc: string) {
     const mail = await bookingEmail({
       ...baseShared,
       locationLabel: locationLabelHost,
+      locationType: b.etLocationType,
       audience: "host",
       recipientName: b.hostName ?? "there",
       otherPartyName: b.inviteeName,

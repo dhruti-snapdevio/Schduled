@@ -287,13 +287,13 @@ export function AuditTable({ logs }: { logs: AuditRow[] }) {
         {/* Left: search + filters */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Search */}
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <MagnifyingGlass
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={14}
             />
             <input
-              className="h-9 w-64 rounded-none border border-border bg-page pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-9 w-full rounded-none border border-border bg-page pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:w-64"
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search action, user or entity..."
               type="search"

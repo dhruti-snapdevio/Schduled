@@ -18,6 +18,7 @@ export interface BookingEmailInput {
   hostTimezone: string;
   inviteeTimezone: string;
   locationLabel: string;
+  locationType: string;
   meetLabel?: string;
   meetLink: string | null;
   otherPartyName: string;
@@ -63,6 +64,7 @@ export async function bookingEmail(p: BookingEmailInput) {
       whenInvitee,
       inviteeTimezone: p.inviteeTimezone,
       locationLabel: p.locationLabel,
+      locationType: p.locationType,
       meetLink: p.variant === "cancellation" ? null : p.meetLink,
       meetLabel: p.meetLabel ?? "Join Meeting",
       rescheduleUrl: p.variant === "cancellation" ? null : rescheduleUrl,

@@ -84,7 +84,7 @@ interface EventTypeCardProps {
   stats?: EventTypeStats
   isSelected?: boolean
   onSelect?: (id: string, selected: boolean) => void
-  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>
+  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>  // kept for API compat but no longer used
 }
 
 // ── Location meta ────────────────────────────────────────────────────────────
@@ -272,17 +272,10 @@ export function EventTypeCard({
         {/* ── Right: controls ─────────────────────────────────────── */}
         <div className="flex items-center gap-1 shrink-0">
 
-          {/* Drag handle */}
-          {dragHandleProps && (
-            <button
-              type="button"
-              title="Drag to reorder" aria-label="Drag to reorder"
-              className="mr-1 flex h-8 w-6 cursor-grab items-center justify-center text-muted-foreground/40 transition-colors hover:text-muted-foreground active:cursor-grabbing"
-              {...dragHandleProps}
-            >
-              <DotsSixVertical size={16} />
-            </button>
-          )}
+          {/* Drag grip — visual hint only; whole card is the drag zone */}
+          <span className="mr-1 flex h-8 w-6 items-center justify-center text-muted-foreground/40 pointer-events-none select-none">
+            <DotsSixVertical size={16} />
+          </span>
 
           {/* Toggle + ON/OFF label */}
           <div className="flex items-center gap-1.5 mr-1">
@@ -317,6 +310,16 @@ export function EventTypeCard({
               {copied ? <Check size={15} weight="bold" /> : <LinkIcon size={15} />}
             </button>
           )}
+
+          {/* View bookings */}
+          <Link
+            href="/bookings"
+            aria-label={`View bookings for ${name}`}
+            title="View bookings"
+            className="hidden sm:flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+          >
+            <CalendarCheck size={15} />
+          </Link>
 
           {/* Edit */}
           <Link

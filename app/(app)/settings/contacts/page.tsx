@@ -1,57 +1,22 @@
-import { Suspense } from 'react'
-import { Users } from '@phosphor-icons/react/dist/ssr'
 import { PageHeader } from '@/components/scaffold/page-header'
-import { Empty } from '@/components/ui/empty'
 import { requireSession } from '@/lib/authz'
-import { getContacts } from '@/app/actions/settings'
-import { ContactsTable } from './_components/contacts-table'
+import { getContactSettings } from '@/app/actions/settings'
+import { ContactSettingsForm } from './_components/contact-settings-form'
 
-export const metadata = { title: 'Contacts' }
+export const metadata = { title: 'Contacts settings' }
 
-export default async function ContactsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string; q?: string; archived?: string }>
-}) {
+export default async function ContactsSettingsPage() {
   await requireSession()
-  const params  = await searchParams
-
-  const page     = Math.max(1, parseInt(params.page ?? '1', 10))
-  const search   = params.q ?? ''
-  const archived = params.archived === '1'
-
-  const { contacts, total } = await getContacts({
-    page,
-    pageSize: 20,
-    search,
-    archived,
-  })
+  const settings = await getContactSettings()
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Settings"
         title="Contacts"
-        description="People who have booked time with you. Add notes, archive, or remove contacts."
+        description="Control how contacts are created automatically from your bookings."
       />
-
-      {total === 0 && !search && !archived ? (
-        <Empty
-          icon={<Users />}
-          title="No contacts yet"
-          description="Contacts appear here automatically when someone books a meeting with you."
-        />
-      ) : (
-        <Suspense>
-          <ContactsTable
-            contacts={contacts}
-            total={total}
-            page={page}
-            search={search}
-            archived={archived}
-          />
-        </Suspense>
-      )}
+      <ContactSettingsForm initial={settings} />
     </div>
   )
 }
