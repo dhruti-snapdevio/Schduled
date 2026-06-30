@@ -303,7 +303,7 @@ function OverrideDialog({
 
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
           <p className="font-semibold text-sm">Select the date(s) you want to assign specific hours</p>
-          <DialogClose className="flex h-7 w-7 shrink-0 items-center justify-center bg-secondary text-muted-foreground transition-colors hover:text-foreground">
+          <DialogClose className="flex h-7 w-7 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
             <X size={15} />
             <span className="sr-only">Close</span>
           </DialogClose>
@@ -458,7 +458,7 @@ function WeekdayDialog({
           <DialogTitle className="text-base font-bold">
             {label} availability
           </DialogTitle>
-          <DialogClose className="flex h-7 w-7 shrink-0 items-center justify-center bg-secondary text-muted-foreground transition-colors hover:text-foreground">
+          <DialogClose className="flex h-7 w-7 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
             <X size={15} />
             <span className="sr-only">Close</span>
           </DialogClose>

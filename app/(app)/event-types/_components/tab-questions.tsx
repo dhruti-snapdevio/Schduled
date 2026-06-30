@@ -49,6 +49,8 @@ interface TabQuestionsProps {
   eventTypeId?: string
   questions: ExistingQuestion[]
   mode: 'create' | 'edit'
+  /** Location type — drives the auto-added Phone built-in question. */
+  locationType?: string
   pendingQuestions?: ExistingQuestion[]
   onPendingChange?: (next: ExistingQuestion[]) => void
 }
@@ -57,7 +59,13 @@ function blankForm(): { label: string; type: QuestionData['type']; isRequired: b
   return { label: '', type: 'short_text', isRequired: false, placeholder: '', options: '' }
 }
 
-export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, pendingQuestions = [], onPendingChange }: TabQuestionsProps) {
+export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, locationType, pendingQuestions = [], onPendingChange }: TabQuestionsProps) {
+  // When the invitee provides their number (host-calls-invitee), a Phone field
+  // is auto-collected on the booking form — surface it here as a built-in.
+  const builtinQuestions =
+    locationType === 'phone_host_calls'
+      ? [...BUILTIN_QUESTIONS, { label: 'Phone number', type: 'phone', isRequired: true, builtin: true }]
+      : BUILTIN_QUESTIONS
   const [questions, setQuestions] = useState<ExistingQuestion[]>(initialQuestions)
   // In create mode, use parent-controlled pendingQuestions; in edit mode, use local state
   const displayQuestions = mode === 'create' ? pendingQuestions : questions
@@ -221,7 +229,7 @@ export function TabQuestions({ eventTypeId, questions: initialQuestions, mode, p
       {/* Built-in questions (always present) */}
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Always included</p>
-        {BUILTIN_QUESTIONS.map((q) => (
+        {builtinQuestions.map((q) => (
           <div key={q.label} className="flex items-center gap-3 border border-border bg-muted/30 px-4 py-3">
             <DotsSixVertical size={14} className="text-muted-foreground/30" />
             <span className="flex-1 text-sm">{q.label}</span>

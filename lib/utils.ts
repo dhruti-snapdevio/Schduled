@@ -81,6 +81,28 @@ export function dialCodeFromTz(tz: string): string {
   return ''
 }
 
+// Known dial codes, longest first — so a typed number like "+918790056786"
+// resolves to "+91", not a greedy "+9187".
+const KNOWN_DIAL_CODES = Array.from(new Set(Object.values(TZ_DIAL))).sort(
+  (a, b) => b.length - a.length
+)
+
+/**
+ * Extract the international dial code from a phone value by matching against
+ * known country codes. Country codes are 1–4 digits and can't be split by a
+ * fixed digit count, so we prefix-match the known list (longest first) and
+ * fall back to "+" + up to 3 digits.
+ */
+export function extractDialCode(value: string): string {
+  const v = (value ?? '').replace(/[\s\-().]/g, '')
+  if (!v.startsWith('+')) return ''
+  for (const code of KNOWN_DIAL_CODES) {
+    if (v.startsWith(code)) return code
+  }
+  const m = v.match(/^(\+\d{1,3})/)
+  return m ? m[1] : '+'
+}
+
 /**
  * Compact page-number list with ellipsis for pagination UIs.
  * e.g. (4, 20) → [1, "ellipsis", 3, 4, 5, "ellipsis", 20]

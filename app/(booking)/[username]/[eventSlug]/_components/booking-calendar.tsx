@@ -476,6 +476,7 @@ export function BookingCalendar({
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [phoneError, setPhoneError] = useState<string | null>(null)
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -648,7 +649,12 @@ export function BookingCalendar({
     if (phone.trim()) {
       const digits = phone.replace(/\D/g, '')
       if (digits.length < 7 || digits.length > 15) {
-        setSubmitError('Please enter a valid phone number (7–15 digits)')
+        setPhoneError(
+          digits.length > 15
+            ? 'Phone number is too long (max 15 digits).'
+            : 'Phone number is too short (min 7 digits).'
+        )
+        setSubmitError('Please enter a valid phone number.')
         return
       }
     }
@@ -1241,25 +1247,48 @@ export function BookingCalendar({
                         {(() => {
                           const dialCode = dialCodeFromTz(inviteeTz)
                           return (
-                            <div className="flex items-stretch border border-input focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all h-9">
-                              <div className="flex shrink-0 items-center border-r border-input bg-muted px-2.5 text-sm font-mono font-semibold text-foreground min-w-[48px] justify-center select-none">
-                                {dialCode || '+'}
+                            <>
+                              <div className={cn(
+                                'flex items-stretch border transition-all h-9',
+                                phoneError
+                                  ? 'border-destructive focus-within:border-destructive focus-within:ring-1 focus-within:ring-destructive/40'
+                                  : 'border-input focus-within:border-primary focus-within:ring-1 focus-within:ring-primary'
+                              )}>
+                                <div className="flex shrink-0 items-center border-r border-input bg-muted px-2.5 text-sm font-mono font-semibold text-foreground min-w-[48px] justify-center select-none">
+                                  {dialCode || '+'}
+                                </div>
+                                <input
+                                  type="tel"
+                                  inputMode="tel"
+                                  maxLength={20}
+                                  value={phone}
+                                  onChange={(e) => {
+                                    let v = e.target.value
+                                    // Strip invalid chars — only digits, +, space, -, (, ), .
+                                    v = v.replace(/[^\d+\s\-().]/g, '')
+                                    if (v.indexOf('+') > 0) v = '+' + v.replace(/\+/g, '')
+                                    setPhone(v)
+                                    const d = v.replace(/\D/g, '')
+                                    setPhoneError(d.length > 15 ? 'Phone number is too long (max 15 digits).' : null)
+                                  }}
+                                  onBlur={(e) => {
+                                    const d = e.target.value.replace(/\D/g, '')
+                                    setPhoneError(
+                                      d.length === 0 ? null
+                                      : d.length < 7 ? 'Phone number is too short (min 7 digits).'
+                                      : d.length > 15 ? 'Phone number is too long (max 15 digits).'
+                                      : null
+                                    )
+                                  }}
+                                  required={phoneRequired}
+                                  placeholder={dialCode ? `${dialCode} XXXXX XXXXX` : '+91 98765 43210'}
+                                  className="flex-1 bg-background px-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 outline-none"
+                                />
                               </div>
-                              <input
-                                type="tel"
-                                value={phone}
-                                onChange={(e) => {
-                                  let v = e.target.value
-                                  // Strip invalid chars — only digits, +, space, -, (, ), .
-                                  v = v.replace(/[^\d+\s\-().]/g, '')
-                                  if (v.indexOf('+') > 0) v = '+' + v.replace(/\+/g, '')
-                                  setPhone(v)
-                                }}
-                                required={phoneRequired}
-                                placeholder={dialCode ? `${dialCode} XXXXX XXXXX` : '+91 98765 43210'}
-                                className="flex-1 bg-background px-3 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 outline-none"
-                              />
-                            </div>
+                              {phoneError && (
+                                <p className="mt-1 text-xs text-destructive">{phoneError}</p>
+                              )}
+                            </>
                           )
                         })()}
                       </FormField>

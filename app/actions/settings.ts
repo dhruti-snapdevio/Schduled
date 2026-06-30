@@ -458,6 +458,20 @@ export async function getContacts({
   const userId = session.user.id;
   const offset = (page - 1) * pageSize;
 
+  // Fetch the exclusion list so we can hide matching contacts
+  const [profileRow] = await db
+    .select({ excludedContactDomains: userProfile.excludedContactDomains })
+    .from(userProfile)
+    .where(eq(userProfile.userId, userId))
+    .limit(1);
+  const excludedEntries = (profileRow?.excludedContactDomains ?? "")
+    .split(/[\s,]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  // Split into exact emails vs domain patterns
+  const excludedEmails = new Set(excludedEntries.filter((e) => e.includes("@")));
+  const excludedDomains = excludedEntries.filter((e) => !e.includes("@"));
+
   const searchClause = search
     ? sql`AND (b.invitee_email ILIKE ${"%" + search + "%"} OR b.invitee_name ILIKE ${"%" + search + "%"})`
     : sql``;
@@ -511,18 +525,29 @@ export async function getContacts({
     ) sub
   `);
 
+  function isExcluded(email: string) {
+    const lower = email.toLowerCase();
+    if (excludedEmails.has(lower)) return true;
+    const domain = lower.split("@")[1] ?? "";
+    return excludedDomains.some((d) => domain === d || domain.endsWith("." + d));
+  }
+
+  const allContacts = rows as unknown as {
+    email: string;
+    name: string;
+    booking_count: number;
+    last_booked_at: string | null;
+    last_meeting_at: string | null;
+    next_meeting_at: string | null;
+    notes: string | null;
+    is_archived: boolean | null;
+    contact_id: string | null;
+  }[];
+
+  const contacts = allContacts.filter((r) => !isExcluded(r.email));
+
   return {
-    contacts: rows as unknown as {
-      email: string;
-      name: string;
-      booking_count: number;
-      last_booked_at: string | null;
-      last_meeting_at: string | null;
-      next_meeting_at: string | null;
-      notes: string | null;
-      is_archived: boolean | null;
-      contact_id: string | null;
-    }[],
+    contacts,
     total: (countRow as unknown as { total: number }[])[0]?.total ?? 0,
   };
 }
