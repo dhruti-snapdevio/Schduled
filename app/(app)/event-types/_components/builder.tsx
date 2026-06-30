@@ -421,6 +421,7 @@ export function EventTypeBuilder({
               <TabQuestions
                 eventTypeId={eventTypeId}
                 mode={mode}
+                locationType={form.watch("locationType")}
                 onPendingChange={setPendingQuestions}
                 pendingQuestions={pendingQuestions}
                 questions={questions}

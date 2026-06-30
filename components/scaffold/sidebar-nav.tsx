@@ -52,11 +52,13 @@ function NavItem({
     <Link
       href={href}
       data-tour={tourId}
+      data-sidebar-nav-item
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors rounded-none border-l-[3px]",
         active
           ? "border-l-sidebar-primary bg-sidebar-primary text-sidebar-primary-foreground"
           : "border-l-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+        "data-[tour-dim=true]:!bg-transparent data-[tour-dim=true]:!border-l-transparent data-[tour-dim=true]:!text-sidebar-foreground/25",
       )}
     >
       <Icon size={17} weight={active ? "fill" : "regular"} className={active ? "text-sidebar-primary-foreground" : ""} />

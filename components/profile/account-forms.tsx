@@ -91,7 +91,7 @@ export function AvatarUploadCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Profile Photo</CardTitle>
+        <CardTitle>Profile Image</CardTitle>
         <CardDescription>
           Shown on your public booking page and in notification emails.
         </CardDescription>
@@ -103,10 +103,10 @@ export function AvatarUploadCard({
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             className="group relative size-20 shrink-0 overflow-hidden border-2 border-dashed border-border bg-muted transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-            aria-label="Upload profile photo"
+            aria-label="Upload profile image"
           >
             {preview ? (
-              <Image fill unoptimized src={preview} alt="Profile photo" className="object-cover" sizes="80px" />
+              <Image fill unoptimized src={preview} alt="Profile image" className="object-cover" sizes="80px" />
             ) : (
               <UserCircle size={40} className="m-auto text-muted-foreground" />
             )}
@@ -139,7 +139,7 @@ export function AvatarUploadCard({
                 disabled={uploading || removing}
                 onClick={() => fileInputRef.current?.click()}
               >
-                {uploading ? "Uploading…" : "Change photo"}
+                {uploading ? "Uploading…" : "Change image"}
               </Button>
               {preview && (
                 <Button
@@ -172,7 +172,7 @@ export function AvatarUploadCard({
             </p>
             {success && (
               <p className="text-xs font-medium text-primary">
-                {preview ? "Photo updated!" : "Photo removed."}
+                {preview ? "Image updated!" : "Image removed."}
               </p>
             )}
             {error && <p className="text-xs text-destructive">{error}</p>}

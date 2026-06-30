@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { FaqAccordion } from '@/components/landing/faq-accordion'
+import { FeaturesSection } from '@/components/landing/features-section'
 import { LandingHeader } from '@/components/landing/landing-header'
 import { LandingFooter } from '@/components/landing/landing-footer'
 import {
@@ -632,147 +633,8 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        {/* ─── FEATURES BENTO ──────────────────────────────────────────────────── */}
-        <section id="features" className="border-t border-border bg-muted/20 py-28">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8">
-            <div className="mb-16 text-center scroll-reveal">
-              <p className="mb-3 text-xs font-black uppercase tracking-eyebrow text-primary">Features</p>
-              <h2 className="font-black text-3xl leading-tight sm:text-4xl lg:text-5xl">
-                Everything you need.
-                <br className="hidden sm:block" />
-                <span className="text-muted-foreground">Nothing you don&apos;t.</span>
-              </h2>
-              <p className="mt-4 text-muted-foreground">No feature gates. No limits. One price: free.</p>
-            </div>
-
-            {/* Row 1: 3 equal cards */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-4">
-
-              {/* Video — large icon, rich description */}
-              <div className="scroll-reveal group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60">
-                <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="relative">
-                  <span className="mb-2 inline-block text-xs font-black uppercase tracking-eyebrow text-primary/60">Video</span>
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
-                    <VideoCamera size={24} weight="duotone" />
-                  </div>
-                  <h3 className="mb-2 font-bold text-base">Auto-generated video links</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">Google Meet and Zoom links generated instantly on every confirmed booking.</p>
-                </div>
-              </div>
-
-              {/* Forms */}
-              <div className="scroll-reveal sr-d1 group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60">
-                <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="relative">
-                  <span className="mb-2 inline-block text-xs font-black uppercase tracking-eyebrow text-primary/60">Forms</span>
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
-                    <Lightning size={24} weight="duotone" />
-                  </div>
-                  <h3 className="mb-2 font-bold text-base">Custom booking questions</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">Ask invitees exactly what you need before the call. Every answer appears in booking detail.</p>
-                </div>
-              </div>
-
-              {/* Reminders */}
-              <div className="scroll-reveal sr-d2 group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60">
-                <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="relative">
-                  <span className="mb-2 inline-block text-xs font-black uppercase tracking-eyebrow text-primary/60">Reminders</span>
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
-                    <Bell size={24} weight="duotone" />
-                  </div>
-                  <h3 className="mb-2 font-bold text-base">Smart email reminders</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">24-hour and 1-hour reminders sent automatically. Reschedule links always included.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Row 2: calendar sync (large) + timezone (large) */}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-
-              {/* Calendar sync — LARGE */}
-              <div className="scroll-reveal sr-left group relative overflow-hidden border border-border bg-card p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60">
-                <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="relative grid gap-6 sm:grid-cols-2 sm:items-center">
-                  <div>
-                    <span className="mb-2 inline-block text-xs font-black uppercase tracking-eyebrow text-primary/60">Calendar</span>
-                    <h3 className="mb-3 text-xl font-bold leading-tight">Calendar sync that actually works</h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                      Connect Google Calendar. Your busy blocks are read in real time and hidden instantly from your booking page. Zero double-bookings, ever.
-                    </p>
-                  </div>
-                  <div className="hidden overflow-hidden border border-border bg-muted/40 sm:block">
-                    <div className="border-b border-border bg-primary/5 px-4 py-2.5 flex items-center justify-between">
-                      <span className="text-xs font-semibold">{MONTH_NAMES[month]} {year}</span>
-                      <CalendarCheck size={14} className="text-primary" weight="duotone" />
-                    </div>
-                    <div className="grid grid-cols-7 gap-px p-3 text-center">
-                      {['M','T','W','T','F','S','S'].map((d, i) => (
-                        <span key={i} className="text-[9px] font-bold text-muted-foreground/50">{d}</span>
-                      ))}
-                      {[...Array(6)].map((_, i) => {
-                        const d = Math.min(featStart + i, daysInMonth)
-                        const isBusy = d === featBusyDay
-                        return (
-                          <span key={i} className={`mt-1 inline-flex h-6 w-6 items-center justify-center text-2xs ${isBusy ? 'bg-muted text-muted-foreground/40 line-through' : 'text-foreground/60'}`}>
-                            {d}
-                          </span>
-                        )
-                      })}
-                      {[...Array(5)].map((_, i) => {
-                        const d = Math.min(featStart + 6 + i, daysInMonth)
-                        const isAvail = d === featAvailDay
-                        return (
-                          <span key={i} className={`mt-1 inline-flex h-6 w-6 items-center justify-center text-2xs font-bold ${isAvail ? 'bg-primary text-primary-foreground' : 'text-foreground/60'}`}>
-                            {d}
-                          </span>
-                        )
-                      })}
-                    </div>
-                    <div className="border-t border-border px-4 py-2">
-                      <p className="text-2xs text-muted-foreground">{todayDayName} {MONTH_SHORT[month]} {today} · Busy (blocked)</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timezone — LARGE */}
-              <div className="scroll-reveal sr-right group relative overflow-hidden border border-border bg-card p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/60">
-                <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="relative grid gap-6 sm:grid-cols-2 sm:items-center">
-                  <div>
-                    <span className="mb-2 inline-block text-xs font-black uppercase tracking-eyebrow text-primary/60">Timezone</span>
-                    <h3 className="mb-3 text-xl font-bold leading-tight">Timezone-aware for everyone</h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                      Invitees see slots in their own timezone automatically. You see them in yours. No &ldquo;what time is that for me?&rdquo; emails ever again.
-                    </p>
-                  </div>
-                  <div className="hidden space-y-2 sm:block">
-                    {[
-                      { tz: 'New York (EST)',  t: '10:30 AM', active: true  },
-                      { tz: 'London (GMT)',    t: '3:30 PM',  active: false },
-                      { tz: 'Mumbai (IST)',    t: '9:00 PM',  active: false },
-                    ].map((row) => (
-                      <div key={row.tz} className={`flex items-center justify-between border px-4 py-3 text-xs transition-all duration-200 ${row.active ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/30 group-hover:border-primary/20'}`}>
-                        <div className="flex items-center gap-2">
-                          <Globe size={13} className={row.active ? 'text-primary' : 'text-muted-foreground'} />
-                          <span className={row.active ? 'font-semibold text-foreground' : 'text-muted-foreground'}>{row.tz}</span>
-                        </div>
-                        <span className={`font-mono font-bold ${row.active ? 'text-primary' : 'text-muted-foreground'}`}>{row.t}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* ─── FEATURES ────────────────────────────────────────────────────── */}
+        <FeaturesSection />
 
         {/* ─── PRODUCT PREVIEW ─────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden py-32" style={DARK_BG}>

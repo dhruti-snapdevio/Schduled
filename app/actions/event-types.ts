@@ -15,6 +15,7 @@ import {
   availabilityWindow,
 } from '@/db/schema'
 import { audit } from '@/lib/audit'
+import { pickDistinctEventColor } from '@/lib/event-colors'
 
 const DUPLICATE_NAME = 'DUPLICATE_NAME'
 
@@ -147,13 +148,21 @@ export async function createEventType(data: EventTypeFormData, initialQuestions?
 
       const resolvedSlug = await uniqueSlug(session.user.id, slugBase)
 
+      // Assign a palette color the host isn't already using (computed under the
+      // lock from the CURRENT set of events), so every new meeting type gets a
+      // distinct color — even across concurrent "new" tabs.
+      const color = pickDistinctEventColor(
+        existingRows.map((r) => r.color).filter((c): c is string => !!c),
+        existingRows.length
+      )
+
       await tx.insert(eventType).values({
         id,
         userId: session.user.id,
         name,
         slug: resolvedSlug,
         description: data.description?.trim() || null,
-        color: data.color,
+        color,
         meetingType: data.meetingType,
         isActive: data.isActive,
         isHidden: data.isHidden,

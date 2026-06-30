@@ -29,7 +29,7 @@ import { booking, bookingAnswer, bookingGuest, eventType } from '@/db/schema'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
 import { STATUS_STYLES } from '@/lib/booking-status'
-import { cn } from '@/lib/utils'
+import { cn, normalizeTzName } from '@/lib/utils'
 import { AddToCalendar, Countdown, MeetingLink } from './_components/booking-detail-widgets'
 
 export const metadata = { title: 'Booking details' }
@@ -189,7 +189,7 @@ export default async function BookingDetailPage({
         </InfoCard>
         <InfoCard icon={<Clock size={18} />} label="Time">
           <p className="font-semibold text-foreground">{format(b.startTime, 'h:mm a')} – {format(b.endTime, 'h:mm a')}</p>
-          <p className="text-sm text-muted-foreground">{b.duration} minutes · {b.inviteeTimezone}</p>
+          <p className="text-sm text-muted-foreground">{b.duration} minutes · {normalizeTzName(b.inviteeTimezone ?? '')}</p>
         </InfoCard>
         <InfoCard icon={<VideoCamera size={18} />} label="Location">
           <p className="font-semibold text-foreground">{locationLabel}</p>
@@ -226,7 +226,7 @@ export default async function BookingDetailPage({
               {b.inviteePhone && (
                 <ProfileRow icon={<Phone size={14} />} label="Phone">{b.inviteePhone}</ProfileRow>
               )}
-              <ProfileRow icon={<Globe size={14} />} label="Timezone">{b.inviteeTimezone}</ProfileRow>
+              <ProfileRow icon={<Globe size={14} />} label="Timezone">{normalizeTzName(b.inviteeTimezone ?? '')}</ProfileRow>
             </div>
           </Card>
 

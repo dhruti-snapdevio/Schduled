@@ -279,11 +279,11 @@ export function TabAvailability({ form, schedules, globalLimits: initialLimits }
                         <SelectValue placeholder="Use default schedule" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent position="popper">
                       <SelectItem value="__default__">Use default schedule</SelectItem>
                       {schedules.map((s) => (
                         <SelectItem key={s.id} value={s.id}>
-                          {s.name}{s.isDefault ? ' (default)' : ''}
+                          {s.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

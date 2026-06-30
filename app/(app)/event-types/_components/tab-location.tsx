@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   ArrowSquareOut,
   Globe,
@@ -26,7 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Separator } from "@/components/ui/separator";
-import { cn, dialCodeFromTz } from "@/lib/utils";
+import { cn, dialCodeFromTz, extractDialCode } from "@/lib/utils";
 import type { BuilderFormValues } from "./builder";
 
 type LocationType = BuilderFormValues["locationType"];
@@ -124,13 +124,11 @@ function PhoneInput({
   const inputRef = useRef<HTMLInputElement>(null)
   const initialized = useRef(false)
 
-  // Derive dial code directly from the current value — always in sync, no stale state
-  const dialCode = useMemo(() => {
-    const v = (value ?? '').trim()
-    if (!v) return ''
-    const m = v.match(/^(\+\d{1,4})/)
-    return m ? m[1] : ''
-  }, [value])
+  // Badge: show the code the host typed (matched against known country codes,
+  // so "+918790056786" → "+91"); when none is typed, fall back to the code
+  // derived from their timezone — so it always shows a sensible code (e.g. +91)
+  // and follows the timezone, without ever altering the typed number.
+  const dialCode = extractDialCode(value ?? '') || detectDialCode()
 
   // Auto-fill on first mount only (new event or switching to phone type)
   useEffect(() => {
