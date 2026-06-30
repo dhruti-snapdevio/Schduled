@@ -43,6 +43,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 
 
 interface Contact {
@@ -50,10 +51,14 @@ interface Contact {
   name: string
   booking_count: number
   last_booked_at: string | null
+  last_meeting_at: string | null
+  next_meeting_at: string | null
   notes: string | null
   is_archived: boolean | null
   contact_id: string | null
 }
+
+type ContactFilter = 'all' | 'new' | 'upcoming'
 
 interface ContactsTableProps {
   contacts: Contact[]
@@ -61,9 +66,13 @@ interface ContactsTableProps {
   page: number
   search: string
   archived: boolean
+  filter: ContactFilter
 }
 
-export function ContactsTable({ contacts, total, page, search, archived }: ContactsTableProps) {
+const fmtDate = (v: string | null) =>
+  v ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(v)) : '—'
+
+export function ContactsTable({ contacts, total, page, search, archived, filter }: ContactsTableProps) {
   const router          = useRouter()
   const sp              = useSearchParams()
   const [isPending, startTransition] = useTransition()
@@ -85,14 +94,14 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
     params.set('page', '1')
     // replace (not push) so each keystroke-search doesn't pollute history
     startTransition(() => {
-      router.replace(`/settings/contacts?${params.toString()}`, { scroll: false })
+      router.replace(`/contacts?${params.toString()}`, { scroll: false })
     })
   }
 
   function changePage(p: number) {
     const params = new URLSearchParams(sp.toString())
     params.set('page', String(p))
-    router.push(`/settings/contacts?${params.toString()}`)
+    router.push(`/contacts?${params.toString()}`)
   }
 
   function handleArchive(email: string, name: string) {
@@ -132,7 +141,7 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
+      {/* Toolbar: search */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex items-center max-w-xs w-full">
           {isPending ? (
@@ -151,33 +160,63 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
             }}
           />
         </div>
-        <Button
-          variant={archived ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => push({ archived: archived ? null : '1' })}
-        >
-          {archived ? 'Show active' : 'View archived'}
-        </Button>
+      </div>
+
+      {/* Filter chips */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {([
+          { key: 'all',      label: 'All contacts',      active: !archived && filter === 'all' },
+          { key: 'upcoming', label: 'Upcoming meetings', active: !archived && filter === 'upcoming' },
+          { key: 'new',      label: 'New contacts',      active: !archived && filter === 'new' },
+          { key: 'archived', label: 'Archived',          active: archived },
+        ] as const).map(({ key, label, active }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() =>
+              key === 'archived'
+                ? push({ archived: '1', filter: null })
+                : push({ archived: null, filter: key === 'all' ? null : key })
+            }
+            className={cn(
+              'inline-flex items-center gap-1.5 border px-3 py-1.5 text-sm font-medium transition-colors',
+              active
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+            )}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Table */}
-      <div className="border border-border">
-        <Table className="table-fixed w-full">
+      <div className="overflow-x-auto border border-border">
+        <Table className="w-full min-w-[640px] table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[18%]">Name</TableHead>
-              <TableHead className="w-[24%]">Email</TableHead>
-              <TableHead className="hidden sm:table-cell w-[10%]">Bookings</TableHead>
-              <TableHead className="hidden md:table-cell w-[16%]">Last booked</TableHead>
-              <TableHead className="hidden lg:table-cell w-[20%]">Notes</TableHead>
+              <TableHead className="w-[16%]">Name</TableHead>
+              <TableHead className="w-[20%]">Email</TableHead>
+              <TableHead className="hidden sm:table-cell w-[8%]">Bookings</TableHead>
+              <TableHead className="hidden md:table-cell w-[14%]">Last meeting</TableHead>
+              <TableHead className="hidden md:table-cell w-[14%]">Next meeting</TableHead>
+              <TableHead className="hidden xl:table-cell w-[16%]">Notes</TableHead>
               <TableHead className="w-[12%] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {contacts.length === 0 ? (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
-                  {search ? 'No contacts match your search.' : archived ? 'No archived contacts.' : 'No contacts yet.'}
+                <TableCell colSpan={7} className="py-12 text-center text-sm text-muted-foreground">
+                  {search
+                    ? 'No contacts match your search.'
+                    : archived
+                      ? 'No archived contacts.'
+                      : filter === 'upcoming'
+                        ? 'No contacts with upcoming meetings.'
+                        : filter === 'new'
+                          ? 'No new contacts in the last 30 days.'
+                          : 'No contacts yet.'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -198,11 +237,12 @@ export function ContactsTable({ contacts, total, page, search, archived }: Conta
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">{c.booking_count}</TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">
-                    {c.last_booked_at
-                      ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(c.last_booked_at))
-                      : '—'}
+                    {fmtDate(c.last_meeting_at)}
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell max-w-[200px]">
+                  <TableCell className="hidden md:table-cell text-muted-foreground">
+                    {fmtDate(c.next_meeting_at)}
+                  </TableCell>
+                  <TableCell className="hidden xl:table-cell max-w-[200px]">
                     {c.notes ? (
                       <TooltipProvider delayDuration={300}>
                         <Tooltip>

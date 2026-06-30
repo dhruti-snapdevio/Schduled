@@ -215,8 +215,8 @@ function QuestionInput({
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const ALL_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const ALL_DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
 const STEPS = ['Date', 'Time', 'Details']
 
@@ -326,7 +326,7 @@ function TimezoneSearch({ value, onChange }: { value: string; onChange: (tz: str
       <PopoverContent
         align="start"
         side="top"
-        className="w-72 p-0"
+        className="w-[calc(100vw-2rem)] max-w-72 p-0 sm:w-72"
         onOpenAutoFocus={e => e.preventDefault()}
       >
         {/* Search input */}
@@ -734,8 +734,8 @@ export function BookingCalendar({
   }
 
   const calendarDays = eachDayOfInterval({
-    start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
-    end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
+    start: startOfWeek(startOfMonth(month), { weekStartsOn: 0 }),
+    end: endOfWeek(endOfMonth(month), { weekStartsOn: 0 }),
   })
 
   const loc = locationMeta(eventType.locationType)
@@ -755,18 +755,6 @@ export function BookingCalendar({
 
       {/* Card */}
       <div className="relative z-10 mx-auto w-full max-w-[900px] overflow-hidden bg-background border border-border lg:flex lg:h-full lg:max-h-[680px] lg:flex-col">
-
-        {/* ── "Powered by Schduled" corner ribbon (Calendly-style, enlarged) ── */}
-        <a
-          href="/"
-          aria-label="Powered by Schduled"
-          className="pointer-events-auto absolute -right-[70px] top-[34px] z-30 w-[240px] rotate-45 bg-primary py-2 text-center leading-tight text-primary-foreground transition-opacity hover:opacity-90"
-        >
-          <span className="block text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-foreground/85">
-            Powered by
-          </span>
-          <span className="block text-[17px] font-black tracking-tight">Schduled</span>
-        </a>
 
         {/* ── Progress bar ── */}
         <div className="flex items-center gap-2 border-b border-border bg-background px-3 py-3">
@@ -1323,6 +1311,15 @@ export function BookingCalendar({
             </div>
           )}
         </div>
+
+        {/* ── "Powered by Schduled" footer ── */}
+        <a
+          href="/"
+          aria-label="Powered by Schduled"
+          className="flex shrink-0 items-center justify-center gap-1.5 border-t border-border bg-muted/30 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+        >
+          Powered by <span className="font-bold text-primary">Schduled</span>
+        </a>
 
       </div>
     </div>

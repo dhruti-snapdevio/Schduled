@@ -25,13 +25,13 @@ type DayOfWeek =
 type DaySchedule = { enabled: boolean; startTime: string; endTime: string }
 
 const DAYS: { key: DayOfWeek; letter: string; label: string }[] = [
+  { key: 'sunday',    letter: 'S', label: 'Sunday' },
   { key: 'monday',    letter: 'M', label: 'Monday' },
   { key: 'tuesday',   letter: 'T', label: 'Tuesday' },
   { key: 'wednesday', letter: 'W', label: 'Wednesday' },
   { key: 'thursday',  letter: 'T', label: 'Thursday' },
   { key: 'friday',    letter: 'F', label: 'Friday' },
   { key: 'saturday',  letter: 'S', label: 'Saturday' },
-  { key: 'sunday',    letter: 'S', label: 'Sunday' },
 ]
 
 const DEFAULT: Record<DayOfWeek, DaySchedule> = {

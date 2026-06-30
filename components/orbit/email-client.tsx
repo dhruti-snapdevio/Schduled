@@ -486,10 +486,10 @@ export function EmailClient({
                   ))}
                 </SelectContent>
               </Select>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full items-center gap-2 sm:w-auto">
                 <Input
                   aria-label="From date"
-                  className="h-9 w-32 text-sm"
+                  className="h-9 min-w-0 flex-1 text-sm sm:w-32 sm:flex-none"
                   onChange={(e) => navigate({ from: e.target.value })}
                   type="date"
                   value={filter.from}
@@ -497,7 +497,7 @@ export function EmailClient({
                 <span className="text-xs text-muted-foreground">to</span>
                 <Input
                   aria-label="To date"
-                  className="h-9 w-32 text-sm"
+                  className="h-9 min-w-0 flex-1 text-sm sm:w-32 sm:flex-none"
                   onChange={(e) => navigate({ to: e.target.value })}
                   type="date"
                   value={filter.to}

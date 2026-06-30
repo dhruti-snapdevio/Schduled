@@ -7,6 +7,7 @@ import {
   CalendarCheck,
   CalendarX,
   Check,
+  Eye,
   EnvelopeSimple,
   EnvelopeOpen,
   Hourglass,
@@ -339,7 +340,7 @@ export default async function BookingsPage({
                       </div>
 
                       {/* Platform + status + actions */}
-                      <div className="flex shrink-0 items-center gap-2 pl-[18px] sm:pl-0">
+                      <div className="flex shrink-0 flex-wrap items-center gap-1.5 pl-[18px] sm:pl-0">
                         <span className={cn('hidden items-center gap-1 px-1.5 py-0.5 text-xs font-medium md:inline-flex', platform.color)}>
                           <PlatformIcon size={12} weight="fill" />
                           {platform.label}
@@ -348,6 +349,14 @@ export default async function BookingsPage({
                           <span className={cn('size-1.5 rounded-full shrink-0', statusMeta.dotClass)} />
                           {statusMeta.label}
                         </span>
+
+                        {/* View details — available on every booking, all tabs */}
+                        <Button asChild variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-primary" title="View details">
+                          <Link href={`/bookings/${b.id}`}>
+                            <Eye size={14} />
+                            <span className="hidden lg:inline">Details</span>
+                          </Link>
+                        </Button>
 
                         {isUpcoming && b.status === 'confirmed' && (
                           <div className="flex items-center gap-1">

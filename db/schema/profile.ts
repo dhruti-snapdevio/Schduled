@@ -1,5 +1,5 @@
 import { createId } from '@paralleldrive/cuid2'
-import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import { user } from './auth'
 import { themeEnum, dateFormatEnum, timeFormatEnum } from './enums'
 
@@ -14,6 +14,10 @@ export const userProfile = pgTable('user_profile', {
   theme:       themeEnum('theme').default('system'),
   dateFormat:  dateFormatEnum('date_format').default('MM/DD/YYYY'),
   timeFormat:  timeFormatEnum('time_format').default('12h'),
+  // Contacts: auto-create an invitee as a contact on booking, with an optional
+  // exclusion list (comma/space-separated emails or domains) to skip.
+  autoCreateContacts:     boolean('auto_create_contacts').notNull().default(true),
+  excludedContactDomains: text('excluded_contact_domains'),
   updatedAt:   timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 

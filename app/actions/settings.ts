@@ -368,7 +368,7 @@ export async function upsertContactNote(
       });
     }
 
-    revalidatePath("/settings/contacts");
+    revalidatePath("/contacts");
     return { ok: true };
   } catch {
     return { error: "Something went wrong. Please try again." };
@@ -395,7 +395,7 @@ export async function archiveContact(
         set: { isArchived: true, updatedAt: new Date() },
       });
 
-    revalidatePath("/settings/contacts");
+    revalidatePath("/contacts");
     return { ok: true };
   } catch {
     return { error: "Something went wrong. Please try again." };
@@ -413,7 +413,7 @@ export async function unarchiveContact(email: string): Promise<ActionResult> {
         and(eq(contact.hostUserId, session.user.id), eq(contact.email, email))
       );
 
-    revalidatePath("/settings/contacts");
+    revalidatePath("/contacts");
     return { ok: true };
   } catch {
     return { error: "Something went wrong. Please try again." };
@@ -430,7 +430,7 @@ export async function deleteContact(email: string): Promise<ActionResult> {
         and(eq(contact.hostUserId, session.user.id), eq(contact.email, email))
       );
 
-    revalidatePath("/settings/contacts");
+    revalidatePath("/contacts");
     return { ok: true };
   } catch {
     return { error: "Something went wrong. Please try again." };
@@ -439,20 +439,37 @@ export async function deleteContact(email: string): Promise<ActionResult> {
 
 // ── Contacts: paginated query helper (called from page) ───────────────────────
 
+export type ContactFilter = "all" | "new" | "upcoming";
+
 export async function getContacts({
   page = 1,
   pageSize = 20,
   search = "",
   archived = false,
+  filter = "all",
 }: {
   page?: number;
   pageSize?: number;
   search?: string;
   archived?: boolean;
+  filter?: ContactFilter;
 } = {}) {
   const session = await requireSession();
   const userId = session.user.id;
   const offset = (page - 1) * pageSize;
+
+  const searchClause = search
+    ? sql`AND (b.invitee_email ILIKE ${"%" + search + "%"} OR b.invitee_name ILIKE ${"%" + search + "%"})`
+    : sql``;
+
+  // Per-contact (grouped) filters: "upcoming" = has a future booking,
+  // "new" = first booked within the last 30 days.
+  const havingClause =
+    filter === "upcoming"
+      ? sql`HAVING bool_or(b.start_time >= now())`
+      : filter === "new"
+        ? sql`HAVING min(b.start_time) >= now() - interval '30 days'`
+        : sql``;
 
   // Aggregate from booking table, left-join contact for metadata
   const rows = await db.execute(sql`
@@ -461,6 +478,8 @@ export async function getContacts({
       MAX(b.invitee_name) AS name,
       COUNT(b.id)::int  AS booking_count,
       MAX(b.start_time) AS last_booked_at,
+      MAX(b.start_time) FILTER (WHERE b.start_time <  now()) AS last_meeting_at,
+      MIN(b.start_time) FILTER (WHERE b.start_time >= now()) AS next_meeting_at,
       c.notes,
       c.is_archived,
       c.id              AS contact_id
@@ -470,21 +489,26 @@ export async function getContacts({
       AND c.email = b.invitee_email
     WHERE b.host_user_id = ${userId}
       AND COALESCE(c.is_archived, false) = ${archived}
-      ${search ? sql`AND (b.invitee_email ILIKE ${"%" + search + "%"} OR b.invitee_name ILIKE ${"%" + search + "%"})` : sql``}
+      ${searchClause}
     GROUP BY b.invitee_email, c.notes, c.is_archived, c.id
+    ${havingClause}
     ORDER BY MAX(b.start_time) DESC
     LIMIT ${pageSize} OFFSET ${offset}
   `);
 
   const countRow = await db.execute(sql`
-    SELECT COUNT(DISTINCT b.invitee_email)::int AS total
-    FROM booking b
-    LEFT JOIN contact c
-      ON c.host_user_id = b.host_user_id
-      AND c.email = b.invitee_email
-    WHERE b.host_user_id = ${userId}
-      AND COALESCE(c.is_archived, false) = ${archived}
-      ${search ? sql`AND (b.invitee_email ILIKE ${"%" + search + "%"} OR b.invitee_name ILIKE ${"%" + search + "%"})` : sql``}
+    SELECT COUNT(*)::int AS total FROM (
+      SELECT b.invitee_email
+      FROM booking b
+      LEFT JOIN contact c
+        ON c.host_user_id = b.host_user_id
+        AND c.email = b.invitee_email
+      WHERE b.host_user_id = ${userId}
+        AND COALESCE(c.is_archived, false) = ${archived}
+        ${searchClause}
+      GROUP BY b.invitee_email
+      ${havingClause}
+    ) sub
   `);
 
   return {
@@ -493,10 +517,82 @@ export async function getContacts({
       name: string;
       booking_count: number;
       last_booked_at: string | null;
+      last_meeting_at: string | null;
+      next_meeting_at: string | null;
       notes: string | null;
       is_archived: boolean | null;
       contact_id: string | null;
     }[],
     total: (countRow as unknown as { total: number }[])[0]?.total ?? 0,
   };
+}
+
+// ── Contact settings: auto-create on booking + exclusion list ─────────────────
+
+export async function getContactSettings(): Promise<{
+  autoCreateContacts: boolean;
+  excludedContactDomains: string;
+}> {
+  const session = await requireSession();
+  const [row] = await db
+    .select({
+      autoCreateContacts: userProfile.autoCreateContacts,
+      excludedContactDomains: userProfile.excludedContactDomains,
+    })
+    .from(userProfile)
+    .where(eq(userProfile.userId, session.user.id))
+    .limit(1);
+
+  return {
+    autoCreateContacts: row?.autoCreateContacts ?? true,
+    excludedContactDomains: row?.excludedContactDomains ?? "",
+  };
+}
+
+export async function updateContactSettings(data: {
+  autoCreateContacts: boolean;
+  excludedContactDomains: string;
+}): Promise<ActionResult> {
+  try {
+    const session = await requireSession();
+
+    // Normalise the exclusion list: split on commas/whitespace, lowercase,
+    // de-dupe, drop empties, then store as a comma-separated string.
+    const excluded = Array.from(
+      new Set(
+        (data.excludedContactDomains ?? "")
+          .split(/[\s,]+/)
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+      )
+    ).join(", ");
+
+    const [existing] = await db
+      .select({ id: userProfile.id })
+      .from(userProfile)
+      .where(eq(userProfile.userId, session.user.id))
+      .limit(1);
+
+    if (existing) {
+      await db
+        .update(userProfile)
+        .set({
+          autoCreateContacts: data.autoCreateContacts,
+          excludedContactDomains: excluded || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(userProfile.userId, session.user.id));
+    } else {
+      await db.insert(userProfile).values({
+        userId: session.user.id,
+        autoCreateContacts: data.autoCreateContacts,
+        excludedContactDomains: excluded || null,
+      });
+    }
+
+    revalidatePath("/settings/contacts");
+    return { ok: true };
+  } catch {
+    return { error: "Something went wrong. Please try again." };
+  }
 }

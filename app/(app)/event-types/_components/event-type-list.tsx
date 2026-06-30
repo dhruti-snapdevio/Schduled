@@ -6,12 +6,16 @@ import { Trash, X, ToggleLeft, ToggleRight } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import {
   SortableContext,
   arrayMove,
@@ -19,6 +23,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+
 import { bulkDeleteEventTypes, bulkToggleEventTypes, reorderEventTypes } from '@/app/actions/event-types'
 import { EventTypeCard, type EventTypeStats } from './event-type-card'
 import {
@@ -66,13 +71,21 @@ function SortableItem({ et, username, stats, isSelected, onSelect }: SortableIte
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.3 : 1,
     position: 'relative',
     zIndex: isDragging ? 10 : undefined,
   }
 
   return (
-    <div ref={setNodeRef} style={style}>
+    // Drag listeners on the whole wrapper — any point on the card can initiate drag.
+    // The distance:8 activation constraint ensures button/link clicks still fire normally.
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="cursor-grab active:cursor-grabbing"
+    >
       <EventTypeCard
         id={et.id}
         name={et.name}
@@ -87,7 +100,6 @@ function SortableItem({ et, username, stats, isSelected, onSelect }: SortableIte
         stats={stats}
         isSelected={isSelected}
         onSelect={onSelect}
-        dragHandleProps={{ ...attributes, ...listeners }}
       />
     </div>
   )
@@ -97,15 +109,24 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
   const router = useRouter()
   const [orderedTypes, setOrderedTypes] = useState(initialEventTypes)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [activeId, setActiveId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => { setOrderedTypes(initialEventTypes) }, [initialEventTypes])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    // Mouse / stylus — activate after 8px movement to avoid click interference
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // Touch — long-press 200ms to distinguish from scroll gestures
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
   )
 
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string)
+  }
+
   function handleDragEnd(event: DragEndEvent) {
+    setActiveId(null)
     const { active, over } = event
     if (!over || active.id === over.id) return
 
@@ -121,6 +142,10 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
         setOrderedTypes(orderedTypes)
       }
     })
+  }
+
+  function handleDragCancel() {
+    setActiveId(null)
   }
 
   function handleSelect(id: string, selected: boolean) {
@@ -163,9 +188,8 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
   }
 
   const count = selectedIds.size
+  const activeType = orderedTypes.find((et) => et.id === activeId)
 
-  // Only offer the toggle that actually changes something:
-  //  all selected ON  → only "Turn Off";  all OFF → only "Turn On";  mixed → both.
   const selectedTypes = orderedTypes.filter((et) => selectedIds.has(et.id))
   const allOn = selectedTypes.length > 0 && selectedTypes.every((et) => et.isActive)
   const allOff = selectedTypes.length > 0 && selectedTypes.every((et) => !et.isActive)
@@ -175,9 +199,13 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
   return (
     <>
       <DndContext
+        id="event-type-list"
         sensors={sensors}
         collisionDetection={closestCenter}
+        modifiers={[restrictToVerticalAxis]}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
         <SortableContext items={orderedTypes.map((et) => et.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
@@ -193,6 +221,29 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
             ))}
           </div>
         </SortableContext>
+
+        {/* Floating overlay — follows the cursor freely in all directions */}
+        <DragOverlay dropAnimation={null}>
+          {activeType && (
+            <div className="ring-1 ring-foreground/10" style={{ opacity: 0.95 }}>
+              <EventTypeCard
+                id={activeType.id}
+                name={activeType.name}
+                slug={activeType.slug}
+                color={activeType.color}
+                locationType={activeType.locationType}
+                meetingType={activeType.meetingType ?? undefined}
+                isActive={activeType.isActive}
+                isHidden={activeType.isHidden}
+                durations={activeType.durations}
+                username={username}
+                stats={statsMap.get(activeType.id)}
+                isSelected={false}
+                onSelect={() => {}}
+              />
+            </div>
+          )}
+        </DragOverlay>
       </DndContext>
 
       {/* ── Bottom selection action bar ──────────────────────────── */}
@@ -215,7 +266,6 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
 
           <div className="flex-1" />
 
-          {/* Turn On — hidden when every selected type is already on */}
           {showTurnOn && (
             <Button
               variant="outline"
@@ -229,7 +279,6 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
             </Button>
           )}
 
-          {/* Turn Off — hidden when every selected type is already off */}
           {showTurnOff && (
             <Button
               variant="outline"
@@ -243,7 +292,6 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
             </Button>
           )}
 
-          {/* Delete */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button

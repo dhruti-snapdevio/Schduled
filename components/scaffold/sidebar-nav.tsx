@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  AddressBook,
   CalendarCheck,
   Clock,
   GearSix,
@@ -30,6 +31,7 @@ const NAV_LINKS: { href: string; label: string; icon: IconComponent; tourId?: st
   { href: "/event-types",  label: "Meeting Types", icon: Lightning, tourId: "meeting-types" },
   { href: "/availability", label: "Availability", icon: Clock, tourId: "availability" },
   { href: "/bookings",     label: "Bookings",    icon: CalendarCheck, tourId: "bookings" },
+  { href: "/contacts",     label: "Contacts",    icon: AddressBook },
   { href: "/settings",     label: "Settings",    icon: GearSix     },
 ];
 

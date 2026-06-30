@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  AddressBook,
   CalendarCheck,
   Clock,
   GearSix,
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { href: "/event-types", label: "Events",     icon: Lightning },
   { href: "/availability",label: "Hours",      icon: Clock },
   { href: "/bookings",    label: "Bookings",   icon: CalendarCheck },
+  { href: "/contacts",    label: "Contacts",   icon: AddressBook },
   { href: "/settings",    label: "Settings",   icon: GearSix },
 ];
 

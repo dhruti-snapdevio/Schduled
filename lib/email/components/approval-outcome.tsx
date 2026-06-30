@@ -9,6 +9,7 @@ interface ApprovalOutcomeEmailProps {
   hostName: string;
   inviteeName: string;
   locationLabel: string;
+  locationType?: string;
   meetLabel?: string;
   meetLink?: string | null;
   rejectionReason?: string | null;
@@ -30,6 +31,7 @@ export function ApprovalOutcomeEmail({
   hostName,
   inviteeName,
   locationLabel,
+  locationType,
   meetLabel,
   meetLink,
   rejectionReason,
@@ -42,6 +44,16 @@ export function ApprovalOutcomeEmail({
   const badgeColor = approved ? teal : red;
   const badgeBg = approved ? "#CCFBF1" : "#FEE2E2";
   const badgeText = approved ? "Booking Confirmed" : "Booking Declined";
+  const linkMissing =
+    approved && !meetLink && ["google_meet", "zoom", "teams"].includes(locationType ?? "");
+  const providerName =
+    locationType === "google_meet"
+      ? "Google Meet"
+      : locationType === "zoom"
+        ? "Zoom"
+        : locationType === "teams"
+          ? "Microsoft Teams"
+          : "video";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
   const logoUrl = appUrl ? `${appUrl}/email-logo.png` : undefined;
 
@@ -125,6 +137,22 @@ export function ApprovalOutcomeEmail({
         >
           <Text style={{ ...emailStyles.paragraph, color: "#166534", margin: 0, lineHeight: "1.6" }}>
             {confirmationNote}
+          </Text>
+        </Section>
+      )}
+
+      {linkMissing && (
+        <Section
+          style={{
+            backgroundColor: "#FFFBEB",
+            border: "1px solid #FDE68A",
+            padding: "14px 18px",
+            marginTop: "16px",
+          }}
+        >
+          <Text style={{ color: "#92400E", fontSize: "13px", margin: 0, lineHeight: "1.6" }}>
+            The {providerName} link isn&apos;t ready yet — {hostName} will share it with you
+            before the meeting.
           </Text>
         </Section>
       )}

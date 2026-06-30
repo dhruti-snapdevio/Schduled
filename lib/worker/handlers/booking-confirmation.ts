@@ -1,6 +1,7 @@
 import { formatInTimeZone } from "date-fns-tz";
+import { eq } from "drizzle-orm";
 import type { Job } from "pg-boss";
-import { contact } from "@/db/schema";
+import { contact, userProfile } from "@/db/schema";
 import { db } from "@/lib/db";
 import { enqueueEmail } from "@/lib/email";
 import { bookingEmail } from "@/lib/email/templates/booking-emails";
@@ -14,6 +15,19 @@ import {
   resolveLocationLabelHost,
   resolveMeetButtonLabel,
 } from "./booking-lifecycle-data";
+
+// Matches an invitee email against the host's exclusion list (comma/space
+// separated emails or domains, e.g. "person@acme.com, acme.com").
+function isContactExcluded(email: string, excludedRaw: string | null): boolean {
+  if (!excludedRaw) return false;
+  const lowerEmail = email.trim().toLowerCase();
+  const domain = lowerEmail.split("@")[1] ?? "";
+  return excludedRaw
+    .split(/[\s,]+/)
+    .map((s) => s.trim().toLowerCase().replace(/^@/, ""))
+    .filter(Boolean)
+    .some((entry) => entry === lowerEmail || entry === domain);
+}
 
 export async function handleBookingConfirmation(
   jobs: Job<BookingConfirmationPayload>[]
@@ -54,6 +68,7 @@ async function processOne(bookingId: string) {
       hostTimezone,
       inviteeTimezone: b.inviteeTimezone,
       locationLabel: locationLabelInvitee,
+      locationType: b.etLocationType,
       cancelToken: b.cancelToken,
       rescheduleToken: b.rescheduleToken,
       reason: null,
@@ -103,6 +118,7 @@ async function processOne(bookingId: string) {
       hostTimezone,
       inviteeTimezone: b.inviteeTimezone,
       locationLabel: locationLabelHost,
+      locationType: b.etLocationType,
       cancelToken: b.cancelToken,
       rescheduleToken: b.rescheduleToken,
       reason: null,
@@ -137,16 +153,29 @@ async function processOne(bookingId: string) {
     bookingId: b.id,
   });
 
-  // Auto-save invitee as a contact for the host.
-  // Unique index on (hostUserId, email) prevents duplicates silently.
-  await db
-    .insert(contact)
-    .values({
-      hostUserId: b.hostUserId,
-      email: b.inviteeEmail,
-      name: b.inviteeName,
+  // Auto-save invitee as a contact for the host — honouring their contact
+  // settings (auto-create toggle + exclusion list). Unique index on
+  // (hostUserId, email) prevents duplicates silently.
+  const [profile] = await db
+    .select({
+      autoCreate: userProfile.autoCreateContacts,
+      excluded: userProfile.excludedContactDomains,
     })
-    .onConflictDoNothing();
+    .from(userProfile)
+    .where(eq(userProfile.userId, b.hostUserId))
+    .limit(1);
+
+  const autoCreate = profile?.autoCreate ?? true;
+  if (autoCreate && !isContactExcluded(b.inviteeEmail, profile?.excluded ?? null)) {
+    await db
+      .insert(contact)
+      .values({
+        hostUserId: b.hostUserId,
+        email: b.inviteeEmail,
+        name: b.inviteeName,
+      })
+      .onConflictDoNothing();
+  }
 
   console.log(`[booking-confirmation] processed booking ${bookingId}`);
 }

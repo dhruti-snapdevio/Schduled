@@ -15,6 +15,7 @@ interface ApprovalApprovedParams {
   inviteeName: string;
   inviteeTimezone: string;
   locationLabel: string;
+  locationType: string;
   meetLabel: string;
   meetLink: string | null;
   rescheduleToken: string;
@@ -39,6 +40,7 @@ export async function approvalApprovedTemplate(p: ApprovalApprovedParams) {
       inviteeName: p.inviteeName,
       inviteeTimezone: p.inviteeTimezone,
       locationLabel: p.locationLabel,
+      locationType: p.locationType,
       meetLabel: p.meetLabel,
       meetLink: p.meetLink,
       rescheduleUrl,

@@ -63,7 +63,7 @@ export function AppShell({
         <JoinSoonBar />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto overflow-x-clip bg-page pb-16 md:pb-0">
+        <main className="flex-1 overflow-y-auto overflow-x-clip bg-page pb-16 md:pb-0 [scrollbar-gutter:stable]">
           <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-8">
             {children}
           </div>
