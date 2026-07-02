@@ -1,6 +1,6 @@
 # Booking Page Customization
 
-The booking page is the invitee's first impression of Schedica. Customization allows hosts and organizations to make booking pages feel like a natural extension of their brand — not a third-party tool.
+The booking page is the invitee's first impression of Schduled. Customization allows hosts and organizations to make booking pages feel like a natural extension of their brand — not a third-party tool.
 
 ---
 
@@ -18,8 +18,8 @@ Every event type has a publicly accessible booking page. Above that, every host 
 - As a host, I want to write a custom welcome message, so that invitees feel welcomed before they pick a time. *(MVP)*
 - As a host, I want to hide specific event types from my profile page, so that I can offer private links without showing them publicly. *(MVP)*
 - As a host, I want to redirect invitees to a custom URL after booking, so that I can send them to a thank-you page or onboarding form. *(Post-MVP — Phase 2)*
-- As a host, I want to remove "Powered by Schedica" branding from my booking page, so that it feels fully like my own product. *(MVP)*
-- As a host, I want to host my booking page on my own domain, so that the URL matches my website instead of showing schedica.com. *(Phase 4)*
+- As a host, I want to remove "Powered by Schduled" branding from my booking page, so that it feels fully like my own product. *(MVP)*
+- As a host, I want to host my booking page on my own domain, so that the URL matches my website instead of showing schduled.com. *(Phase 4)*
 
 **Invitee**
 - As an invitee, I want the booking page to load quickly and look professional, so that I trust the host before booking. *(MVP)*
@@ -29,7 +29,7 @@ Every event type has a publicly accessible booking page. Above that, every host 
 
 ## Profile Overview Page
 
-The profile overview page is the host's "home" page — it shows all active event types in one place. Every host gets a URL like `schedica.com/yourname` that lists all their available event types.
+The profile overview page is the host's "home" page — it shows all active event types in one place. Every host gets a URL like `schduled.com/yourname` that lists all their available event types.
 
 ### What Is On the Profile Page
 - Host's name and profile photo
@@ -44,7 +44,7 @@ The profile overview page is the host's "home" page — it shows all active even
 - **Event type order:** Drag-and-drop reorder; appears in the same order for invitees
 - **Color coding:** Each event type shows its assigned color as a visual accent
 - **Branding:** Logo and brand color applied across the profile page
-- **Remove Schedica branding:** "Powered by Schedica" badge not shown (open source)
+- **Remove Schduled branding:** "Powered by Schduled" badge not shown (open source)
 
 ### Event Type Card Contents (Profile Page)
 Each card on the profile page shows:
@@ -151,7 +151,7 @@ Shown to invitees immediately after successfully booking a meeting.
 - Example: "Thanks for booking! Please review our intake form before the call: [link]"
 
 ### Redirect to External URL *(Post-MVP — Phase 2)*
-- Instead of showing Schedica's confirmation page, redirect invitees to a custom URL
+- Instead of showing Schduled's confirmation page, redirect invitees to a custom URL
 - Use cases:
   - Redirect to onboarding page
   - Redirect to a "next steps" landing page
@@ -164,7 +164,7 @@ Shown to invitees immediately after successfully booking a meeting.
 Confirmation, reminder, and follow-up emails can be customized.
 
 ### Email Customization
-- From name: Show as "Jane Smith" instead of "Schedica Notifications"
+- From name: Show as "Jane Smith" instead of "Schduled Notifications"
 - Reply-to address: Direct replies go to host's email
 - Logo in email header
 - Brand color in email header and CTA buttons
@@ -187,24 +187,24 @@ Confirmation, reminder, and follow-up emails can be customized.
 
 ## White-Labeling (Advanced)
 
-For agencies, enterprises, and tools built on Schedica.
+For agencies, enterprises, and tools built on Schduled.
 
-### Remove Schedica Branding
-- "Powered by Schedica" badge not shown on booking pages or emails (open source — no attribution required)
+### Remove Schduled Branding
+- "Powered by Schduled" badge not shown on booking pages or emails (open source — no attribution required)
 
 ### Custom Domain *(Post-MVP — Phase 4 — Enterprise)*
 - Host booking pages on your own domain
-- Example: `meetings.yourcompany.com/team` instead of `schedica.com/yourname`
+- Example: `meetings.yourcompany.com/team` instead of `schduled.com/yourname`
 - DNS CNAME record setup required
 - SSL/TLS certificate provisioned automatically
 
 ### Subdomain Routing *(Post-MVP — Phase 3)*
-- Organization gets a branded subdomain: `yourcompany.schedica.com`
+- Organization gets a branded subdomain: `yourcompany.schduled.com`
 - All team members' pages live under this subdomain
 - Available without full custom domain setup
 
 ### Embed Without Attribution *(Post-MVP — Phase 3)*
-- Embedded booking widgets show no Schedica branding
+- Embedded booking widgets show no Schduled branding
 - Fully branded experience within your website
 
 ---
@@ -213,9 +213,9 @@ For agencies, enterprises, and tools built on Schedica.
 
 | URL Type | Example |
 |----------|---------|
-| Personal | `schedica.com/username` |
-| Specific Event | `schedica.com/username/event-slug` |
-| Team Page | `schedica.com/org/team-name` |
+| Personal | `schduled.com/username` |
+| Specific Event | `schduled.com/username/event-slug` |
+| Team Page | `schduled.com/org/team-name` |
 | Custom Domain | `meetings.company.com/john` |
 | Custom Domain + Event | `meetings.company.com/john/30-min-call` |
 
@@ -300,7 +300,7 @@ To support multiple languages:
 | **SavvyCal** | ✅ Colors, banners, avatars | ✅ On paid plan | ❌ No | ❌ No |
 | **Chili Piper** | Minimal — routing-focused | N/A | ❌ No | ❌ No |
 | **HubSpot Meetings** | Inherits HubSpot portal branding | ❌ No standalone control | ❌ No | ❌ No |
-| **Schedica** | ✅ Logo, colors, banner, profile photo | ✅ Open source — free for all | Phase 4 | Phase 2 (per event type) |
+| **Schduled** | ✅ Logo, colors, banner, profile photo | ✅ Open source — free for all | Phase 4 | Phase 2 (per event type) |
 
 ---
 
@@ -314,15 +314,15 @@ To support multiple languages:
 - Default confirmation page with reschedule/cancel links
 - Custom confirmation message per event type
 - Email from-name and reply-to customisation
-- No "Powered by Schedica" branding (open source — available to all)
+- No "Powered by Schduled" branding (open source — available to all)
 
 **Post-MVP:**
 - Banner / cover image (Phase 2)
 - Redirect to external URL after booking confirmation (Phase 2)
 - Full email template customisation — custom HTML/CSS (Phase 2)
 - Booking page language — per event type (Phase 2)
-- Organisation subdomain — `yourcompany.schedica.com` (Phase 3)
-- White-label embeds — no Schedica branding in widgets (Phase 3)
+- Organisation subdomain — `yourcompany.schduled.com` (Phase 3)
+- White-label embeds — no Schduled branding in widgets (Phase 3)
 - Custom domain — `meetings.yourcompany.com` (Phase 4 — Enterprise)
 - Profile page single-event-type auto-redirect (Phase 2)
 

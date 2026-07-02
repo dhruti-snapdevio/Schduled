@@ -1,6 +1,6 @@
 # Landing Page
 
-The landing page is the first thing visitors, potential users, and search engines see. It communicates what Schedica is, why someone should use it, and how to get started — in under 10 seconds. It is the primary acquisition surface for new user sign-ups.
+The landing page is the first thing visitors, potential users, and search engines see. It communicates what Schduled is, why someone should use it, and how to get started — in under 10 seconds. It is the primary acquisition surface for new user sign-ups.
 
 ---
 
@@ -24,8 +24,8 @@ The landing page is a public marketing page at `/`. It is entirely separate from
 ## User Stories
 
 **Visitor**
-- As a visitor, I want to understand what Schedica does in the first 5 seconds, so that I know if it's relevant to me. *(MVP)*
-- As a visitor, I want to see what makes Schedica different from Calendly, so that I have a reason to switch. *(MVP)*
+- As a visitor, I want to understand what Schduled does in the first 5 seconds, so that I know if it's relevant to me. *(MVP)*
+- As a visitor, I want to see what makes Schduled different from Calendly, so that I have a reason to switch. *(MVP)*
 - As a visitor, I want to sign up with a single click from the landing page, so that I can get started without hunting for the sign-up button. *(MVP)*
 - As a visitor, I want the page to load fast on mobile, so that I don't wait or bounce. *(MVP)*
 
@@ -39,7 +39,7 @@ The landing page is a public marketing page at `/`. It is entirely separate from
 
 | Element | Detail |
 |---------|--------|
-| Logo | Schedica wordmark — links to `/` |
+| Logo | Schduled wordmark — links to `/` |
 | Nav links | Features, How It Works, About |
 | Sign In | Links to `/sign-in` |
 | Get Started | Primary CTA button — links to `/sign-up` |
@@ -60,7 +60,7 @@ The most important section — must immediately communicate the product value.
 │      Stop the back-and-forth.                                      │
 │      Let people book time with you — automatically.                │
 │                                                                    │
-│      Schedica gives you a smart scheduling link. Share it.         │
+│      Schduled gives you a smart scheduling link. Share it.         │
 │      Your invitees pick a time that works. Done.                   │
 │                                                                    │
 │      [ Get Started Free ]    [ See How It Works ↓ ]               │
@@ -132,11 +132,11 @@ Each step has an icon, number badge, title, and one-line description. Keep copy 
 
 ### 6. Key Differentiators Section — [MVP]
 
-The three strongest reasons to choose Schedica over Calendly — specific, verifiable, and demonstrable in 30 seconds. Show only the top 3 at launch; a long list dilutes the message.
+The three strongest reasons to choose Schduled over Calendly — specific, verifiable, and demonstrable in 30 seconds. Show only the top 3 at launch; a long list dilutes the message.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  What makes Schedica different                                  │
+│  What makes Schduled different                                  │
 │                                                                 │
 │  🌍 Both timezones in every email                               │
 │     Every confirmation and reminder shows your invitee's time   │
@@ -169,7 +169,7 @@ A visitor processes 3 bullet points. A visitor skims 6 and remembers none. Once 
 
 Side-by-side comparison with Calendly and Cal.com.
 
-| Feature | Schedica | Calendly | Cal.com |
+| Feature | Schduled | Calendly | Cal.com |
 |---------|----------|----------|---------|
 | Apple Calendar | ✅ Phase 2 | ❌ (dropped Aug 2024) | ✅ |
 | Both timezones in emails | ✅ | ❌ | ❌ |
@@ -186,7 +186,7 @@ Side-by-side comparison with Calendly and Cal.com.
 
 > **Do not ship placeholder testimonials at launch.** Fake quotes from "Jane, Coach" and "Mark, Consultant" are immediately recognizable as fabricated and actively reduce trust. An empty section is better than a fictional one.
 >
-> **Add this section only after collecting real user quotes.** Ask first users directly via email: "Would you share a sentence about what you like about Schedica?" One real testimonial beats six fictional ones.
+> **Add this section only after collecting real user quotes.** Ask first users directly via email: "Would you share a sentence about what you like about Schduled?" One real testimonial beats six fictional ones.
 
 Three testimonial cards with real name, role, company, and photo. Collect post-launch.
 
@@ -210,14 +210,14 @@ Likely candidates based on competitive research:
 
 | Question |
 |---------|
-| Is Schedica really free? |
+| Is Schduled really free? |
 | Can I connect my Apple / iCloud calendar? *(answer: coming soon — Phase 2)* |
 | What happens if someone books a time I've already blocked? |
-| Does Schedica work for teams? |
-| How is Schedica different from Calendly? |
-| Can I self-host Schedica? |
+| Does Schduled work for teams? |
+| How is Schduled different from Calendly? |
+| Can I self-host Schduled? |
 | Do I need a credit card to sign up? |
-| Which video conferencing tools does Schedica support? |
+| Which video conferencing tools does Schduled support? |
 
 ---
 
@@ -242,7 +242,7 @@ Full-width section at the bottom before the footer. Repeat the primary CTA for v
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│  Schedica                                                  │
+│  Schduled                                                  │
 │                                                            │
 │  Product          Open Source      Legal                   │
 │  Features         GitHub           Privacy Policy          │
@@ -272,14 +272,14 @@ Static content — written once, no CMS needed for MVP.
 
 | Element | Detail |
 |---------|--------|
-| `<title>` | "Schedica — Smart Scheduling, Free & Open Source" |
+| `<title>` | "Schduled — Smart Scheduling, Free & Open Source" |
 | `<meta description>` | "Share a booking link. Let anyone schedule time with you automatically. Syncs with Google and Outlook. Open source." |
 | Open Graph `og:title` | Same as title |
 | Open Graph `og:description` | Same as meta description |
 | Open Graph `og:image` | 1200×630px product screenshot |
 | `sitemap.xml` | Auto-generated, includes all public routes |
 | `robots.txt` | Allow all crawlers |
-| Canonical URL | `https://schedica.com/` |
+| Canonical URL | `https://schduled.com/` |
 
 All page metadata managed via Next.js `generateMetadata()` API.
 
@@ -324,7 +324,7 @@ All page metadata managed via Next.js `generateMetadata()` API.
 **Post-MVP — Add after first 100 users:**
 - Social Proof Bar with real user count or company logos *(Phase 2)*
 - Features Section (6 cards) *(Phase 2)*
-- Comparison Table (Schedica vs Calendly vs Cal.com) *(Phase 2)*
+- Comparison Table (Schduled vs Calendly vs Cal.com) *(Phase 2)*
 - Real user testimonials (3 cards with photo, name, company) *(Phase 2)*
 - FAQ accordion (based on real support questions) *(Phase 2)*
 - Additional differentiators in the Key Differentiators section *(Phase 2)*

@@ -16,6 +16,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { Reveal } from "@/components/landing/reveal";
 
 export const metadata = {
   title: "About — Schduled",
@@ -131,8 +132,8 @@ export default function AboutPage() {
         <section className="border-b border-border">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
             <div className="grid divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
-              {STATS.map((s) => (
-                <div key={s.label} className="px-8 py-10 text-center">
+              {STATS.map((s, i) => (
+                <Reveal key={s.label} delay={i * 80} className="px-8 py-10 text-center">
                   <p
                     className="font-black text-4xl"
                     style={{
@@ -147,7 +148,7 @@ export default function AboutPage() {
                     {s.value}
                   </p>
                   <p className="mt-2 text-sm font-medium text-muted-foreground">{s.label}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -159,6 +160,7 @@ export default function AboutPage() {
             <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
 
               {/* Copy */}
+              <Reveal>
               <div>
                 <p className="mb-4 text-xs font-black uppercase tracking-eyebrow text-primary">Our Story</p>
                 <h2 className="mb-6 font-black text-3xl leading-snug sm:text-4xl">
@@ -196,9 +198,10 @@ export default function AboutPage() {
                   </a>
                 </div>
               </div>
+              </Reveal>
 
               {/* Visual timeline */}
-              <div className="space-y-0">
+              <Reveal delay={160} className="space-y-0">
                 {[
                   {
                     icon: Rocket,
@@ -243,7 +246,7 @@ export default function AboutPage() {
                     </div>
                   );
                 })}
-              </div>
+              </Reveal>
             </div>
           </div>
         </section>
@@ -251,20 +254,22 @@ export default function AboutPage() {
         {/* ── Values ─────────────────────────────────────────────────────── */}
         <section className="border-t border-border bg-muted/20 py-28">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
+            <Reveal>
             <div className="mb-16 text-center">
               <p className="mb-3 text-xs font-black uppercase tracking-eyebrow text-primary">What we stand for</p>
               <h2 className="font-black text-3xl sm:text-4xl">
                 Four values.<br className="hidden sm:block" /> Everything else follows.
               </h2>
             </div>
+            </Reveal>
 
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {VALUES.map((v, i) => {
                 const Icon = v.icon;
                 return (
+                  <Reveal key={v.title} delay={i * 80}>
                   <div
-                    key={v.title}
-                    className="group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50"
+                    className="group relative overflow-hidden border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 h-full"
                   >
                     {/* Top accent line */}
                     <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
@@ -279,6 +284,7 @@ export default function AboutPage() {
                       <p className="text-sm leading-relaxed text-muted-foreground">{v.description}</p>
                     </div>
                   </div>
+                  </Reveal>
                 );
               })}
             </div>
@@ -293,6 +299,7 @@ export default function AboutPage() {
 
           <div className="relative mx-auto max-w-4xl px-5 sm:px-8">
             <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+              <Reveal>
               <div>
                 <p className="mb-4 text-xs font-black uppercase tracking-eyebrow text-teal-400/60">Open Source</p>
                 <h2 className="font-black text-3xl text-white sm:text-4xl">
@@ -315,8 +322,10 @@ export default function AboutPage() {
                   </a>
                 </div>
               </div>
+              </Reveal>
 
               {/* Code snippet visual */}
+              <Reveal delay={160}>
               <div
                 className="border border-white/10 font-mono text-xs"
                 style={{ background: "linear-gradient(145deg,#0d1f1a,#091512)" }}
@@ -343,12 +352,14 @@ export default function AboutPage() {
                   <div className="text-white/40">{"}"}</div>
                 </div>
               </div>
+              </Reveal>
             </div>
           </div>
         </section>
 
         {/* ── CTA ────────────────────────────────────────────────────────── */}
         <section className="py-28">
+          <Reveal>
           <div className="mx-auto max-w-3xl px-5 text-center sm:px-8">
             <p className="mb-4 text-xs font-black uppercase tracking-eyebrow text-primary">Ready?</p>
             <h2 className="font-black text-3xl sm:text-4xl">
@@ -383,6 +394,7 @@ export default function AboutPage() {
               ))}
             </div>
           </div>
+          </Reveal>
         </section>
       </main>
 

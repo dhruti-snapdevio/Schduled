@@ -79,11 +79,20 @@ export function NotificationBell() {
     }
   }, []);
 
-  // Initial load + poll every 60s
+  // Initial load + poll every 10s
   useEffect(() => {
     load();
-    const id = setInterval(load, 60_000);
+    const id = setInterval(load, 10_000);
     return () => clearInterval(id);
+  }, [load]);
+
+  // Re-fetch immediately when the user switches back to this tab
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === 'visible') load();
+    }
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [load]);
 
   async function markAllRead() {

@@ -52,7 +52,7 @@ Immediately after the invitee clicks "Book" and the booking is processed, the bo
 | Invitee email | "A confirmation has been sent to jane@example.com" |
 
 > **Why both timezones on the confirmation screen?**
-> Calendly only shows one timezone on the confirmation screen. When an invitee in India books a host in New York, the invitee sees their own time but has no idea what time the host is expecting them. Schedica shows both — reducing "I thought it was at 3pm for both of us" confusion before it happens.
+> Calendly only shows one timezone on the confirmation screen. When an invitee in India books a host in New York, the invitee sees their own time but has no idea what time the host is expecting them. Schduled shows both — reducing "I thought it was at 3pm for both of us" confusion before it happens.
 
 ### Add to Calendar Buttons
 Three prominent "Add to Calendar" buttons:
@@ -63,7 +63,7 @@ Three prominent "Add to Calendar" buttons:
 | Outlook / iCal | Downloads `.ics` file; works with Apple Calendar, Outlook, any calendar app |
 | Office 365 | Opens Outlook Web with event pre-filled |
 
-These buttons ensure even invitees without a Schedica account get the meeting into their calendar.
+These buttons ensure even invitees without a Schduled account get the meeting into their calendar.
 
 ### Manage Booking Links
 Below the calendar buttons, two text links:
@@ -111,7 +111,7 @@ Default format: "[Confirmed] {event_type} with {host_name} on {date}" — for ex
 | Location | [Join Zoom Meeting](https://zoom.us/j/...) |
 | Host | Jane Smith |
 
-> Both timezones are always shown in this section. Calendly only shows the invitee's timezone; Schedica shows both so there is zero ambiguity about when the meeting is for each party.
+> Both timezones are always shown in this section. Calendly only shows the invitee's timezone; Schduled shows both so there is zero ambiguity about when the meeting is for each party.
 
 **Section 3 — Calendar Buttons**
 - Google Calendar | Download ICS | Office 365
@@ -127,7 +127,7 @@ Lists the invitee's own answers for their records — each question label follow
 
 **Section 6 — Footer**
 - Host's reply-to email address
-- No "Powered by Schedica" branding shown (open source)
+- No "Powered by Schduled" branding shown (open source)
 - Unsubscribe link (GDPR/CAN-SPAM compliant)
 
 ---
@@ -163,7 +163,7 @@ New booking: 30-Min Call — Jane Smith on June 5 at 10:00 AM
 All custom question answers displayed with question labels — each field shown as "Label: Answer" (e.g., Company: Acme Corp, Purpose of call: Product demo, Team size: 45, How they heard about us: LinkedIn).
 
 **Section 4 — Quick Actions**
-- "View in dashboard" link → opens meeting detail in Schedica dashboard
+- "View in dashboard" link → opens meeting detail in Schduled dashboard
 - "Cancel this meeting" link (one-click from email)
 
 ---
@@ -184,7 +184,7 @@ A calendar event is created on the host's calendar and an ICS file is sent to th
 | Description | Booking ID, invitee details, video link, form answers |
 | Conference | Zoom/Meet/Teams meeting card (platform-native) |
 
-When Schedica adds this event to Google Calendar, Google automatically sends the invitee a calendar invitation from the host's calendar — they receive a second email from Google/Outlook, separate from the Schedica confirmation email. The invitee can accept or decline this calendar invitation.
+When Schduled adds this event to Google Calendar, Google automatically sends the invitee a calendar invitation from the host's calendar — they receive a second email from Google/Outlook, separate from the Schduled confirmation email. The invitee can accept or decline this calendar invitation.
 
 ### Invitee ICS File (Attachment in Confirmation Email)
 - RFC 5545-compliant `.ics` file
@@ -225,7 +225,7 @@ This means even users who read the calendar event description (without relying o
 
 ## Confirmation Page for Redirect *(Post-MVP — Phase 2)*
 
-Instead of Schedica's default confirmation screen, hosts can redirect invitees to a custom URL after booking.
+Instead of Schduled's default confirmation screen, hosts can redirect invitees to a custom URL after booking.
 
 **Use Cases:**
 - Redirect to an onboarding page: "Now that you've booked, here's what to expect"
@@ -246,7 +246,7 @@ Instead of Schedica's default confirmation screen, hosts can redirect invitees t
 
 ### Delivery Provider
 - Transactional email via Nodemailer (rendered with React Email, sent via SMTP)
-- Dedicated sending domain for deliverability (e.g., `notifications.schedica.com`)
+- Dedicated sending domain for deliverability (e.g., `notifications.schduled.com`)
 - SPF, DKIM, and DMARC configured to prevent spam classification
 
 ### Delivery Tracking
@@ -275,11 +275,11 @@ Instead of Schedica's default confirmation screen, hosts can redirect invitees t
 - Dynamic variables supported: `{invitee_name}`, `{date}`, `{time}`, `{event_type}`
 - Example: "Your {event_type} with us is confirmed for {date}!"
 
-> **Why Phase 2:** Custom subject lines require a template editor UI. For MVP, Schedica ships one well-crafted default subject line per email type. Hosts can add a custom message to the body. Subject line customisation ships in Phase 2.
+> **Why Phase 2:** Custom subject lines require a template editor UI. For MVP, Schduled ships one well-crafted default subject line per email type. Hosts can add a custom message to the body. Subject line customisation ships in Phase 2.
 
 ### From Name and Reply-To
-- Emails appear "from" the host's name, not "Schedica"
-- Example: From: `Jane Smith <notifications@schedica.com>`
+- Emails appear "from" the host's name, not "Schduled"
+- Example: From: `Jane Smith <notifications@schduled.com>`
 - Reply-to set to host's actual email so replies go directly to host
 
 ---
@@ -293,7 +293,7 @@ Instead of Schedica's default confirmation screen, hosts can redirect invitees t
 | **SavvyCal** | Clean confirmation; email confirmation; ICS | Invitee's timezone; host timezone shown on booking page but not always in email |
 | **Chili Piper** | Instant confirmation; CRM update on confirm | Host timezone; invitee timezone shown if configured |
 | **HubSpot Meetings** | Confirmation + calendar; auto-creates HubSpot contact | Invitee's timezone only |
-| **Schedica** | Same core flow + **both timezones shown in every email** — invitee sees their time AND host's time; host sees their time AND invitee's time | **Both timezones always shown** — no ambiguity for either party |
+| **Schduled** | Same core flow + **both timezones shown in every email** — invitee sees their time AND host's time; host sees their time AND invitee's time | **Both timezones always shown** — no ambiguity for either party |
 
 ---
 

@@ -61,6 +61,8 @@ export const account = pgTable("account", {
   }),
   scope: text("scope"),
   idToken: text("id_token"),
+  // Hashed password — only set on the "credential" (email+password) provider row
+  password: text("password"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

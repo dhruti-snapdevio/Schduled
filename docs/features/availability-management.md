@@ -6,7 +6,7 @@ Availability management controls when hosts can be booked. It bridges the gap be
 
 ## Overview
 
-Schedica syncs with connected calendars to determine real-time availability. On top of that, hosts configure scheduling rules that further restrict when they can be booked. This layered approach ensures the booking page always reflects accurate, intentional availability.
+Schduled syncs with connected calendars to determine real-time availability. On top of that, hosts configure scheduling rules that further restrict when they can be booked. This layered approach ensures the booking page always reflects accurate, intentional availability.
 
 ---
 
@@ -47,7 +47,7 @@ The foundation of availability. Hosts define their standard working hours by day
 Busy/free data pulled from connected calendars overrides weekly availability.
 
 ### How It Works
-1. Schedica reads events from all connected calendars
+1. Schduled reads events from all connected calendars
 2. Any calendar event marked as "Busy" blocks the corresponding time slot
 3. Available slots shown only when both schedule AND calendar agree the time is free
 4. Sync is real-time — changes reflect within minutes
@@ -229,7 +229,7 @@ Hosts can rank their preferred times without hard-blocking other times.
 | **SavvyCal** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Daily + weekly + monthly caps | ✅ Yes | ✅ **Yes** — preferred slots shown first; others still available |
 | **Chili Piper** | ✅ Synced from calendar | ✅ Yes | ✅ Auto PTO sync from HR tools | ✅ Yes | ❌ Org-level only | ❌ No |
 | **HubSpot Meetings** | ✅ Basic weekly hours only | ❌ No | ❌ No | ❌ No | ❌ No | ❌ No |
-| **Schedica** | ✅ Per day; multiple time blocks per day | ✅ Before + after independently configurable per event type | ✅ Block dates, override hours, bulk vacation range | ✅ Daily limit per event type; weekly limit (Phase 2) | ✅ Phase 2 — multiple named schedules assignable per event type | ✅ Phase 2 (SavvyCal-inspired) |
+| **Schduled** | ✅ Per day; multiple time blocks per day | ✅ Before + after independently configurable per event type | ✅ Block dates, override hours, bulk vacation range | ✅ Daily limit per event type; weekly limit (Phase 2) | ✅ Phase 2 — multiple named schedules assignable per event type | ✅ Phase 2 (SavvyCal-inspired) |
 
 ---
 

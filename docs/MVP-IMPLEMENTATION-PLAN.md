@@ -24,7 +24,7 @@
 | DB Schema — domain | `db/schema/calendars.ts`, `video.ts`, `bookings.ts`, `notifications.ts`, `platform.ts` | ✅ all created |
 | DB Schema — relations | `db/schema/relations.ts` | ✅ all Drizzle relations defined |
 | Worker | `lib/worker/boss.ts`, `ensure-queues.ts`, `enqueue.ts`, `job-types.ts` | ✅ pg-boss setup, all job types defined |
-| Worker handlers — email | `email-send.ts`, `email-outbox-reap.ts`, `email-events-prune.ts`, `scaffold-healthcheck.ts` | ✅ |
+| Worker handlers — email | `email-send.ts`, `email-outbox-reap.ts`, `email-events-prune.ts`, `platform-healthcheck.ts` | ✅ |
 | Worker handlers — booking | `booking-confirmation.ts`, `booking-cancellation.ts`, `booking-cancel-reminders.ts`, `booking-reminder.ts`, `booking-reschedule-notify.ts`, `booking-reschedule-reminders.ts` | ✅ ALL DONE |
 | Worker handlers — calendar | `calendar-write.ts`, `calendar-cancel.ts`, `calendar-update.ts`, `calendar-sync.ts`, `calendar-token-refresh.ts`, `calendar-disconnect-alert.ts` | ✅ ALL DONE |
 | Worker handlers — video | `video-link-generate.ts` | ✅ Zoom branch real; Google Meet branch uses existing calendar event hangoutLink |
@@ -1339,7 +1339,7 @@ pnpm db:push   # should say "No changes detected"
 
 > **Status: Mostly complete.**
 > - `lib/worker/job-types.ts` ✅ — All job types defined (VIDEO_LINK_RETRY removed — was orphaned)
-> - All email handlers ✅ — email-send, email-outbox-reap, email-events-prune, scaffold-healthcheck
+> - All email handlers ✅ — email-send, email-outbox-reap, email-events-prune, platform.healthcheck
 > - All booking handlers ✅ — booking-confirmation, booking-cancellation, booking-cancel-reminders, booking-reminder (24h+1h), booking-reschedule-notify, booking-reschedule-reminders
 > - All calendar handlers ✅ — calendar-write, calendar-cancel, calendar-update, calendar-sync, calendar-token-refresh, calendar-disconnect-alert
 > - Video handler ✅ — video-link-generate (Zoom real; Google Meet reads hangoutLink from calendar write)
@@ -2230,7 +2230,7 @@ ALREADY DONE ✅ (re-audited 2026-06-18, session 7):
   ALL DB schema files (enums, auth, profile, event-types, availability,
     calendars, video, bookings, notifications, platform, relations, contacts, job-logs)
   ALL job types defined in lib/worker/job-types.ts (16+ types)
-  Worker email handlers (email-send, email-outbox-reap, email-events-prune, scaffold-healthcheck)
+  Worker email handlers (email-send, email-outbox-reap, email-events-prune, platform.healthcheck)
   ALL booking lifecycle handlers (confirmation, cancellation, cancel-reminders, reminder,
     reschedule-notify, reschedule-reminders) — booking-lifecycle-data.ts (shared data layer)
   ALL calendar worker handlers (calendar-write, calendar-cancel, calendar-update,

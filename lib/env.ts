@@ -25,6 +25,67 @@ const envSchema = z.object({
   // Encryption — required before calendar/video OAuth token storage
   ENCRYPT_KEY: optionalString,
 
+  // Self-hosted first-run bootstrap: this email is auto-promoted to admin
+  // the moment its account is created (checked once, at signup)
+  INITIAL_ADMIN_EMAIL: optionalString,
+
+  // Email + password sign-in — off by default (matches the hosted product's
+  // Google + magic-link-only design). Self-hosted deployments without SMTP or
+  // Google configured yet should set this to 'true' so the first login always
+  // works with no external service.
+  NEXT_PUBLIC_PASSWORD_AUTH_ENABLED: z.preprocess(
+    (v) => v === "true" || v === "1",
+    z.boolean()
+  ),
+
+  // Gates new-account creation (password sign-up, magic link first-use, or
+  // Google first-login) — on by default so nothing changes unless a
+  // self-hoster opts in. Set to 'false' to close public sign-up; the
+  // INITIAL_ADMIN_EMAIL account can always sign up regardless, so it's safe
+  // to set both from day one instead of "open then close later".
+  SIGNUP_ENABLED: z.preprocess(
+    (v) => (v === undefined ? true : v === "true" || v === "1"),
+    z.boolean()
+  ),
+
+  // Marketing landing page at "/" — on by default. Set to 'false' for
+  // internal/team deployments that don't want a public marketing page;
+  // "/" then redirects to "/login" instead. Booking + legal pages are
+  // unaffected either way.
+  NEXT_PUBLIC_LANDING_ENABLED: z.preprocess(
+    (v) => (v === undefined ? true : v === "true" || v === "1"),
+    z.boolean()
+  ),
+
+  // Postgres connection pool size (postgres.js `max`). Multiple web replicas
+  // each open their own pool — do the math against your database's
+  // max_connections before scaling out (replicas × DB_POOL_MAX + pg-boss's
+  // own pool).
+  DB_POOL_MAX: z.preprocess(
+    (v) => (v ? Number(v) : undefined),
+    z.number().int().positive().default(20)
+  ),
+
+  // White-labeling — product name shown in email subjects, page titles, the
+  // login page, and iCal PRODID. Defaults to "Schduled" (the hosted product).
+  NEXT_PUBLIC_PRODUCT_NAME: z.string().min(1).default("Schduled"),
+
+  // "Powered by <product>" attribution on public booking pages — on by
+  // default (matches the hosted product). Self-hosters can turn it off.
+  NEXT_PUBLIC_SHOW_POWERED_BY: z.preprocess(
+    (v) => (v === undefined ? true : v === "true" || v === "1"),
+    z.boolean()
+  ),
+
+  // Contact-form destination (server-only — not exposed to the browser).
+  // Falls back to SMTP_USER, then a hardcoded address, if unset.
+  CONTACT_EMAIL: optionalString,
+
+  // Public-facing addresses shown on the landing/contact pages. Fall back to
+  // the hosted product's addresses if unset — self-hosters should override.
+  NEXT_PUBLIC_CONTACT_EMAIL: z.string().min(1).default("support@schduled.com"),
+  PRIVACY_EMAIL: z.string().min(1).default("privacy@schduled.com"),
+
   // Google OAuth + Calendar API
   GOOGLE_CLIENT_ID: optionalString,
   GOOGLE_CLIENT_SECRET: optionalString,

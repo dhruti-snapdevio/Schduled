@@ -84,7 +84,7 @@ body:has([data-app-shell]) {
   --color-background:           var(--background);
 
   /* Border radius — ZERO everywhere. Sharp corners are the brand. */
-  --radius-sm:  0;
+  --radius-sm:  2px;
   --radius-md:  0;
   --radius-lg:  0;
   --radius-xl:  0;
@@ -350,37 +350,10 @@ details[open] .faq-body { animation: schduled-faq-open 0.25s ease-out both; }
   100% { transform: translateX(100%); }
 }
 
-/* ── Scroll-driven reveal (CSS animation-timeline: view()) ─────────────────
-   No JS. Elements fade+slide up as they enter the viewport.
-   Use .scroll-reveal on any card/section. Add .sr-d1 / .sr-d2 / .sr-d3 for
-   staggered siblings (each class shifts the view range by ~8% scroll). */
-
-@keyframes schduled-sr-up {
-  from { opacity: 0; transform: translateY(36px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes schduled-sr-left {
-  from { opacity: 0; transform: translateX(-24px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes schduled-sr-right {
-  from { opacity: 0; transform: translateX(24px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-.scroll-reveal {
-  animation: schduled-sr-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-timeline: view();
-  animation-range: entry 0% entry 28%;
-}
-/* Stagger siblings in a grid — each shifts the view-range start by ~8% */
-.scroll-reveal.sr-d1 { animation-range: entry 8%  entry 36%; }
-.scroll-reveal.sr-d2 { animation-range: entry 16% entry 44%; }
-.scroll-reveal.sr-d3 { animation-range: entry 24% entry 52%; }
-
-/* Direction variants */
-.scroll-reveal.sr-left  { animation-name: schduled-sr-left; }
-.scroll-reveal.sr-right { animation-name: schduled-sr-right; }
+/* Scroll-triggered reveals on the landing page are handled by the
+   <Reveal> component (components/landing/reveal.tsx) via the `motion`
+   library — not CSS. Reveal calls useReducedMotion() itself to honor
+   prefers-reduced-motion, so no CSS override is needed here. */
 
 @media (prefers-reduced-motion: reduce) {
   .animate-schduled-float,
@@ -396,14 +369,6 @@ details[open] .faq-body { animation: schduled-faq-open 0.25s ease-out both; }
   }
   details[open] .faq-body {
     animation: none;
-  }
-  .scroll-reveal,
-  .scroll-reveal.sr-d1,
-  .scroll-reveal.sr-d2,
-  .scroll-reveal.sr-d3 {
-    animation: none;
-    opacity: 1;
-    transform: none;
   }
 }
 

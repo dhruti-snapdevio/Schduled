@@ -173,7 +173,7 @@ Surfaces the pg-boss queue state in a minimal read-only table.
 
 At MVP scale, re-enqueueing a failed job via a one-off Node.js script is sufficient. Retry and cancel buttons ship in Phase 2.
 
-**All Schedica job types visible in this screen:**
+**All Schduled job types visible in this screen:**
 
 | Job Name | Trigger |
 |----------|---------|
@@ -201,7 +201,7 @@ Runtime-configurable settings stored in the `platform_settings` singleton table.
 | Setting | Type | Default | Notes |
 |---------|------|---------|-------|
 | Allow new user signups | Toggle | On | When off, `/sign-up` shows "Signups are currently disabled" |
-| Email sender name | Text | "Schedica" | Used as `from` name on all transactional emails |
+| Email sender name | Text | "Schduled" | Used as `from` name on all transactional emails |
 | Max bookings per invitee per day | Number | 10 | Guards against booking spam |
 | Platform maintenance message | Text | — | If set, shown as a banner on all pages |
 

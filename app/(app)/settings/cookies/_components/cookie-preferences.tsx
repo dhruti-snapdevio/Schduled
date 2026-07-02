@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
@@ -24,7 +25,6 @@ function loadPrefs(): CookiePrefs {
 
 export function CookiePreferences() {
   const [prefs, setPrefs]   = useState<CookiePrefs>({ analytics: false, marketing: false })
-  const [saved, setSaved]   = useState(false)
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
@@ -34,8 +34,7 @@ export function CookiePreferences() {
 
   function handleSave() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs))
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    toast.success('Cookie preferences saved')
   }
 
   const COOKIE_TYPES = [
@@ -111,11 +110,8 @@ export function CookiePreferences() {
 
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} disabled={!loaded}>
-          {saved ? 'Saved!' : 'Save preferences'}
+          Save preferences
         </Button>
-        {saved && (
-          <p className="text-sm text-[var(--success-foreground)]">Preferences updated.</p>
-        )}
       </div>
     </div>
   )

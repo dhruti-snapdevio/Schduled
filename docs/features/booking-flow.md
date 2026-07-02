@@ -1,6 +1,6 @@
 # Booking Flow
 
-The booking flow is the heart of Schedica. It defines the end-to-end journey from a user creating an event type to an invitee successfully scheduling a meeting.
+The booking flow is the heart of Schduled. It defines the end-to-end journey from a user creating an event type to an invitee successfully scheduling a meeting.
 
 ---
 
@@ -30,7 +30,7 @@ The booking flow eliminates the email back-and-forth of "when are you free?" by 
 
 ### Step 1 — Connect Calendar
 - Connect one or more calendars (Google Calendar, Outlook — both MVP; Apple iCloud and generic CalDAV — Phase 2)
-- Schedica reads busy/free data from connected calendars in real-time
+- Schduled reads busy/free data from connected calendars in real-time
 - Prevents double-booking across all connected calendars
 - User selects which calendar new bookings are added to
 
@@ -39,7 +39,7 @@ The booking flow eliminates the email back-and-forth of "when are you free?" by 
 - Set meeting duration (15, 30, 45, 60 min — or custom)
 - Set meeting location: Zoom, Google Meet, Teams, phone call, custom location, or in-person address
 - Add a description shown to invitees on the booking page
-- Set booking URL slug (e.g., `schedica.com/yourname/intro-call`)
+- Set booking URL slug (e.g., `schduled.com/yourname/intro-call`)
 
 ### Step 3 — Configure Availability
 - Set weekly recurring hours (e.g., Mon–Fri, 9am–5pm)
@@ -113,7 +113,7 @@ After a duration is selected, the normal booking flow continues from Step 1.
 
 ## Booking Conflict Prevention
 
-- **Real-time availability check** — Schedica re-checks calendar at the moment of booking to prevent race conditions
+- **Real-time availability check** — Schduled re-checks calendar at the moment of booking to prevent race conditions
 - **Buffer enforcement** — Buffer times before/after are factored into available slots
 - **Daily meeting limits** — If host has set a cap (e.g., max 5 meetings/day), slots beyond that cap are hidden
 - **Minimum notice enforcement** — Same-day or same-hour bookings blocked if notice period not met
@@ -122,7 +122,7 @@ After a duration is selected, the normal booking flow continues from Step 1.
 
 ## Cancellation Policy Enforcement
 
-Schedica goes beyond Calendly by not just displaying a policy — it can **actively enforce** cancellation rules.
+Schduled goes beyond Calendly by not just displaying a policy — it can **actively enforce** cancellation rules.
 
 ### Policy Text
 Hosts can add cancellation policy text shown on the booking page and in confirmation emails:
@@ -248,7 +248,7 @@ For events requiring multiple hosts to be present:
 | **SavvyCal** | Date → time (with calendar overlay) → form → confirm | ✅ Token links | ❌ No | ✅ **Yes** — invitee connects their calendar to see mutual free times | ❌ No |
 | **Chili Piper** | Embedded form → instant calendar popup → confirm | ✅ Via email link | ❌ No | ❌ No | ✅ Yes |
 | **HubSpot Meetings** | Minimal — date → time → confirm; no custom form | ✅ Via email link | ❌ No | ❌ No | ✅ Basic |
-| **Schedica** | Date → time → form → confirm; dual-timezone shown at every step | ✅ Secure token links — no Schedica account needed | ✅ **Configurable enforcement window** — cancel link blocked within X hours before meeting (Calendly gap filled) | ✅ Phase 3 (SavvyCal-inspired) | ✅ Phase 2 |
+| **Schduled** | Date → time → form → confirm; dual-timezone shown at every step | ✅ Secure token links — no Schduled account needed | ✅ **Configurable enforcement window** — cancel link blocked within X hours before meeting (Calendly gap filled) | ✅ Phase 3 (SavvyCal-inspired) | ✅ Phase 2 |
 
 ---
 
@@ -267,7 +267,7 @@ For events requiring multiple hosts to be present:
 - Timezone auto-detection for invitee
 - Custom intake questions on booking form
 
-> **Calendly comparison:** Calendly displays cancellation policy text but does not enforce it — any invitee can cancel at any time regardless of the stated policy. Schedica actually blocks the cancel link when the window has passed, which is a key differentiator for coaching calls, high-value demos, and any meeting where last-minute cancellations are disruptive.
+> **Calendly comparison:** Calendly displays cancellation policy text but does not enforce it — any invitee can cancel at any time regardless of the stated policy. Schduled actually blocks the cancel link when the window has passed, which is a key differentiator for coaching calls, high-value demos, and any meeting where last-minute cancellations are disruptive.
 
 **Post-MVP:**
 - Calendar overlay — invitee connects own calendar to see mutual free times *(Phase 3)*
@@ -315,8 +315,8 @@ Every `audit_logs` insert must include `source: 'web' | 'api' | 'worker' | 'syst
 
 - **Next.js App Router** — the full booking flow spans three pages: the public booking calendar (`/[username]/[eventSlug]`), the booking form (step 2 on the same page), and the confirmation screen (`/[username]/[eventSlug]/confirmed`). Cancel and reschedule flows are token-based pages that work without any invitee login.
 - **PostgreSQL** — cancel and reschedule operations use database transactions to ensure atomic state changes (no partial updates). Advisory locks prevent two concurrent reschedule requests from creating conflicting bookings for the same new slot. All cancel/reschedule writes include audit log row within the same transaction.
-- **Drizzle ORM** — stores a unique `cancelToken` and `rescheduleToken` on every booking record. Both tokens are generated with `crypto.randomUUID()` at booking INSERT time and embedded in confirmation email links, allowing invitees to cancel or reschedule without a Schedica account. Token lookup is the only authentication for these flows.
+- **Drizzle ORM** — stores a unique `cancelToken` and `rescheduleToken` on every booking record. Both tokens are generated with `crypto.randomUUID()` at booking INSERT time and embedded in confirmation email links, allowing invitees to cancel or reschedule without a Schduled account. Token lookup is the only authentication for these flows.
 - **`GET /api/slots` — rate limited** — the endpoint that returns available time slots for a booking page is rate-limited at 10 requests / 60 seconds per IP (same `rateLimiter` middleware from `src/lib/rate-limit.ts` used by `POST /api/bookings`). Prevents slot-scraping abuse.
 - **pg-boss** — orchestrates all async work triggered by the booking flow. On new booking: enqueues `EMAIL_SEND` (×2), `VIDEO_LINK_GENERATE`, `CALENDAR_WRITE`, `BOOKING_REMINDER_24H`, `BOOKING_REMINDER_1H`. On cancellation: enqueues `EMAIL_SEND` (×2), `BOOKING_CANCEL_REMINDERS`, `CALENDAR_CANCEL`. On reschedule: enqueues `EMAIL_SEND` (×2), `BOOKING_RESCHEDULE_REMINDERS`, `CALENDAR_UPDATE`.
 - **`audit_logs` table** — every cancel/reschedule writes `booking.cancelled_by_invitee`, `booking.cancelled_by_host`, or `booking.rescheduled` inside the DB transaction.
-- **Better Auth** — protects host-side dashboard routes. The public booking and cancel/reschedule flows are intentionally unauthenticated — invitees use secure single-use tokens instead of requiring a Schedica account.
+- **Better Auth** — protects host-side dashboard routes. The public booking and cancel/reschedule flows are intentionally unauthenticated — invitees use secure single-use tokens instead of requiring a Schduled account.

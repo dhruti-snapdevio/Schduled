@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import {
   addDays,
   addMonths,
@@ -34,8 +35,12 @@ import {
   CalendarBlank,
   Lightning,
   Briefcase,
+  Copy,
+  House,
+  PencilSimple,
 } from '@phosphor-icons/react'
 import { Checkbox } from '@/components/ui/checkbox'
+import { PRODUCT_NAME } from '@/config/platform'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
@@ -44,6 +49,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn, normalizeTzName, dialCodeFromTz } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -100,6 +111,7 @@ interface Props {
   availableDaysOfWeek: string[]
   blockedDates: string[]
   specialDates: string[]
+  showPoweredBy?: boolean
 }
 
 // ── Outer helpers (stable identity — no remount on every render) ──────────────
@@ -409,6 +421,7 @@ export function BookingCalendar({
   availableDaysOfWeek,
   blockedDates,
   specialDates,
+  showPoweredBy = true,
 }: Props) {
   const defaultDuration =
     eventType.durations.find((d) => d.isDefault)?.duration ??
@@ -469,6 +482,8 @@ export function BookingCalendar({
   const [slots, setSlots] = useState<SlotInfo[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<SlotInfo | null>(null)
+  const [pendingTimeRestore, setPendingTimeRestore] = useState<string | null>(null)
+  const hasRestoredFromUrl = useRef(false)
 
   const slotsPanelRef = useRef<HTMLDivElement>(null)
 
@@ -541,13 +556,96 @@ export function BookingCalendar({
     }
   }
 
+  const [copyLinkDone, setCopyLinkDone] = useState(false)
+  function copyPageLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopyLinkDone(true)
+      setTimeout(() => setCopyLinkDone(false), 2000)
+    })
+  }
+
+  // ── URL sync ────────────────────────────────────────────────────────────────
+
+  function syncUrl(date: string | null, slot: SlotInfo | null, mth: Date) {
+    if (typeof window === 'undefined') return
+    const p = new URLSearchParams()
+    p.set('month', format(mth, 'yyyy-MM'))
+    if (date) p.set('date', date)
+    if (slot) p.set('time', slot.startUtc)
+    window.history.replaceState(null, '', window.location.pathname + '?' + p.toString())
+  }
+
+  // Restore state from URL params on first mount (inline fetch avoids forward-ref to fetchSlots)
+  useEffect(() => {
+    if (hasRestoredFromUrl.current) return
+    hasRestoredFromUrl.current = true
+    const params = new URLSearchParams(window.location.search)
+    const monthParam = params.get('month')
+    const dateParam  = params.get('date')
+    const timeParam  = params.get('time')
+    if (monthParam) {
+      const [y, m] = monthParam.split('-').map(Number)
+      if (!isNaN(y) && !isNaN(m)) setMonth(new Date(y, m - 1, 1))
+    }
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      setSelectedDate(dateParam)
+      // Inline slot fetch (can't reference fetchSlots useCallback — declared later)
+      setLoadingSlots(true)
+      fetch(`/api/slots?username=${host.username}&slug=${eventType.slug}&date=${dateParam}&duration=${selectedDuration}`)
+        .then((r) => r.json())
+        .then((data) => {
+          const raw: SlotInfo[] = data.slots ?? []
+          const seen = new Set<string>()
+          setSlots(raw.filter((s) => { if (seen.has(s.startUtc)) return false; seen.add(s.startUtc); return true }))
+        })
+        .catch(() => setSlots([]))
+        .finally(() => setLoadingSlots(false))
+    }
+    if (timeParam) setPendingTimeRestore(timeParam)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // After slots load, match the pending time param (URL-restored slot)
+  useEffect(() => {
+    if (!pendingTimeRestore || slots.length === 0) return
+    const match = slots.find((s) => s.startUtc === pendingTimeRestore)
+    if (match) setSelectedSlot(match)
+    setPendingTimeRestore(null)
+  }, [slots, pendingTimeRestore])
+
+  // ── Month navigation (with URL sync) ───────────────────────────────────────
+
+  function handlePrevMonth() {
+    setMonth((m) => {
+      const next = subMonths(m, 1)
+      syncUrl(selectedDate, selectedSlot, next)
+      return next
+    })
+  }
+
+  function handleNextMonth() {
+    setMonth((m) => {
+      const next = addMonths(m, 1)
+      syncUrl(selectedDate, selectedSlot, next)
+      return next
+    })
+  }
+
+  function handleSlotClick(slot: SlotInfo) {
+    setSelectedSlot(slot)
+    syncUrl(selectedDate, slot, month)
+  }
+
   function handleDurationChange(d: number) {
     setSelectedDuration(d)
     setSelectedDate(null)
     setSlots([])
     setSelectedSlot(null)
     setStep('calendar')
-    // fetchAvailableDays is triggered by the useEffect watching [month, selectedDuration]
+    // Reset URL to base path (no date/time selection)
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', window.location.pathname)
+    }
   }
 
   function isDayAvailable(dateStr: string): boolean {
@@ -607,7 +705,9 @@ export function BookingCalendar({
   function handleDateClick(dateStr: string) {
     if (!isDayAvailable(dateStr)) return
     setSelectedDate(dateStr)
+    setSelectedSlot(null)
     fetchSlots(dateStr)
+    syncUrl(dateStr, null, month)
     // On mobile, the slots panel is below the calendar — scroll to it
     setTimeout(() => {
       slotsPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -706,6 +806,8 @@ export function BookingCalendar({
         host: host.name,
         slug: host.username,
         event: eventType.name,
+        ets: eventType.slug,
+        etid: eventType.id,
         start: data.startUtc,
         end: data.endUtc,
         tz: inviteeTz,
@@ -821,8 +923,52 @@ export function BookingCalendar({
           })}
           </div>
 
-          {/* Right spacer — balances the back button + leaves room for the ribbon */}
-          <div className="w-24 shrink-0" />
+          {/* Right — owner toolbar (Menu + Copy link) or empty spacer to balance left */}
+          <div className="flex shrink-0 items-center justify-end gap-1.5 min-w-24">
+            {isOwner && (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+                    >
+                      Menu
+                      <CaretDown size={11} weight="bold" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[180px]">
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard" className="flex items-center gap-2">
+                        <House size={14} />
+                        Home
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/event-types/${eventType.id}`} className="flex items-center gap-2">
+                        <PencilSimple size={14} />
+                        Edit event type
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <button
+                  type="button"
+                  onClick={copyPageLink}
+                  className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+                >
+                  {copyLinkDone
+                    ? <Check size={13} weight="bold" className="text-primary" />
+                    : <Copy size={13} />
+                  }
+                  <span className="hidden sm:inline">
+                    {copyLinkDone ? 'Copied!' : 'Copy link'}
+                  </span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
@@ -967,7 +1113,7 @@ export function BookingCalendar({
               {/* Month nav */}
               <div className="mb-4 flex items-center justify-between">
                 <button
-                  onClick={() => setMonth((m) => subMonths(m, 1))}
+                  onClick={handlePrevMonth}
                   disabled={format(month, 'yyyy-MM') <= today.slice(0, 7)}
                   className="flex h-11 w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
                 >
@@ -977,9 +1123,7 @@ export function BookingCalendar({
                   {format(month, 'MMMM yyyy')}
                 </span>
                 <button
-                  onClick={() =>
-                    setMonth((m) => addMonths(m, 1))
-                  }
+                  onClick={handleNextMonth}
                   disabled={
                     format(addMonths(month, 1), 'yyyy-MM') > maxDate.slice(0, 7)
                   }
@@ -1132,7 +1276,7 @@ export function BookingCalendar({
                           return (
                             <button
                               key={slot.startUtc}
-                              onClick={() => setSelectedSlot(slot)}
+                              onClick={() => handleSlotClick(slot)}
                               className={cn(
                                 'flex h-11 w-full items-center justify-center gap-2 text-sm font-semibold transition-all duration-150',
                                 isChosen
@@ -1341,14 +1485,16 @@ export function BookingCalendar({
           )}
         </div>
 
-        {/* ── "Powered by Schduled" footer ── */}
-        <a
-          href="/"
-          aria-label="Powered by Schduled"
-          className="flex shrink-0 items-center justify-center gap-1.5 border-t border-border bg-muted/30 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
-        >
-          Powered by <span className="font-bold text-primary">Schduled</span>
-        </a>
+        {/* ── "Powered by <product>" footer ── */}
+        {showPoweredBy && (
+          <a
+            href="/"
+            aria-label={`Powered by ${PRODUCT_NAME}`}
+            className="flex shrink-0 items-center justify-center gap-1.5 border-t border-border bg-muted/30 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            Powered by <span className="font-bold text-primary">{PRODUCT_NAME}</span>
+          </a>
+        )}
 
       </div>
     </div>

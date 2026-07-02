@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import {
   ArrowSquareOut,
   CalendarPlus,
@@ -9,8 +9,22 @@ import {
   DownloadSimple,
   GoogleLogo,
   Timer,
+  UserMinus,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
+import { markNoShow } from '@/app/actions/bookings'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 
 // ── Live "meeting starts in" countdown ────────────────────────────────────────
 export function Countdown({ startUtc }: { startUtc: string }) {
@@ -93,6 +107,48 @@ export function MeetingLink({ url }: { url: string }) {
         <ArrowSquareOut size={15} />
       </a>
     </div>
+  )
+}
+
+// ── No-show button ────────────────────────────────────────────────────────────
+export function NoShowButton({ bookingId }: { bookingId: string }) {
+  const [isPending, startTransition] = useTransition()
+
+  function handleConfirm() {
+    startTransition(async () => {
+      const res = await markNoShow(bookingId)
+      if (res.error) {
+        toast.error(res.error)
+      } else {
+        toast.success('Marked as no-show')
+      }
+    })
+  }
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="outline"
+          className="w-full justify-center gap-1.5 text-muted-foreground hover:border-amber-500/40 hover:text-amber-600"
+          disabled={isPending}
+        >
+          <UserMinus size={15} /> Mark as no-show
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Mark as no-show?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This marks the booking as a no-show. The meeting slot will remain in your history.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirm}>Confirm</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 

@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   ArrowLeft, ArrowRight, ArrowsClockwise, ArrowSquareOut,
   CalendarBlank, CalendarCheck, CaretDown, CheckCircle,
-  Clock, Copy, FloppyDisk, Globe, List, PencilSimple, Plus, Star, Trash, X,
+  Clock, Copy, Globe, List, PencilSimple, Plus, Star, Trash, X,
 } from '@phosphor-icons/react'
 import {
   updateAvailabilitySchedule,
@@ -223,6 +223,17 @@ function validateSlots(slots: TimeSlot[]): string | null {
   return null
 }
 
+// A newly added interval defaults to right after the day's latest interval
+// ends, so it never collides with what's already there (matches Calendly).
+function nextIntervalDefaults(existing: TimeSlot[]): TimeSlot {
+  if (existing.length === 0) return { startTime: '09:00', endTime: '17:00' }
+  const lastEnd = existing.reduce((max, s) => (s.endTime > max ? s.endTime : max), '00:00')
+  const [h, m] = lastEnd.split(':').map(Number)
+  const endMinutes = Math.min(h * 60 + m + 60, 23 * 60 + 59)
+  const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`
+  return { startTime: lastEnd, endTime }
+}
+
 // ── Shared time select ────────────────────────────────────────────────────────
 
 function TimeSelect({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
@@ -254,25 +265,7 @@ function OverrideDialog({
     return { year: y, month: m - 1 }
   })
 
-  useEffect(() => {
-    if (open) {
-      const base = defaultDate || todayISO()
-      setSelDate(base)
-      setIsBlocked(false)
-      setReason('')
-      setSlots([{ startTime: '09:00', endTime: '17:00' }])
-      const [y, m] = base.split('-').map(Number)
-      setCursor({ year: y, month: m - 1 })
-    }
-  }, [open, defaultDate])
-
-  const today = todayISO()
-  const { year, month } = cursor
-  const firstWeekday = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const monthLabel = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-
-  function pickDate(iso: string) {
+  function loadDate(iso: string) {
     setSelDate(iso)
     const existing = overrideMap.get(iso)
     if (existing) {
@@ -288,6 +281,28 @@ function OverrideDialog({
       setReason('')
       setSlots(ws.length > 0 ? ws.map((s) => ({ ...s })) : [{ startTime: '09:00', endTime: '17:00' }])
     }
+  }
+
+  // Only re-run when the dialog opens for a (possibly different) date —
+  // loadDate itself reads the latest overrideMap/weekGrid via closure.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadDate is intentionally excluded, see above
+  useEffect(() => {
+    if (open) {
+      const base = defaultDate || todayISO()
+      loadDate(base)
+      const [y, m] = base.split('-').map(Number)
+      setCursor({ year: y, month: m - 1 })
+    }
+  }, [open, defaultDate])
+
+  const today = todayISO()
+  const { year, month } = cursor
+  const firstWeekday = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const monthLabel = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+  function pickDate(iso: string) {
+    loadDate(iso)
   }
 
   const cells = [
@@ -386,7 +401,7 @@ function OverrideDialog({
                     )}
                     {i === slots.length - 1 && (
                       <button type="button"
-                        onClick={() => setSlots((p) => [...p, { startTime: '09:00', endTime: '17:00' }])}
+                        onClick={() => setSlots((p) => [...p, nextIntervalDefaults(p)])}
                         className="h-9 w-9 flex items-center justify-center border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors shrink-0"
                         aria-label="Add interval">
                         <Plus size={14} />
@@ -491,7 +506,7 @@ function WeekdayDialog({
                   )}
                   {i === slots.length - 1 && (
                     <button type="button"
-                      onClick={() => setSlots((p) => [...p, { startTime: '09:00', endTime: '17:00' }])}
+                      onClick={() => setSlots((p) => [...p, nextIntervalDefaults(p)])}
                       className="h-9 w-9 flex items-center justify-center border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors shrink-0"
                       aria-label="Add interval">
                       <Plus size={14} />
@@ -731,31 +746,10 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
     if (scheduleId) setDirtyIds((prev) => new Set(prev).add(scheduleId))
   }
 
-  function setDay(day: DayOfWeek, enabled: boolean) {
-    setGrid((prev) => ({ ...prev, [day]: enabled ? [{ startTime: '09:00', endTime: '17:00' }] : [] }))
-    markActiveDirty()
-  }
-  function addSlot(day: DayOfWeek) {
-    setGrid((prev) => ({ ...prev, [day]: [...prev[day], { startTime: '09:00', endTime: '17:00' }] }))
-    markActiveDirty()
-  }
-  function removeSlot(day: DayOfWeek, index: number) {
-    setGrid((prev) => ({ ...prev, [day]: prev[day].filter((_, i) => i !== index) }))
-    markActiveDirty()
-  }
-  function updateSlot(day: DayOfWeek, index: number, field: 'startTime' | 'endTime', value: string) {
-    setGrid((prev) => {
-      const slots = [...prev[day]]
-      slots[index] = { ...slots[index], [field]: value }
-      return { ...prev, [day]: slots }
-    })
-    markActiveDirty()
-  }
-
-  // ── Save schedule ───────────────────────────────────────────────────────────
-
-  function handleSave(nameOverride?: string) {
-    for (const [day, daySlots] of Object.entries(grid)) {
+  // Immediately persists a weekly grid to the server (used for the +/X interval
+  // controls, which save on click instead of waiting for the Schedule Save button).
+  async function autosaveGrid(nextGrid: WeekGrid, successMessage: string) {
+    for (const [day, daySlots] of Object.entries(nextGrid)) {
       const err = validateSlots(daySlots)
       if (err) {
         const label = DAYS.find((d) => d.key === day)?.label ?? day
@@ -763,37 +757,54 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
         return
       }
     }
-    startTransition(async () => {
-      const name = nameOverride ?? scheduleName
-      let savedId = scheduleId
-      if (!scheduleId) {
-        const res = await createDefaultSchedule()
-        if ('error' in res) { toast.error(res.error); return }
-        savedId = res.id
-        setScheduleId(res.id)
-        setSchedules((prev) =>
-          prev.length === 0 ? [{ id: res.id, name, isDefault: true }] : prev
-        )
-        const res2 = await updateAvailabilitySchedule(res.id, name, grid)
-        if ('error' in res2) { toast.error(res2.error); return }
-      } else {
-        const res = await updateAvailabilitySchedule(scheduleId, name, grid)
-        if ('error' in res) { toast.error(res.error); return }
-      }
-      setScheduleEdited(false)
-      setScheduleName(name)
-      // Sync the in-memory cache + the switcher's label, and clear the dirty flag.
-      if (savedId) {
-        setGridsById((prev) => ({ ...prev, [savedId!]: grid }))
-        setDirtyIds((prev) => {
-          const next = new Set(prev)
-          next.delete(savedId!)
-          return next
-        })
-      }
-      setSchedules((prev) => prev.map((s) => (s.id === savedId ? { ...s, name } : s)))
-      toast.success('Availability saved')
+    let savedId = scheduleId
+    if (!savedId) {
+      const res = await createDefaultSchedule()
+      if ('error' in res) { toast.error(res.error); return }
+      savedId = res.id
+      setScheduleId(res.id)
+      setSchedules((prev) =>
+        prev.length === 0 ? [{ id: res.id, name: scheduleName, isDefault: true }] : prev
+      )
+    }
+    const res = await updateAvailabilitySchedule(savedId, scheduleName, nextGrid)
+    if ('error' in res) { toast.error(res.error); return }
+    setGridsById((prev) => ({ ...prev, [savedId!]: nextGrid }))
+    setScheduleEdited(false)
+    setDirtyIds((prev) => {
+      const next = new Set(prev)
+      next.delete(savedId!)
+      return next
     })
+    toast.success(successMessage)
+  }
+
+  function setDay(day: DayOfWeek, enabled: boolean) {
+    const nextGrid = { ...grid, [day]: enabled ? [{ startTime: '09:00', endTime: '17:00' } as TimeSlot] : [] }
+    setGrid(nextGrid)
+    markActiveDirty()
+    const label = DAYS.find((d) => d.key === day)?.label ?? day
+    startTransition(() => autosaveGrid(nextGrid, enabled ? `${label} enabled` : `${label} marked unavailable`))
+  }
+  function addSlot(day: DayOfWeek) {
+    const nextGrid = { ...grid, [day]: [...grid[day], nextIntervalDefaults(grid[day])] }
+    setGrid(nextGrid)
+    markActiveDirty()
+    startTransition(() => autosaveGrid(nextGrid, 'Time interval added'))
+  }
+  function removeSlot(day: DayOfWeek, index: number) {
+    const nextGrid = { ...grid, [day]: grid[day].filter((_, i) => i !== index) }
+    setGrid(nextGrid)
+    markActiveDirty()
+    startTransition(() => autosaveGrid(nextGrid, 'Time interval removed'))
+  }
+  function updateSlot(day: DayOfWeek, index: number, field: 'startTime' | 'endTime', value: string) {
+    const slots = [...grid[day]]
+    slots[index] = { ...slots[index], [field]: value }
+    const nextGrid = { ...grid, [day]: slots }
+    setGrid(nextGrid)
+    markActiveDirty()
+    startTransition(() => autosaveGrid(nextGrid, 'Time updated'))
   }
 
   // ── Multi-schedule handlers ───────────────────────────────────────────────────
@@ -1095,7 +1106,7 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
   return (
     <div>
       {/* Page tab bar */}
-      <div className="-mx-4 md:-mx-6 border-b border-border px-4 md:px-6 mb-6">
+      <div className="border-b border-border mb-6">
         <div className="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {([
             { id: 'schedules' as PageTab, label: 'Schedules' },
@@ -1397,10 +1408,6 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
                   <CalendarBlank size={13} /> Calendar
                 </button>
               </div>
-              <Button size="sm" onClick={() => handleSave()} disabled={isPending || !scheduleEdited} className="gap-1.5">
-                <FloppyDisk size={13} />
-                {isPending ? 'Saving…' : 'Save'}
-              </Button>
             </div>
           </div>
 
@@ -1416,7 +1423,7 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
 
           {/* LIST VIEW */}
           {viewMode === 'list' && (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-0 xl:divide-x xl:divide-border">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-0 xl:items-start xl:divide-x xl:divide-border">
 
               {/* Left: Weekly hours */}
               <div className="space-y-4 xl:pr-10">
@@ -1506,7 +1513,16 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
                 {overrides.length > 0 ? (
                   <div className="space-y-2">
                     {overrides.map((o) => (
-                      <div key={o.date} className="flex items-center justify-between border border-border bg-card px-4 py-3">
+                      // biome-ignore lint/a11y/useSemanticElements: contains a nested delete <button>, which a <button> wrapper can't legally contain
+                      <div
+                        key={o.date}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openDialog(o.date)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDialog(o.date) } }}
+                        title="Edit this date's hours"
+                        className="flex items-center justify-between border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40 hover:bg-primary/5 cursor-pointer"
+                      >
                         <div>
                           <p className="text-sm font-medium">{fmtDate(o.date)}</p>
                           {o.isBlocked
@@ -1518,8 +1534,13 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
                               </div>
                           }
                         </div>
-                        <button type="button" onClick={() => handleDeleteOverride(o.date)} disabled={isPending}
-                          className="p-1.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteOverride(o.date) }}
+                          disabled={isPending}
+                          title="Delete this override"
+                          className="p-1.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+                        >
                           <Trash size={13} />
                         </button>
                       </div>

@@ -6,10 +6,10 @@ Timezone management ensures every host and invitee sees meeting times in their o
 
 ## Overview
 
-Timezone is one of the most error-prone aspects of scheduling. Schedica handles timezone conversion at every step — so neither the host nor the invitee ever has to manually calculate "what time is that for me?"
+Timezone is one of the most error-prone aspects of scheduling. Schduled handles timezone conversion at every step — so neither the host nor the invitee ever has to manually calculate "what time is that for me?"
 
 > **Strategic importance — read before touching this feature:**
-> Dual-timezone display in every email is Schedica's #1 competitive advantage. Calendly, Cal.com, and every other mainstream scheduling tool shows only one party's timezone per email. Schedica shows both. This eliminates the #1 cause of missed meetings ("we showed up at different times") and is a concrete, demonstrable differentiator that any user can verify in 30 seconds.
+> Dual-timezone display in every email is Schduled's #1 competitive advantage. Calendly, Cal.com, and every other mainstream scheduling tool shows only one party's timezone per email. Schduled shows both. This eliminates the #1 cause of missed meetings ("we showed up at different times") and is a concrete, demonstrable differentiator that any user can verify in 30 seconds.
 >
 > This is a **strategic feature, not a cosmetic one.** Every change to email templates, booking confirmation UI, or availability display must preserve the dual-timezone output. Do not simplify, remove, or make it optional.
 
@@ -63,7 +63,7 @@ During onboarding and in Profile & Settings, the host sets their local timezone.
 
 ### Auto-Detection
 
-When an invitee opens a booking page, Schedica automatically detects their timezone.
+When an invitee opens a booking page, Schduled automatically detects their timezone.
 
 **Detection Method:**
 - `Intl.DateTimeFormat().resolvedOptions().timeZone` — JavaScript browser API
@@ -114,7 +114,7 @@ For example, a host with `startTime = "09:00"`, `endTime = "17:00"`, `timezone =
 
 Daylight Saving Time shifts clocks by 1 hour seasonally in many countries.
 
-**Schedica's Approach:**
+**Schduled's Approach:**
 - All availability windows stored in IANA timezone (not offset like UTC-5)
 - IANA timezones know when DST applies (America/New_York knows to shift in March/November)
 - Slot display adjusts automatically as DST transitions occur
@@ -124,7 +124,7 @@ Daylight Saving Time shifts clocks by 1 hour seasonally in many countries.
 - Host sets "Available 9am New York time"
 - In winter (EST, UTC-5): invitee in London sees 2pm
 - In summer (EDT, UTC-4): invitee in London sees 2pm still (both shifted by 1 hour)
-- Schedica handles this silently — no host action required on DST change
+- Schduled handles this silently — no host action required on DST change
 
 ---
 
@@ -152,13 +152,13 @@ Shown clearly on the booking page so invitees know what timezone is being used:
 
 ## Dual Timezone Display in Confirmation Emails
 
-Every email Schedica sends that references a meeting time shows **both the recipient's local time and the other party's local time**. This is a deliberate design decision that directly addresses a gap in Calendly and most scheduling tools.
+Every email Schduled sends that references a meeting time shows **both the recipient's local time and the other party's local time**. This is a deliberate design decision that directly addresses a gap in Calendly and most scheduling tools.
 
-### The Problem Schedica Solves
+### The Problem Schduled Solves
 
 Calendly shows only the recipient's own timezone in confirmation and reminder emails. When the host and invitee are in different countries, one party always has to do mental timezone arithmetic — or they get confused about when the meeting actually is.
 
-### How Schedica Shows Both Timezones
+### How Schduled Shows Both Timezones
 
 **Invitee confirmation email** (invitee is in India, host is in New York): the invitee sees their own meeting time (e.g., "Thursday, June 5 at 3:00 PM – 3:30 PM IST (Asia/Kolkata)") and the host's equivalent time (e.g., "Host's meeting time: Thursday, June 5 at 10:00 AM – 10:30 AM EST (America/New_York)") shown directly below it.
 
@@ -221,7 +221,7 @@ When a team has members across multiple timezones (common in remote teams):
 ### Midnight Crossover
 - If a host's availability includes evening hours, some slots may show on the "next day" for an invitee in an earlier timezone
 - Example: Host available until 10pm PST → invitee in India sees 11:30am next day
-- Schedica handles this correctly; shows correct date for the invitee
+- Schduled handles this correctly; shows correct date for the invitee
 
 ### International Date Line
 - Extreme timezone differences (e.g., +12 and -12) may result in a 2-day gap in display
@@ -242,7 +242,7 @@ When a team has members across multiple timezones (common in remote teams):
 | **SavvyCal** | Invitee's timezone displayed; calendar overlay shows mutual availability | Partial — booking page overlay helps but emails are single-timezone |
 | **Chili Piper** | Host timezone; Salesforce timezone fields used for routing | ❌ No |
 | **HubSpot Meetings** | Auto-detect invitee timezone; Google Calendar handles DST | ❌ No |
-| **Schedica** | Every email shows recipient's time **and** the other party's local time | ✅ Yes — both parties always know exactly what time the meeting is for the other person |
+| **Schduled** | Every email shows recipient's time **and** the other party's local time | ✅ Yes — both parties always know exactly what time the meeting is for the other person |
 
 ---
 

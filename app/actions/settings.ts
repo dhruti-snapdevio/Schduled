@@ -477,12 +477,14 @@ export async function getContacts({
     : sql``;
 
   // Per-contact (grouped) filters: "upcoming" = has a future booking,
-  // "new" = first booked within the last 30 days.
+  // "new" = first booking CREATED within the last 30 days (uses created_at,
+  //         not start_time, so a returning contact who rescheduled recently
+  //         doesn't appear as "new").
   const havingClause =
     filter === "upcoming"
       ? sql`HAVING bool_or(b.start_time >= now())`
       : filter === "new"
-        ? sql`HAVING min(b.start_time) >= now() - interval '30 days'`
+        ? sql`HAVING min(b.created_at) >= now() - interval '30 days'`
         : sql``;
 
   // Aggregate from booking table, left-join contact for metadata

@@ -1,5 +1,4 @@
 import { and, asc, eq } from 'drizzle-orm'
-import { format } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -25,12 +24,13 @@ import {
   X,
 } from '@phosphor-icons/react/dist/ssr'
 import { Button } from '@/components/ui/button'
-import { booking, bookingAnswer, bookingGuest, eventType } from '@/db/schema'
+import { PRODUCT_NAME } from '@/config/platform'
+import { booking, bookingAnswer, bookingGuest, eventType, user } from '@/db/schema'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
 import { STATUS_STYLES } from '@/lib/booking-status'
 import { cn, normalizeTzName } from '@/lib/utils'
-import { AddToCalendar, Countdown, MeetingLink } from './_components/booking-detail-widgets'
+import { AddToCalendar, Countdown, MeetingLink, NoShowButton } from './_components/booking-detail-widgets'
 
 export const metadata = { title: 'Booking details' }
 
@@ -88,6 +88,9 @@ export default async function BookingDetailPage({
 
   if (!b) notFound()
 
+  const [hostRow] = await db.select({ timezone: user.timezone }).from(user).where(eq(user.id, session.user.id)).limit(1)
+  const hostTz = hostRow?.timezone ?? 'UTC'
+
   const [answers, guests] = await Promise.all([
     db.select({ label: bookingAnswer.questionLabel, answer: bookingAnswer.answer })
       .from(bookingAnswer).where(eq(bookingAnswer.bookingId, b.id)).orderBy(asc(bookingAnswer.id)),
@@ -107,7 +110,8 @@ export default async function BookingDetailPage({
     ['zoom', 'google_meet', 'teams', 'custom'].includes(b.locationType ?? '')
       ? b.locationValue
       : null
-  const hasActions = isUpcoming || (isPending && b.approvalToken)
+  const isPastConfirmed = b.status === 'confirmed' && b.startTime <= now
+  const hasActions = isUpcoming || (isPending && b.approvalToken) || isPastConfirmed
 
   // ── Add-to-calendar links ──
   const gd = (d: Date) => formatInTimeZone(d, 'UTC', "yyyyMMdd'T'HHmmss'Z'")
@@ -120,7 +124,7 @@ export default async function BookingDetailPage({
     `&details=${encodeURIComponent(calDetails)}` +
     `&location=${encodeURIComponent(joinUrl ?? locationLabel)}`
   const ics = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Schduled//EN', 'BEGIN:VEVENT',
+    'BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${PRODUCT_NAME}//EN`, 'BEGIN:VEVENT',
     `UID:${b.id}@schduled`, `DTSTART:${gd(b.startTime)}`, `DTEND:${gd(b.endTime)}`,
     `SUMMARY:${icsEscape(calTitle)}`, `DESCRIPTION:${icsEscape(calDetails)}`,
     `LOCATION:${icsEscape(joinUrl ?? locationLabel)}`, 'END:VEVENT', 'END:VCALENDAR',
@@ -129,16 +133,16 @@ export default async function BookingDetailPage({
 
   // ── Activity timeline (derived from available data) ──
   const timeline: { label: string; time: string | null; done: boolean }[] = [
-    { label: 'Booking created', time: format(b.createdAt, "MMM d · h:mm a"), done: true },
+    { label: 'Booking created', time: formatInTimeZone(b.createdAt, hostTz, "MMM d · h:mm a"), done: true },
   ]
   if (b.status === 'confirmed' || b.status === 'completed') {
     timeline.push({ label: 'Confirmation sent', time: null, done: true })
   }
   if (joinUrl) timeline.push({ label: 'Meeting link ready', time: null, done: true })
   if (isCancelled) {
-    timeline.push({ label: 'Booking cancelled', time: b.cancelledAt ? format(b.cancelledAt, 'MMM d · h:mm a') : null, done: true })
+    timeline.push({ label: 'Booking cancelled', time: b.cancelledAt ? formatInTimeZone(b.cancelledAt, hostTz, 'MMM d · h:mm a') : null, done: true })
   } else {
-    timeline.push({ label: 'Meeting starts', time: format(b.startTime, 'MMM d · h:mm a'), done: b.startTime <= now })
+    timeline.push({ label: 'Meeting starts', time: formatInTimeZone(b.startTime, hostTz, 'MMM d · h:mm a'), done: b.startTime <= now })
   }
 
   return (
@@ -184,12 +188,12 @@ export default async function BookingDetailPage({
       {/* ── Info cards ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <InfoCard icon={<CalendarBlank size={18} />} label="Date">
-          <p className="font-semibold text-foreground">{format(b.startTime, 'EEEE')}</p>
-          <p className="text-sm text-muted-foreground">{format(b.startTime, 'MMMM d, yyyy')}</p>
+          <p className="font-semibold text-foreground">{formatInTimeZone(b.startTime, hostTz, 'EEEE')}</p>
+          <p className="text-sm text-muted-foreground">{formatInTimeZone(b.startTime, hostTz, 'MMMM d, yyyy')}</p>
         </InfoCard>
         <InfoCard icon={<Clock size={18} />} label="Time">
-          <p className="font-semibold text-foreground">{format(b.startTime, 'h:mm a')} – {format(b.endTime, 'h:mm a')}</p>
-          <p className="text-sm text-muted-foreground">{b.duration} minutes · {normalizeTzName(b.inviteeTimezone ?? '')}</p>
+          <p className="font-semibold text-foreground">{formatInTimeZone(b.startTime, hostTz, 'h:mm a')} – {formatInTimeZone(b.endTime, hostTz, 'h:mm a')}</p>
+          <p className="text-sm text-muted-foreground">{b.duration} minutes · {normalizeTzName(hostTz)}</p>
         </InfoCard>
         <InfoCard icon={<VideoCamera size={18} />} label="Location">
           <p className="font-semibold text-foreground">{locationLabel}</p>
@@ -258,7 +262,7 @@ export default async function BookingDetailPage({
           {isCancelled && (b.cancellationReason || b.cancelledAt) && (
             <Card title="Cancellation" icon={<X size={14} />}>
               {b.cancelledBy && <ProfileRow label="Cancelled by">{b.cancelledBy}</ProfileRow>}
-              {b.cancelledAt && <ProfileRow label="Cancelled at">{format(b.cancelledAt, 'MMM d, yyyy · h:mm a')}</ProfileRow>}
+              {b.cancelledAt && <ProfileRow label="Cancelled at">{formatInTimeZone(b.cancelledAt, hostTz, 'MMM d, yyyy · h:mm a')}</ProfileRow>}
               {b.cancellationReason && <ProfileRow label="Reason">{b.cancellationReason}</ProfileRow>}
             </Card>
           )}
@@ -283,7 +287,7 @@ export default async function BookingDetailPage({
               <div className="space-y-2.5 pb-3 sm:pb-0 sm:pr-6">
                 <ProfileRow label="Booking ID"><span className="font-mono text-xs">{b.id}</span></ProfileRow>
                 <ProfileRow label="Duration">{b.duration} minutes</ProfileRow>
-                <ProfileRow label="Created on">{format(b.createdAt, 'MMM d, yyyy · h:mm a')}</ProfileRow>
+                <ProfileRow label="Created on">{formatInTimeZone(b.createdAt, hostTz, 'MMM d, yyyy · h:mm a')}</ProfileRow>
               </div>
               <div className="space-y-2.5 pt-3 sm:pl-6 sm:pt-0">
                 <ProfileRow label="Meeting type">{b.eventName}</ProfileRow>
@@ -328,6 +332,7 @@ export default async function BookingDetailPage({
                     </Button>
                   </>
                 )}
+                {isPastConfirmed && <NoShowButton bookingId={b.id} />}
               </div>
             </Card>
           )}

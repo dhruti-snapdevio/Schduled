@@ -1,4 +1,4 @@
-# Schedica — Master Build Order
+# Schduled — Master Build Order
 
 This is the single reference document for the full project order. Read this first, then use the linked files for detail on each item.
 
@@ -428,7 +428,7 @@ Build phases **in this exact order**. Each phase depends on the previous one.
 5. Reschedule via email link → new booking → old jobs cancelled → new jobs scheduled
 6. Double-booking: same slot in two tabs simultaneously → only one succeeds
 7. Timezone check: host EST / invitee IST → all emails and screens show both times correctly
-8. Token refresh: let OAuth token expire → Schedica refreshes silently
+8. Token refresh: let OAuth token expire → Schduled refreshes silently
 
 **Pre-launch checklist:**
 - [ ] `/privacy`, `/terms`, `/cookies` pages live with real content

@@ -1,4 +1,4 @@
-# Schedica — Database Schema
+# Schduled — Database Schema
 
 **One schema file per domain**, all files in `db/schema/`, re-exported from a single `index.ts`. All enums live in a shared `enums.ts`. All Drizzle relations live in `relations.ts` to avoid circular imports.
 
@@ -216,7 +216,7 @@ import { index } from 'drizzle-orm/pg-core'
 
 // Better Auth base user table.
 // Do NOT rename columns — Better Auth expects these exact names.
-// Custom Schedica fields (username, timezone, etc.) are additive extras.
+// Custom Schduled fields (username, timezone, etc.) are additive extras.
 export const users = pgTable('users', {
   // Better Auth required fields
   id:            text('id').primaryKey(),
@@ -236,8 +236,8 @@ export const users = pgTable('users', {
   banReason:  text('ban_reason'),
   banExpires: timestamp('ban_expires'),
 
-  // Schedica custom fields
-  username:       text('username').unique(),          // booking URL: schedica.com/username
+  // Schduled custom fields
+  username:       text('username').unique(),          // booking URL: schduled.com/username
   timezone:       text('timezone').default('UTC'),    // IANA timezone
   onboardingStep: integer('onboarding_step').default(0), // 0–5; 5 = complete
   onboardingDone: boolean('onboarding_done').notNull().default(false),
@@ -290,7 +290,7 @@ export const verifications = pgTable('verifications', {
 
 ## `src/lib/db/schema/profile.ts`
 
-Extended user profile data. Separate from the auth table so Better Auth schema doesn't need to know about Schedica-specific fields.
+Extended user profile data. Separate from the auth table so Better Auth schema doesn't need to know about Schduled-specific fields.
 
 ```typescript
 import { pgTable, text, timestamp, index } from 'drizzle-orm/pg-core'
@@ -563,7 +563,7 @@ export const bookings = pgTable('bookings', {
   eventTypeId: text('event_type_id').notNull().references(() => eventTypes.id),
   hostUserId:  text('host_user_id').notNull().references(() => users.id),
 
-  // Invitee details — denormalized. Invitees have no Schedica account.
+  // Invitee details — denormalized. Invitees have no Schduled account.
   inviteeName:     text('invitee_name').notNull(),
   inviteeEmail:    text('invitee_email').notNull(),
   inviteePhone:    text('invitee_phone'),              // collected when locationType = phone
@@ -745,7 +745,7 @@ export const emailOutbox = pgTable('email_outbox', {
   subject:      text('subject').notNull(),
   template:     text('template').notNull(),                        // React Email template name
   templateData: jsonb('template_data').$type<Record<string, unknown>>().notNull(),
-  fromName:     text('from_name').notNull().default('Schedica'),
+  fromName:     text('from_name').notNull().default('Schduled'),
   replyToEmail: text('reply_to_email'),
 
   // State machine: queued → sending → sent | failed
@@ -794,7 +794,7 @@ import { users } from './auth'
 // All values come from env.ts (Zod-validated). To change a setting: update the env var and restart.
 //
 //   ALLOW_NEW_SIGNUPS=true            — set false to lock the platform (maintenance)
-//   EMAIL_SENDER_NAME=Schedica        — from-name used on all outbound emails
+//   EMAIL_SENDER_NAME=Schduled        — from-name used on all outbound emails
 //   MAINTENANCE_MESSAGE=              — if set, shows a maintenance banner on all pages
 //   MAX_BOOKINGS_PER_INVITEE_PER_DAY=10
 //

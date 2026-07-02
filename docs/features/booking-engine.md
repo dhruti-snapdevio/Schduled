@@ -1,6 +1,6 @@
 # Booking Engine
 
-The Booking Engine is the core mechanism that processes every meeting booking end-to-end — from the moment an invitee selects a time slot to the moment both parties' calendars are updated and confirmation emails are sent. It is the technical heart of Schedica.
+The Booking Engine is the core mechanism that processes every meeting booking end-to-end — from the moment an invitee selects a time slot to the moment both parties' calendars are updated and confirmation emails are sent. It is the technical heart of Schduled.
 
 ---
 
@@ -54,7 +54,7 @@ Before showing the form page, re-verify availability.
 **Conflict Sources Checked:**
 - Connected Google Calendar: any "Busy" event overlapping the slot
 - Connected Outlook Calendar: any busy event overlapping
-- Existing Schedica bookings for this host at this time
+- Existing Schduled bookings for this host at this time
 - Buffer time from adjacent bookings (before and after)
 - Daily meeting limit (if host has reached cap for the day)
 
@@ -98,7 +98,7 @@ For round-robin event types, the engine assigns a host from the pool.
 
 ### 5. Create Booking Record
 
-The booking is written to the Schedica database.
+The booking is written to the Schduled database.
 
 **Booking Record Contains:**
 
@@ -224,7 +224,7 @@ The most critical reliability concern: two invitees trying to book the same slot
 
 ### PostgreSQL Advisory Lock Strategy
 
-Schedica uses **PostgreSQL advisory locks** — a pessimistic locking approach that prevents two concurrent booking requests from both succeeding for the same slot.
+Schduled uses **PostgreSQL advisory locks** — a pessimistic locking approach that prevents two concurrent booking requests from both succeeding for the same slot.
 
 1. When an invitee submits the booking form, the engine calls `SELECT pg_advisory_xact_lock(slotHash)` where `slotHash` is a deterministic integer derived from `hostUserId + startTime` — **not** `eventTypeId + startTime`. Using the host's user ID ensures that two concurrent bookings for the **same host at the same time** (even across different event types, e.g. "Intro Call" and "Support Call") are serialised correctly. Using only `eventTypeId` would allow both bookings to proceed simultaneously for the same host time slot.
 2. The lock is held for the duration of the database transaction — any second request for the same host + time blocks until the first transaction completes
@@ -317,7 +317,7 @@ Booking pages are publicly accessible with no authentication required. Basic pro
 | **SavvyCal** | ✅ Yes | ✅ Yes | ✅ Yes | Generic message |
 | **Chili Piper** | ✅ Optimised for high-volume inbound leads | ✅ Near real-time | ✅ Yes | ✅ With alternative slot suggestion |
 | **HubSpot Meetings** | ✅ Yes | ✅ Yes | ✅ Yes | Generic message |
-| **Schedica** | ✅ PostgreSQL advisory lock — concurrent bookings for same slot cannot both succeed | ✅ Final check inside DB transaction before insert | ✅ All post-booking work (video link, calendar write, confirmation email, reminder scheduling) runs as pg-boss jobs after transaction commits — booking API responds instantly | ✅ Clear message + highlights alternative available slots on the same page |
+| **Schduled** | ✅ PostgreSQL advisory lock — concurrent bookings for same slot cannot both succeed | ✅ Final check inside DB transaction before insert | ✅ All post-booking work (video link, calendar write, confirmation email, reminder scheduling) runs as pg-boss jobs after transaction commits — booking API responds instantly | ✅ Clear message + highlights alternative available slots on the same page |
 
 ---
 

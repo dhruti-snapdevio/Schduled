@@ -7,6 +7,7 @@ import {
   LegalHighlight,
   type TocEntry,
 } from "@/components/landing/legal-shell";
+import { env } from "@/lib/env";
 
 export const metadata = {
   title: "Privacy Policy — Schduled",
@@ -170,8 +171,8 @@ export default function PrivacyPage() {
         <LegalUl>
           <LegalLi>
             Email:{" "}
-            <a href="mailto:privacy@schduled.com" className="text-primary underline-offset-2 hover:underline">
-              privacy@schduled.com
+            <a href={`mailto:${env.PRIVACY_EMAIL}`} className="text-primary underline-offset-2 hover:underline">
+              {env.PRIVACY_EMAIL}
             </a>
           </LegalLi>
         </LegalUl>

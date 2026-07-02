@@ -11,12 +11,10 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import {
   endOfDay,
-  format,
-  isToday,
-  isTomorrow,
   startOfDay,
   startOfMonth,
 } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { and, count, desc, eq, gt, gte, lte } from "drizzle-orm";
 import Link from "next/link";
 import { PageHeader } from "@/components/scaffold/page-header";
@@ -29,24 +27,25 @@ import { env } from "@/lib/env";
 
 export const metadata = { title: "Dashboard" };
 
-function dayLabel(date: Date): string {
-  if (isToday(date)) {
-    return "Today";
-  }
-  if (isTomorrow(date)) {
-    return "Tomorrow";
-  }
-  return format(date, "MMM d");
+function dayLabel(date: Date, tz: string): string {
+  const today    = formatInTimeZone(new Date(), tz, 'yyyy-MM-dd')
+  const tomorrow = formatInTimeZone(new Date(Date.now() + 86400000), tz, 'yyyy-MM-dd')
+  const day      = formatInTimeZone(date, tz, 'yyyy-MM-dd')
+  if (day === today)    return "Today"
+  if (day === tomorrow) return "Tomorrow"
+  return formatInTimeZone(date, tz, "MMM d")
 }
 
 export default async function DashboardPage() {
   const session = await requireSession();
 
   const [freshUser] = await db
-    .select({ name: user.name, email: user.email, username: user.username })
+    .select({ name: user.name, email: user.email, username: user.username, timezone: user.timezone })
     .from(user)
     .where(eq(user.id, session.user.id))
     .limit(1);
+
+  const hostTz = freshUser?.timezone ?? 'UTC';
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -226,7 +225,7 @@ export default async function DashboardPage() {
   ]);
 
   const upcomingSubtitle = stats.nextMeeting
-    ? `Next: ${dayLabel(stats.nextMeeting.startTime)}`
+    ? `Next: ${dayLabel(stats.nextMeeting.startTime, hostTz)}`
     : "None scheduled";
 
   return (
@@ -297,10 +296,10 @@ export default async function DashboardPage() {
           </div>
           <div className="shrink-0 text-right">
             <p className="text-sm font-bold text-foreground">
-              {dayLabel(upcomingMeetings[0].startTime)}
+              {dayLabel(upcomingMeetings[0].startTime, hostTz)}
             </p>
             <p className="text-sm text-muted-foreground">
-              {format(upcomingMeetings[0].startTime, "h:mm a")}
+              {formatInTimeZone(upcomingMeetings[0].startTime, hostTz, "h:mm a")}
             </p>
           </div>
           <span className="ml-1 hidden shrink-0 items-center gap-1 text-sm font-medium text-primary transition-transform group-hover:translate-x-0.5 sm:inline-flex">
@@ -399,10 +398,10 @@ export default async function DashboardPage() {
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-sm font-semibold text-foreground">
-                      {dayLabel(m.startTime)}
+                      {dayLabel(m.startTime, hostTz)}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {format(m.startTime, "h:mm a")}
+                      {formatInTimeZone(m.startTime, hostTz, "h:mm a")}
                     </p>
                   </div>
                 </Link>
@@ -454,7 +453,7 @@ export default async function DashboardPage() {
                   <div className="shrink-0 flex flex-col items-end gap-1.5">
                     <StatusBadge status={b.status} />
                     <p className="text-sm text-muted-foreground">
-                      {dayLabel(b.createdAt)}
+                      {dayLabel(b.createdAt, hostTz)}
                     </p>
                   </div>
                 </Link>

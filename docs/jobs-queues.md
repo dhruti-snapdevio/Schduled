@@ -1,6 +1,6 @@
-# Schedica — Jobs & Queues Reference
+# Schduled — Jobs & Queues Reference
 
-All background work in Schedica runs through **pg-boss** — a PostgreSQL-backed job queue. No Redis, no separate message broker. The same PostgreSQL database used for application data also stores all job state. pg-boss runs as a **separate worker process** (`pnpm worker`) alongside the Next.js server.
+All background work in Schduled runs through **pg-boss** — a PostgreSQL-backed job queue. No Redis, no separate message broker. The same PostgreSQL database used for application data also stores all job state. pg-boss runs as a **separate worker process** (`pnpm worker`) alongside the Next.js server.
 
 > Every job uses a deterministic `singletonKey` in the format `{entityId}_{jobType}`. This ensures each job is uniquely identifiable, cancellable by key, and cannot create duplicates if the same event fires twice.
 

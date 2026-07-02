@@ -140,8 +140,12 @@ export function EventTypeCard({
   function handleToggle(checked: boolean) {
     startTransition(async () => {
       const res = await toggleEventTypeActive(id, checked)
-      if ('error' in res) toast.error(res.error)
-      else router.refresh()
+      if ('error' in res) {
+        toast.error(res.error)
+      } else {
+        toast.success(checked ? 'Meeting type activated' : 'Meeting type deactivated')
+        router.refresh()
+      }
     })
   }
 

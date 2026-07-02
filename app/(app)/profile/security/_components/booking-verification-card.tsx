@@ -48,6 +48,8 @@ export function BookingVerificationCard({ eventTypes }: { eventTypes: EventTypeR
       if ('error' in res) {
         toast.error(res.error)
         setStates((prev) => ({ ...prev, [id]: !value }))
+      } else {
+        toast.success(value ? 'Email verification required' : 'Email verification no longer required')
       }
     })
   }

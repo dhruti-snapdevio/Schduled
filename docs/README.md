@@ -1,4 +1,4 @@
-# Schedica
+# Schduled
 
 > A modern, intelligent scheduling platform — built for teams, freelancers, and revenue teams who need more than a simple booking link.
 
@@ -6,9 +6,9 @@
 
 ## Project Overview
 
-**Schedica** is a web-based appointment scheduling and meeting automation platform. It eliminates the back-and-forth of finding meeting times by letting users share a booking link where others can self-schedule based on real-time calendar availability.
+**Schduled** is a web-based appointment scheduling and meeting automation platform. It eliminates the back-and-forth of finding meeting times by letting users share a booking link where others can self-schedule based on real-time calendar availability.
 
-Schedica is inspired by the best of the scheduling market — the simplicity of **Calendly**, the openness of **Cal.com**, the conversion focus of **Chili Piper**, the CRM depth of **HubSpot Meetings**, and the UX innovation of **SavvyCal** — combined into a single, cohesive product.
+Schduled is inspired by the best of the scheduling market — the simplicity of **Calendly**, the openness of **Cal.com**, the conversion focus of **Chili Piper**, the CRM depth of **HubSpot Meetings**, and the UX innovation of **SavvyCal** — combined into a single, cohesive product.
 
 ### Target Users
 
@@ -55,7 +55,7 @@ For production, run the Next.js server and `pnpm worker` as separate pm2/systemd
 |-----------|---------|
 | **pg-boss** | PostgreSQL-backed job queue — schedules and processes async tasks: send reminder emails, sync calendar events, generate video links, and run cron jobs. Uses the same PostgreSQL database — no Redis required. |
 
-> **Two-process architecture:** Schedica runs as two separate processes sharing one PostgreSQL database. The **Next.js server** handles web traffic; the **pg-boss worker** (`pnpm worker`) processes background jobs. In development, `concurrently` starts both. In production, run both as separate pm2/systemd/Docker processes.
+> **Two-process architecture:** Schduled runs as two separate processes sharing one PostgreSQL database. The **Next.js server** handles web traffic; the **pg-boss worker** (`pnpm worker`) processes background jobs. In development, `concurrently` starts both. In production, run both as separate pm2/systemd/Docker processes.
 
 > **Why pg-boss over Redis/BullMQ:** pg-boss stores jobs inside PostgreSQL, keeping the infrastructure simple — one fewer service to provision, monitor, and scale. It supports scheduled jobs (cron), retries with exponential backoff, job priorities, and exactly-once delivery. See [jobs-queues.md](./jobs-queues.md) for all 16 job types and the complete feature-to-job mapping.
 
@@ -146,7 +146,7 @@ Which library or service each feature depends on. Use this as a quick lookup dur
 
 ## Core Functionality
 
-Schedica is organized around five core pillars:
+Schduled is organized around five core pillars:
 
 ### 1. Smart Scheduling
 - Create 1-on-1 event types *(MVP)*
@@ -237,17 +237,17 @@ Implementation patterns for Wave 1 features — outbound webhooks (with SSRF val
 
 ## Competitive Landscape
 
-| Product | Strength | Gap Schedica Fills |
+| Product | Strength | Gap Schduled Fills |
 |---------|----------|-------------------|
 | **Calendly** | Market leader, ease of use | Expensive for teams; dropped Apple Calendar support; shows only one timezone |
-| **Cal.com** | Open source, generous free tier | Less polished UX — Schedica offers the same self-hosting freedom with a more refined experience |
+| **Cal.com** | Open source, generous free tier | Less polished UX — Schduled offers the same self-hosting freedom with a more refined experience |
 | **Acuity Scheduling** | Deep appointment customization, built-in payments | Outdated UI; no real-time calendar overlay; weak team routing |
 | **Microsoft Bookings** | Native Microsoft 365 integration | No invitee timezone auto-detect; limited customization; tied to Microsoft ecosystem |
 | **Chili Piper** | Best-in-class B2B lead routing | Extremely expensive; Salesforce-only; steep learning curve |
 | **HubSpot Meetings** | Native CRM integration | Tied to HubSpot; basic features on free tier |
 | **SavvyCal** | Best booking UX (calendar overlay) | No free tier; small ecosystem |
 
-**Schedica's positioning:** A polished, open source scheduling platform with SavvyCal-quality UX, Calendly-level features, and Chili Piper-inspired lead routing — free for everyone to use and self-host.
+**Schduled's positioning:** A polished, open source scheduling platform with SavvyCal-quality UX, Calendly-level features, and Chili Piper-inspired lead routing — free for everyone to use and self-host.
 
 ## Documentation
 
@@ -275,7 +275,7 @@ The app is a single Next.js monorepo — all frontend, API routes, and server ac
 
 1. **Apple Calendar Support** *(Post-MVP)* — Native iCloud/Apple Calendar sync; Calendly dropped this in August 2024
 2. **Both Timezones in Every Email** — Confirmation and reminder emails show the invitee's time AND the host's time; Calendly only shows one timezone
-3. **Cancellation Policy Enforcement** — Calendly only displays policy text; Schedica actually blocks cancellations within the configured window
+3. **Cancellation Policy Enforcement** — Calendly only displays policy text; Schduled actually blocks cancellations within the configured window
 4. **Unlimited Custom Questions** — No limits on intake questions; Calendly restricts questions behind paid plans
 5. **Multi-Duration Event Types** — One booking link can offer 15, 30, and 60-min options; invitee picks at booking time
 6. **Meeting Overload Protection** — Daily meeting limits, buffer times, and minimum notice periods prevent back-to-back burnout

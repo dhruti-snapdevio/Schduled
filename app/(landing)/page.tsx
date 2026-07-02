@@ -4,6 +4,14 @@ import { FaqAccordion } from '@/components/landing/faq-accordion'
 import { FeaturesSection } from '@/components/landing/features-section'
 import { LandingHeader } from '@/components/landing/landing-header'
 import { LandingFooter } from '@/components/landing/landing-footer'
+import { Reveal } from '@/components/landing/reveal'
+import { TestimonialCarousel } from '@/components/landing/testimonial-carousel'
+import { env } from '@/lib/env'
+
+// Illustrative example domain shown in "how it works" copy — derives from
+// the real configured deployment so self-hosters see their own domain
+// instead of the hosted product's.
+const APP_HOST = env.NEXT_PUBLIC_APP_URL.replace(/^https?:\/\//, '')
 import {
   ArrowDown,
   ArrowRight,
@@ -37,10 +45,10 @@ const BRAND_LOGOS = [
     id: 'github',
     el: (
       <div className="flex items-center gap-2">
-        <svg viewBox="0 0 24 24" height="20" fill="currentColor" aria-hidden>
+        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
           <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12z" />
         </svg>
-        <span className="text-[15px] font-black tracking-tight">GitHub</span>
+        <span className="text-[19px] font-black tracking-tight">GitHub</span>
       </div>
     ),
   },
@@ -48,10 +56,10 @@ const BRAND_LOGOS = [
     id: 'vercel',
     el: (
       <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="18" fill="currentColor" aria-hidden>
+        <svg viewBox="0 0 24 24" height="26" fill="currentColor" aria-hidden>
           <path d="M24 22.525H0l12-21.05 12 21.05z" />
         </svg>
-        <span className="text-[15px] font-black tracking-tight">Vercel</span>
+        <span className="text-[19px] font-black tracking-tight">Vercel</span>
       </div>
     ),
   },
@@ -59,10 +67,10 @@ const BRAND_LOGOS = [
     id: 'figma',
     el: (
       <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 38 57" height="22" fill="currentColor" aria-hidden>
+        <svg viewBox="0 0 38 57" height="30" fill="currentColor" aria-hidden>
           <path d="M19 28.5A9.5 9.5 0 1 1 28.5 19 9.511 9.511 0 0 1 19 28.5zm-9.5-19A9.5 9.5 0 0 1 19 0h9.5a9.5 9.5 0 0 1 0 19H19A9.5 9.5 0 0 1 9.5 9.5zM0 28.5A9.5 9.5 0 0 1 9.5 19H19v9.5a9.5 9.5 0 1 1-19 0zM9.5 38H19v9.5a9.5 9.5 0 1 1-9.5-9.5zm9.5 0h9.5a9.5 9.5 0 1 1-9.5 9.5z" />
         </svg>
-        <span className="text-[15px] font-black tracking-tight">Figma</span>
+        <span className="text-[19px] font-black tracking-tight">Figma</span>
       </div>
     ),
   },
@@ -70,10 +78,10 @@ const BRAND_LOGOS = [
     id: 'linear',
     el: (
       <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 100 100" height="20" fill="currentColor" aria-hidden>
+        <svg viewBox="0 0 100 100" height="28" fill="currentColor" aria-hidden>
           <path d="M1.225 61.54 38.46 98.775a50.03 50.03 0 0 1-37.235-37.235zM0 49.74 50.26 100a50.028 50.028 0 0 1-6.944-.664L.664 56.684A50.028 50.028 0 0 1 0 49.74zm2.347-12.6 60.513 60.513a50.275 50.275 0 0 1-8.714 2.057L4.404 58.454a50.275 50.275 0 0 1 2.057-8.714zM8.212 27.008l64.78 64.78a50.118 50.118 0 0 1-6.561 4.286L11.926 33.569a50.118 50.118 0 0 1 4.286-6.561zm12.077-12.02 64.723 64.723C74.38 85.626 59.414 91.4 43.09 91.4c-22.865 0-42.766-12.838-52.981-31.725L4.982 43.09c0-16.324 5.774-31.29 15.307-41.922zM50 0c27.614 0 50 22.386 50 50 0 16.324-5.774 31.29-15.307 41.922L35.386 32.615C37.52 20.527 46.56 11 50 0z" />
         </svg>
-        <span className="text-[15px] font-black tracking-tight">Linear</span>
+        <span className="text-[19px] font-black tracking-tight">Linear</span>
       </div>
     ),
   },
@@ -81,10 +89,10 @@ const BRAND_LOGOS = [
     id: 'stripe',
     el: (
       <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="20" fill="currentColor" aria-hidden>
+        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
           <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z" />
         </svg>
-        <span className="text-[15px] font-black tracking-tight">Stripe</span>
+        <span className="text-[19px] font-black tracking-tight">Stripe</span>
       </div>
     ),
   },
@@ -92,10 +100,10 @@ const BRAND_LOGOS = [
     id: 'notion',
     el: (
       <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="20" fill="currentColor" aria-hidden>
+        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
           <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.14c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z" />
         </svg>
-        <span className="text-[15px] font-black tracking-tight">Notion</span>
+        <span className="text-[19px] font-black tracking-tight">Notion</span>
       </div>
     ),
   },
@@ -103,10 +111,10 @@ const BRAND_LOGOS = [
     id: 'google',
     el: (
       <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="20" fill="currentColor" aria-hidden>
+        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
           <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
         </svg>
-        <span className="text-[15px] font-black tracking-tight">Google</span>
+        <span className="text-[19px] font-black tracking-tight">Google</span>
       </div>
     ),
   },
@@ -114,10 +122,10 @@ const BRAND_LOGOS = [
     id: 'hubspot',
     el: (
       <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="20" fill="currentColor" aria-hidden>
+        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
           <path d="M22.175 11.073a4.175 4.175 0 0 0-3.357-4.1V4.898a1.51 1.51 0 0 0 .87-1.37V3.51A1.51 1.51 0 0 0 18.18 2h-.016a1.51 1.51 0 0 0-1.508 1.51v.018a1.51 1.51 0 0 0 .87 1.37v2.075a4.176 4.176 0 0 0-1.99.912L8.572 3.24a1.757 1.757 0 1 0-.926 1.594L15.1 8.94a4.175 4.175 0 0 0-.35 1.653 4.175 4.175 0 0 0 2.198 3.683l-1.26 1.749a1.384 1.384 0 1 0 1.175.645l1.36-1.887a4.175 4.175 0 0 0 3.952-3.71zm-4.004 2.37a2.37 2.37 0 1 1 0-4.74 2.37 2.37 0 0 1 0 4.74z" />
         </svg>
-        <span className="text-[15px] font-black tracking-tight">HubSpot</span>
+        <span className="text-[19px] font-black tracking-tight">HubSpot</span>
       </div>
     ),
   },
@@ -125,10 +133,10 @@ const BRAND_LOGOS = [
     id: 'slack',
     el: (
       <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="20" fill="currentColor" aria-hidden>
+        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
           <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" />
         </svg>
-        <span className="text-[15px] font-black tracking-tight">Slack</span>
+        <span className="text-[19px] font-black tracking-tight">Slack</span>
       </div>
     ),
   },
@@ -136,10 +144,10 @@ const BRAND_LOGOS = [
     id: 'zoom',
     el: (
       <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="20" fill="currentColor" aria-hidden>
+        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
           <path d="M24 12c0 6.627-5.373 12-12 12S0 18.627 0 12 5.373 0 12 0s12 5.373 12 12zM9.947 8.04c-1.193 0-2.16.968-2.16 2.16v4.517l.004.145a3.84 3.84 0 0 0 3.836 3.695h6.213a2.16 2.16 0 0 0 2.16-2.16v-4.517l-.004-.145a3.84 3.84 0 0 0-3.836-3.695H9.947zm7.97 1.44 1.023 1.023v2.994l-1.022 1.022V9.48z" />
         </svg>
-        <span className="text-[15px] font-black tracking-tight">Zoom</span>
+        <span className="text-[19px] font-black tracking-tight">Zoom</span>
       </div>
     ),
   },
@@ -157,8 +165,8 @@ const STEPS = [
     num: '02',
     icon: LinkSimple,
     title: 'Share your booking link',
-    description: 'You get schduled.com/yourname. Paste it in your email signature, LinkedIn bio, or anywhere.',
-    detail: 'schduled.com/janedoe/30-min',
+    description: `You get ${APP_HOST}/yourname. Paste it in your email signature, LinkedIn bio, or anywhere.`,
+    detail: `${APP_HOST}/janedoe/30-min`,
   },
   {
     num: '03',
@@ -178,36 +186,63 @@ const STATS = [
 const TESTIMONIALS = [
   {
     quote: "I replaced Calendly the same day I found Schduled. Cleaner UI, faster setup, and it's genuinely free — no catch.",
+    highlight: "it's genuinely free — no catch",
     name: 'A. C.',
     role: 'Product Lead',
     company: 'SaaS startup',
     initials: 'AC',
     avatarGrad: 'from-teal-500 to-emerald-600',
-    bg: 'bg-gradient-to-b from-primary/[0.07] to-transparent',
-    border: 'border-primary/25',
-    hover: 'hover:border-primary/55',
+    chips: ['Google Calendar sync', 'Custom booking page'],
   },
   {
     quote: "My clients book through my Schduled link and it looks more professional than any tool I've used. And I pay nothing.",
+    highlight: 'looks more professional than any tool',
     name: 'M. W.',
     role: 'Freelance Designer',
     company: 'Independent',
     initials: 'MW',
     avatarGrad: 'from-violet-500 to-indigo-600',
-    bg: 'bg-gradient-to-b from-violet-500/[0.07] to-transparent',
-    border: 'border-violet-400/25',
-    hover: 'hover:border-violet-400/55',
+    chips: ['Custom booking page', 'Buffer times'],
   },
   {
     quote: "The timezone handling alone saves my global team an hour of confusion every single week. Effortless.",
+    highlight: 'saves my global team an hour of confusion',
     name: 'E. R.',
     role: 'Operations Lead',
     company: 'Remote-first team',
     initials: 'ER',
     avatarGrad: 'from-orange-500 to-rose-600',
-    bg: 'bg-gradient-to-b from-orange-500/[0.07] to-transparent',
-    border: 'border-orange-400/25',
-    hover: 'hover:border-orange-400/55',
+    chips: ['Timezone detection', 'Google Meet'],
+  },
+  {
+    quote: "Switched from Calendly after they capped my plan's meeting types. Schduled gives me unlimited everything for free.",
+    highlight: 'unlimited everything for free',
+    name: 'D. K.',
+    role: 'Sales Manager',
+    company: 'B2B software',
+    initials: 'DK',
+    avatarGrad: 'from-blue-500 to-cyan-600',
+    chips: ['Round robin', 'Meeting types'],
+  },
+  {
+    quote: "Set it up during onboarding, forgot about it, and it just quietly runs. Exactly what scheduling software should be.",
+    highlight: 'it just quietly runs',
+    name: 'S. P.',
+    role: 'Engineering Manager',
+    company: 'Fintech startup',
+    initials: 'SP',
+    avatarGrad: 'from-pink-500 to-fuchsia-600',
+    chips: ['Availability rules', 'Email reminders'],
+  },
+  {
+    quote: "My coaching clients book themselves in seconds now. No more back-and-forth emails trying to find a slot that works.",
+    highlight: 'book themselves in seconds',
+    name: 'L. N.',
+    role: 'Career Coach',
+    company: 'Self-employed',
+    initials: 'LN',
+    avatarGrad: 'from-amber-500 to-orange-600',
+    chips: ['Buffer times', 'Custom booking page'],
   },
 ]
 
@@ -248,6 +283,7 @@ const DARK_BG: React.CSSProperties = {
     linear-gradient(180deg, #081C1C 0%, #041010 100%)
   `,
 }
+
 
 const PARTICLES = [
   { top: '12%', left: '8%',  size: 3, delay: '0s',   dur: '7s'   },
@@ -339,7 +375,7 @@ export default async function LandingPage() {
             ))}
           </div>
 
-          <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
+          <div className="relative mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
             <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
 
               {/* ── LEFT: copy ── */}
@@ -559,9 +595,11 @@ export default async function LandingPage() {
 
         {/* ─── TRUSTED BY ──────────────────────────────────────────────────────── */}
         <section className="border-y border-border bg-background py-7">
-          <p className="mb-6 text-center text-xs font-black uppercase tracking-[0.22em] text-foreground/50">
-            Trusted by teams at
-          </p>
+          <Reveal className="mb-6 text-center">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-foreground/50">
+              Trusted by teams at
+            </p>
+          </Reveal>
           <div className="relative overflow-hidden">
             <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-24 bg-gradient-to-r from-background to-transparent" />
             <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-24 bg-gradient-to-l from-background to-transparent" />
@@ -569,7 +607,7 @@ export default async function LandingPage() {
               {[...BRAND_LOGOS, ...BRAND_LOGOS].map((brand, i) => (
                 <div
                   key={i}
-                  className="mx-10 inline-flex shrink-0 items-center text-foreground/55 grayscale transition-all duration-300 hover:text-foreground hover:grayscale-0"
+                  className="mx-12 inline-flex shrink-0 items-center text-foreground/55 grayscale transition-all duration-300 hover:text-foreground hover:grayscale-0"
                 >
                   {brand.el}
                 </div>
@@ -579,40 +617,67 @@ export default async function LandingPage() {
         </section>
 
         {/* ─── STATS ───────────────────────────────────────────────────────────── */}
-        <section className="py-24">
-          <div className="mx-auto max-w-5xl px-5 sm:px-8">
-            <p className="scroll-reveal mb-3 text-center text-xs font-bold uppercase tracking-[0.22em] text-primary/70">
-              Why people choose Schduled
-            </p>
-            <h2 className="scroll-reveal mb-12 text-center text-3xl font-black text-foreground sm:text-4xl">
-              Scheduling that just works.
-            </h2>
+        <section className="relative overflow-hidden border-y border-border bg-muted/20">
+          {/* Soft centered glow */}
+          <div
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[380px] w-[760px] -translate-x-1/2 -translate-y-1/2"
+            style={{ background: 'radial-gradient(ellipse, rgba(20,184,166,0.09) 0%, transparent 65%)', filter: 'blur(28px)' }}
+          />
+          {/* Faint dot grid */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.22]"
+            style={{ backgroundImage: 'radial-gradient(circle, rgba(20,184,166,0.25) 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+          />
 
-            <div className="grid gap-6 sm:grid-cols-3">
-              {STATS.map((s, i) => {
-                const Icon = s.icon
-                return (
-                  <div
-                    key={s.value}
-                    className={`scroll-reveal ${i === 1 ? 'sr-d1' : i === 2 ? 'sr-d2' : ''} group relative overflow-hidden border border-border bg-gradient-to-b from-card to-muted/20 px-8 py-10 text-center transition-all duration-300 hover:-translate-y-[4px] hover:border-primary/50`}
-                    style={{}}
-                    onMouseEnter={undefined}
-                  >
-                    {/* Glow overlay on hover */}
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                    {/* Top accent line */}
-                    <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
-                    {/* Glass shimmer edge */}
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent opacity-60" />
+          <div className="relative mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
 
-                    <div className="relative">
-                      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center bg-primary/10 text-primary transition-all duration-300 group-hover:bg-primary/20">
-                        <Icon size={26} weight="duotone" />
+            {/* Heading block */}
+            <Reveal className="pt-14 pb-10 text-center">
+              <p className="mb-4 text-xs font-black uppercase tracking-eyebrow text-primary">
+                Why people choose Schduled
+              </p>
+              <h2 className="mb-4 text-3xl font-black text-foreground sm:text-4xl">
+                Scheduling that{' '}
+                <span
+                  className="animate-schduled-text-gradient"
+                  style={{
+                    background: 'linear-gradient(90deg,#2dd4bf 0%,#14b8a6 28%,#5eead4 55%,#0f9688 80%,#2dd4bf 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    backgroundSize: '200% auto',
+                    display: 'inline-block',
+                  }}
+                >
+                  just works.
+                </span>
+              </h2>
+              <p className="mx-auto max-w-xl text-base leading-relaxed text-muted-foreground">
+                Everything you need to create booking pages, eliminate double bookings,
+                and share your availability in minutes.
+              </p>
+            </Reveal>
+
+            {/* Stats row */}
+            <Reveal delay={80}>
+              <div className="flex flex-col divide-y divide-border sm:flex-row sm:divide-x sm:divide-y-0">
+                {STATS.map((s) => {
+                  const Icon = s.icon
+                  return (
+                    <div
+                      key={s.value}
+                      className="group flex flex-1 flex-col items-center px-10 py-10 text-center transition-all duration-300 hover:-translate-y-1 sm:py-14"
+                    >
+                      {/* Small icon badge */}
+                      <div className="mb-4 flex h-8 w-8 items-center justify-center bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-primary/18">
+                        <Icon size={15} weight="duotone" />
                       </div>
 
+                      {/* Large metric number */}
                       <div
-                        className="mb-1 font-black text-3xl sm:text-4xl animate-schduled-text-gradient"
+                        className="mb-2 font-black leading-none tracking-tight animate-schduled-text-gradient"
                         style={{
+                          fontSize: 'clamp(2.8rem, 4.2vw, 4.5rem)',
                           background: 'linear-gradient(90deg,#0d9488 0%,#14b8a6 45%,#2dd4bf 75%,#0d9488 100%)',
                           WebkitBackgroundClip: 'text',
                           WebkitTextFillColor: 'transparent',
@@ -623,13 +688,22 @@ export default async function LandingPage() {
                       >
                         {s.value}
                       </div>
-                      <p className="mt-2 text-base font-bold text-foreground">{s.title}</p>
-                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{s.sub}</p>
+
+                      {/* Uppercase label */}
+                      <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-foreground/60">
+                        {s.title}
+                      </p>
+
+                      {/* Supporting sentence */}
+                      <p className="max-w-[200px] text-sm leading-relaxed text-muted-foreground">
+                        {s.sub}
+                      </p>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            </Reveal>
+
           </div>
         </section>
 
@@ -637,7 +711,7 @@ export default async function LandingPage() {
         <FeaturesSection />
 
         {/* ─── PRODUCT PREVIEW ─────────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden py-32" style={DARK_BG}>
+        <section className="relative overflow-clip py-32" style={DARK_BG}>
           {/* Animated radial glow behind dashboard */}
           <div
             className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[800px] animate-schduled-glow-pulse"
@@ -646,17 +720,17 @@ export default async function LandingPage() {
           <div className="pointer-events-none absolute inset-0 opacity-[0.032]"
             style={{ backgroundImage: 'linear-gradient(rgba(20,184,166,1) 1px,transparent 1px),linear-gradient(90deg,rgba(20,184,166,1) 1px,transparent 1px)', backgroundSize: '48px 48px' }} />
 
-          <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
-            <div className="mb-14 text-center">
+          <div className="relative mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
+            <Reveal className="mb-14 text-center">
               <p className="mb-3 text-xs font-black uppercase tracking-eyebrow text-teal-400/60">The product</p>
               <h2 className="font-black text-3xl text-white sm:text-4xl lg:text-5xl">
                 Clean. Fast.<br className="hidden sm:block" /> Everything at a glance.
               </h2>
               <p className="mt-4 text-white/45">Your command center for every booking, every meeting, every invitee.</p>
-            </div>
+            </Reveal>
 
             {/* Dashboard frame with floating labels */}
-            <div className="relative">
+            <Reveal delay={150} className="relative">
 
               {/* Floating label — Upcoming */}
               <div
@@ -701,7 +775,7 @@ export default async function LandingPage() {
                   </div>
                   <div className="flex flex-1 max-w-xs items-center gap-2 border border-white/8 bg-black/25 px-3 py-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-teal-400/55" />
-                    <span className="font-mono text-xs text-white/30">app.schduled.com/dashboard</span>
+                    <span className="font-mono text-xs text-white/30">{APP_HOST}/dashboard</span>
                   </div>
                 </div>
 
@@ -772,69 +846,133 @@ export default async function LandingPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Reveal>
           </div>
         </section>
 
         {/* ─── HOW IT WORKS ────────────────────────────────────────────────────── */}
-        <section id="how-it-works" className="py-28">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8">
-            <div className="mb-16 text-center scroll-reveal">
-              <p className="mb-3 text-xs font-black uppercase tracking-eyebrow text-primary">How It Works</p>
+        <section id="how-it-works" className="relative overflow-hidden bg-gradient-to-b from-background to-muted/20 py-32 lg:py-44">
+
+          {/* Floating gradient blobs */}
+          <div
+            className="pointer-events-none absolute left-[4%] top-[8%] h-[560px] w-[560px]"
+            style={{ background: 'radial-gradient(circle, rgba(20,184,166,0.07) 0%, transparent 65%)', filter: 'blur(52px)' }}
+          />
+          <div
+            className="pointer-events-none absolute right-[4%] bottom-[8%] h-[440px] w-[440px]"
+            style={{ background: 'radial-gradient(circle, rgba(13,148,136,0.06) 0%, transparent 65%)', filter: 'blur(52px)' }}
+          />
+          <div
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2"
+            style={{ background: 'radial-gradient(circle, rgba(20,184,166,0.04) 0%, transparent 65%)', filter: 'blur(40px)' }}
+          />
+
+          {/* Subtle dot grid */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.28]"
+            style={{
+              backgroundImage: 'radial-gradient(circle, rgba(20,184,166,0.22) 1px, transparent 1px)',
+              backgroundSize: '28px 28px',
+            }}
+          />
+
+          <div className="relative mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
+            <Reveal className="mb-24 text-center">
+              <p className="mb-4 text-xs font-black uppercase tracking-eyebrow text-primary">How It Works</p>
               <h2 className="font-black text-3xl sm:text-4xl lg:text-5xl">
                 From sign-up to booked
                 <br className="hidden sm:block" />
                 in under 5 minutes.
               </h2>
-            </div>
+              <p className="mx-auto mt-5 max-w-lg text-base text-muted-foreground">
+                Three steps is all it takes — no configuration nightmares, no IT tickets, no training required.
+              </p>
+            </Reveal>
 
-            <div className="grid gap-8 md:grid-cols-3">
-              {STEPS.map((step, i) => {
+            {/* ── Desktop: 3 cards side-by-side with arrow connectors ── */}
+            <div className="hidden md:grid md:grid-cols-[1fr_52px_1fr_52px_1fr] items-stretch">
+              {STEPS.flatMap((step, i) => {
                 const Icon = step.icon
-                return (
-                  <div key={step.num} className={`scroll-reveal ${i === 1 ? 'sr-d1' : i === 2 ? 'sr-d2' : ''} group relative transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02]`}>
+                const card = (
+                  <Reveal
+                    key={step.num}
+                    delay={i * 160}
+                    className="group relative flex flex-col border border-border bg-card px-8 py-10 transition-all duration-300 hover:-translate-y-2 hover:border-primary/50 hover:bg-primary/[0.025]"
+                  >
+                    {/* Top accent bar */}
+                    <div className="absolute inset-x-0 top-0 h-[2px] origin-left scale-x-0 bg-gradient-to-r from-primary to-teal-400 transition-transform duration-300 group-hover:scale-x-100" />
 
-                    <div className="relative mb-6">
-                      <div className="relative inline-flex h-14 w-14 items-center justify-center border-2 border-border bg-background transition-all duration-300 group-hover:border-primary group-hover:bg-primary/5">
-                        <Icon size={22} weight="duotone" className="text-primary" />
-                        <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center bg-primary text-[9px] font-black text-primary-foreground">
-                          {step.num}
-                        </span>
-                      </div>
+                    {/* Step badge */}
+                    <span className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center bg-primary text-[10px] font-black text-primary-foreground">
+                      {step.num}
+                    </span>
 
-                      {/* Animated teal connector */}
-                      {i < 2 && (
-                        <div
-                          className="pointer-events-none absolute top-7 hidden overflow-hidden md:block"
-                          style={{
-                            left: '3.5rem',
-                            right: '-2rem',
-                            height: '2px',
-                            background: 'color-mix(in oklch, var(--primary) 15%, transparent)',
-                          }}
-                        >
-                          <div
-                            style={{
-                              position: 'absolute',
-                              inset: 0,
-                              background: 'linear-gradient(90deg, transparent 0%, var(--primary) 50%, transparent 100%)',
-                              animation: 'schduled-connector-shimmer 2.5s linear infinite',
-                            }}
-                          />
-                        </div>
-                      )}
+                    {/* Icon container */}
+                    <div className="mb-8 flex h-[72px] w-[72px] items-center justify-center border border-primary/20 bg-gradient-to-br from-primary/15 to-primary/5 text-primary transition-all duration-300 group-hover:border-primary/35 group-hover:from-primary/20 group-hover:to-primary/10">
+                      <Icon size={32} weight="duotone" />
                     </div>
 
-                    <div className="mb-2 text-primary">
-                      <Icon size={20} weight="duotone" />
-                    </div>
-                    <h3 className="mb-2 font-bold text-lg">{step.title}</h3>
-                    <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{step.description}</p>
+                    <h3 className="mb-3 font-bold text-xl">{step.title}</h3>
+                    <p className="mb-auto text-sm leading-relaxed text-muted-foreground">{step.description}</p>
 
-                    <div className="inline-flex items-center gap-1.5 border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-all duration-300 group-hover:border-primary/40 group-hover:bg-primary/10">
+                    {/* Live example badge */}
+                    <div className="mt-8 inline-flex items-center gap-1.5 border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-all duration-300 group-hover:border-primary/40 group-hover:bg-primary/10">
                       <CheckCircle size={11} weight="fill" />
                       {step.detail}
                     </div>
+                  </Reveal>
+                )
+
+                if (i === STEPS.length - 1) return [card]
+
+                const connector = (
+                  <div key={`connector-${i}`} className="flex flex-col items-center justify-center gap-1.5">
+                    <div className="h-px w-5 bg-border" />
+                    <ArrowRight size={14} weight="bold" className="text-primary/50" />
+                  </div>
+                )
+
+                return [card, connector]
+              })}
+            </div>
+
+            {/* ── Mobile: stacked with vertical arrows ── */}
+            <div className="flex flex-col md:hidden">
+              {STEPS.map((step, i) => {
+                const Icon = step.icon
+                return (
+                  <div key={step.num}>
+                    <Reveal
+                      delay={i * 150}
+                      className="group relative flex flex-col border border-border bg-card px-7 py-9 transition-all duration-300"
+                    >
+                      {/* Top accent bar */}
+                      <div className="absolute inset-x-0 top-0 h-[2px] origin-left scale-x-0 bg-gradient-to-r from-primary to-teal-400 transition-transform duration-300 group-hover:scale-x-100" />
+
+                      {/* Step badge */}
+                      <span className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center bg-primary text-[10px] font-black text-primary-foreground">
+                        {step.num}
+                      </span>
+
+                      {/* Icon */}
+                      <div className="mb-5 flex h-14 w-14 items-center justify-center border border-primary/20 bg-gradient-to-br from-primary/15 to-primary/5 text-primary">
+                        <Icon size={26} weight="duotone" />
+                      </div>
+
+                      <h3 className="mb-2 font-bold text-lg">{step.title}</h3>
+                      <p className="mb-5 text-sm leading-relaxed text-muted-foreground">{step.description}</p>
+
+                      <div className="inline-flex items-center gap-1.5 border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+                        <CheckCircle size={11} weight="fill" />
+                        {step.detail}
+                      </div>
+                    </Reveal>
+
+                    {i < STEPS.length - 1 && (
+                      <div className="flex h-12 items-center justify-center">
+                        <ArrowDown size={18} className="text-primary/40" />
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -844,11 +982,11 @@ export default async function LandingPage() {
 
         {/* ─── FULL FEATURE LIST ────────────────────────────────────────────────── */}
         <section className="border-t border-border bg-muted/20 py-24">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8">
+          <div className="mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
             <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
 
               {/* Left: title + CTA */}
-              <div className="scroll-reveal sr-left">
+              <Reveal>
                 <p className="mb-3 text-xs font-black uppercase tracking-eyebrow text-primary">Everything included</p>
                 <h2 className="mb-4 font-black text-3xl sm:text-4xl">
                   Every feature.<br />Zero paywalls.
@@ -860,14 +998,14 @@ export default async function LandingPage() {
                 <Link href="/login" className="inline-flex items-center gap-2 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
                   Start free today <ArrowRight size={14} weight="bold" />
                 </Link>
-              </div>
+              </Reveal>
 
               {/* Right: grouped feature columns */}
-              <div className="scroll-reveal sr-right grid gap-6 sm:grid-cols-3">
-                {FEATURE_GROUPS.map((group) => {
+              <div className="grid gap-6 sm:grid-cols-3">
+                {FEATURE_GROUPS.map((group, i) => {
                   const Icon = group.icon
                   return (
-                    <div key={group.label}>
+                    <Reveal key={group.label} delay={150 + i * 120}>
                       <div className="mb-3 flex items-center gap-2">
                         <div className="flex h-7 w-7 shrink-0 items-center justify-center bg-primary/10 text-primary">
                           <Icon size={14} weight="duotone" />
@@ -882,7 +1020,7 @@ export default async function LandingPage() {
                           </li>
                         ))}
                       </ul>
-                    </div>
+                    </Reveal>
                   )
                 })}
               </div>
@@ -891,12 +1029,35 @@ export default async function LandingPage() {
         </section>
 
         {/* ─── TESTIMONIALS ────────────────────────────────────────────────────── */}
-        <section className="bg-muted/30 py-28">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8">
-            <div className="mb-14 text-center scroll-reveal">
+        <section className="relative overflow-clip bg-gradient-to-b from-background to-muted/40 py-28">
+          {/* Soft teal glows + faint grid — echoes the Hero/Product Preview treatment, toned for a light section */}
+          <div
+            className="pointer-events-none absolute -left-32 top-0 h-[420px] w-[420px]"
+            style={{ background: 'radial-gradient(circle, rgba(20,184,166,.14) 0%, transparent 70%)', filter: 'blur(20px)' }}
+          />
+          <div
+            className="pointer-events-none absolute -right-32 bottom-0 h-[420px] w-[420px]"
+            style={{ background: 'radial-gradient(circle, rgba(13,148,136,.12) 0%, transparent 70%)', filter: 'blur(20px)' }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.05]"
+            style={{
+              backgroundImage:
+                'linear-gradient(rgba(20,184,166,1) 1px,transparent 1px),linear-gradient(90deg,rgba(20,184,166,1) 1px,transparent 1px)',
+              backgroundSize: '52px 52px',
+            }}
+          />
+
+          {/* Subtle floating decorations */}
+          <CalendarCheck size={28} weight="duotone" className="pointer-events-none absolute left-[8%] top-[18%] hidden text-primary/10 sm:block" />
+          <Bell size={24} weight="duotone" className="pointer-events-none absolute right-[10%] top-[28%] hidden text-primary/10 lg:block" />
+          <CheckCircle size={26} weight="duotone" className="pointer-events-none absolute bottom-[14%] left-[12%] hidden text-primary/10 lg:block" />
+
+          <div className="relative mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
+            <Reveal className="mb-14 text-center">
               <p className="mb-3 text-xs font-black uppercase tracking-eyebrow text-primary">Testimonials</p>
               <h2 className="font-black text-3xl sm:text-4xl lg:text-5xl">
-                Loved by people who<br className="hidden sm:block" /> schedule a lot.
+                Trusted by teams that<br className="hidden sm:block" /> schedule smarter.
               </h2>
 
               {/* Rating bar */}
@@ -911,89 +1072,154 @@ export default async function LandingPage() {
                 <div className="h-4 w-px bg-border" />
                 <span className="text-sm text-muted-foreground">Based on 10,000+ bookings</span>
               </div>
-            </div>
+            </Reveal>
 
-            <div className="grid gap-5 md:grid-cols-3">
-              {TESTIMONIALS.map((t, i) => (
-                <div
-                  key={t.name}
-                  className={`scroll-reveal ${i === 1 ? 'sr-d1' : i === 2 ? 'sr-d2' : ''} group relative overflow-hidden border ${t.border} ${t.bg} p-7 transition-all duration-300 hover:-translate-y-1.5 ${t.hover}`}
-                >
-                  {/* Corner accent */}
-                  <div className="absolute right-0 top-0 h-16 w-16 bg-gradient-to-bl from-white/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-
-                  {/* Stars */}
-                  <div className="mb-4 flex gap-1">
-                    {Array.from({ length: 5 }).map((_, s) => (
-                      <Star key={s} size={12} weight="fill" className="text-primary" />
-                    ))}
-                  </div>
-
-                  <p className="mb-6 text-sm leading-relaxed text-foreground">&ldquo;{t.quote}&rdquo;</p>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center bg-gradient-to-br ${t.avatarGrad} text-xs font-black text-white`}>
-                        {t.initials}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold">{t.name}</p>
-                        <p className="text-xs text-muted-foreground">{t.role} · {t.company}</p>
-                      </div>
-                    </div>
-
-                    {/* Verified badge */}
-                    <div className="flex items-center gap-1 border border-primary/20 bg-primary/5 px-2 py-0.5">
-                      <CheckCircle size={10} weight="fill" className="text-primary" />
-                      <span className="text-xs font-bold text-primary">Verified</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Reveal delay={150}>
+              <TestimonialCarousel items={TESTIMONIALS} />
+            </Reveal>
           </div>
         </section>
 
         {/* ─── FAQ ─────────────────────────────────────────────────────────────── */}
-        <section id="faq" className="border-t border-border bg-background py-28">
-          <div className="mx-auto max-w-3xl px-5 sm:px-8">
-            <div className="mb-14 text-center scroll-reveal">
-              <p className="mb-3 text-xs font-black uppercase tracking-eyebrow text-primary">FAQ</p>
-              <h2 className="font-black text-3xl sm:text-4xl">Common questions.</h2>
-              <p className="mt-3 text-sm text-muted-foreground">Everything you need to know. Can&apos;t find what you&apos;re looking for? <a href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? 'support@schduled.com'}`} className="text-primary hover:underline">Contact us.</a></p>
-            </div>
+        <section id="faq" className="relative overflow-hidden border-t border-border bg-background py-24 lg:py-32">
+          <div className="relative mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
+            <div className="grid grid-cols-1 items-start gap-14 lg:grid-cols-2 lg:gap-20">
 
-            <FaqAccordion items={FAQ_ITEMS} />
+              {/* ── Left: product UI preview — dark card on white bg ── */}
+              <Reveal className="lg:sticky lg:top-28">
+                <div className="relative">
+                  {/* Soft teal glow — reduced opacity for light background */}
+                  <div className="pointer-events-none absolute -inset-6 bg-primary/[0.06] blur-3xl" />
+                  {/* Explicit dark bg so it reads as real product UI */}
+                  <div
+                    className="relative border p-6"
+                    style={{ background: 'linear-gradient(145deg, #0d2018, #091512)', borderColor: 'rgba(255,255,255,0.09)' }}
+                  >
+
+                    {/* Host row */}
+                    <div className="mb-5 flex items-center gap-3 border-b border-white/[0.08] pb-5">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-primary text-sm font-bold text-white">
+                        D
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">Dhruti Hirapara</p>
+                        <p className="text-xs text-white/40">30-Minute Meeting</p>
+                      </div>
+                    </div>
+
+                    {/* Mini calendar */}
+                    <div className="mb-5">
+                      <div className="mb-3 flex items-center justify-between">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-white/35">July 2026</p>
+                        <div className="flex gap-1">
+                          <div className="h-5 w-5 border border-white/10 bg-white/5" />
+                          <div className="h-5 w-5 border border-white/10 bg-white/5" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-7 gap-1 text-center">
+                        {['M','T','W','T','F','S','S'].map((d, i) => (
+                          <span key={i} className="py-1 text-[10px] font-semibold text-white/25">{d}</span>
+                        ))}
+                        {[null,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31].map((d, i) => (
+                          <div
+                            key={i}
+                            className={[
+                              'flex h-7 w-full items-center justify-center text-[11px] font-medium transition-colors',
+                              d === null ? '' :
+                              d === 10 ? 'bg-primary text-white font-bold' :
+                              [7,8,14,15,21,22,28,29].includes(d as number) ? 'text-white/20' :
+                              d && d < 7 ? 'text-white/20' :
+                              'cursor-pointer text-white/70 hover:bg-white/10',
+                            ].join(' ')}
+                          >
+                            {d ?? ''}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Time slots */}
+                    <div>
+                      <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-white/35">Available Times</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { t: '9:00 AM',  active: false },
+                          { t: '10:30 AM', active: true  },
+                          { t: '1:00 PM',  active: false },
+                          { t: '3:30 PM',  active: false },
+                        ].map(({ t, active }) => (
+                          <div
+                            key={t}
+                            className={[
+                              'py-2.5 text-center text-xs font-semibold border transition-colors',
+                              active
+                                ? 'border-primary bg-primary text-white'
+                                : 'border-white/[0.12] bg-white/[0.05] text-white/60',
+                            ].join(' ')}
+                          >
+                            {t}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Powered by badge */}
+                    <div className="mt-5 border-t border-white/[0.06] pt-4 text-center">
+                      <span className="text-[10px] text-white/25">Scheduling powered by <span className="text-primary/60 font-semibold">Schduled</span></span>
+                    </div>
+                  </div>
+                </div>
+              </Reveal>
+
+              {/* ── Right: FAQ accordion on white background ── */}
+              <Reveal delay={100}>
+                <p className="mb-3 text-[11px] font-black uppercase tracking-eyebrow text-primary">FAQ</p>
+                <h2 className="mb-8 font-black text-3xl leading-tight text-foreground sm:text-4xl">
+                  Frequently Asked<br className="hidden sm:block" /> Questions
+                </h2>
+                <FaqAccordion items={FAQ_ITEMS} variant="light" />
+                <p className="mt-6 text-sm text-muted-foreground">
+                  Still have questions?{' '}
+                  <a href={`mailto:${env.NEXT_PUBLIC_CONTACT_EMAIL}`} className="text-primary transition-colors hover:underline">
+                    Contact us
+                  </a>
+                </p>
+              </Reveal>
+
+            </div>
           </div>
         </section>
 
         {/* ─── CTA ─────────────────────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden py-36" style={DARK_BG}>
+        <section className="relative overflow-clip py-36" style={DARK_BG}>
           <div className="pointer-events-none absolute inset-0 opacity-[0.038]"
             style={{ backgroundImage: 'linear-gradient(rgba(20,184,166,1) 1px,transparent 1px),linear-gradient(90deg,rgba(20,184,166,1) 1px,transparent 1px)', backgroundSize: '56px 56px' }} />
           {/* Large glow behind title */}
           <div className="pointer-events-none absolute left-1/2 top-1/4 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[700px] animate-schduled-glow-pulse"
             style={{ background: 'radial-gradient(ellipse,rgba(20,184,166,.30) 0%,transparent 65%)', filter: 'blur(16px)', opacity: 0.9 }} />
 
-          <div className="relative mx-auto max-w-2xl px-5 text-center sm:px-8">
-            <p className="mb-5 text-xs font-black uppercase tracking-eyebrow text-teal-400/55">Get started today</p>
-            <h2 className="font-black text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
-              Your booking link
-              <br />
-              <span style={{
-                background: 'linear-gradient(90deg,#2dd4bf 0%,#14b8a6 35%,#5eead4 70%,#14b8a6 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>
-                is one click away.
-              </span>
-            </h2>
-            <p className="mt-6 text-lg text-white/50">
-              Sign up in 30 seconds. Connect your calendar.
-              Share your link. The rest is automatic.
-            </p>
-            <div className="mt-10 flex flex-col items-center gap-4">
+          <div className="relative mx-auto max-w-[1400px] px-5 text-center md:px-12 xl:px-20">
+            <div className="mx-auto max-w-2xl">
+            <Reveal>
+              <p className="mb-5 text-xs font-black uppercase tracking-eyebrow text-teal-400/55">Get started today</p>
+              <h2 className="font-black text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
+                Your booking link
+                <br />
+                <span style={{
+                  background: 'linear-gradient(90deg,#2dd4bf 0%,#14b8a6 35%,#5eead4 70%,#14b8a6 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}>
+                  is one click away.
+                </span>
+              </h2>
+              <p className="mt-6 text-lg text-white/50">
+                Sign up in 30 seconds. Connect your calendar.
+                Share your link. The rest is automatic.
+              </p>
+            </Reveal>
+            <Reveal delay={150} className="mt-10 flex flex-col items-center gap-4">
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <Link href="/login" className="relative inline-flex items-center gap-2 overflow-hidden bg-primary px-9 py-4 text-base font-semibold text-primary-foreground transition-opacity hover:opacity-90">
                   <span className="animate-schduled-sheen pointer-events-none absolute inset-0"
@@ -1020,6 +1246,7 @@ export default async function LandingPage() {
               <div className="mt-4 animate-bounce text-white/20">
                 <ArrowDown size={22} />
               </div>
+            </Reveal>
             </div>
           </div>
         </section>

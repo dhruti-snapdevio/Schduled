@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: schduled
+          POSTGRES_PASSWORD: ci-test
+          POSTGRES_DB: schduled
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://schduled:ci-test@localhost:5432/schduled
+      APP_SECRET: ci-test-secret-not-for-production-use-32-chars-min
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Run migrations
+        run: pnpm db:migrate
+
+      - name: Build
+        run: pnpm build
+
+      # Informational only — the codebase has pre-existing formatting debt
+      # unrelated to any single change (see SELF-HOSTING.md). Reported, not
+      # blocking, until that debt is cleaned up separately.
+      - name: Lint (report only)
+        run: pnpm lint
+        continue-on-error: true
+
+      # Informational only — known transitive-dependency advisories exist
+      # today (e.g. esbuild via drizzle-kit/tsx/react-email) with no fix
+      # published upstream yet. Reported so they're visible, not blocking.
+      - name: Dependency audit (report only)
+        run: pnpm audit --prod
+        continue-on-error: true

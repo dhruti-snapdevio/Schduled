@@ -1,6 +1,6 @@
 # Event Types
 
-Event types define the structure of a meeting — its duration, format, participants, and rules. Schedica supports four fundamental event type categories, each suited to different scheduling scenarios.
+Event types define the structure of a meeting — its duration, format, participants, and rules. Schduled supports four fundamental event type categories, each suited to different scheduling scenarios.
 
 ---
 
@@ -197,7 +197,7 @@ Two distinct phone call variants exist:
 - Use case: Customer support, sales calls where host is initiating
 
 **Invitee calls host:**
-- Host's phone number stored in Schedica (not shown publicly)
+- Host's phone number stored in Schduled (not shown publicly)
 - Invitee receives host's number in the confirmation email and calendar invite
 - Use case: Inbound support lines, professional hotlines
 
@@ -291,7 +291,7 @@ Two distinct phone call variants exist:
 - Example: "Cancellations must be made at least 24 hours in advance"
 - **Default:** Policy text is shown but not enforced — invitee can still cancel at any time
 - **Enforcement (MVP feature):** Hosts can configure a cancellation window that actually blocks the cancel link within X hours of the meeting — see [booking-flow.md](booking-flow.md) for the full enforcement configuration
-- This is a key Schedica differentiator — Calendly only shows policy text, never enforces it
+- This is a key Schduled differentiator — Calendly only shows policy text, never enforces it
 - To prevent invitees from cancelling at all: disable the cancel link in the event type's notification settings
 
 ## Duplication and Templates
@@ -311,7 +311,7 @@ Two distinct phone call variants exist:
 | **Chili Piper** | Instant Booker (1:1), Handoff (chained meetings); specialized for sales | N/A (paid only) | ❌ No | ❌ No |
 | **HubSpot Meetings** | 1:1 links, Group, Round Robin; tied to HubSpot deal pipeline | 1 link (free CRM) | ❌ No | ❌ No |
 | **SavvyCal** | Unlimited links per plan; supports multiple durations on single link | Unlimited | ❌ No | ✅ Yes |
-| **Schedica** | Same 4 types; unlimited event types for all users (open source) | Unlimited | ✅ Yes — up to 10 additional attendees | ✅ Yes — multiple durations per event type |
+| **Schduled** | Same 4 types; unlimited event types for all users (open source) | Unlimited | ✅ Yes — up to 10 additional attendees | ✅ Yes — multiple durations per event type |
 
 ---
 

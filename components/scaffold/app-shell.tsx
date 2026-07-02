@@ -6,6 +6,7 @@ import { ImpersonationBanner } from "./impersonation-banner";
 import { JoinSoonBar } from "./join-soon-bar";
 import { MobileNav } from "./mobile-nav";
 import { NotificationBell } from "./notification-bell";
+import { ScrollReset } from "./scroll-reset";
 import { SidebarNav } from "./sidebar-nav";
 
 export function AppShell({
@@ -63,7 +64,8 @@ export function AppShell({
         <JoinSoonBar />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto overflow-x-clip bg-page pb-16 md:pb-0 [scrollbar-gutter:stable]">
+        <main data-app-main className="flex-1 overflow-y-auto overflow-x-clip bg-page pb-16 md:pb-0 [scrollbar-gutter:stable]">
+          <ScrollReset />
           <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-8">
             {children}
           </div>

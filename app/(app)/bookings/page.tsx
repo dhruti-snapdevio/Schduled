@@ -1,5 +1,5 @@
 import { and, count, desc, eq, gt, gte, ilike, lte, or } from 'drizzle-orm'
-import { format, isToday } from 'date-fns'
+import { formatInTimeZone } from 'date-fns-tz'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import {
@@ -20,14 +20,23 @@ import {
   X,
 } from '@phosphor-icons/react/dist/ssr'
 import { Button } from '@/components/ui/button'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import { PageHeader } from '@/components/scaffold/page-header'
 import { BookingsSearch } from './_components/bookings-search'
 import { BookingsDateFilter } from './_components/bookings-date-filter'
 import { BookingHighlighter } from './_components/booking-highlighter'
-import { booking, eventType } from '@/db/schema'
+import { booking, eventType, user } from '@/db/schema'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
-import { cn } from '@/lib/utils'
+import { cn, paginationRange } from '@/lib/utils'
 
 export const metadata = { title: 'Bookings' }
 
@@ -53,7 +62,7 @@ const TAB_DOTS: Record<Tab, string> = {
   pending:   'bg-amber-500',
 }
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 15
 
 export default async function BookingsPage({
   searchParams,
@@ -66,6 +75,9 @@ export default async function BookingsPage({
   const page = Math.max(1, parseInt(rawPage ?? '1', 10) || 1)
   const dateFrom = rawDateFrom?.match(/^\d{4}-\d{2}-\d{2}$/) ? rawDateFrom : ''
   const dateTo   = rawDateTo?.match(/^\d{4}-\d{2}-\d{2}$/)   ? rawDateTo   : ''
+
+  const [hostRow] = await db.select({ timezone: user.timezone }).from(user).where(eq(user.id, session.user.id)).limit(1)
+  const hostTz = hostRow?.timezone ?? 'UTC'
 
   const now = new Date()
 
@@ -133,34 +145,40 @@ export default async function BookingsPage({
     : undefined
   const whereClause = and(baseWhere, dateFromFilter, dateToFilter, searchFilter)
 
-  const bookings = await db
-    .select({
-      id:                 booking.id,
-      inviteeName:        booking.inviteeName,
-      inviteeEmail:       booking.inviteeEmail,
-      startTime:          booking.startTime,
-      endTime:            booking.endTime,
-      duration:           booking.duration,
-      status:             booking.status,
-      locationValue:      booking.locationValue,
-      cancelToken:        booking.cancelToken,
-      rescheduleToken:    booking.rescheduleToken,
-      cancellationReason: booking.cancellationReason,
-      approvalToken:      booking.approvalToken,
-      rejectionReason:    booking.rejectionReason,
-      eventName:          eventType.name,
-      locationType:       eventType.locationType,
-      eventColor:         eventType.color,
-    })
-    .from(booking)
-    .innerJoin(eventType, eq(booking.eventTypeId, eventType.id))
-    .where(whereClause)
-    .orderBy(tab === 'upcoming' || tab === 'pending' ? booking.startTime : desc(booking.startTime))
-    .limit(PAGE_SIZE + 1)
-    .offset((page - 1) * PAGE_SIZE)
+  const [totalResult, bookings] = await Promise.all([
+    db.select({ value: count() }).from(booking)
+      .innerJoin(eventType, eq(booking.eventTypeId, eventType.id))
+      .where(whereClause),
+    db
+      .select({
+        id:                 booking.id,
+        inviteeName:        booking.inviteeName,
+        inviteeEmail:       booking.inviteeEmail,
+        startTime:          booking.startTime,
+        endTime:            booking.endTime,
+        duration:           booking.duration,
+        status:             booking.status,
+        locationValue:      booking.locationValue,
+        cancelToken:        booking.cancelToken,
+        rescheduleToken:    booking.rescheduleToken,
+        cancellationReason: booking.cancellationReason,
+        approvalToken:      booking.approvalToken,
+        rejectionReason:    booking.rejectionReason,
+        eventName:          eventType.name,
+        locationType:       eventType.locationType,
+        eventColor:         eventType.color,
+      })
+      .from(booking)
+      .innerJoin(eventType, eq(booking.eventTypeId, eventType.id))
+      .where(whereClause)
+      .orderBy(tab === 'upcoming' || tab === 'pending' ? booking.startTime : desc(booking.startTime))
+      .limit(PAGE_SIZE)
+      .offset((page - 1) * PAGE_SIZE),
+  ])
 
-  const hasMore = bookings.length > PAGE_SIZE
-  const pageBookings = hasMore ? bookings.slice(0, PAGE_SIZE) : bookings
+  const total = totalResult[0]?.value ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const pageBookings = bookings
 
   const TABS: { key: Tab; label: string }[] = [
     { key: 'upcoming',  label: 'Upcoming' },
@@ -178,20 +196,20 @@ export default async function BookingsPage({
     return `/bookings?${params.toString()}`
   }
 
-  // Group bookings by calendar day (Calendly-style). pageBookings is already
-  // ordered by start time, so group order is preserved.
+  // Group bookings by calendar day in the host's timezone.
+  const todayKey = formatInTimeZone(now, hostTz, 'yyyy-MM-dd')
   const dayGroups = (() => {
     const map = new Map<string, typeof pageBookings>()
     for (const b of pageBookings) {
-      const key = format(b.startTime, 'yyyy-MM-dd')
+      const key = formatInTimeZone(b.startTime, hostTz, 'yyyy-MM-dd')
       const arr = map.get(key) ?? []
       arr.push(b)
       map.set(key, arr)
     }
     return Array.from(map.entries()).map(([key, items]) => ({
       key,
-      label: format(items[0].startTime, 'EEE, d MMM'),
-      isToday: isToday(items[0].startTime),
+      label: formatInTimeZone(items[0].startTime, hostTz, 'EEE, d MMM'),
+      isToday: key === todayKey,
       items,
     }))
   })()
@@ -296,7 +314,7 @@ export default async function BookingsPage({
                     >
                       {/* Time range */}
                       <div className="w-[140px] shrink-0 text-sm font-medium text-muted-foreground tabular-nums">
-                        {format(b.startTime, 'h:mm a')} – {format(b.endTime, 'h:mm a')}
+                        {formatInTimeZone(b.startTime, hostTz, 'h:mm a')} – {formatInTimeZone(b.endTime, hostTz, 'h:mm a')}
                       </div>
 
                       {/* Color dot + name + event + meta */}
@@ -413,23 +431,44 @@ export default async function BookingsPage({
       )}
 
       {/* ── Pagination ── */}
-      {(hasMore || page > 1) && (
-        <div className="mt-4 flex items-center justify-between gap-4 border-t border-border pt-4">
+      {total > 0 && (
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
           <p className="text-xs text-muted-foreground">
-            Page {page} · {PAGE_SIZE} per page
+            {totalPages > 1
+              ? <><strong className="font-semibold text-foreground">{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)}</strong> of <strong className="font-semibold text-foreground">{total}</strong> bookings</>
+              : <><strong className="font-semibold text-foreground">{total}</strong> booking{total !== 1 ? 's' : ''}</>}
           </p>
-          <div className="flex items-center gap-2">
-            {page > 1 && (
-              <Button asChild size="sm" variant="outline">
-                <Link href={pageHref(page - 1)}>← Previous</Link>
-              </Button>
-            )}
-            {hasMore && (
-              <Button asChild size="sm" variant="outline">
-                <Link href={pageHref(page + 1)}>Next →</Link>
-              </Button>
-            )}
-          </div>
+          {totalPages > 1 && (
+            <Pagination className="mx-0 w-auto">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href={page > 1 ? pageHref(page - 1) : '#'}
+                    aria-disabled={page <= 1}
+                    className={page <= 1 ? 'pointer-events-none opacity-40' : ''}
+                  />
+                </PaginationItem>
+                {paginationRange(page, totalPages).map((p, i) =>
+                  p === 'ellipsis' ? (
+                    <PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>
+                  ) : (
+                    <PaginationItem key={p}>
+                      <PaginationLink href={pageHref(p)} isActive={p === page}>
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                )}
+                <PaginationItem>
+                  <PaginationNext
+                    href={page < totalPages ? pageHref(page + 1) : '#'}
+                    aria-disabled={page >= totalPages}
+                    className={page >= totalPages ? 'pointer-events-none opacity-40' : ''}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </div>
       )}
     </>

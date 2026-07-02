@@ -1,6 +1,6 @@
-# Schedica — Tools & Packages Reference
+# Schduled — Tools & Packages Reference
 
-Complete documentation of every package, library, service, and tool used in Schedica. For each entry: what it is, why it is needed, which features use it, required environment variables, and setup notes.
+Complete documentation of every package, library, service, and tool used in Schduled. For each entry: what it is, why it is needed, which features use it, required environment variables, and setup notes.
 
 ---
 
@@ -386,7 +386,7 @@ Complete documentation of every package, library, service, and tool used in Sche
 | **Features** | All (every `id` field) |
 | **Usage** | `import { createId } from '@paralleldrive/cuid2'` → `id: createId()` |
 | **Why not UUID** | cuid2 is URL-safe (no hyphens that need encoding), shorter (24 chars vs 36), and embeds a timestamp for natural sort |
-| **Note** | Better Auth tables use their own ID generation; only Schedica-owned tables use cuid2 |
+| **Note** | Better Auth tables use their own ID generation; only Schduled-owned tables use cuid2 |
 
 ---
 
@@ -635,7 +635,7 @@ Complete `.env.local` template:
 # ─────────────────────────────────────────────────────────
 # CORE (required)
 # ─────────────────────────────────────────────────────────
-DATABASE_URL=postgresql://schedica:password@localhost:5432/schedica
+DATABASE_URL=postgresql://schduled:password@localhost:5432/schduled
 BETTER_AUTH_SECRET=<32+ char random string>   # openssl rand -base64 32
 BETTER_AUTH_URL=http://localhost:3000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -669,8 +669,8 @@ SMTP_PORT=587
 SMTP_SECURE=false                            # true for port 465
 SMTP_USER=your@gmail.com
 SMTP_PASS=<app-specific password>
-SMTP_FROM_EMAIL=noreply@schedica.app
-SMTP_FROM_NAME=Schedica
+SMTP_FROM_EMAIL=noreply@schduled.app
+SMTP_FROM_NAME=Schduled
 
 # ─────────────────────────────────────────────────────────
 # S3-Compatible Storage (required for profile photos)
@@ -678,7 +678,7 @@ SMTP_FROM_NAME=Schedica
 S3_ACCESS_KEY_ID=<access key>
 S3_SECRET_ACCESS_KEY=<secret key>
 S3_REGION=us-east-1
-S3_BUCKET_NAME=schedica-uploads
+S3_BUCKET_NAME=schduled-uploads
 S3_ENDPOINT=                                 # leave empty for AWS; set for Cloudflare R2/MinIO
 ```
 
@@ -689,8 +689,8 @@ S3_ENDPOINT=                                 # leave empty for AWS; set for Clou
 | Tool | Why Not in Schduled |
 |-----------|---------------------|
 | Pusher / Soketi | Real-time WebSockets not needed for scheduling; no live VM state to sync |
-| Polar SDK | Schedica is free/open source — no billing, no subscriptions |
-| Cloudflare for SaaS | No custom domain routing feature in Schedica |
+| Polar SDK | Schduled is free/open source — no billing, no subscriptions |
+| Cloudflare for SaaS | No custom domain routing feature in Schduled |
 | ssh2 | No server infrastructure to SSH into |
 | Stripe | No payments |
 | restic / rclone | No VM snapshots/backups |

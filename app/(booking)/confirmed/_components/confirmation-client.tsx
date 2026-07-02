@@ -20,7 +20,19 @@ import {
   EnvelopeSimple,
   Bell,
   Link as LinkIcon,
+  Copy,
+  Check,
+  CaretDown,
+  House,
+  PencilSimple,
 } from '@phosphor-icons/react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { PRODUCT_NAME } from '@/config/platform'
 import { cn } from '@/lib/utils'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -65,7 +77,7 @@ function icsEscape(s: string) {
 function icsDataUrl(title: string, start: string, end: string, location: string) {
   const fmt = (s: string) => s.replace(/[-:]/g, '').replace(/\.\d{3}/, '')
   const body = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Schduled//EN',
+    'BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${PRODUCT_NAME}//EN`,
     'BEGIN:VEVENT',
     `DTSTART:${fmt(start)}`,
     `DTEND:${fmt(end)}`,
@@ -99,6 +111,8 @@ interface Props {
   eventName: string
   hostName: string
   hostUsername: string | null
+  eventSlug?: string | null
+  eventTypeId?: string | null
   startUtc: string
   endUtc: string | null
   timezone: string
@@ -107,6 +121,8 @@ interface Props {
   cancelToken: string | null
   rescheduleToken: string | null
   isPending?: boolean
+  isOwner?: boolean
+  showPoweredBy?: boolean
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -115,6 +131,8 @@ export function ConfirmationClient({
   eventName,
   hostName,
   hostUsername,
+  eventSlug,
+  eventTypeId,
   startUtc,
   endUtc,
   timezone,
@@ -123,9 +141,22 @@ export function ConfirmationClient({
   cancelToken,
   rescheduleToken,
   isPending = false,
+  isOwner = false,
+  showPoweredBy = true,
 }: Props) {
   const [mounted, setMounted] = useState(false)
+  const [copyLinkDone, setCopyLinkDone] = useState(false)
   useEffect(() => setMounted(true), [])
+
+  function copyPageLink() {
+    const bookingUrl = hostUsername && eventSlug
+      ? `${window.location.origin}/${hostUsername}/${eventSlug}`
+      : window.location.href
+    navigator.clipboard.writeText(bookingUrl).then(() => {
+      setCopyLinkDone(true)
+      setTimeout(() => setCopyLinkDone(false), 2000)
+    })
+  }
 
   const startMs = Number.isNaN(Date.parse(startUtc)) ? Date.now() : Date.parse(startUtc)
   const countdown = useCountdown(startMs)
@@ -160,12 +191,57 @@ export function ConfirmationClient({
         <div className="absolute left-[5%] bottom-[10%] h-56 w-56 bg-primary/[0.06] blur-[70px]" />
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-[580px]">
+      {/* Toolbar — always visible on confirmation page, like Calendly */}
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-end gap-2 border-b border-border bg-background/95 px-4 py-2 backdrop-blur-sm">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+            >
+              Menu
+              <CaretDown size={11} weight="bold" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[180px]">
+            <DropdownMenuItem asChild>
+              {/* Owner → dashboard; invitee → host's booking profile */}
+              <Link
+                href={isOwner ? '/dashboard' : (hostUsername ? `/${hostUsername}` : '/')}
+                className="flex items-center gap-2"
+              >
+                <House size={14} />
+                Home
+              </Link>
+            </DropdownMenuItem>
+            {isOwner && eventTypeId && (
+              <DropdownMenuItem asChild>
+                <Link href={`/event-types/${eventTypeId}`} className="flex items-center gap-2">
+                  <PencilSimple size={14} />
+                  Edit event type
+                </Link>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <button
+          type="button"
+          onClick={copyPageLink}
+          className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+        >
+          {copyLinkDone
+            ? <Check size={13} weight="bold" className="text-primary" />
+            : <Copy size={13} />
+          }
+          <span>{copyLinkDone ? 'Copied!' : 'Copy link'}</span>
+        </button>
+      </div>
+
+      <div className="relative z-10 mx-auto w-full max-w-[580px]" style={{ paddingTop: '3rem' }}>
         <div className="flex flex-col items-center gap-5 bg-card px-5 py-8 sm:px-8 border border-border">
 
-          {/* Back button — top-left inside the card. Links to the host's page
-              (their event list) rather than router.back(): this page is reached
-              by submitting the form, so history.back() can land on a blank tab. */}
+          {/* Back button */}
           <div className="w-full">
             <Link
               href={hostUsername ? `/${hostUsername}` : '/'}
@@ -442,11 +518,13 @@ export function ConfirmationClient({
         </div>
       </div>
 
-      {/* ── Powered by Schduled ── */}
-      <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/50">
-        <span>Scheduling powered by</span>
-        <span className="font-semibold text-primary/60">Schduled</span>
-      </div>
+      {/* ── Powered by <product> ── */}
+      {showPoweredBy && (
+        <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/50">
+          <span>Scheduling powered by</span>
+          <span className="font-semibold text-primary/60">{PRODUCT_NAME}</span>
+        </div>
+      )}
     </div>
   )
 }

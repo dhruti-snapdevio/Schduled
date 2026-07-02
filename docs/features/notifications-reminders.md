@@ -6,7 +6,7 @@ Notifications and reminders keep hosts and invitees informed before, during, and
 
 ## Overview
 
-Schedica sends notifications through two channels:
+Schduled sends notifications through two channels:
 1. **Transactional emails** — Booking confirmations, cancellations, reschedules (triggered instantly) *(MVP)*
 2. **Pre-meeting reminders** — Hardcoded 24-hour and 1-hour emails before every meeting *(MVP)*; configurable workflow builder (custom triggers, conditions, actions) and SMS sequences *(Phase 2)*
 
@@ -19,7 +19,7 @@ For MVP: every booking automatically gets 24h and 1h reminders — no configurat
 **Host**
 - As a host, I want to receive an instant email when someone books, cancels, or reschedules, so that I am always up to date without checking the dashboard. *(MVP)*
 - As a host, I want my invitees to automatically receive 24-hour and 1-hour reminder emails, so that no-shows are reduced without any manual effort from me. *(MVP)*
-- As a host, I want to customize the from-name and reply-to on all emails, so that invitees see my name rather than "Schedica". *(MVP)*
+- As a host, I want to customize the from-name and reply-to on all emails, so that invitees see my name rather than "Schduled". *(MVP)*
 - As a host, I want to add a custom message to confirmation and reminder emails, so that I can include meeting instructions or next steps. *(MVP)*
 - As a host, I want post-meeting follow-up emails to be sent automatically after a meeting ends, so that I do not have to remember to follow up with every invitee. *(Phase 2)*
 
@@ -51,7 +51,7 @@ Sent immediately when a meeting is booked.
 - Cancellation link
 - Custom confirmation message from host (if set)
 
-> Calendly only shows the invitee's timezone in this email. Schedica also shows the host's equivalent time so the invitee is never uncertain about what time the host is expecting them.
+> Calendly only shows the invitee's timezone in this email. Schduled also shows the host's equivalent time so the invitee is never uncertain about what time the host is expecting them.
 
 **Customization:**
 - Subject line with dynamic variables
@@ -257,7 +257,7 @@ The most impactful use of workflows — reducing no-shows by reminding invitees 
 - Custom message from host (agenda, preparation instructions)
 - Reschedule / cancel links
 
-> **Calendly comparison:** Calendly reminder emails show only the invitee's timezone. Schedica shows both timezones in every reminder — the same differentiator as the confirmation email.
+> **Calendly comparison:** Calendly reminder emails show only the invitee's timezone. Schduled shows both timezones in every reminder — the same differentiator as the confirmation email.
 
 ### SMS Reminders *(Post-MVP — Phase 2)*
 - Short, direct: "Reminder: Your call with Jane starts in 1 hour. Join here: [link]"
@@ -293,7 +293,7 @@ Automated messages sent after the meeting to nurture the relationship.
 
 ## Dual Timezone Display in Every Email
 
-This is a deliberate Schedica differentiator. Every email that mentions a meeting time shows **both the recipient's local time and the other party's local time**.
+This is a deliberate Schduled differentiator. Every email that mentions a meeting time shows **both the recipient's local time and the other party's local time**.
 
 ### Why This Matters
 
@@ -301,7 +301,7 @@ Calendly only shows one timezone per email — the recipient's own timezone. Thi
 
 > An invitee in India books a call with a host in New York. The invitee's confirmation says "3:00 PM IST". They assume the host is also on at 3 PM. They show up 10 hours early or miss the meeting entirely.
 
-Schedica eliminates this by always showing both:
+Schduled eliminates this by always showing both:
 
 ### What Each Person Sees
 
@@ -364,7 +364,7 @@ All default templates auto-fill with meeting data using these variables:
 
 ## In-App Notifications
 
-Beyond email (and SMS in Phase 2), notifications appear in the Schedica dashboard.
+Beyond email (and SMS in Phase 2), notifications appear in the Schduled dashboard.
 
 ### Dashboard Notification Feed
 - New booking notifications
@@ -378,7 +378,7 @@ Beyond email (and SMS in Phase 2), notifications appear in the Schedica dashboar
 - Works in Chrome, Firefox, Edge, Safari (iOS 16.4+)
 
 ### Mobile Push Notifications *(Post-MVP — Phase 3)*
-- Instant push notification via Schedica mobile app
+- Instant push notification via Schduled mobile app
 - Configurable: all bookings, cancellations only, or nothing
 
 ---
@@ -421,7 +421,7 @@ Both hosts and invitees can manage notification preferences.
 | **Chili Piper** | Instant alerts to Slack/email for new leads; less focus on invitee reminders | ❌ No | ❌ No | ❌ No |
 | **HubSpot Meetings** | Basic confirmations only; follow-up via HubSpot workflows | ❌ No | ❌ No | ❌ No |
 | **SavvyCal** | ✅ Premium plan; email reminders | Limited | ❌ No | ❌ No |
-| **Schedica** | ✅ All users; 24hr + 1hr in MVP; full workflow builder (Phase 2) — open source, no plan gating | ✅ Phase 2 | ✅ **Both timezones in every email** — key differentiator | ✅ Phase 2 |
+| **Schduled** | ✅ All users; 24hr + 1hr in MVP; full workflow builder (Phase 2) — open source, no plan gating | ✅ Phase 2 | ✅ **Both timezones in every email** — key differentiator | ✅ Phase 2 |
 
 ---
 
@@ -440,7 +440,7 @@ Both hosts and invitees can manage notification preferences.
 - Custom message per event type (plain text appended to confirmation email body)
 - From name and reply-to customisation
 
-> **Comparison:** Calendly requires a paid plan for reminder workflows. Schedica includes 24hr and 1hr email reminders for all users — no plan required (open source).
+> **Comparison:** Calendly requires a paid plan for reminder workflows. Schduled includes 24hr and 1hr email reminders for all users — no plan required (open source).
 
 **Post-MVP:**
 - Configurable workflow builder UI — custom trigger → condition → action sequences (Phase 2)

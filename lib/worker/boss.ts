@@ -52,7 +52,7 @@ export async function startWorker() {
   const { handleEmailSend } = await import("@/lib/worker/handlers/email-send");
   const { handleEmailOutboxReap } = await import("@/lib/worker/handlers/email-outbox-reap");
   const { handleEmailEventsPrune } = await import("@/lib/worker/handlers/email-events-prune");
-  const { handleScaffoldHealthcheck } = await import("@/lib/worker/handlers/scaffold-healthcheck");
+  const { handlePlatformHealthcheck } = await import("@/lib/worker/handlers/platform-healthcheck");
 
   // ── Calendar handlers ──────────────────────────────────────────────────────
   const { handleCalendarTokenRefresh } = await import("@/lib/worker/handlers/calendar-token-refresh");
@@ -73,6 +73,7 @@ export async function startWorker() {
   const { handleBookingCancellation } = await import("@/lib/worker/handlers/booking-cancellation");
   const { handleBookingRescheduleReminders } = await import("@/lib/worker/handlers/booking-reschedule-reminders");
   const { handleBookingRescheduleNotify } = await import("@/lib/worker/handlers/booking-reschedule-notify");
+  const { handleBookingFollowUp } = await import("@/lib/worker/handlers/booking-follow-up");
 
   // ── Booking approval handlers ──────────────────────────────────────────────
   const { handleBookingApprovalRequest } = await import("@/lib/worker/handlers/booking-approval-request");
@@ -88,7 +89,7 @@ export async function startWorker() {
     work(JOB_NAMES.EMAIL_SEND,           handleEmailSend),
     work(JOB_NAMES.EMAIL_OUTBOX_REAP,    handleEmailOutboxReap),
     work(JOB_NAMES.EMAIL_EVENTS_PRUNE,   handleEmailEventsPrune),
-    work(JOB_NAMES.SCAFFOLD_HEALTHCHECK, handleScaffoldHealthcheck),
+    work(JOB_NAMES.HEALTHCHECK, handlePlatformHealthcheck),
 
     // Calendar
     work(JOB_NAMES.CALENDAR_TOKEN_REFRESH, handleCalendarTokenRefresh),
@@ -110,6 +111,7 @@ export async function startWorker() {
     work(JOB_NAMES.BOOKING_CANCELLATION,        handleBookingCancellation),
     work(JOB_NAMES.BOOKING_RESCHEDULE_REMINDERS, handleBookingRescheduleReminders),
     work(JOB_NAMES.BOOKING_RESCHEDULE_NOTIFY,   handleBookingRescheduleNotify),
+    work(JOB_NAMES.BOOKING_FOLLOW_UP,           handleBookingFollowUp),
 
     // Approval flow
     work(JOB_NAMES.BOOKING_APPROVAL_REQUEST, handleBookingApprovalRequest),
@@ -121,7 +123,7 @@ export async function startWorker() {
   // ── Cron schedules ─────────────────────────────────────────────────────────
   await boss.schedule(JOB_NAMES.EMAIL_OUTBOX_REAP,       "*/15 * * * *", {});
   await boss.schedule(JOB_NAMES.EMAIL_EVENTS_PRUNE,      "17 3 * * *",   {});
-  await boss.schedule(JOB_NAMES.SCAFFOLD_HEALTHCHECK,    "*/10 * * * *", {});
+  await boss.schedule(JOB_NAMES.HEALTHCHECK,             "*/10 * * * *", {});
   await boss.schedule(JOB_NAMES.IDEMPOTENCY_KEYS_PRUNE,  "5 4 * * *",    {});
   await boss.schedule(JOB_NAMES.CALENDAR_SYNC_ALL,       "*/20 * * * *", {});
 

@@ -1,6 +1,6 @@
-# Schedica — System Architecture
+# Schduled — System Architecture
 
-This document describes the complete system architecture of Schedica: how the components are structured, how data flows between them, and why each architectural decision was made.
+This document describes the complete system architecture of Schduled: how the components are structured, how data flows between them, and why each architectural decision was made.
 
 > **Architecture:** Two-process pattern — Next.js web server + pg-boss worker, both sharing one PostgreSQL database.
 
@@ -56,7 +56,7 @@ This document describes the complete system architecture of Schedica: how the co
 
 ## Two-Process Architecture
 
-Schedica runs as **two separate processes** that share one PostgreSQL database:
+Schduled runs as **two separate processes** that share one PostgreSQL database:
 
 | Process | Command | Responsibilities |
 |---------|---------|-----------------|
@@ -274,7 +274,7 @@ Client Components ('use client' required)
 
 ### Server Action Standard Pattern
 
-Every Server Action in Schedica must follow this pattern — no exceptions.
+Every Server Action in Schduled must follow this pattern — no exceptions.
 
 **Return type:** discriminated union `{ error: string } | { ok: true }`. Never throw to the client. Never return `null` or `undefined`. Never return a plain boolean.
 
@@ -681,7 +681,7 @@ const parsed = bookingSchema.safeParse({ ...input, inviteeName: cleanName, invit
 
 Public API routes (`POST /api/bookings`, `GET /api/slots`) require no authentication — any visitor can hit them. Without a rate limit, a single IP can scrape all available slots or flood the booking endpoint.
 
-Schedica uses an **in-memory fixed-window counter** per IP. No Redis needed. The counter resets every `windowSeconds`. If the Next.js server restarts, counters reset — this is acceptable for the MVP rate limit goal.
+Schduled uses an **in-memory fixed-window counter** per IP. No Redis needed. The counter resets every `windowSeconds`. If the Next.js server restarts, counters reset — this is acceptable for the MVP rate limit goal.
 
 ```typescript
 // src/lib/rate-limit.ts
@@ -806,7 +806,7 @@ const result = await db.transaction(async (tx) => {
 - `FOR UPDATE` — locks a **specific row**; use when you know the row ID up front
 - `pg_advisory_xact_lock()` — locks by **arbitrary integer key**; use when the lock must span multiple tables (e.g. "no two bookings for this host at this time slot" — there is no single row to lock against)
 
-For the booking creation flow, Schedica uses `pg_advisory_xact_lock(hashOf(hostId + slotTime))` because the row being protected doesn't exist yet at lock time.
+For the booking creation flow, Schduled uses `pg_advisory_xact_lock(hashOf(hostId + slotTime))` because the row being protected doesn't exist yet at lock time.
 
 ---
 

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { LandingHeader } from "./landing-header";
 import { LandingFooter } from "./landing-footer";
 import { TocNav } from "./toc-nav";
+import { Reveal } from "./reveal";
 
 const DARK_BG: React.CSSProperties = {
   background: `
@@ -59,6 +60,7 @@ export function LegalShell({
           }}
         />
 
+        <Reveal>
         <div className="relative mx-auto max-w-4xl px-5 sm:px-8">
           <p className="mb-4 text-2xs font-black uppercase tracking-[0.22em] text-teal-400/60">
             {eyebrow}
@@ -74,6 +76,7 @@ export function LegalShell({
             Last updated: {lastUpdated}
           </div>
         </div>
+        </Reveal>
       </section>
 
       {/* ── Body: sidebar TOC + content ───────────────────────────────────── */}
@@ -100,12 +103,15 @@ export function LegalShell({
           </aside>
 
           {/* Content */}
+          <Reveal>
           <article className="prose-legal">{children}</article>
+          </Reveal>
         </div>
       </div>
 
       {/* ── CTA band ──────────────────────────────────────────────────────── */}
       <section className="border-t border-border bg-muted/20 py-16">
+        <Reveal>
         <div className="mx-auto max-w-4xl px-5 text-center sm:px-8">
           <p className="mb-2 text-xs font-black uppercase tracking-eyebrow text-primary">
             Ready to start?
@@ -124,6 +130,7 @@ export function LegalShell({
             <ArrowRight size={14} weight="bold" />
           </Link>
         </div>
+        </Reveal>
       </section>
 
       <LandingFooter />

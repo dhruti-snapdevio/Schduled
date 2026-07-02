@@ -138,7 +138,7 @@ Hosts can pre-fill question answers for specific invitees — useful for embed f
 ### Via URL Parameters
 Append question values to the booking URL:
 ```
-https://schedica.com/yourname/30-min-call?a1=Acme+Corp&a2=CEO
+https://schduled.com/yourname/30-min-call?a1=Acme+Corp&a2=CEO
 ```
 - `a1` through `a20` correspond to custom question answer fields
 - Pre-filled values are editable by the invitee
@@ -152,7 +152,7 @@ When the booking widget is embedded on an external website, hosts can pass pre-f
 ### Auto-Remember for Repeat Invitees
 
 **Mechanism — email-match lookup (server-side):**
-1. When an invitee types their email address into the booking form, Schedica queries the database for previous bookings by the same host with the same invitee email
+1. When an invitee types their email address into the booking form, Schduled queries the database for previous bookings by the same host with the same invitee email
 2. If a previous booking exists: question answers from the most recent booking are pre-filled in the form
 3. The invitee can edit any pre-filled answer before submitting — pre-fill is a convenience, not a lock
 4. No account or cookie required — the email address is the identifier
@@ -249,7 +249,7 @@ Client-side and server-side validation:
 | **SavvyCal** | ✅ Basic | Limited | Text, checkbox, dropdown | ❌ No | ❌ No | ❌ No |
 | **Chili Piper** | N/A (paid only) | Unlimited | Text, radio, dropdown | ✅ Yes | ✅ Core feature — routing is the main purpose | ✅ Salesforce native |
 | **HubSpot Meetings** | ✅ Yes | Limited | Maps to HubSpot contact properties | ✅ Via URL params | ❌ No | ✅ Auto-syncs to HubSpot contact |
-| **Schedica** | ✅ Unlimited (open source — no plan tiers) | 20 (all users) | Text, long text, phone, single select, dropdown (MVP — 5 types); multiple select, number, date, URL (Phase 2) | ✅ Via URL params (MVP); JS embed (Phase 2) | ✅ Phase 2 — routing forms | ❌ No |
+| **Schduled** | ✅ Unlimited (open source — no plan tiers) | 20 (all users) | Text, long text, phone, single select, dropdown (MVP — 5 types); multiple select, number, date, URL (Phase 2) | ✅ Via URL params (MVP); JS embed (Phase 2) | ✅ Phase 2 — routing forms | ❌ No |
 
 ---
 

@@ -6,7 +6,7 @@ This document defines the complete visual design and UI implementation for Schdu
 
 ## Design Philosophy
 
-Schedica's visual design follows four principles:
+Schduled's visual design follows four principles:
 
 1. **Sharp and focused** — zero border radius everywhere; boxy, clean edges create a professional tool aesthetic rather than a consumer-soft look
 2. **One accent color** — a single teal brand color with semantic reds and ambers; no decorative colors competing for attention
@@ -187,7 +187,7 @@ React Email templates cannot read CSS variables. Use these hardcoded hex values 
 
 ### Design Concept
 
-The Schedica logo mark is a **calendar slot icon** — a square grid with one cell booked. It tells the product story at a glance: you pick a time, it gets confirmed. The design follows the same principles as the entire app:
+The Schduled logo mark is a **calendar slot icon** — a square grid with one cell booked. It tells the product story at a glance: you pick a time, it gets confirmed. The design follows the same principles as the entire app:
 
 - **Zero border radius** — every corner is a sharp right angle, no curves anywhere
 - **One accent color** — teal `#0d9488` on a white/dark background, nothing else
@@ -374,7 +374,7 @@ The `text-primary` class on `currentColor` means the icon and the "S" automatica
 | Font family | Geist Sans (`--font-sans`) |
 | Font weight | 600 — semibold |
 | Letter spacing | `tracking-tight` (−0.025 em) |
-| Case | Sentence case — `Schedica` (never `SCHEDICA`) |
+| Case | Sentence case — `Schduled` (never `SCHEDICA`) |
 | First letter "S" | `text-primary` — teal, links it visually to the icon |
 | Remaining letters | `text-foreground` — adapts to light/dark automatically |
 
@@ -385,7 +385,7 @@ The `text-primary` class on `currentColor` means the icon and the "S" automatica
 ```
 FULL (md) — dashboard nav, landing nav, admin top bar
 ┌────────┐
-│▓▓▓▓▓▓▓▓│  Schedica
+│▓▓▓▓▓▓▓▓│  Schduled
 ├──┬──┬──┤  ↑ "S" in teal, rest in foreground
 │  │▓▓│  │
 └──┴──┴──┘
@@ -399,7 +399,7 @@ STACKED (lg) — auth pages, email header, onboarding
       ├───┬───┬──┤
       │   │▓▓▓│  │
       └───┴───┴──┘
-         Schedica
+         Schduled
   icon: 40px   text: text-xl  centered
 
 ──────────────────────────────────────────────────
@@ -415,7 +415,7 @@ ICON ONLY (sm) — favicon, collapsed mobile nav
 ──────────────────────────────────────────────────
 
 WORDMARK ONLY — footer inline, print
-  Schedica
+  Schduled
   text-base font-semibold   "S" in teal
 ```
 
@@ -461,8 +461,8 @@ export const metadata: Metadata = {
 
 ```json
 {
-  "name": "Schedica",
-  "short_name": "Schedica",
+  "name": "Schduled",
+  "short_name": "Schduled",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
@@ -514,7 +514,7 @@ export const metadata: Metadata = {
 | No drop shadow | No `filter: drop-shadow(...)` or `box-shadow` on the logo |
 | No stretching | Always scale uniformly — never distort width or height independently |
 | No outlined-only version | The mark is filled, not just a stroke outline |
-| No all-caps wordmark | Always `Schedica`, never `SCHEDICA` |
+| No all-caps wordmark | Always `Schduled`, never `SCHEDICA` |
 | No font change | Wordmark is always Geist Sans 600 — never swap to another font |
 
 ---
@@ -627,7 +627,7 @@ Gradients are used **only on the landing page** for depth and visual polish. Nev
 | Name | CSS value | Where used |
 |------|-----------|-----------|
 | Hero radial glow | `radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.6 0.104 184.735 / 20%), transparent)` | `::before` pseudo-element on the hero section — subtle teal glow behind the hero illustration |
-| Feature card sheen | `linear-gradient(135deg, transparent 40%, oklch(0.6 0.104 184.735 / 8%) 100%)` | Overlay on feature cards; drives the `schedica-sheen` animation |
+| Feature card sheen | `linear-gradient(135deg, transparent 40%, oklch(0.6 0.104 184.735 / 8%) 100%)` | Overlay on feature cards; drives the `schduled-sheen` animation |
 | Section fade divider | `linear-gradient(to bottom, transparent, oklch(0.97 0 0 / 60%), transparent)` | Subtle vertical separator between landing page sections (light mode only) |
 
 ### Dark Mode Gradient Adjustments
@@ -844,18 +844,18 @@ In `app/globals.css`, the `@layer base` block applies three rules globally: the 
 
 | Class | Duration | Purpose | Used on |
 |-------|----------|---------|---------|
-| `schedica-float` | 6s ease infinite | Gentle vertical float | Landing page hero illustrations |
-| `schedica-blink` | 1.1s step-end infinite | Cursor blink | Landing page animated elements |
-| `schedica-reveal` | Scroll-triggered | Opacity + translateY reveal | Landing page sections |
-| `schedica-ping` | 2.4s infinite | Pulsing ring on status dot | Connection status indicators |
-| `schedica-sheen` | 5s linear infinite | Moving gradient sheen | Landing page feature cards |
+| `schduled-float` | 6s ease infinite | Gentle vertical float | Landing page hero illustrations |
+| `schduled-blink` | 1.1s step-end infinite | Cursor blink | Landing page animated elements |
+| `schduled-reveal` | Scroll-triggered | Opacity + translateY reveal | Landing page sections |
+| `schduled-ping` | 2.4s infinite | Pulsing ring on status dot | Connection status indicators |
+| `schduled-sheen` | 5s linear infinite | Moving gradient sheen | Landing page feature cards |
 | `nav-progress-bar` | Route change | Top bar scaleX progress | Next.js page transitions |
 
 ### Reduced Motion
 
 All animations respect `prefers-reduced-motion: reduce` — disable every keyframe animation when the user has set this system preference. This is non-negotiable for accessibility.
 
-In `app/globals.css`, a `@media (prefers-reduced-motion: reduce)` block sets `animation: none` on all five animation classes (`schedica-float`, `schedica-blink`, `schedica-reveal`, `schedica-ping`, `schedica-sheen`). This disables every keyframe animation when the user has set the reduced-motion system preference.
+In `app/globals.css`, a `@media (prefers-reduced-motion: reduce)` block sets `animation: none` on all five animation classes (`schduled-float`, `schduled-blink`, `schduled-reveal`, `schduled-ping`, `schduled-sheen`). This disables every keyframe animation when the user has set the reduced-motion system preference.
 
 ### Transition Durations (App Shell)
 
@@ -1113,7 +1113,7 @@ Use `toast.promise` for: saving settings, connecting calendar, uploading avatar,
 
 ## Route Groups & Layouts
 
-Schedica uses **five Next.js App Router route groups**, each with its own layout component:
+Schduled uses **five Next.js App Router route groups**, each with its own layout component:
 
 ### 1. Landing Layout — `(landing)`
 
@@ -1135,7 +1135,7 @@ Schedica uses **five Next.js App Router route groups**, each with its own layout
 ```
 
 **Header contents:**
-- Logo + "Schedica" wordmark (left)
+- Logo + "Schduled" wordmark (left)
 - Desktop nav links: Features, Pricing *(Post-MVP — Phase 2)*
 - Right side: "Log in" (ghost button) + "Sign up" (primary button) when unauthenticated
 - Right side: "Go to Dashboard" (primary button) when authenticated
@@ -1144,7 +1144,7 @@ Schedica uses **five Next.js App Router route groups**, each with its own layout
 **Footer contents:**
 - Left: Logo + tagline + contact email
 - Right: Navigation links (Features, Docs), Legal links (Terms, Privacy, Cookie Policy)
-- Open source notice: "Schedica is open source"
+- Open source notice: "Schduled is open source"
 
 **Backdrop blur on header:** `bg-background/95 backdrop-blur` — the header is 95% opaque with a blur so content scrolling behind it looks clean.
 
@@ -1195,7 +1195,7 @@ Schedica uses **five Next.js App Router route groups**, each with its own layout
   <NavProgress />                       {/* Top progress bar on page transitions */}
   <header className="sticky top-0 z-40 border-b bg-background">
     <div className="h-14 flex items-center px-4 gap-4">
-      Logo + "Schedica" wordmark (left)
+      Logo + "Schduled" wordmark (left)
       <Desktop Nav links> (hidden on mobile)
       <div className="ml-auto flex items-center gap-2">
         <ThemeToggle>
@@ -1249,7 +1249,7 @@ Schedica uses **five Next.js App Router route groups**, each with its own layout
 </div>
 ```
 
-The booking page is invitee-facing and intentionally minimal — no Schedica navigation chrome. The booking page component itself provides the layout:
+The booking page is invitee-facing and intentionally minimal — no Schduled navigation chrome. The booking page component itself provides the layout:
 
 **Host profile page (`/[username]`):**
 - Centered card layout, max-width 640px
@@ -1260,7 +1260,7 @@ The booking page is invitee-facing and intentionally minimal — no Schedica nav
 - Two-column layout on md+: left = host info + calendar + slot grid; right = booking form
 - Single column on mobile (calendar first, then form)
 - Host's brand color applied to: CTA buttons, selected date highlights, active time slot
-- "Powered by Schedica" NOT shown (open source)
+- "Powered by Schduled" NOT shown (open source)
 - Minimal footer: host's booking link only
 
 **Confirmation screen (post-booking):**
@@ -1398,15 +1398,15 @@ All components live in `src/components/ui/`. Use Shadcn CLI to add new component
 
 **Sections (top to bottom):**
 
-1. **Hero** — Full-viewport-height section. Left: H1 headline ("Schedule smarter, not harder"), subheadline, primary CTA ("Get started free") + secondary link ("See how it works"). Right: animated product screenshot or illustration (`schedica-float` animation).
+1. **Hero** — Full-viewport-height section. Left: H1 headline ("Schedule smarter, not harder"), subheadline, primary CTA ("Get started free") + secondary link ("See how it works"). Right: animated product screenshot or illustration (`schduled-float` animation).
 
-2. **Social proof** — One-line strip: "Join [X] hosts already using Schedica" + logos or avatar stack.
+2. **Social proof** — One-line strip: "Join [X] hosts already using Schduled" + logos or avatar stack.
 
 3. **Features grid** — 3-column grid (1-col mobile, 3-col md+). Each card: icon (Phosphor, 32px), feature name, 1-2 sentence description. Features: Dual-timezone display, PostgreSQL-backed booking engine, Open source + self-host.
 
 4. **How it works** — 3-step numbered list with brief descriptions and screenshots.
 
-5. **Comparison table** — Schedica vs. Calendly vs. Cal.com. Columns for key differentiators. Schedica column highlighted.
+5. **Comparison table** — Schduled vs. Calendly vs. Cal.com. Columns for key differentiators. Schduled column highlighted.
 
 6. **CTA banner** — Full-width teal section. "Start scheduling for free" headline + "Sign up" button (white on teal).
 
@@ -1474,19 +1474,19 @@ Profile  Calendar Timezone  Event   Share
 | 2 — Calendar | "Connect your calendar" | Google Calendar card + Outlook card (each: logo, label, "Connect" outline button). "Skip for now" link below cards. |
 | 3 — Timezone | "Confirm your timezone" | Auto-detected timezone shown in a `<Select>` with a `GlobeIcon`. "We auto-detected this from your browser — change it if needed." |
 | 4 — Event type | "Create your first event type" | Name input, duration selector (15 / 30 / 60 min), location type selector. Minimal — full builder is in dashboard. |
-| 5 — Share | "You're all set!" | Animated large `CheckCircleIcon` with `schedica-ping` ring in teal. Booking URL in read-only monospace box. Copy button + Open button. "Go to dashboard" primary button. |
+| 5 — Share | "You're all set!" | Animated large `CheckCircleIcon` with `schduled-ping` ring in teal. Booking URL in read-only monospace box. Copy button + Open button. "Go to dashboard" primary button. |
 
 **Step 5 — Completion screen detail:**
 
 ```
-            ◎  (CheckCircleIcon 64px, text-primary, schedica-ping ring)
+            ◎  (CheckCircleIcon 64px, text-primary, schduled-ping ring)
 
          You're all set!
     text-2xl font-bold tracking-tight
 
   Your booking page is live at:
 ┌──────────────────────────────────────────┐
-│ schedica.com/your-username     [Copy] [↗]│   font-mono text-sm bg-muted
+│ schduled.com/your-username     [Copy] [↗]│   font-mono text-sm bg-muted
 └──────────────────────────────────────────┘
 
           [Go to dashboard →]
@@ -1607,18 +1607,18 @@ Logo upload (square, max 2 MB), brand colour picker (colour swatch + hex input),
 Three stacked `<Card>` components:
 
 **Card 1 — Your booking URL:**
-- Full URL displayed in a read-only input-style box: `schedica.com/[username]`
+- Full URL displayed in a read-only input-style box: `schduled.com/[username]`
 - Three icon buttons to the right of the box: Copy (`CopyIcon`), Open in new tab (`ArrowSquareOutIcon`), Share via email (`EnvelopeIcon`)
 - Copy button label changes to "Copied!" for 2 seconds after click
 
 **Card 2 — QR code:**
 - QR code image centred in the card, generated from the booking URL
-- "Download QR code" ghost button below — saves as `schedica-[username]-qr.png`
+- "Download QR code" ghost button below — saves as `schduled-[username]-qr.png`
 
 **Card 3 — Change username:**
 - Label: "Username" with current value shown above the input
 - Input field with real-time availability indicator (spinner → green "✓ Available" or red "✗ Already taken")
-- Helper text: "schedica.com/[typed-value]" shown live below the input
+- Helper text: "schduled.com/[typed-value]" shown live below the input
 - Warning text block (amber, `WarningIcon`): "Changing your username will break any links you have already shared. A redirect from your old URL will stay active for 30 days."
 - "Save username" primary button — disabled until a valid, available, changed username is entered
 
@@ -1719,7 +1719,7 @@ Sections using `<Card>` components stacked vertically:
 
 ## Booking Page Design (Public — Invitee Facing)
 
-The public booking page is the most-seen UI in Schedica. Design must be polished and distraction-free.
+The public booking page is the most-seen UI in Schduled. Design must be polished and distraction-free.
 
 ### Brand Color Application
 
@@ -1797,7 +1797,7 @@ A minimal `1 · 2 · 3` dot row at the top of the card. Current step dot is `bg-
 ### Confirmation Screen
 
 ```
-         ✓  (CheckCircleIcon 56px, text-green-500, animate schedica-ping ring)
+         ✓  (CheckCircleIcon 56px, text-green-500, animate schduled-ping ring)
 
         You're scheduled!
         text-2xl font-bold
@@ -1905,7 +1905,7 @@ Centered card max-w-sm:
   The link may be incorrect or this account has been removed.
   text-sm text-muted-foreground
 
-  [ Back to Schedica ]  ← link button → /
+  [ Back to Schduled ]  ← link button → /
 ```
 
 ---
@@ -1917,7 +1917,7 @@ React Email components live in `src/lib/email/`. These are rendered server-side 
 **All emails share:**
 - Header bar in the host's brand color (or default teal `#0d9488` if not set)
 - Host logo or profile photo in header
-- Consistent footer: host reply-to email, unsubscribe link, no "Powered by Schedica" branding
+- Consistent footer: host reply-to email, unsubscribe link, no "Powered by Schduled" branding
 - Both timezones shown in every meeting time display (invitee time + host time)
 
 **Email types and template files:**
@@ -1994,7 +1994,7 @@ React Email components live in `src/lib/email/`. These are rendered server-side 
 | Always render the page shell + skeletons while data loads | Show a blank white / dark screen during loading |
 | Use `<Empty>` component for zero-state screens | Render `null` or nothing when a list is empty |
 | Apply `transition-colors duration-150` on all hover state changes | Leave interactive elements with no hover feedback |
-| Use `schedica-ping` animation only on status indicator dots | Apply pulsing rings to buttons or cards |
+| Use `schduled-ping` animation only on status indicator dots | Apply pulsing rings to buttons or cards |
 | Use gradients **only** inside `app/(landing)/` files | Apply gradients to dashboard, admin, or booking form elements |
 | Use `toast.promise` for save / connect / upload actions | Leave async actions with no loading feedback |
 | Add `aria-label` to every icon-only button | Ship icon-only buttons without a screen reader label |

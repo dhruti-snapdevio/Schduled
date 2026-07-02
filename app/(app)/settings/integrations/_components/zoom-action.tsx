@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { toast } from "sonner";
 import { disconnectZoom } from "@/app/actions/settings";
 import {
   AlertDialog,
@@ -22,7 +23,12 @@ export function ZoomDisconnectButton() {
 
   function handleDisconnect() {
     startTransition(async () => {
-      await disconnectZoom();
+      const res = await disconnectZoom();
+      if (res && "error" in res) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Zoom disconnected");
       router.refresh();
     });
   }

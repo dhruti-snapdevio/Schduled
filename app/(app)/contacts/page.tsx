@@ -23,7 +23,7 @@ export default async function ContactsPage({
 
   const { contacts, total } = await getContacts({
     page,
-    pageSize: 20,
+    pageSize: 15,
     search,
     archived,
     filter,
@@ -37,7 +37,7 @@ export default async function ContactsPage({
         description="People who have booked time with you. Add notes, archive, or remove contacts."
       />
 
-      {total === 0 && !search && !archived ? (
+      {total === 0 && !search && !archived && filter === 'all' ? (
         <Empty
           icon={<Users />}
           title="No contacts yet"
@@ -49,6 +49,7 @@ export default async function ContactsPage({
             contacts={contacts}
             total={total}
             page={page}
+            pageSize={15}
             search={search}
             archived={archived}
             filter={filter}

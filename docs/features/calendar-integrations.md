@@ -1,14 +1,14 @@
 # Calendar Integrations
 
-Calendar integrations are the foundation of Schedica's scheduling intelligence. By connecting to external calendars, Schedica reads real-time busy/free data and writes new bookings back — ensuring availability is always accurate and meetings are never double-booked.
+Calendar integrations are the foundation of Schduled's scheduling intelligence. By connecting to external calendars, Schduled reads real-time busy/free data and writes new bookings back — ensuring availability is always accurate and meetings are never double-booked.
 
 ---
 
 ## Overview
 
 A connected calendar serves two purposes:
-1. **Read availability** — Schedica reads the calendar's events to know when the host is busy
-2. **Write new bookings** — When a meeting is booked, Schedica adds it to the host's calendar automatically
+1. **Read availability** — Schduled reads the calendar's events to know when the host is busy
+2. **Write new bookings** — When a meeting is booked, Schduled adds it to the host's calendar automatically
 
 Hosts can connect multiple calendars. All are read for availability, but new bookings are written to one designated calendar.
 
@@ -18,11 +18,11 @@ Hosts can connect multiple calendars. All are read for availability, but new boo
 
 **Host**
 - As a host, I want to connect my Google Calendar with OAuth, so that my availability is always accurate without sharing my password. *(MVP)*
-- As a host, I want to connect multiple calendars (work and personal), so that Schedica checks all of them for conflicts before showing available slots. *(MVP)*
+- As a host, I want to connect multiple calendars (work and personal), so that Schduled checks all of them for conflicts before showing available slots. *(MVP)*
 - As a host, I want new bookings to be automatically added to my chosen calendar, so that I never have to manually create calendar events after someone books me. *(MVP)*
 - As a host, I want to connect my Outlook or Office 365 calendar, so that my work calendar is included in availability checks. *(MVP)*
 - As a host, I want to connect my Apple iCloud calendar, so that my personal schedule is factored into my availability. *(Phase 2 — CalDAV lacks OAuth; deferred post-MVP)*
-- As a host, I want to disconnect a calendar at any time, so that I can switch providers or remove a calendar without losing my Schedica setup. *(MVP)*
+- As a host, I want to disconnect a calendar at any time, so that I can switch providers or remove a calendar without losing my Schduled setup. *(MVP)*
 - As a host, I want calendar sync to happen in real-time, so that a newly added personal event blocks my availability before the next person tries to book that slot. *(MVP)*
 
 ---
@@ -45,7 +45,7 @@ The most widely used calendar integration.
 **Setup Flow:**
 1. Click "Connect Google Calendar"
 2. Redirected to Google OAuth consent screen
-3. Authorize Schedica to read and write calendar events
+3. Authorize Schduled to read and write calendar events
 4. Select which calendars to check for conflicts
 5. Select which calendar to add bookings to
 
@@ -71,7 +71,7 @@ For Microsoft 365 accounts (work or school) and personal Outlook.com accounts.
 **Setup Flow:**
 1. Click "Connect Outlook / Office 365"
 2. Microsoft login and consent screen
-3. Authorize Schedica access
+3. Authorize Schduled access
 4. Select calendars to sync
 
 **Compatibility:**
@@ -83,7 +83,7 @@ For Microsoft 365 accounts (work or school) and personal Outlook.com accounts.
 
 ### Apple Calendar / iCloud *(Post-MVP — Phase 2)*
 
-> Note: Calendly dropped iCloud support in August 2024. Schedica will support it in Phase 2 — CalDAV lacks standard OAuth and requires app-specific passwords, making it more complex than Google/Outlook. Phase 2 differentiator vs Calendly.
+> Note: Calendly dropped iCloud support in August 2024. Schduled will support it in Phase 2 — CalDAV lacks standard OAuth and requires app-specific passwords, making it more complex than Google/Outlook. Phase 2 differentiator vs Calendly.
 
 **Features:**
 - iCloud CalDAV integration
@@ -94,14 +94,14 @@ For Microsoft 365 accounts (work or school) and personal Outlook.com accounts.
 
 **Setup Flow (with guided UX for non-technical users):**
 1. User clicks "Connect Apple Calendar"
-2. Schedica shows an **inline step-by-step guide** (not just a link) with screenshots:
+2. Schduled shows an **inline step-by-step guide** (not just a link) with screenshots:
    - Step A: "Go to [appleid.apple.com/account/manage](https://appleid.apple.com) and sign in"
    - Step B: "Scroll to the **Sign-In and Security** section → click **App-Specific Passwords**"
-   - Step C: "Click **+** (Generate Password) → name it 'Schedica' → click Create"
+   - Step C: "Click **+** (Generate Password) → name it 'Schduled' → click Create"
    - Step D: "Copy the 16-character password shown (it won't be shown again)"
 3. User enters their iCloud email address
-4. User pastes the app-specific password into the Schedica input field
-5. Schedica connects via CalDAV and lists available iCloud calendars
+4. User pastes the app-specific password into the Schduled input field
+5. Schduled connects via CalDAV and lists available iCloud calendars
 6. User selects which calendars to check for conflicts and which to write bookings to
 
 **Error Handling:**
@@ -110,12 +110,12 @@ For Microsoft 365 accounts (work or school) and personal Outlook.com accounts.
 - No iCloud calendars found: "No calendars found. Ensure iCloud Calendar is enabled on your Apple device."
 
 **Why App-Specific Passwords Exist (shown to user):**
-> "Apple does not allow third-party apps to use your main Apple ID password. An app-specific password is a one-time generated code that gives Schedica permission to read your calendar — without sharing your real password. You can revoke it at any time from appleid.apple.com."
+> "Apple does not allow third-party apps to use your main Apple ID password. An app-specific password is a one-time generated code that gives Schduled permission to read your calendar — without sharing your real password. You can revoke it at any time from appleid.apple.com."
 
 **Why Apple Calendar Matters:**
 - ~26% of mobile users in the US use iOS
 - Many freelancers and creatives primarily use Apple Calendar
-- Calendly's removal created a clear gap; Schedica fills it
+- Calendly's removal created a clear gap; Schduled fills it
 
 ---
 
@@ -134,7 +134,7 @@ Open standard for calendar sync. Connects to any CalDAV-compatible calendar serv
 
 **Setup:**
 - Provide CalDAV server URL, username, and password (or token)
-- Schedica polls for updates at regular intervals (no real-time webhook)
+- Schduled polls for updates at regular intervals (no real-time webhook)
 
 ---
 
@@ -176,7 +176,7 @@ Hosts can connect multiple calendars simultaneously across different providers.
 
 ## Calendar Event Details Written on Booking
 
-When a meeting is booked, Schedica creates a calendar event with:
+When a meeting is booked, Schduled creates a calendar event with:
 
 | Field | Content |
 |-------|---------|
@@ -194,7 +194,7 @@ When a meeting is booked, Schedica creates a calendar event with:
 ## Real-Time Sync Architecture
 
 ### Read Path (Availability Check)
-- Schedica queries calendars when invitee opens booking page
+- Schduled queries calendars when invitee opens booking page
 - Cached availability refreshed every 5 minutes (configurable)
 - On booking confirmation: final check in real-time to prevent race conditions
 - Uses push notifications (Google/Outlook) where available for instant refresh
@@ -248,7 +248,7 @@ For enterprise users scheduling physical meeting rooms:
 - OAuth tokens stored encrypted at rest
 - Tokens never exposed to frontend
 - Scopes requested are minimal (principle of least privilege)
-- Users can revoke access anytime from both Schedica and their calendar provider
+- Users can revoke access anytime from both Schduled and their calendar provider
 
 ---
 
@@ -261,7 +261,7 @@ For enterprise users scheduling physical meeting rooms:
 | **SavvyCal** | ✅ Yes | ✅ Yes | ✅ iCloud CalDAV | ❌ No | ✅ Yes | ✅ Yes |
 | **Chili Piper** | ✅ Yes | ✅ Yes | ❌ No | ❌ No | ✅ Yes | ✅ Yes |
 | **HubSpot Meetings** | ✅ Yes | ✅ Office 365 | ❌ No | ❌ No | ❌ One calendar only | ✅ Yes |
-| **Schedica** | ✅ Yes — OAuth 2.0; also generates Google Meet links | ✅ Yes — Microsoft Graph; also creates Teams meetings | ✅ **Phase 2 — iCloud CalDAV** — direct differentiator vs Calendly (who dropped it Aug 2024) | ✅ Phase 2 | ✅ Up to 3 calendars in MVP (Google + Outlook only); Apple adds Phase 2 | ✅ 5-min polling in MVP; push notifications Phase 2 |
+| **Schduled** | ✅ Yes — OAuth 2.0; also generates Google Meet links | ✅ Yes — Microsoft Graph; also creates Teams meetings | ✅ **Phase 2 — iCloud CalDAV** — direct differentiator vs Calendly (who dropped it Aug 2024) | ✅ Phase 2 | ✅ Up to 3 calendars in MVP (Google + Outlook only); Apple adds Phase 2 | ✅ 5-min polling in MVP; push notifications Phase 2 |
 
 ---
 
