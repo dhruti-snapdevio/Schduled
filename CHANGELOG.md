@@ -13,6 +13,9 @@ complete. Until then, everything lives under **[Unreleased]**.
 - Self-hosted deployment support: `Dockerfile`, `docker-compose.yml`,
   migrate-on-boot entrypoint, `/api/health` (DB-backed) and a worker
   liveness heartbeat, `/api/version`.
+- `docker-compose.external-db.yml` — an alternative to `docker-compose.yml`
+  for self-hosters who already have a Postgres database (managed service or
+  self-run) and don't want Compose to also run one.
 - `SIGNUP_ENABLED` — closes public account creation across all auth methods
   (password, magic link, Google) while exempting `INITIAL_ADMIN_EMAIL`, so
   self-hosted instances can be closed from the very first deploy.

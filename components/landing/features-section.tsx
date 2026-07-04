@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
+  ArrowLeft,
+  ArrowRight,
   Bell,
   CalendarBlank,
   CalendarCheck,
@@ -305,42 +308,55 @@ const MOCKUPS = [
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+const AUTO_ADVANCE_MS = 4000
+
 export function FeaturesSection() {
   const [active, setActive] = useState(0)
-  const [visible, setVisible] = useState(true)
-  const [displayed, setDisplayed] = useState(0)
-  const mountedRef = useRef(false)
-
-  // Cross-fade whenever active changes (skip the very first render)
-  useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true
-      return
-    }
-    setVisible(false)
-    const t = setTimeout(() => {
-      setDisplayed(active)
-      setVisible(true)
-    }, 220)
-    return () => clearTimeout(t)
-  }, [active])
-
-  // Auto-advance every 4 seconds
-  useEffect(() => {
-    const id = setInterval(() => {
-      setActive((prev) => (prev + 1) % STEPS.length)
-    }, 4000)
-    return () => clearInterval(id)
-  }, [])
+  const [direction, setDirection] = useState(1)
+  const [hovered, setHovered] = useState<number | null>(null)
+  const [paused, setPaused] = useState(false)
+  const reduceMotion = useReducedMotion()
 
   function switchTo(idx: number) {
     if (idx === active) return
+    setDirection(idx > active ? 1 : -1)
     setActive(idx)
   }
 
+  function step(delta: number) {
+    switchTo((active + delta + STEPS.length) % STEPS.length)
+  }
+
+  // Auto-advance, paused while a step is hovered/interacted with. `active` is
+  // listed on purpose (not read directly) — it restarts the timer on every
+  // step change, whether from a click or the previous auto-advance tick.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: active intentionally restarts the timer, see above
+  useEffect(() => {
+    if (paused) return
+    const id = setTimeout(() => {
+      setDirection(1)
+      setActive((prev) => (prev + 1) % STEPS.length)
+    }, AUTO_ADVANCE_MS)
+    return () => clearTimeout(id)
+  }, [active, paused])
+
   return (
-    <section id="features" className="border-t border-border bg-muted/20 py-24">
-      <div className="mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
+    <section id="features" className="relative overflow-clip border-t border-border bg-muted/20 py-24">
+      {/* Subtle grid texture + teal glow */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(20,184,166,1) 1px,transparent 1px),linear-gradient(90deg,rgba(20,184,166,1) 1px,transparent 1px)',
+          backgroundSize: '48px 48px',
+        }}
+      />
+      <div
+        className="pointer-events-none absolute right-0 top-0 h-[420px] w-[420px]"
+        style={{ background: 'radial-gradient(circle, rgba(20,184,166,.12) 0%, transparent 70%)', filter: 'blur(20px)' }}
+      />
+
+      <div className="relative mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
 
         {/* Header */}
         <Reveal className="mb-16 text-center">
@@ -348,65 +364,70 @@ export function FeaturesSection() {
           <h2 className="font-black text-3xl leading-tight sm:text-4xl lg:text-5xl">
             Scheduling on autopilot
             <br className="hidden sm:block" />
-            <span className="text-muted-foreground"> in five steps</span>
+            <span className="text-muted-foreground"> in five simple steps</span>
           </h2>
-          <p className="mt-4 text-muted-foreground">Set it up once. Bookings come in on their own.</p>
+          <p className="mt-4 text-muted-foreground">
+            Set it up once. Schduled handles bookings, reminders, and scheduling automatically.
+          </p>
         </Reveal>
 
-        {/* Step accordion + Mockup panel */}
-        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
+        {/* Step list + Mockup panel — 40/60 split on desktop */}
+        <div className="grid items-start gap-10 lg:grid-cols-[2fr_3fr] lg:gap-14">
 
           {/* Left: steps */}
-          <Reveal className="space-y-0">
+          <Reveal
+            className="space-y-0"
+            onMouseLeave={() => { setHovered(null); setPaused(false) }}
+          >
             {STEPS.map((step, i) => {
               const Icon = step.icon
               const isActive = active === i
+              const isExpanded = isActive || hovered === i
               return (
                 <button
                   key={step.id}
                   type="button"
                   onClick={() => switchTo(i)}
+                  onMouseEnter={() => { setHovered(i); setPaused(true) }}
                   className={cn(
-                    'w-full border-b border-border text-left transition-colors last:border-0',
-                    isActive ? 'bg-transparent' : 'hover:bg-muted/30',
+                    'w-full border-b border-l-2 border-border text-left transition-colors duration-[250ms] last:border-b-0',
+                    isActive ? 'border-l-primary bg-primary/[0.03]' : isExpanded ? 'border-l-primary/40 bg-muted/30' : 'border-l-transparent',
                   )}
                 >
-                  <div className="flex items-center gap-4 px-2 py-5">
+                  <div className="flex items-center gap-4 px-4 py-5">
                     <div className={cn(
-                      'flex h-10 w-10 shrink-0 items-center justify-center transition-colors duration-200',
+                      'flex h-10 w-10 shrink-0 items-center justify-center transition-colors duration-[250ms]',
                       isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
                     )}>
-                      <Icon size={18} weight={isActive ? 'fill' : 'regular'} />
+                      <Icon size={18} weight={isExpanded ? 'fill' : 'regular'} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className={cn(
-                        'text-sm font-bold transition-colors duration-200',
+                        'text-sm font-bold transition-colors duration-[250ms]',
                         isActive ? 'text-foreground' : 'text-foreground/50',
                       )}>
                         {step.title}
                       </p>
-                      {/* Description expands when active */}
+                      {/* Description expands when active or hovered */}
                       <div className={cn(
-                        'grid transition-all duration-300',
-                        isActive ? 'mt-2 grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                        'grid transition-all duration-[250ms]',
+                        isExpanded ? 'mt-2 grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
                       )}>
                         <div className="overflow-hidden">
-                          <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
+                          <p className={cn('text-sm leading-relaxed', isActive ? 'text-foreground/70' : 'text-muted-foreground')}>
+                            {step.description}
+                          </p>
                         </div>
                       </div>
                     </div>
                     {/* Step number */}
                     <span className={cn(
-                      'shrink-0 text-xs font-black tabular-nums transition-colors duration-200',
+                      'shrink-0 text-xs font-black tabular-nums transition-colors duration-[250ms]',
                       isActive ? 'text-primary' : 'text-muted-foreground/30',
                     )}>
                       0{i + 1}
                     </span>
                   </div>
-                  {/* Active indicator bar */}
-                  {isActive && (
-                    <div className="h-[2px] w-full bg-primary" />
-                  )}
                 </button>
               )
             })}
@@ -415,34 +436,70 @@ export function FeaturesSection() {
           {/* Right: sticky mockup panel */}
           <Reveal className="lg:sticky lg:top-28" delay={150}>
             <div className="border border-border bg-background p-7 shadow-none ring-1 ring-foreground/10">
+              {/* Progress bar — one segment per step */}
+              <div className="mb-5 flex items-center gap-1.5">
+                {STEPS.map((s, i) => (
+                  <div key={s.id} className="h-1 flex-1 overflow-hidden bg-muted-foreground/15">
+                    {i === active && (
+                      <motion.div
+                        key={paused ? `${active}-paused` : active}
+                        className="h-full bg-primary"
+                        initial={{ width: '0%' }}
+                        animate={{ width: paused ? '0%' : '100%' }}
+                        transition={{ duration: paused ? 0 : AUTO_ADVANCE_MS / 1000, ease: 'linear' }}
+                      />
+                    )}
+                    {i < active && <div className="h-full w-full bg-primary" />}
+                  </div>
+                ))}
+              </div>
+
               {/* Tab bar */}
               <div className="mb-6 flex items-center gap-2 border-b border-border pb-4">
-                <div className={cn(
-                  'flex h-8 w-8 items-center justify-center transition-colors duration-200',
-                  'bg-primary/10 text-primary',
-                )}>
-                  {(() => { const Icon = STEPS[displayed].icon; return <Icon size={15} weight="fill" /> })()}
+                <div className="flex h-8 w-8 items-center justify-center bg-primary/10 text-primary">
+                  {(() => { const Icon = STEPS[active].icon; return <Icon size={15} weight="fill" /> })()}
                 </div>
-                <p className="text-sm font-bold text-foreground">{STEPS[displayed].title}</p>
-                <div className="ml-auto flex items-center gap-1">
-                  {STEPS.map((_, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        'h-1 transition-all duration-300',
-                        i === active ? 'w-5 bg-primary' : 'w-1.5 bg-muted-foreground/20',
-                      )}
-                    />
-                  ))}
-                </div>
+                <p className="text-sm font-bold text-foreground">{STEPS[active].title}</p>
               </div>
-              {/* Mockup with fade transition */}
-              <div
-                className="transition-opacity duration-200"
-                style={{ opacity: visible ? 1 : 0 }}
+
+              {/* Mockup — slide + fade + scale transition */}
+              <div className="relative min-h-[260px] overflow-hidden">
+                <AnimatePresence mode="wait" custom={direction} initial={false}>
+                  <motion.div
+                    key={active}
+                    custom={direction}
+                    initial={reduceMotion ? false : { opacity: 0, x: direction * 24, scale: 0.98 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={reduceMotion ? undefined : { opacity: 0, x: -direction * 24, scale: 0.98 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {MOCKUPS[active]}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Mobile step navigation */}
+            <div className="mt-6 flex items-center justify-between gap-4 lg:hidden">
+              <button
+                type="button"
+                onClick={() => step(-1)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                aria-label="Previous step"
               >
-                {MOCKUPS[displayed]}
-              </div>
+                <ArrowLeft size={16} />
+              </button>
+              <span className="text-sm font-medium text-muted-foreground">
+                Step {active + 1} of {STEPS.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => step(1)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                aria-label="Next step"
+              >
+                <ArrowRight size={16} />
+              </button>
             </div>
           </Reveal>
         </div>

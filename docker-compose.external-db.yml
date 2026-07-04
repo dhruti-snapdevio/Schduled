@@ -1,0 +1,43 @@
+# Use this file instead of docker-compose.yml if you already have a Postgres
+# database (managed service like Supabase/Neon/RDS, or a Postgres instance you
+# run yourself) and don't want Compose to also run one for you.
+#
+#   docker compose -f docker-compose.external-db.yml up -d
+#
+# Set DATABASE_URL in .env to point at your existing database — POSTGRES_USER/
+# POSTGRES_PASSWORD/POSTGRES_DB are not used by this file (those only exist to
+# configure the bundled postgres service in docker-compose.yml).
+#
+# There's no local Postgres container to wait on here, so migrations run
+# against DATABASE_URL directly on boot. If your database isn't reachable yet
+# when the container starts, `restart: unless-stopped` below will keep retrying.
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3000:3000"
+    volumes:
+      # Only used when STORAGE_DRIVER=local (the default). Not needed if
+      # you've set STORAGE_DRIVER=s3 — see ENVIRONMENT.md §7.
+      - uploads:/app/public/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    env_file: .env
+
+volumes:
+  uploads:

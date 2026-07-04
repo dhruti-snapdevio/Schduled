@@ -6,16 +6,19 @@ export function Reveal({
   children,
   className,
   delay = 0,
+  onMouseLeave,
 }: {
   children: React.ReactNode
   className?: string
   delay?: number
+  onMouseLeave?: () => void
 }) {
   const reduceMotion = useReducedMotion()
 
   return (
     <motion.div
       className={className}
+      onMouseLeave={onMouseLeave}
       initial={reduceMotion ? false : { opacity: 0, y: 48 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: false, amount: 0.2, margin: '0px 0px -60px 0px' }}

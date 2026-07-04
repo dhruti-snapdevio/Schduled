@@ -1,3 +1,8 @@
+# This file runs Postgres for you (good default — nothing else to set up).
+# Already have a Postgres database (managed service or your own instance)?
+# Use docker-compose.external-db.yml instead:
+#   docker compose -f docker-compose.external-db.yml up -d
+
 services:
   postgres:
     image: postgres:16
