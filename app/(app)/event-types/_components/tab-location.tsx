@@ -204,11 +204,6 @@ export function TabLocation({
   const locationType = form.watch("locationType");
   const selected = LOCATION_OPTIONS.find((o) => o.value === locationType);
 
-  const needsConnect =
-    (locationType === "google_meet" && !integrations.googleConnected) ||
-    (locationType === "zoom" && !integrations.zoomConnected);
-  const connectProvider = locationType === "zoom" ? "Zoom" : "Google Calendar";
-
   return (
     <div className="space-y-6">
       <div>
@@ -230,44 +225,78 @@ export function TabLocation({
               {LOCATION_OPTIONS.map((opt) => {
                 const isSelected = field.value === opt.value;
                 const isDisabled = opt.comingSoon && !isSelected;
+                const showWarning =
+                  isSelected &&
+                  ((opt.value === "google_meet" && !integrations.googleConnected) ||
+                    (opt.value === "zoom" && !integrations.zoomConnected));
+                const warningProvider = opt.value === "zoom" ? "Zoom" : "Google Calendar";
                 return (
-                  <button
-                    className={cn(
-                      "flex items-start gap-4 border p-4 text-left transition",
-                      isSelected
-                        ? "border-primary bg-primary/5 ring-1 ring-primary"
-                        : isDisabled
-                          ? "border-border bg-muted/30 opacity-60 cursor-not-allowed"
-                          : "border-border bg-card hover:border-primary/50 hover:bg-muted/30"
-                    )}
-                    disabled={isDisabled}
-                    key={opt.value}
-                    onClick={() => { if (!isDisabled) field.onChange(opt.value) }}
-                    type="button"
-                  >
-                    <span className="mt-0.5 shrink-0">{opt.icon}</span>
-                    <span className="flex-1 min-w-0">
-                      <span className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">{opt.label}</span>
-                        {opt.comingSoon && (
-                          <span className="inline-flex items-center bg-teal-600 px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide text-white">
-                            Coming soon
-                          </span>
-                        )}
+                  <div key={opt.value}>
+                    <button
+                      className={cn(
+                        "flex w-full items-start gap-4 border p-4 text-left transition",
+                        isSelected
+                          ? showWarning
+                            ? "border-amber-400 bg-amber-50/50 dark:border-amber-700 dark:bg-amber-950/20"
+                            : "border-primary bg-primary/5 ring-1 ring-primary"
+                          : isDisabled
+                            ? "border-border bg-muted/30 opacity-60 cursor-not-allowed"
+                            : "border-border bg-card hover:border-primary/50 hover:bg-muted/30"
+                      )}
+                      disabled={isDisabled}
+                      onClick={() => { if (!isDisabled) field.onChange(opt.value) }}
+                      type="button"
+                    >
+                      <span className="mt-0.5 shrink-0">{opt.icon}</span>
+                      <span className="flex-1 min-w-0">
+                        <span className="flex items-center gap-2">
+                          <span className="text-sm font-semibold">{opt.label}</span>
+                          {opt.comingSoon && (
+                            <span className="inline-flex items-center bg-teal-600 px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide text-white">
+                              Coming soon
+                            </span>
+                          )}
+                        </span>
+                        <span className="block text-xs text-muted-foreground mt-0.5">
+                          {opt.sub}
+                        </span>
                       </span>
-                      <span className="block text-xs text-muted-foreground mt-0.5">
-                        {opt.sub}
-                      </span>
-                    </span>
-                    {!isDisabled && (
-                      <span
-                        className={cn(
-                          "mt-1 h-4 w-4 shrink-0 rounded-full border-2 transition",
-                          isSelected ? "border-primary bg-primary" : "border-border"
-                        )}
-                      />
+                      {!isDisabled && (
+                        <span
+                          className={cn(
+                            "mt-1 h-4 w-4 shrink-0 rounded-full border-2 transition",
+                            isSelected
+                              ? showWarning
+                                ? "border-amber-500 bg-amber-500"
+                                : "border-primary bg-primary"
+                              : "border-border"
+                          )}
+                        />
+                      )}
+                    </button>
+                    {showWarning && (
+                      <div className="flex items-start gap-3 border border-t-0 border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-950/30">
+                        <Warning className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" size={16} weight="fill" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                            Connect {warningProvider} to generate meeting links
+                          </p>
+                          <p className="mt-0.5 text-xs text-amber-700/90 dark:text-amber-300/80">
+                            You haven&apos;t connected {warningProvider} yet, so bookings won&apos;t include a{" "}
+                            {opt.value === "zoom" ? "Zoom" : "Google Meet"} link until you do.
+                          </p>
+                          <Link
+                            href="/settings/integrations"
+                            target="_blank"
+                            className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-amber-800 underline-offset-2 hover:underline dark:text-amber-200"
+                          >
+                            Connect {warningProvider}
+                            <ArrowSquareOut size={12} />
+                          </Link>
+                        </div>
+                      </div>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -276,29 +305,6 @@ export function TabLocation({
         )}
       />
 
-      {/* Integration warning */}
-      {needsConnect && (
-        <div className="flex items-start gap-3 border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/30">
-          <Warning className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" size={18} weight="fill" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-              Connect {connectProvider} to generate meeting links
-            </p>
-            <p className="mt-0.5 text-xs text-amber-700/90 dark:text-amber-300/80">
-              You haven&apos;t connected {connectProvider} yet, so bookings won&apos;t include a{" "}
-              {locationType === "zoom" ? "Zoom" : "Google Meet"} link until you do.
-            </p>
-            <Link
-              href="/settings/integrations"
-              target="_blank"
-              className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 underline-offset-2 hover:underline dark:text-amber-200"
-            >
-              Connect {connectProvider}
-              <ArrowSquareOut size={13} />
-            </Link>
-          </div>
-        </div>
-      )}
 
       {/* Custom location / in-person address */}
       {selected?.requiresValue && (

@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
+import { redirect } from 'next/navigation'
 import { AvatarProvider } from '@/components/avatar-context'
 import { AppShell } from '@/components/scaffold/app-shell'
-import { OnboardingModal } from '@/components/onboarding/onboarding-modal'
 import { GuidedTour } from '@/components/tour/guided-tour'
 import { ADMIN_ROLE } from '@/config/platform'
 import { user } from '@/db/schema'
@@ -19,11 +19,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       username:       user.username,
       image:          user.image,
       onboardingDone: user.onboardingDone,
-      onboardingStep: user.onboardingStep,
     })
     .from(user)
     .where(eq(user.id, session.user.id))
     .limit(1)
+
+  // Onboarding runs as its own full page at /onboarding, not an overlay. Send
+  // anyone who hasn't finished there before rendering the app shell.
+  if (freshUser && !freshUser.onboardingDone) {
+    redirect('/onboarding')
+  }
 
   const isImpersonating = !!session.session.impersonatedBy;
 
@@ -37,14 +42,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         isImpersonating={isImpersonating}
         impersonatedUserName={freshUser?.name ?? null}
       >
-        {freshUser && !freshUser.onboardingDone && (
-          <OnboardingModal
-            name={freshUser.name ?? session.user.name ?? ''}
-            username={freshUser.username ?? null}
-            onboardingStep={freshUser.onboardingStep ?? 0}
-            userImage={freshUser.image ?? null}
-          />
-        )}
         {freshUser?.onboardingDone && (
           <GuidedTour userId={session.user.id} />
         )}

@@ -487,7 +487,8 @@ export async function getContacts({
         ? sql`HAVING min(b.created_at) >= now() - interval '30 days'`
         : sql``;
 
-  // Aggregate from booking table, left-join contact for metadata
+  // Fetch all matching rows (no SQL pagination) so that the exclusion filter
+  // applied in JS produces a count and page slice that are always consistent.
   const rows = await db.execute(sql`
     SELECT
       b.invitee_email   AS email,
@@ -509,22 +510,6 @@ export async function getContacts({
     GROUP BY b.invitee_email, c.notes, c.is_archived, c.id
     ${havingClause}
     ORDER BY MAX(b.start_time) DESC
-    LIMIT ${pageSize} OFFSET ${offset}
-  `);
-
-  const countRow = await db.execute(sql`
-    SELECT COUNT(*)::int AS total FROM (
-      SELECT b.invitee_email
-      FROM booking b
-      LEFT JOIN contact c
-        ON c.host_user_id = b.host_user_id
-        AND c.email = b.invitee_email
-      WHERE b.host_user_id = ${userId}
-        AND COALESCE(c.is_archived, false) = ${archived}
-        ${searchClause}
-      GROUP BY b.invitee_email
-      ${havingClause}
-    ) sub
   `);
 
   function isExcluded(email: string) {
@@ -534,7 +519,7 @@ export async function getContacts({
     return excludedDomains.some((d) => domain === d || domain.endsWith("." + d));
   }
 
-  const allContacts = rows as unknown as {
+  const allContacts = (rows as unknown as {
     email: string;
     name: string;
     booking_count: number;
@@ -544,13 +529,13 @@ export async function getContacts({
     notes: string | null;
     is_archived: boolean | null;
     contact_id: string | null;
-  }[];
+  }[]).filter((r) => !isExcluded(r.email));
 
-  const contacts = allContacts.filter((r) => !isExcluded(r.email));
+  const contacts = allContacts.slice(offset, offset + pageSize);
 
   return {
     contacts,
-    total: (countRow as unknown as { total: number }[])[0]?.total ?? 0,
+    total: allContacts.length,
   };
 }
 

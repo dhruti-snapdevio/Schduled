@@ -38,18 +38,20 @@ export function Countdown({ startUtc }: { startUtc: string }) {
         setLabel(null)
         return
       }
-      const totalMin = Math.floor(diff / 60_000)
-      const days = Math.floor(totalMin / 1440)
-      const hours = Math.floor((totalMin % 1440) / 60)
-      const mins = totalMin % 60
+      const totalSec = Math.floor(diff / 1000)
+      const days = Math.floor(totalSec / 86_400)
+      const hours = Math.floor((totalSec % 86_400) / 3600)
+      const mins = Math.floor((totalSec % 3600) / 60)
+      const secs = totalSec % 60
+      const pad = (n: number) => String(n).padStart(2, '0')
       setLabel(
         days > 0
-          ? `${days}d ${hours}h ${mins}m`
-          : `${String(hours).padStart(2, '0')}h ${String(mins).padStart(2, '0')}m`
+          ? `${days}d ${pad(hours)}h ${pad(mins)}m ${pad(secs)}s`
+          : `${pad(hours)}h ${pad(mins)}m ${pad(secs)}s`
       )
     }
     tick()
-    const id = setInterval(tick, 30_000)
+    const id = setInterval(tick, 1000)
     return () => clearInterval(id)
   }, [startUtc])
 

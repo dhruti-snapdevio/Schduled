@@ -5,7 +5,7 @@ import { CalendarPlus } from '@phosphor-icons/react/dist/ssr'
 import { listEventTypes } from '@/app/actions/event-types'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
-import { booking, user } from '@/db/schema'
+import { booking, connectedCalendar, user, videoConnection } from '@/db/schema'
 import { Button } from '@/components/ui/button'
 import { Empty } from '@/components/ui/empty'
 import { PageHeader } from '@/components/scaffold/page-header'
@@ -18,7 +18,7 @@ export default async function EventTypesPage() {
   const now = new Date()
   const monthStart = startOfMonth(now)
 
-  const [eventTypes, [currentUser], lastBookedStats, monthlyStats] = await Promise.all([
+  const [eventTypes, [currentUser], lastBookedStats, monthlyStats, [googleCal], [zoomConn]] = await Promise.all([
     listEventTypes(),
     db.select({ username: user.username }).from(user).where(eq(user.id, session.user.id)).limit(1),
     // Last booking time per event type (all time)
@@ -33,6 +33,25 @@ export default async function EventTypesPage() {
       .from(booking)
       .where(and(eq(booking.hostUserId, session.user.id), gte(booking.createdAt, monthStart)))
       .groupBy(booking.eventTypeId),
+    // Google Meet connectivity (requires a write-target connected calendar)
+    db
+      .select({ id: connectedCalendar.id })
+      .from(connectedCalendar)
+      .where(and(
+        eq(connectedCalendar.userId, session.user.id),
+        eq(connectedCalendar.status, 'connected'),
+        eq(connectedCalendar.isWriteTarget, true),
+      ))
+      .limit(1),
+    // Zoom connectivity
+    db
+      .select({ id: videoConnection.id })
+      .from(videoConnection)
+      .where(and(
+        eq(videoConnection.userId, session.user.id),
+        eq(videoConnection.provider, 'zoom'),
+      ))
+      .limit(1),
   ])
 
   const username = currentUser?.username ?? null
@@ -76,6 +95,8 @@ export default async function EventTypesPage() {
           eventTypes={eventTypes}
           username={username}
           statsMap={statsMap}
+          googleMeetConnected={!!googleCal}
+          zoomConnected={!!zoomConn}
         />
       )}
     </>

@@ -166,9 +166,11 @@ export function CommunicationForm({ initial }: CommunicationFormProps) {
 
           <Separator />
 
-          <Button type="submit" disabled={saving}>
-            {saving ? 'Saving…' : 'Save preferences'}
-          </Button>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Saving…' : 'Save preferences'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </form>

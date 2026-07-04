@@ -152,10 +152,12 @@ export function ContactSettingsForm({
         </div>
       </section>
 
-      <Button onClick={save} disabled={pending} className="gap-1.5">
-        <FloppyDisk size={14} />
-        {pending ? 'Saving…' : 'Save changes'}
-      </Button>
+      <div className="flex justify-end">
+        <Button onClick={save} disabled={pending} className="gap-1.5">
+          <FloppyDisk size={14} />
+          {pending ? 'Saving…' : 'Save changes'}
+        </Button>
+      </div>
     </div>
   )
 }

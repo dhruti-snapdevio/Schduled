@@ -108,7 +108,7 @@ export function CookiePreferences() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-end gap-3">
         <Button onClick={handleSave} disabled={!loaded}>
           Save preferences
         </Button>

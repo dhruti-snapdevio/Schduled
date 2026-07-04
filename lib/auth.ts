@@ -30,6 +30,14 @@ export const auth = betterAuth({
     ...(env.NODE_ENV === "development" ? ["http://localhost:3000"] : []),
     env.NEXT_PUBLIC_APP_URL,
   ],
+  account: {
+    accountLinking: {
+      // Magic link never creates a row in the account table, so Google is
+      // always the "only" account entry. Allow unlinking it — the user can
+      // still sign in via magic link at any time.
+      allowUnlinkingAll: true,
+    },
+  },
   ...(googleAuthEnabled
     ? {
         socialProviders: {
@@ -75,6 +83,9 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 30,
     updateAge: 60 * 60 * 24,
+    // Magic-link auth has no re-authentication flow, so disable the freshness
+    // gate that would block unlinkAccount / other sensitive ops for old sessions.
+    freshAge: 0,
     cookieCache: {
       enabled: true,
       maxAge: 60,

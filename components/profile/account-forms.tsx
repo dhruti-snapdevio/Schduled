@@ -240,9 +240,11 @@ export function AccountIdentityForms({
               />
             </label>
             <ActionMessage state={nameState} />
-            <Button disabled={namePending} type="submit">
-              {namePending ? "Saving..." : "Save name"}
-            </Button>
+            <div className="flex justify-end">
+              <Button disabled={namePending} type="submit">
+                {namePending ? "Saving..." : "Save name"}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -269,9 +271,11 @@ export function AccountIdentityForms({
               />
             </label>
             <ActionMessage state={emailState} />
-            <Button disabled={emailPending} type="submit">
-              {emailPending ? "Saving..." : "Update email"}
-            </Button>
+            <div className="flex justify-end">
+              <Button disabled={emailPending} type="submit">
+                {emailPending ? "Saving..." : "Update email"}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
