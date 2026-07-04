@@ -16,6 +16,7 @@ export const JOB_NAMES = {
   BOOKING_RESCHEDULE_REMINDERS: "booking.reschedule-reminders",
   BOOKING_RESCHEDULE_NOTIFY: "booking.reschedule-notify",
   CALENDAR_UPDATE: "booking.calendar-update",
+  BOOKING_FOLLOW_UP: "booking.follow-up",
 
   // ── Booking approval ─────────────────────────────────────────────────────
   BOOKING_APPROVAL_REQUEST: "booking.approval-request",
@@ -29,7 +30,7 @@ export const JOB_NAMES = {
   CALENDAR_DISCONNECT_ALERT: "calendar.disconnect-alert",
 
   // ── Platform ─────────────────────────────────────────────────────────
-  SCAFFOLD_HEALTHCHECK: "scaffold.healthcheck",
+  HEALTHCHECK: "platform.healthcheck",
   IDEMPOTENCY_KEYS_PRUNE: "platform.idempotency-keys-prune",
   CALENDAR_SYNC_ALL: "calendar.sync-all",
 } as const;
@@ -81,6 +82,11 @@ export interface BookingCancelRemindersPayload {
   bookingId: string;
 }
 
+export interface BookingFollowUpPayload {
+  bookingId: string
+  bookingEndUtc: string
+}
+
 export interface BookingRescheduleRemindersPayload {
   bookingId: string;
   newEndTime: string;
@@ -129,10 +135,11 @@ export type JobPayloads = {
   [JOB_NAMES.BOOKING_RESCHEDULE_REMINDERS]: BookingRescheduleRemindersPayload;
   [JOB_NAMES.BOOKING_RESCHEDULE_NOTIFY]: BookingRescheduleNotifyPayload;
   [JOB_NAMES.CALENDAR_UPDATE]: CalendarUpdatePayload;
+  [JOB_NAMES.BOOKING_FOLLOW_UP]: BookingFollowUpPayload;
   [JOB_NAMES.CALENDAR_SYNC]: CalendarSyncPayload;
   [JOB_NAMES.CALENDAR_TOKEN_REFRESH]: CalendarTokenRefreshPayload;
   [JOB_NAMES.CALENDAR_DISCONNECT_ALERT]: CalendarDisconnectAlertPayload;
-  [JOB_NAMES.SCAFFOLD_HEALTHCHECK]: Record<string, never>;
+  [JOB_NAMES.HEALTHCHECK]: Record<string, never>;
   [JOB_NAMES.IDEMPOTENCY_KEYS_PRUNE]: Record<string, never>;
   [JOB_NAMES.BOOKING_APPROVAL_REQUEST]: BookingApprovalRequestPayload;
   [JOB_NAMES.BOOKING_APPROVED]: BookingApprovedPayload;

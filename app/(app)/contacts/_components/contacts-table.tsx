@@ -4,6 +4,16 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
 import { Archive, ArrowCounterClockwise, MagnifyingGlass, Note, Spinner, Trash } from '@phosphor-icons/react'
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
+import { paginationRange } from '@/lib/utils'
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -64,6 +74,7 @@ interface ContactsTableProps {
   contacts: Contact[]
   total: number
   page: number
+  pageSize: number
   search: string
   archived: boolean
   filter: ContactFilter
@@ -72,7 +83,7 @@ interface ContactsTableProps {
 const fmtDate = (v: string | null) =>
   v ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(v)) : '—'
 
-export function ContactsTable({ contacts, total, page, search, archived, filter }: ContactsTableProps) {
+export function ContactsTable({ contacts, total, page, pageSize, search, archived, filter }: ContactsTableProps) {
   const router          = useRouter()
   const sp              = useSearchParams()
   const [isPending, startTransition] = useTransition()
@@ -82,7 +93,6 @@ export function ContactsTable({ contacts, total, page, search, archived, filter 
   const [noteSaving, setNoteSaving] = useState(false)
   const searchDebounce              = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const pageSize  = 20
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   function push(updates: Record<string, string | null>) {
@@ -334,23 +344,51 @@ export function ContactsTable({ contacts, total, page, search, archived, filter 
         </Table>
       </div>
 
-      {/* Pagination */}
-      {total > pageSize && (
-        <div className="flex flex-wrap items-center justify-between border-t border-border px-4 py-3">
+      {/* Pagination — always show count; page numbers when more than one page */}
+      {total > 0 && (
+        <div className="flex items-center justify-between gap-3 border-t border-border px-6 py-3">
           <p className="text-xs text-muted-foreground">
-            {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
+            {totalPages > 1
+              ? <>Showing <strong className="font-semibold text-foreground">{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)}</strong> of <strong className="font-semibold text-foreground">{total}</strong></>
+              : <><strong className="font-semibold text-foreground">{total}</strong> contact{total !== 1 ? 's' : ''}</>}
           </p>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => changePage(page - 1)}>
-              Previous
-            </Button>
-            <span className="text-xs text-muted-foreground">
-              Page {page} of {totalPages}
-            </span>
-            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => changePage(page + 1)}>
-              Next
-            </Button>
-          </div>
+          {totalPages > 1 && (
+            <Pagination className="mx-0 w-auto">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    aria-disabled={page <= 1}
+                    className={page <= 1 ? 'pointer-events-none opacity-40' : ''}
+                    onClick={(e) => { e.preventDefault(); if (page > 1) changePage(page - 1) }}
+                  />
+                </PaginationItem>
+                {paginationRange(page, totalPages).map((p, i) =>
+                  p === 'ellipsis' ? (
+                    <PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>
+                  ) : (
+                    <PaginationItem key={p}>
+                      <PaginationLink
+                        href="#"
+                        isActive={p === page}
+                        onClick={(e) => { e.preventDefault(); changePage(p) }}
+                      >
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                )}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    aria-disabled={page >= totalPages}
+                    className={page >= totalPages ? 'pointer-events-none opacity-40' : ''}
+                    onClick={(e) => { e.preventDefault(); if (page < totalPages) changePage(page + 1) }}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </div>
       )}
 

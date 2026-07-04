@@ -7,6 +7,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme="light"
+      position="top-center"
       className="toaster group"
       icons={{
         success: (
@@ -34,11 +35,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
         } as React.CSSProperties
       }
       toastOptions={{
+        // sonner's own stylesheet sets background/border/color/radius via
+        // `[data-sonner-toast][data-styled=true]`, which outranks a plain
+        // Tailwind utility class — `!` (important) is required to win here.
         classNames: {
-          toast: "rounded-none border border-border bg-popover text-popover-foreground",
+          toast: "!rounded-none",
           description: "text-muted-foreground",
           actionButton: "bg-primary text-primary-foreground rounded-none",
           cancelButton: "bg-muted text-muted-foreground rounded-none",
+          default: "!border-border !bg-popover !text-popover-foreground",
+          loading: "!border-border !bg-popover !text-popover-foreground",
+          success: "!border-success/40 !bg-success-subtle !text-success-foreground",
+          error: "!border-destructive/40 !bg-destructive/10 !text-destructive",
+          warning: "!border-warning/40 !bg-warning/15 !text-foreground",
+          info: "!border-primary/40 !bg-primary/10 !text-primary",
         },
       }}
       {...props}

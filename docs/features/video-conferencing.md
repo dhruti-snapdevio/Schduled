@@ -6,7 +6,7 @@ Video Conferencing integration automatically generates a unique meeting link for
 
 ## Overview
 
-When an invitee books a meeting, Schedica immediately calls the video platform's API to create a new meeting room. A unique join link is generated per booking and sent to both host and invitee in the confirmation email, the calendar invite, and all reminder emails.
+When an invitee books a meeting, Schduled immediately calls the video platform's API to create a new meeting room. A unique join link is generated per booking and sent to both host and invitee in the confirmation email, the calendar invite, and all reminder emails.
 
 This eliminates two major pain points:
 1. Hosts forgetting to create a video meeting and scrambling before the call
@@ -53,7 +53,7 @@ The most widely used business video conferencing platform.
 **Connection:**
 - OAuth 2.0 — host connects their Zoom account once
 - Requires a Zoom account (Free Zoom account is sufficient)
-- One Zoom account per Schedica user
+- One Zoom account per Schduled user
 
 > ⚠️ **Zoom Marketplace Approval Required**
 > Creating unique meeting links via the Zoom API requires a published Zoom OAuth app approved through the [Zoom Marketplace](https://marketplace.zoom.us). Approval requires a publicly accessible privacy policy, terms of service, and a working demo. Review can take **2–4 weeks**. Submit the app early — this is a hard dependency before Zoom integration can go live for all users. During development, use a development-mode OAuth app (works for up to 100 users without approval).
@@ -63,7 +63,7 @@ The most widely used business video conferencing platform.
 **Setup:**
 1. Go to Profile & Settings → Integrations → Zoom
 2. Click "Connect Zoom Account"
-3. Authorize Schedica in Zoom OAuth window
+3. Authorize Schduled in Zoom OAuth window
 4. Connection confirmed — Zoom available as location on all event types
 
 ---
@@ -85,7 +85,7 @@ Auto-generates a Google Meet link as part of calendar event creation. No separat
 **Link Format:** A unique `meet.google.com/{code}` URL generated automatically as part of the Google Calendar event creation.
 
 **How It Works:**
-- When Schedica creates the Google Calendar event for the booking, it includes `conferenceData.createRequest` in the API call
+- When Schduled creates the Google Calendar event for the booking, it includes `conferenceData.createRequest` in the API call
 - Google Calendar API auto-generates and attaches a unique Meet link
 - Link returned in the API response and stored in the booking record
 
@@ -109,7 +109,7 @@ Auto-generates a Teams meeting link via the Microsoft Graph API.
 **Link Format:** A `teams.microsoft.com/l/meetup-join/...` URL returned in the `joinWebUrl` field from the Microsoft Graph API.
 
 **How It Works:**
-- Schedica calls `POST /v1.0/users/{userId}/onlineMeetings` on the Microsoft Graph API
+- Schduled calls `POST /v1.0/users/{userId}/onlineMeetings` on the Microsoft Graph API
 - Returns a `joinWebUrl` stored as the meeting location
 
 ---
@@ -176,7 +176,7 @@ Invitee sees:
 > ○ Zoom
 > ○ Google Meet
 
-Schedica creates a meeting on the selected platform and sends the appropriate link.
+Schduled creates a meeting on the selected platform and sends the appropriate link.
 
 **Configuration:** Enable in event type settings → Location → "Let invitee choose" → select which platforms to offer.
 
@@ -199,7 +199,7 @@ The video link is delivered in multiple places to ensure the invitee never loses
 
 ## Meeting Link in the Host's Calendar Invite
 
-When Schedica writes the booking to the host's calendar:
+When Schduled writes the booking to the host's calendar:
 
 **Google Calendar:**
 - Conference data embedded (shows in Google Calendar UI as a "Join with Google Meet" button)
@@ -215,7 +215,7 @@ When Schedica writes the booking to the host's calendar:
 
 ## Per-Booking Unique Links (Why It Matters)
 
-Calendly and Schedica both create a new unique meeting room per booking. This is important because:
+Calendly and Schduled both create a new unique meeting room per booking. This is important because:
 
 - **Privacy:** Previous attendees cannot re-join a meeting using an old link
 - **Security:** No "room squatting" by someone who had a previous link
@@ -246,7 +246,7 @@ If a platform disconnects and a new booking comes in:
 
 When AI Notetaker is enabled (Phase 2 feature), a recording notice is automatically appended to the video meeting details in confirmation emails:
 
-> "This meeting may be recorded and transcribed by Schedica Notetaker. You will be notified at the start of the meeting."
+> "This meeting may be recorded and transcribed by Schduled Notetaker. You will be notified at the start of the meeting."
 
 Hosts can disable this notice or the recording feature per event type.
 
@@ -261,7 +261,7 @@ Hosts can disable this notice or the recording feature per event type.
 | **SavvyCal** | Zoom, Google Meet, Teams | ✅ Yes | ❌ No | ❌ No |
 | **Chili Piper** | Zoom, Teams, Meet | ✅ Yes | ❌ No | ❌ No |
 | **HubSpot Meetings** | Zoom, Teams | ✅ Via calendar event creation | ❌ No | ❌ No |
-| **Schedica** | Google Meet (P0), Zoom (P1), Teams (Phase 2); Webex, GoTo (Phase 3) | ✅ Yes — unique room per booking; no shared permanent links | ✅ Yes — invitee selects if host has 2+ platforms connected | ❌ No — Phase 3 consideration |
+| **Schduled** | Google Meet (P0), Zoom (P1), Teams (Phase 2); Webex, GoTo (Phase 3) | ✅ Yes — unique room per booking; no shared permanent links | ✅ Yes — invitee selects if host has 2+ platforms connected | ❌ No — Phase 3 consideration |
 
 ---
 
@@ -307,7 +307,7 @@ Google Meet links are generated **inline** during `CALENDAR_WRITE` — when crea
 
 ## Tech Stack
 
-- **Zoom API (OAuth 2.0)** — creates a unique Zoom meeting room per booking via `POST /v2/users/me/meetings`. The host connects their Zoom account once in Settings; Schedica stores the OAuth token (AES-256-GCM encrypted) and uses it for every future booking via `VIDEO_LINK_GENERATE` pg-boss job.
+- **Zoom API (OAuth 2.0)** — creates a unique Zoom meeting room per booking via `POST /v2/users/me/meetings`. The host connects their Zoom account once in Settings; Schduled stores the OAuth token (AES-256-GCM encrypted) and uses it for every future booking via `VIDEO_LINK_GENERATE` pg-boss job.
 - **Microsoft Graph API** *(Phase 2)* — creates Microsoft Teams meetings via `POST /v1.0/users/{userId}/onlineMeetings`. Reuses the same OAuth token already stored for the host's Outlook calendar connection — no separate Teams login needed. Built in Phase 2 after Google Meet and Zoom are stable.
 - **Google Calendar API** — Google Meet links are generated automatically as part of `CALENDAR_WRITE` job's Google Calendar event creation (no separate `VIDEO_LINK_GENERATE` job needed for Meet hosts).
 - **PostgreSQL + Drizzle ORM** — stores Zoom and Webex OAuth tokens (AES-256-GCM encrypted) in `video_connections`. Teams tokens are reused from `connected_calendars`. The generated video link is stored in `bookings.locationValue`.

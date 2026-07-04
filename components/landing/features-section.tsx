@@ -14,6 +14,7 @@ import {
   X,
 } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
+import { Reveal } from './reveal'
 
 // ── Step definitions ──────────────────────────────────────────────────────────
 
@@ -339,10 +340,10 @@ export function FeaturesSection() {
 
   return (
     <section id="features" className="border-t border-border bg-muted/20 py-24">
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+      <div className="mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
 
         {/* Header */}
-        <div className="mb-16 text-center scroll-reveal">
+        <Reveal className="mb-16 text-center">
           <p className="mb-3 text-xs font-black uppercase tracking-eyebrow text-primary">How it works</p>
           <h2 className="font-black text-3xl leading-tight sm:text-4xl lg:text-5xl">
             Scheduling on autopilot
@@ -350,13 +351,13 @@ export function FeaturesSection() {
             <span className="text-muted-foreground"> in five steps</span>
           </h2>
           <p className="mt-4 text-muted-foreground">Set it up once. Bookings come in on their own.</p>
-        </div>
+        </Reveal>
 
         {/* Step accordion + Mockup panel */}
         <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
 
           {/* Left: steps */}
-          <div className="space-y-0">
+          <Reveal className="space-y-0">
             {STEPS.map((step, i) => {
               const Icon = step.icon
               const isActive = active === i
@@ -409,10 +410,10 @@ export function FeaturesSection() {
                 </button>
               )
             })}
-          </div>
+          </Reveal>
 
           {/* Right: sticky mockup panel */}
-          <div className="lg:sticky lg:top-28">
+          <Reveal className="lg:sticky lg:top-28" delay={150}>
             <div className="border border-border bg-background p-7 shadow-none ring-1 ring-foreground/10">
               {/* Tab bar */}
               <div className="mb-6 flex items-center gap-2 border-b border-border pb-4">
@@ -443,7 +444,7 @@ export function FeaturesSection() {
                 {MOCKUPS[displayed]}
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </div>
     </section>

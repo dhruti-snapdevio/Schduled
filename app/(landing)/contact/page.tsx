@@ -11,11 +11,14 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { PRODUCT_NAME } from "@/config/platform";
+import { env } from "@/lib/env";
 import { ContactForm } from "./_components/contact-form";
+import { Reveal } from "@/components/landing/reveal";
 
 export const metadata = {
-  title: "Contact — Schduled",
-  description: "Get in touch with the Schduled team. We're happy to help.",
+  title: `Contact — ${PRODUCT_NAME}`,
+  description: `Get in touch with the ${PRODUCT_NAME} team. We're happy to help.`,
 };
 
 const DARK_BG: React.CSSProperties = {
@@ -26,20 +29,26 @@ const DARK_BG: React.CSSProperties = {
   `,
 };
 
+// Same fallback chain as the contact form's actual destination
+// (app/actions/contact.ts) — keeps the displayed address in sync with
+// where messages sent through this page's form actually go.
+const GENERAL_ENQUIRIES_EMAIL =
+  env.CONTACT_EMAIL ?? env.SMTP_USER ?? "hello@schduled.com";
+
 const CHANNELS = [
   {
     icon: EnvelopeSimple,
     title: "General Enquiries",
     description: "Questions about the product, pricing (there isn't any), or anything else.",
-    link: "mailto:hello@schduled.com",
-    linkLabel: "hello@schduled.com",
+    link: `mailto:${GENERAL_ENQUIRIES_EMAIL}`,
+    linkLabel: GENERAL_ENQUIRIES_EMAIL,
   },
   {
     icon: ShieldCheck,
     title: "Privacy & Data",
     description: "Data requests, account deletion, or concerns about how we handle your information.",
-    link: "mailto:privacy@schduled.com",
-    linkLabel: "privacy@schduled.com",
+    link: `mailto:${env.PRIVACY_EMAIL}`,
+    linkLabel: env.PRIVACY_EMAIL,
   },
   {
     icon: GithubLogo,
@@ -68,6 +77,7 @@ export default function ContactPage() {
           <div className="pointer-events-none absolute inset-0 opacity-[0.03]"
             style={{ backgroundImage: "linear-gradient(rgba(20,184,166,1) 1px,transparent 1px),linear-gradient(90deg,rgba(20,184,166,1) 1px,transparent 1px)", backgroundSize: "52px 52px" }} />
 
+          <Reveal>
           <div className="relative mx-auto max-w-4xl px-5 text-center sm:px-8">
             <div className="mb-7 inline-flex items-center gap-2 border border-teal-600/30 bg-teal-950/60 px-4 py-1.5 text-xs font-semibold text-teal-300">
               <ChatCircle size={13} weight="bold" />
@@ -80,18 +90,19 @@ export default function ContactPage() {
               Have a question, found a bug, or just want to say hi? Pick the right channel below or use the form and we'll get back to you.
             </p>
           </div>
+          </Reveal>
         </section>
 
         {/* ── Contact channels ───────────────────────────────────────────── */}
         <section className="py-16 border-b border-border">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
             <div className="grid gap-4 sm:grid-cols-3">
-              {CHANNELS.map((c) => {
+              {CHANNELS.map((c, i) => {
                 const Icon = c.icon;
                 return (
+                  <Reveal key={c.title} delay={i * 80}>
                   <div
-                    key={c.title}
-                    className="group relative overflow-hidden border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50"
+                    className="group relative overflow-hidden border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 h-full"
                   >
                     {/* Accent line */}
                     <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-teal-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
@@ -113,6 +124,7 @@ export default function ContactPage() {
                       {c.external && <ArrowUpRight size={12} />}
                     </a>
                   </div>
+                  </Reveal>
                 );
               })}
             </div>
@@ -125,6 +137,7 @@ export default function ContactPage() {
             <div className="grid gap-16 lg:grid-cols-[1fr_400px] lg:items-start">
 
               {/* Form */}
+              <Reveal>
               <div>
                 <p className="mb-2 text-xs font-black uppercase tracking-eyebrow text-primary">Send a message</p>
                 <h2 className="mb-8 font-black text-2xl">
@@ -132,9 +145,10 @@ export default function ContactPage() {
                 </h2>
                 <ContactForm />
               </div>
+              </Reveal>
 
               {/* Side info */}
-              <div className="space-y-6">
+              <Reveal delay={160} className="space-y-6">
                 {/* Response time */}
                 <div className="border border-border bg-card p-6">
                   <div className="mb-3 flex items-center gap-3">
@@ -186,7 +200,7 @@ export default function ContactPage() {
                     <ArrowRight size={12} weight="bold" />
                   </Link>
                 </div>
-              </div>
+              </Reveal>
             </div>
           </div>
         </section>

@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation";
 import {
   AddressBook,
   CalendarCheck,
+  CalendarPlus,
   Clock,
   GearSix,
-  Lightning,
   ShieldCheck,
   SignOut,
   SquaresFour,
@@ -28,7 +28,7 @@ type IconComponent = ComponentType<{
 
 const NAV_LINKS: { href: string; label: string; icon: IconComponent; tourId?: string }[] = [
   { href: "/dashboard",    label: "Dashboard",   icon: SquaresFour },
-  { href: "/event-types",  label: "Meeting Types", icon: Lightning, tourId: "meeting-types" },
+  { href: "/event-types",  label: "Meeting Types", icon: CalendarPlus, tourId: "meeting-types" },
   { href: "/availability", label: "Availability", icon: Clock, tourId: "availability" },
   { href: "/bookings",     label: "Bookings",    icon: CalendarCheck, tourId: "bookings" },
   { href: "/contacts",     label: "Contacts",    icon: AddressBook },

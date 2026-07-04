@@ -5,6 +5,7 @@ import { addDays } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
 import { db } from '@/lib/db'
 import { getCurrentSession } from '@/lib/authz'
+import { env } from '@/lib/env'
 import {
   user,
   userProfile,
@@ -164,6 +165,7 @@ export default async function BookingPage({
       availableDaysOfWeek={Array.from(availableDaysOfWeek)}
       blockedDates={blockedDates}
       specialDates={specialDates}
+      showPoweredBy={env.NEXT_PUBLIC_SHOW_POWERED_BY}
     />
   )
 }

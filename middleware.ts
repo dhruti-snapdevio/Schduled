@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { env } from "@/lib/env";
 
 const PUBLIC_PREFIXES = [
   "/api/auth",          // Better Auth handler
@@ -33,6 +34,14 @@ export function middleware(request: NextRequest) {
   // Static assets
   if (/\.(svg|png|jpg|jpeg|gif|webp|ico|woff2?)$/.test(pathname))
     return NextResponse.next();
+
+  // Marketing landing page — optional. Internal/team deployments that don't
+  // want a public marketing page can set NEXT_PUBLIC_LANDING_ENABLED=false;
+  // "/" then redirects to "/login" (which itself forwards a signed-in user
+  // onward). Legal pages stay public either way.
+  if (pathname === "/" && !env.NEXT_PUBLIC_LANDING_ENABLED) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
 
   // Landing + legal pages
   if (["/", "/privacy", "/terms", "/cookies"].includes(pathname))

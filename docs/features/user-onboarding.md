@@ -6,7 +6,7 @@ User Onboarding covers the complete authentication and first-run experience — 
 
 ## Overview
 
-Schedica's onboarding has one goal: get the user to a shareable booking link as fast as possible. Every step that doesn't serve that goal is removed.
+Schduled's onboarding has one goal: get the user to a shareable booking link as fast as possible. Every step that doesn't serve that goal is removed.
 
 The full authentication and onboarding sequence covers:
 1. Account creation (sign up — email/password, Google OAuth)
@@ -58,14 +58,14 @@ Target completion time for new user wizard (steps 5–8): **under 3 minutes** fo
 ### Google OAuth Flow
 1. User clicks "Sign up with Google"
 2. Redirected to Google's OAuth consent screen
-3. User approves Schedica access
-4. Returned to Schedica — account created instantly
+3. User approves Schduled access
+4. Returned to Schduled — account created instantly
 5. Profile name and photo pre-filled from Google account
 6. No email verification step required (email already verified by Google)
 
 ### Email + Password Flow
 1. User enters name, email address, and password
-2. Schedica sends a verification email with a 6-digit code
+2. Schduled sends a verification email with a 6-digit code
 3. User enters code on verification screen
 4. Account created and onboarding continues
 
@@ -110,7 +110,7 @@ Before creating an account with an email address, Schduled performs two server-s
 
 ## Step 2 — Calendar Connection
 
-The most critical onboarding step. Without a connected calendar, Schedica cannot show real availability or write bookings.
+The most critical onboarding step. Without a connected calendar, Schduled cannot show real availability or write bookings.
 
 ### Calendar Provider Selection Screen
 User sees a clean screen with calendar provider options:
@@ -126,8 +126,8 @@ User sees a clean screen with calendar provider options:
 1. User clicks their calendar provider
 2. Opens provider OAuth window
 3. User logs in and approves calendar permissions
-4. Returned to Schedica — connection confirmed
-5. Schedica lists all calendars found on the account
+4. Returned to Schduled — connection confirmed
+5. Schduled lists all calendars found on the account
 6. User selects:
    - **Which calendars to check for conflicts** (toggle per calendar)
    - **Which calendar to add new bookings to** (radio selection)
@@ -139,17 +139,17 @@ User sees a clean screen with calendar provider options:
 1. User clicks "Apple Calendar"
 2. Shown instructions: "Go to appleid.apple.com → Security → App-Specific Passwords → Generate"
 3. User enters iCloud email and the generated app-specific password
-4. Schedica connects via CalDAV and lists available calendars
+4. Schduled connects via CalDAV and lists available calendars
 5. User selects which calendars to check and write to
 
 ### Why Calendar Connection Matters (Shown to User)
 A brief one-line explanation displayed during this step:
-> "Schedica checks your calendar so invitees only see times when you're actually free — no more double bookings."
+> "Schduled checks your calendar so invitees only see times when you're actually free — no more double bookings."
 
 ### Skip Option
 - User can skip calendar connection via "I'll connect later" button
 - **Booking pages are deactivated immediately** when calendar is skipped — invitees visiting the booking URL see "This calendar is currently unavailable" until the host connects a calendar
-- This prevents the phantom availability problem: without a real calendar, Schedica cannot check for conflicts, so accepting bookings would risk double-bookings the host only discovers when checking their calendar
+- This prevents the phantom availability problem: without a real calendar, Schduled cannot check for conflicts, so accepting bookings would risk double-bookings the host only discovers when checking their calendar
 - Warning shown with concrete example:
   > "Without a connected calendar, you may get booked during a dentist appointment — and only find out when you check your calendar. Your booking pages will be paused until you connect."
 - Dashboard shows a persistent banner: "⚠️ Your booking pages are paused — connect a calendar to start accepting bookings"
@@ -161,7 +161,7 @@ A brief one-line explanation displayed during this step:
 ## Step 3 — Timezone Confirmation
 
 ### Auto-Detection
-- Schedica detects the user's timezone from their browser automatically
+- Schduled detects the user's timezone from their browser automatically
 - Shows detected timezone: "We detected your timezone as Asia/Kolkata (IST, UTC+5:30)"
 - User confirms with "Yes, that's correct" or changes it
 
@@ -213,14 +213,14 @@ The final onboarding step shows the user their live booking page and gives them 
 - "This is what your invitees will see" label
 
 ### Your Booking Link
-- Displays the user's booking URL: `schedica.com/yourname/30-minute-meeting`
+- Displays the user's booking URL: `schduled.com/yourname/30-minute-meeting`
 - **Copy Link** button — one click to copy to clipboard
 - **Share via Email** — opens default email client with link pre-filled
 - **Share on LinkedIn** — opens LinkedIn share dialog (optional)
 
 ### "You're all set!" Confirmation
 - Checkmark animation and "You're ready to accept bookings!"
-- Clear CTA: "Go to Dashboard" — takes user to the main Schedica dashboard
+- Clear CTA: "Go to Dashboard" — takes user to the main Schduled dashboard
 
 ---
 
@@ -286,21 +286,21 @@ Sign-in is separate from onboarding but lives on the same `/sign-in` page. Retur
 
 ### Email + Password Sign-In Flow
 1. User enters email and password
-2. Schedica verifies credentials server-side (bcrypt password comparison)
+2. Schduled verifies credentials server-side (bcrypt password comparison)
 3. On success: session created; user redirected to dashboard
 4. On failure: "Incorrect email or password" (no indication which is wrong — security best practice)
 
 ### Google OAuth Sign-In Flow
 1. User clicks "Sign in with Google"
 2. Redirected to Google's OAuth screen (Google may remember the user, making this one-click)
-3. On success: Schedica matches the Google email to an existing account
+3. On success: Schduled matches the Google email to an existing account
 4. If no account found: "No account found with this Google account. Sign up instead." — link to sign-up
 
 ### Magic Link (Passwordless) Sign-In Flow
 1. User clicks "Email me a sign-in link"
 2. Enters their registered email address
 3. **Server checks if the user is banned before sending** — if banned and ban has not expired, the request is silently accepted (no error shown, no email sent). This prevents a banned user from discovering they are banned by probing the magic link endpoint.
-4. Schedica sends an email with a secure one-click link (valid for 10 minutes, single-use)
+4. Schduled sends an email with a secure one-click link (valid for 10 minutes, single-use)
 5. User clicks the link → instantly signed in; link immediately invalidated
 6. If link is expired: "This sign-in link has expired. Request a new one." → re-enter email
 7. Use case: User forgot their password; user prefers not to manage passwords; shared/public device where typing a password is inconvenient
@@ -329,7 +329,7 @@ For email+password users who have forgotten their password.
 9. Confirmation: "Your password has been reset. You're now signed in."
 
 ### Reset Email Contents
-- Subject: "Reset your Schedica password"
+- Subject: "Reset your Schduled password"
 - Body: "We received a request to reset your password. Click the button below within 60 minutes."
 - Large "Reset Password" button with the secure token link
 - "If you didn't request this, you can safely ignore this email."
@@ -358,7 +358,7 @@ When a user has 2FA enabled (configured in [user-profile-settings.md](user-profi
 1. User enters email + password (or signs in via OAuth)
 2. Credentials are valid → instead of proceeding to dashboard, shown a 2FA challenge screen
 3. Screen shows: "Enter the 6-digit code from your authenticator app"
-4. User opens Google Authenticator / Authy, finds the Schedica entry
+4. User opens Google Authenticator / Authy, finds the Schduled entry
 5. Enters the current 6-digit TOTP code (regenerates every 30 seconds)
 6. On valid code: session created; user enters dashboard
 7. On invalid code: "Incorrect code. Please try again." (up to 5 attempts)
@@ -423,7 +423,7 @@ When a user has 2FA enabled (configured in [user-profile-settings.md](user-profi
 - MVP security relies on: rate limiting on login endpoint, account lockout after 5 failed attempts, and Better Auth's built-in protections
 
 ### OAuth Account Linking
-When a user tries to sign in with a social provider but the same email already exists in Schedica via a different method:
+When a user tries to sign in with a social provider but the same email already exists in Schduled via a different method:
 - **Email account + tries Google OAuth with same email:** "An account exists with this email. Sign in with your email and password, then connect Google in Settings."
 - Accounts are NOT auto-merged to prevent account takeover attacks
 
@@ -454,7 +454,7 @@ When a user tries to sign in with a social provider but the same email already e
 | **SavvyCal** | Google, Email | Short: profile → calendar → availability → link | ✅ Yes | ❌ No | ❌ No | ✅ Yes |
 | **Chili Piper** | SSO / Salesforce OAuth (B2B focused) | Guided setup for admin; not a self-serve consumer onboarding | ❌ No | ❌ No | ❌ No | N/A |
 | **HubSpot Meetings** | Via HubSpot account | Connect Google/Outlook calendar; set availability; link auto-created | ❌ No | ❌ No | ❌ No | ❌ No |
-| **Schedica** | Google OAuth, Magic Link, Email + Password *(all MVP)* | 5 steps: account → calendar → timezone → first event type → share link | ✅ **Phase 2 — iCloud CalDAV** (CalDAV requires app-specific passwords, lacks standard OAuth, complex protocol — Post-MVP) | ✅ **Dedicated timezone confirmation step** with auto-detect | ✅ Post-onboarding checklist on first dashboard visit | ✅ Skip allowed with clear warning about double-booking risk |
+| **Schduled** | Google OAuth, Magic Link, Email + Password *(all MVP)* | 5 steps: account → calendar → timezone → first event type → share link | ✅ **Phase 2 — iCloud CalDAV** (CalDAV requires app-specific passwords, lacks standard OAuth, complex protocol — Post-MVP) | ✅ **Dedicated timezone confirmation step** with auto-detect | ✅ Post-onboarding checklist on first dashboard visit | ✅ Skip allowed with clear warning about double-booking risk |
 
 ---
 
@@ -514,7 +514,7 @@ All audit records include `actorUserId`, `actorIp`, `source: 'web'` (all auth ev
 
 - **Better Auth** — handles all sign-up methods (email/password, Google OAuth), magic link sign-in, email verification codes, session creation, and account lockout. The admin plugin exposes user management to custom Next.js admin pages. See **Better Auth Configuration** section below for required config options.
 - **Next.js App Router** — onboarding is a 5-step wizard built as sequential pages. Middleware checks `onboardingDone` on each request and redirects incomplete users back to their current step.
-- **PostgreSQL + Drizzle ORM** — stores the user account, current `onboardingStep`, and `onboardingDone` flag. Drizzle schema extends Better Auth's built-in users table with Schedica-specific fields (username, timezone, onboarding progress).
+- **PostgreSQL + Drizzle ORM** — stores the user account, current `onboardingStep`, and `onboardingDone` flag. Drizzle schema extends Better Auth's built-in users table with Schduled-specific fields (username, timezone, onboarding progress).
 - **`disposable_email_domains` table** — seeded blocklist of ~50,000 throwaway email provider domains. Checked on every email+password signup before account creation. Refreshed daily via `DISPOSABLE_EMAILS_REFRESH` pg-boss cron.
 - **DNS MX check** — Node.js `dns.resolveMx()` verifies the signup email domain can receive mail before creating the account. Catches domain typos. Skipped for OAuth sign-ups.
 - **pg-boss** — schedules the welcome email (`EMAIL_SEND` job) immediately after signup so delivery is async and retried on SMTP failure without blocking the onboarding response. Also schedules `DISPOSABLE_EMAILS_REFRESH` cron daily.
@@ -532,6 +532,6 @@ The auth config lives in `src/lib/auth.ts`. Three settings are required — each
 
 | Option | What it does | What breaks without it |
 |--------|-------------|------------------------|
-| `overrideUserInfoOnSignIn: true` | Re-fetches Google name + photo on every sign-in | User's Schedica profile photo never updates when they change their Google photo |
+| `overrideUserInfoOnSignIn: true` | Re-fetches Google name + photo on every sign-in | User's Schduled profile photo never updates when they change their Google photo |
 | `session.cookieCache.maxAge: 60` | Caches session in the cookie for 60s, avoiding a DB query on every request | Every page load hits the DB for a session lookup; also: bans never propagate without this bound |
 | Magic link ban check | Suppresses link delivery to banned users | Banned users can still receive magic links and sign in without error |

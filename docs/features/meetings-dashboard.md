@@ -1,6 +1,6 @@
 # Meetings Dashboard
 
-The Meetings Dashboard is the host's central hub for managing all booked meetings — past, present, and upcoming. Without it, a host has no single place to see what's on their calendar through Schedica, making booking management impossible.
+The Meetings Dashboard is the host's central hub for managing all booked meetings — past, present, and upcoming. Without it, a host has no single place to see what's on their calendar through Schduled, making booking management impossible.
 
 ---
 
@@ -269,7 +269,7 @@ The dashboard is also the anchor for in-app notifications.
 | **SavvyCal** | ✅ Yes | ✅ Yes | ✅ Basic filters | ❌ No | ❌ No | ❌ No |
 | **Chili Piper** | ✅ Pipeline-style lead view | ✅ Via CRM search | ✅ CRM + event type filters | ❌ No | ❌ No | ❌ No |
 | **HubSpot Meetings** | ✅ Via HubSpot activity feed | ✅ Via HubSpot CRM | ✅ Via HubSpot filters | ❌ No | ✅ Via HubSpot deal notes | ❌ No |
-| **Schedica** | ✅ Upcoming + past + cancelled tabs with date grouping | ✅ By name or email — partial match, results appear as you type | ✅ Status, event type, date range (MVP); location type and host filters Phase 2 | ✅ No-show status tracked; host marks manually in MVP; auto-detected in Phase 2 | ✅ Private internal notes per meeting — not visible to invitee | ✅ Join button appears 15 min before meeting — one click from the list |
+| **Schduled** | ✅ Upcoming + past + cancelled tabs with date grouping | ✅ By name or email — partial match, results appear as you type | ✅ Status, event type, date range (MVP); location type and host filters Phase 2 | ✅ No-show status tracked; host marks manually in MVP; auto-detected in Phase 2 | ✅ Private internal notes per meeting — not visible to invitee | ✅ Join button appears 15 min before meeting — one click from the list |
 
 ---
 

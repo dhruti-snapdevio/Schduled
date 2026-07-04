@@ -1,4 +1,4 @@
-# Schedica — Project Structure
+# Schduled — Project Structure
 
 Complete folder and file structure with explanations for every directory. A new developer should be able to read this document and know exactly where to find any piece of code and where to add new code.
 
@@ -9,7 +9,7 @@ Complete folder and file structure with explanations for every directory. A new 
 ## Root Structure
 
 ```
-schedica/
+schduled/
 ├── app/                    ← Next.js App Router (pages, API routes, layouts)
 ├── src/
 │   ├── components/         ← React UI components
@@ -266,7 +266,7 @@ src/lib/
 │   └── s3.ts                       ← S3/R2 driver (AWS S3 / Cloudflare R2) — activate via STORAGE_DRIVER=s3
 │
 ├── booking-engine/                 ← Core booking logic
-│   ├── conflict-check.ts           ← Full conflict check (calendar cache + Schedica bookings)
+│   ├── conflict-check.ts           ← Full conflict check (calendar cache + Schduled bookings)
 │   ├── advisory-lock.ts            ← pg_advisory_xact_lock helper
 │   ├── idempotency.ts              ← idempotency_keys check/store
 │   └── create-booking.ts           ← Full booking creation transaction
@@ -408,7 +408,7 @@ const envSchema = z.object({
   SMTP_USER: z.string(),
   SMTP_PASS: z.string(),
   SMTP_FROM_EMAIL: z.string().email(),
-  SMTP_FROM_NAME: z.string().default('Schedica'),
+  SMTP_FROM_NAME: z.string().default('Schduled'),
 
   S3_ACCESS_KEY_ID: z.string(),
   S3_SECRET_ACCESS_KEY: z.string(),

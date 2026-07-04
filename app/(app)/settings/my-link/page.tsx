@@ -1,7 +1,8 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { PageHeader } from '@/components/scaffold/page-header'
 import { MyLinkForm } from './_components/my-link-form'
-import { user } from '@/db/schema'
+import { EmbedWidget } from './_components/embed-widget'
+import { eventType, user } from '@/db/schema'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
 import { env } from '@/lib/env'
@@ -11,11 +12,13 @@ export const metadata = { title: 'My Link' }
 export default async function MyLinkPage() {
   const session = await requireSession()
 
-  const [freshUser] = await db
-    .select({ username: user.username })
-    .from(user)
-    .where(eq(user.id, session.user.id))
-    .limit(1)
+  const [freshUser, eventTypes] = await Promise.all([
+    db.select({ username: user.username }).from(user).where(eq(user.id, session.user.id)).limit(1).then(r => r[0]),
+    db.select({ slug: eventType.slug, name: eventType.name })
+      .from(eventType)
+      .where(and(eq(eventType.userId, session.user.id), eq(eventType.isActive, true)))
+      .orderBy(eventType.name),
+  ])
 
   return (
     <div className="space-y-6">
@@ -27,6 +30,11 @@ export default async function MyLinkPage() {
       <MyLinkForm
         currentUsername={freshUser?.username ?? ''}
         appUrl={env.NEXT_PUBLIC_APP_URL}
+      />
+      <EmbedWidget
+        eventTypes={eventTypes}
+        appUrl={env.NEXT_PUBLIC_APP_URL}
+        username={freshUser?.username ?? ''}
       />
     </div>
   )

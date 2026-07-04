@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { booking } from '@/db/schema'
+import { booking, user } from '@/db/schema'
+import { env } from '@/lib/env'
+import { getCurrentSession } from '@/lib/authz'
 import { ConfirmationClient } from './_components/confirmation-client'
 
 export const metadata: Metadata = {
@@ -15,6 +17,8 @@ export default async function ConfirmedPage({
     host?: string
     slug?: string
     event?: string
+    ets?: string
+    etid?: string
     start?: string
     end?: string
     tz?: string
@@ -46,11 +50,27 @@ export default async function ConfirmedPage({
     isPending = b?.status === 'pending'
   }
 
+  // Check if the viewing session user is the host (owner toolbar)
+  let isOwner = false
+  if (p.slug) {
+    const session = await getCurrentSession()
+    if (session?.user?.id) {
+      const [hostRow] = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(eq(user.username, p.slug))
+        .limit(1)
+      isOwner = hostRow?.id === session.user.id
+    }
+  }
+
   return (
     <ConfirmationClient
       eventName={p.event}
       hostName={p.host ?? ''}
       hostUsername={p.slug ?? null}
+      eventSlug={p.ets ?? null}
+      eventTypeId={p.etid ?? null}
       startUtc={p.start}
       endUtc={p.end ?? null}
       timezone={p.tz}
@@ -59,6 +79,8 @@ export default async function ConfirmedPage({
       cancelToken={p.cancel ?? null}
       rescheduleToken={p.reschedule ?? null}
       isPending={isPending}
+      isOwner={isOwner}
+      showPoweredBy={env.NEXT_PUBLIC_SHOW_POWERED_BY}
     />
   )
 }

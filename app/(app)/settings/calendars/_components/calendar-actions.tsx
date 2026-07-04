@@ -3,6 +3,7 @@
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowsClockwise, CheckCircle, GoogleLogo, XCircle } from '@phosphor-icons/react'
+import { toast } from 'sonner'
 import { disconnectCalendar } from '@/app/actions/settings'
 import {
   AlertDialog,
@@ -41,7 +42,12 @@ export function CalendarActions({ calendar, connectUrl }: CalendarActionsProps) 
 
   function handleDisconnect() {
     startTransition(async () => {
-      await disconnectCalendar(calendar.id)
+      const res = await disconnectCalendar(calendar.id)
+      if (res && 'error' in res) {
+        toast.error(res.error)
+        return
+      }
+      toast.success('Calendar disconnected')
       router.refresh()
     })
   }

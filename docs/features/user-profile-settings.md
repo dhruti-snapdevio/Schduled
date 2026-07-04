@@ -1,6 +1,6 @@
 # User Profile & Settings
 
-The User Profile & Settings page is where hosts manage their personal identity, preferences, and account configuration. It is the control center for everything that defines who the user is within Schedica — their name, photo, timezone, connected calendars, and security settings.
+The User Profile & Settings page is where hosts manage their personal identity, preferences, and account configuration. It is the control center for everything that defines who the user is within Schduled — their name, photo, timezone, connected calendars, and security settings.
 
 ---
 
@@ -50,7 +50,7 @@ The settings page (`/dashboard/settings`) has a persistent left sidebar with the
 - As a host, I want invitees who book with me to be automatically saved as contacts, so that I can see a record of everyone who has scheduled with me. *(MVP)*
 - As a host, I want to exclude certain email domains from auto-contact creation, so that internal test bookings and competitor accounts are not added to my contacts. *(MVP)*
 - As a host, I want to manage my cookie preferences, so that I am in control of what data is stored in my browser. *(MVP)*
-- As a host, I want to delete my account and all associated data, so that I can leave Schedica and ensure my information is fully removed. *(MVP)*
+- As a host, I want to delete my account and all associated data, so that I can leave Schduled and ensure my information is fully removed. *(MVP)*
 
 ---
 
@@ -142,7 +142,7 @@ Each connected calendar shows a sync status indicator:
 ### Conflict Detection Settings
 Per connected calendar:
 - **Check for conflicts**: Toggle on/off per calendar
-  - On: Busy events on this calendar block Schedica availability
+  - On: Busy events on this calendar block Schduled availability
   - Off: Calendar is ignored for availability (still connected)
 - Use case: Connect personal calendar to prevent booking conflicts without showing personal event names
 
@@ -166,7 +166,7 @@ Control which email notifications the host receives.
 | Reschedule notification | On | Email when invitee reschedules |
 | Daily digest | Off | Morning email with today's meeting summary |
 | Weekly summary | Off | Monday email with past week's meeting stats |
-| Product updates | Off | Schedica feature announcements |
+| Product updates | Off | Schduled feature announcements |
 
 ### Notification Delivery Channel
 - Email (always available)
@@ -248,7 +248,7 @@ A list of all authentication methods currently active on the account:
 
 ## Contacts Settings
 
-When an invitee books a meeting with the host, Schedica can automatically save their information as a contact. This gives the host a running list of everyone who has ever scheduled with them.
+When an invitee books a meeting with the host, Schduled can automatically save their information as a contact. This gives the host a running list of everyone who has ever scheduled with them.
 
 ### Auto-Save Invitees as Contacts
 
@@ -342,7 +342,7 @@ The My Link page (`/dashboard/settings/my-link`) is the central place where a ho
 
 The full booking URL is displayed prominently at the top of the page:
 
-`schedica.com/[username]`
+`schduled.com/[username]`
 
 **Actions available on the URL display:**
 
@@ -359,7 +359,7 @@ The full booking URL is displayed prominently at the top of the page:
 A QR code is generated for the booking URL and displayed below the link display.
 
 - QR code renders on the client using the booking URL as input
-- **Download QR code** button — saves as a PNG file named `schedica-[username]-qr.png`
+- **Download QR code** button — saves as a PNG file named `schduled-[username]-qr.png`
 - Useful for business cards, printed materials, and in-person events
 - QR code updates automatically if the username is changed
 
@@ -384,7 +384,7 @@ The username is the slug at the end of the booking URL. It is set once during on
 - Audit log entry written: `user.username_changed` with `{ oldUsername, newUsername, redirectCreated: true }`
 
 **Redirect behaviour:**
-- Requests to `schedica.com/[oldUsername]/*` are redirected (HTTP 301) to `schedica.com/[newUsername]/*` for 30 days
+- Requests to `schduled.com/[oldUsername]/*` are redirected (HTTP 301) to `schduled.com/[newUsername]/*` for 30 days
 - Warning shown before save: "Changing your username will break any links you have already shared. A redirect from your old URL will stay active for 30 days."
 - After the 30-day window the old slug is freed and can be claimed by another user
 
@@ -392,7 +392,7 @@ The username is the slug at the end of the booking URL. It is set once during on
 
 ## Appearance / Display Preferences
 
-Personal preferences for the Schedica dashboard interface.
+Personal preferences for the Schduled dashboard interface.
 
 ### Theme
 - Light mode (default)
@@ -411,7 +411,7 @@ Personal preferences for the Schedica dashboard interface.
 
 ## Appearance / Display Preferences
 
-Personal preferences for the Schedica dashboard interface.
+Personal preferences for the Schduled dashboard interface.
 
 ### Theme
 - Light mode (default)
@@ -483,7 +483,7 @@ Irreversible account actions, separated and clearly marked.
 | **SavvyCal** | ✅ Photo, name, company | ❌ No | ❌ No | ✅ Yes | ❌ No | ❌ No |
 | **HubSpot Meetings** | Via HubSpot profile — not standalone | ✅ Via HubSpot SSO | ✅ Via HubSpot security | ✅ Via HubSpot | ✅ Via HubSpot GDPR tools | ✅ Via HubSpot |
 | **Chili Piper** | At org level; individual profile limited | ✅ Via SSO | ✅ Via admin | ❌ No personal URL | ❌ No | ❌ No |
-| **Schedica** | ✅ Photo, display name, job title, company (MVP); bio + website Phase 2 | ✅ TOTP (Phase 2) + SMS (Phase 3) | ✅ Phase 2 — list all sessions, revoke any | ✅ Change username with 30-day redirect | ✅ Phase 2 — manual on request at launch | ✅ Light / Dark / System |
+| **Schduled** | ✅ Photo, display name, job title, company (MVP); bio + website Phase 2 | ✅ TOTP (Phase 2) + SMS (Phase 3) | ✅ Phase 2 — list all sessions, revoke any | ✅ Change username with 30-day redirect | ✅ Phase 2 — manual on request at launch | ✅ Light / Dark / System |
 
 ---
 

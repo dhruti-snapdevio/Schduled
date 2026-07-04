@@ -1,6 +1,8 @@
 "use server";
 
+import { PRODUCT_NAME } from "@/config/platform";
 import { enqueueEmail } from "@/lib/email";
+import { env } from "@/lib/env";
 import { escapeHtml } from "@/lib/validators";
 
 interface ContactResult {
@@ -37,7 +39,7 @@ export async function sendContactMessageAction(
     <div style="font-family:ui-sans-serif,system-ui,sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#fff;border:1px solid #e5e7eb;">
       <div style="background:#0D9488;padding:20px 24px;margin-bottom:24px;">
         <p style="color:#fff;font-size:18px;font-weight:700;margin:0;">New Contact Message</p>
-        <p style="color:rgba(255,255,255,0.75);font-size:13px;margin:4px 0 0;">via Schduled contact form</p>
+        <p style="color:rgba(255,255,255,0.75);font-size:13px;margin:4px 0 0;">via ${PRODUCT_NAME} contact form</p>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
         <tr><td style="padding:8px 0;font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;width:80px;">From</td><td style="padding:8px 0;font-size:14px;color:#111827;font-weight:600;">${eName} &lt;${eEmail}&gt;</td></tr>
@@ -52,7 +54,7 @@ export async function sendContactMessageAction(
 
   try {
     await enqueueEmail({
-      to: process.env.CONTACT_EMAIL ?? process.env.SMTP_USER ?? "hello@schduled.com",
+      to: env.CONTACT_EMAIL ?? env.SMTP_USER ?? "hello@schduled.com",
       subject: `[Contact] ${subject}`,
       html,
       text: `From: ${name} <${email}>\nSubject: ${subject}\n\n${message}`,

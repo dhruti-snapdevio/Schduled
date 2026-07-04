@@ -1,4 +1,4 @@
-# Development Plan — Schedica
+# Development Plan — Schduled
 
 ## How to use this file
 
@@ -73,8 +73,8 @@ Phase 20 →  QA & Launch Prep
 
 - [ ] Create the Next.js 15 project
   ```bash
-  npx create-next-app@latest schedica --typescript --tailwind --app --src-dir --import-alias "@/*"
-  cd schedica
+  npx create-next-app@latest schduled --typescript --tailwind --app --src-dir --import-alias "@/*"
+  cd schduled
   ```
 - [ ] Install all packages — run the `pnpm add` commands in [pre-development-setup.md § 4](./pre-development-setup.md#4-complete-package-list); for the full versioned dependency list, see [tools-packages.md — Complete Dependencies](./tools-packages.md#complete-packagejson-dependencies)
 - [ ] Initialize Shadcn/UI and add all components
@@ -205,7 +205,7 @@ Phase 20 →  QA & Launch Prep
 **Post-MVP sections — do NOT build at launch:**
 - Social proof bar — add after 100+ real users or company logos available
 - Features section (6 cards) — add post-launch based on which features visitors ask about
-- Comparison table (Schedica vs Calendly vs Cal.com) — add post-launch, goes stale quickly
+- Comparison table (Schduled vs Calendly vs Cal.com) — add post-launch, goes stale quickly
 - Testimonials — add only real quotes; **never ship placeholder/fictional quotes**
 - FAQ accordion — write based on real support questions from first 50 users
 
@@ -379,7 +379,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] Copy booking link button on each event type card
 - [ ] Context menu on each card: Edit, Duplicate, Hide, Delete
 
-**Done when:** Event types can be created, edited, duplicated, and hidden. Each event type generates a correct URL at `schedica.com/[username]/[slug]`.
+**Done when:** Event types can be created, edited, duplicated, and hidden. Each event type generates a correct URL at `schduled.com/[username]/[slug]`.
 
 ---
 
@@ -519,7 +519,7 @@ Phase 20 →  QA & Launch Prep
 
 ## Phase 10 — Public Booking Page
 
-**Goal:** The public-facing booking page is live at `schedica.com/[username]/[eventSlug]`. Invitees can browse and select available time slots.
+**Goal:** The public-facing booking page is live at `schduled.com/[username]/[eventSlug]`. Invitees can browse and select available time slots.
 
 **Reference doc:** [features/booking-page-customization.md](./features/booking-page-customization.md)
 
@@ -544,7 +544,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] Host brand color applied as accent color on booking page
 - [ ] Host profile photo shown (circular avatar)
 - [ ] Custom welcome / confirmation message shown after booking
-- [ ] No "Powered by Schedica" badge (open source — no branding shown)
+- [ ] No "Powered by Schduled" badge (open source — no branding shown)
 
 **Performance:**
 - [ ] Slot calculation is done server-side (Server Component or API route)
@@ -796,7 +796,7 @@ Phase 20 →  QA & Launch Prep
 
 **Customization:**
 - [ ] Host can set: from name, reply-to email (stored in `notification_preferences`)
-- [ ] All emails use host's from name (e.g., "Jane Smith" not "Schedica")
+- [ ] All emails use host's from name (e.g., "Jane Smith" not "Schduled")
 - [ ] Custom confirmation message injected into invitee confirmation email
 
 **Done when:** Reminder jobs are scheduled when a booking is created, cancelled when booking is cancelled, and fire correctly at 24h and 1h before the meeting. All reminder emails include both timezones and the join link.
@@ -888,13 +888,13 @@ Phase 20 →  QA & Launch Prep
 
 **Goal:** Confirm no billing or plan enforcement exists — all features are available to all users with no restrictions.
 
-**Note:** No billing or plan system — Schedica is fully open source. All features are available to all users with no restrictions.
+**Note:** No billing or plan system — Schduled is fully open source. All features are available to all users with no restrictions.
 
 ### Tasks
 
 - [ ] No billing schema or plan enforcement needed — skip billing-related database tables
 - [ ] All feature limits removed — unlimited event types, unlimited custom questions, unlimited date overrides for all users
-- [ ] "Powered by Schedica" branding is not shown on any install (open source)
+- [ ] "Powered by Schduled" branding is not shown on any install (open source)
 - [ ] No `/pricing` page, no upgrade prompts, no plan gates
 
 **Done when:** Confirmed that no plan checks exist in the codebase and all features work without any limit checks.
@@ -954,7 +954,7 @@ Phase 20 →  QA & Launch Prep
 - [ ] Reschedule flow: reschedule via email link → new booking created → old reminder jobs cancelled → new jobs scheduled
 - [ ] Double-booking prevention: open same slot in two browser tabs simultaneously, confirm only one succeeds
 - [ ] Timezone accuracy: host in EST, invitee in IST — confirm all times display correctly in both timezones
-- [ ] Token refresh: let calendar OAuth token expire → confirm Schedica refreshes it silently
+- [ ] Token refresh: let calendar OAuth token expire → confirm Schduled refreshes it silently
 - [ ] Calendar sync: add personal event to Google Calendar → confirm slot disappears from booking page within minutes
 
 **Security Checks:**

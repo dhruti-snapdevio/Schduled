@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { type CommPrefs, updateCommunicationPrefs } from '@/app/actions/settings'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,7 +39,6 @@ const INVITEE_NOTIFICATIONS = [
 export function CommunicationForm({ initial }: CommunicationFormProps) {
   const [prefs, setPrefs]   = useState<CommPrefs>(initial)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
 
   function toggle(key: keyof CommPrefs) {
     if (typeof prefs[key] !== 'boolean') return
@@ -48,13 +48,12 @@ export function CommunicationForm({ initial }: CommunicationFormProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    setMessage(null)
     const result = await updateCommunicationPrefs(prefs)
     setSaving(false)
     if ('error' in result) {
-      setMessage({ type: 'error', text: result.error })
+      toast.error(result.error)
     } else {
-      setMessage({ type: 'ok', text: 'Preferences saved.' })
+      toast.success('Preferences saved')
     }
   }
 
@@ -166,12 +165,6 @@ export function CommunicationForm({ initial }: CommunicationFormProps) {
           </div>
 
           <Separator />
-
-          {message && (
-            <p className={`text-sm ${message.type === 'ok' ? 'text-primary' : 'text-destructive'}`}>
-              {message.text}
-            </p>
-          )}
 
           <Button type="submit" disabled={saving}>
             {saving ? 'Saving…' : 'Save preferences'}

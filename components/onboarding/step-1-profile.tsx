@@ -21,6 +21,17 @@ interface StepProfileProps {
 
 type UsernameState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
 
+function nameToUsername(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 30)
+}
+
 export function StepProfile({ defaultName, defaultUsername, defaultImage, onNext }: StepProfileProps) {
   const [name, setName] = useState(defaultName)
   const [username, setUsername] = useState(defaultUsername)
@@ -32,6 +43,15 @@ export function StepProfile({ defaultName, defaultUsername, defaultImage, onNext
   const [error, setError] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Auto-suggest username from name only when the user hasn't manually set one
+  const autoSuggest = useRef(!defaultUsername)
+
+  // Derive username from name while auto-suggest is active
+  useEffect(() => {
+    if (!autoSuggest.current) return
+    const derived = nameToUsername(name)
+    setUsername(derived)
+  }, [name])
 
   // Live username check with 400 ms debounce
   useEffect(() => {
@@ -176,14 +196,17 @@ export function StepProfile({ defaultName, defaultUsername, defaultImage, onNext
       {/* Username */}
       <div className="space-y-1.5">
         <Label htmlFor="ob-username">Username</Label>
-        <div className={`flex h-9 items-center border bg-background px-3 text-sm transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15 ${borderColor}`}>
+        <div className={`relative flex h-9 items-center border bg-background px-3 text-sm transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15 ${borderColor}`}>
           <span className="shrink-0 select-none whitespace-nowrap text-muted-foreground">
             {(process.env.NEXT_PUBLIC_APP_URL ?? 'schduled.com').replace(/^https?:\/\//, '')}/
           </span>
           <input
             id="ob-username"
             value={username}
-            onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+            onChange={(e) => {
+              autoSuggest.current = false
+              setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
+            }}
             placeholder="jane-smith"
             className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground/50"
             autoComplete="off"

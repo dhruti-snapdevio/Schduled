@@ -1,5 +1,18 @@
 import type { Instrumentation } from "next";
 
+export async function register() {
+  // Only the Node.js runtime touches Postgres — skip on the Edge runtime.
+  if (process.env.NEXT_RUNTIME !== "nodejs") {
+    return;
+  }
+
+  // Smooths over Docker Compose startup ordering: the web container can
+  // start before Postgres is ready to accept connections. Bounded retry,
+  // non-fatal — see lib/db.ts.
+  const { waitForDatabase } = await import("@/lib/db");
+  await waitForDatabase();
+}
+
 function formatError(err: unknown): string {
   const lines: string[] = [];
   let current: unknown = err;

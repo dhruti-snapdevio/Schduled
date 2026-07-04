@@ -27,7 +27,7 @@ export const QUEUE_OPTIONS: Record<
     policy: "exclusive",
     retryLimit: 0,
   },
-  [JOB_NAMES.SCAFFOLD_HEALTHCHECK]: {
+  [JOB_NAMES.HEALTHCHECK]: {
     expireInSeconds: 120,
     policy: "exclusive",
     retryLimit: 1,
@@ -50,6 +50,7 @@ export const QUEUE_OPTIONS: Record<
   [JOB_NAMES.BOOKING_RESCHEDULE_REMINDERS]: { expireInSeconds: 30, policy: "standard", retryLimit: 2 },
   [JOB_NAMES.BOOKING_RESCHEDULE_NOTIFY]:   { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
   [JOB_NAMES.CALENDAR_UPDATE]:             { expireInSeconds: 60, policy: "singleton", retryLimit: 3, retryDelay: 15 },
+  [JOB_NAMES.BOOKING_FOLLOW_UP]:           { expireInSeconds: 300, policy: "singleton", retryLimit: 2, retryDelay: 60 },
 
   // Calendar integrations
   [JOB_NAMES.CALENDAR_SYNC_ALL]:         { expireInSeconds: 120, policy: "exclusive", retryLimit: 0 },

@@ -368,6 +368,7 @@ export async function POST(request: Request) {
     await enqueueBookingJobs({
       bookingId:        data.bookingId,
       startTime,
+      endTime,
       locationType:     et.locationType,
       requiresApproval: et.requiresApproval,
     });
@@ -382,10 +383,11 @@ export async function POST(request: Request) {
 async function enqueueBookingJobs(opts: {
   bookingId:        string;
   startTime:        Date;
+  endTime:          Date;
   locationType:     string;
   requiresApproval: boolean;
 }) {
-  const { bookingId, startTime, locationType, requiresApproval } = opts;
+  const { bookingId, startTime, endTime, locationType, requiresApproval } = opts;
   const startUtcIso = startTime.toISOString();
   const now = Date.now();
 
@@ -411,12 +413,12 @@ async function enqueueBookingJobs(opts: {
   jobs.push(enqueueJob(JOB_NAMES.CALENDAR_WRITE, { bookingId }));
 
   // Confirmation emails + in-app notification
-  // For video events, delay 30 s so CALENDAR_WRITE / VIDEO_LINK_GENERATE can run first
+  // For video events, delay 10 s so VIDEO_LINK_GENERATE can finish first
   jobs.push(
     enqueueJob(
       JOB_NAMES.BOOKING_CONFIRMATION,
       { bookingId },
-      needsVideoLink ? { startAfter: 30 } : undefined
+      needsVideoLink ? { startAfter: 10 } : undefined
     )
   );
 
@@ -447,6 +449,16 @@ async function enqueueBookingJobs(opts: {
       )
     );
   }
+
+  // Follow-up email — 30 min after meeting ends
+  const followUpAt = addMinutes(endTime, 30);
+  jobs.push(
+    enqueueJob(
+      JOB_NAMES.BOOKING_FOLLOW_UP,
+      { bookingId, bookingEndUtc: endTime.toISOString() },
+      { singletonKey: `follow-up-${bookingId}`, startAfter: followUpAt }
+    )
+  );
 
   const results = await Promise.allSettled(jobs);
   for (const r of results) {

@@ -1,4 +1,4 @@
-# Schedica — Pre-Development Setup & Planning
+# Schduled — Pre-Development Setup & Planning
 
 > Complete this document **before writing a single line of application code.**
 > Every credential, package, folder, and config listed here must be in place so development flows without stopping to hunt for keys or install missing tools.
@@ -67,13 +67,13 @@ You need accounts on **5 external services** before starting. Create them in thi
 **Steps:**
 
 1. Go to [console.cloud.google.com](https://console.cloud.google.com)
-2. Create a new project — name it `schedica-dev`
+2. Create a new project — name it `schduled-dev`
 3. Go to **APIs & Services → Library**
    - Enable: **Google Calendar API**
    - Enable: **Google People API** (for OAuth user profile)
 4. Go to **APIs & Services → OAuth consent screen**
    - User type: **External**
-   - App name: `Schedica`
+   - App name: `Schduled`
    - User support email: your email
    - Scopes to add:
      - `openid`
@@ -102,7 +102,7 @@ You need accounts on **5 external services** before starting. Create them in thi
 
 1. Go to [portal.azure.com](https://portal.azure.com) (create a free account if needed)
 2. Search for **App registrations → New registration**
-   - Name: `Schedica Calendar Integration`
+   - Name: `Schduled Calendar Integration`
    - Supported account types: **Accounts in any organizational directory and personal Microsoft accounts**
    - Redirect URI: Web → `http://localhost:3000/api/calendars/microsoft/callback`
 3. Go to **API permissions → Add a permission → Microsoft Graph → Delegated permissions**
@@ -112,7 +112,7 @@ You need accounts on **5 external services** before starting. Create them in thi
      - `User.Read`
    - Click **Grant admin consent**
 4. Go to **Certificates & secrets → New client secret**
-   - Description: `schedica-dev`
+   - Description: `schduled-dev`
    - Expires: 24 months
 5. Copy and save **immediately** (shown only once):
    - `MICROSOFT_CLIENT_ID` (from Overview → Application (client) ID)
@@ -128,7 +128,7 @@ You need accounts on **5 external services** before starting. Create them in thi
 
 1. Go to [marketplace.zoom.us/develop/create](https://marketplace.zoom.us/develop/create)
 2. Choose **OAuth** app type
-3. App name: `Schedica`
+3. App name: `Schduled`
 4. Choose: **User-managed** app
 5. Redirect URL: `http://localhost:3000/api/video/zoom/callback`
 6. Add scopes:
@@ -161,18 +161,18 @@ You need accounts on **5 external services** before starting. Create them in thi
 
 1. Create AWS account at [aws.amazon.com](https://aws.amazon.com)
 2. Go to **S3 → Create bucket**
-   - Name: `schedica-uploads-dev`
+   - Name: `schduled-uploads-dev`
    - Region: closest to your users
    - Block all public access: **ON** (files accessed via presigned URLs only)
 3. Go to **IAM → Users → Create user**
-   - Username: `schedica-s3-dev`
+   - Username: `schduled-s3-dev`
    - Attach policy: **AmazonS3FullAccess** (or create a custom policy scoped to only your bucket)
 4. Go to **Security credentials → Create access key**
 5. Copy and save:
    - `S3_ACCESS_KEY_ID`
    - `S3_SECRET_ACCESS_KEY`
    - `S3_REGION` (e.g. `us-east-1`)
-   - `S3_BUCKET_NAME` (e.g. `schedica-uploads-dev`)
+   - `S3_BUCKET_NAME` (e.g. `schduled-uploads-dev`)
    - `S3_ENDPOINT` — leave blank for AWS; set for other providers
 
 **Add CORS policy to the bucket** (required for browser direct uploads):
@@ -207,7 +207,7 @@ You need accounts on **5 external services** before starting. Create them in thi
 
 1. Google Account → Security → 2-Step Verification (must be enabled)
 2. Google Account → Security → App passwords
-3. Select app: **Mail** | Device: **Other** → name it `Schedica Dev`
+3. Select app: **Mail** | Device: **Other** → name it `Schduled Dev`
 4. Copy the 16-character password
 
 ```
@@ -217,7 +217,7 @@ SMTP_SECURE=false
 SMTP_USER=yourname@gmail.com
 SMTP_PASS=xxxx xxxx xxxx xxxx   ← the 16-char app password
 SMTP_FROM_EMAIL=yourname@gmail.com
-SMTP_FROM_NAME=Schedica
+SMTP_FROM_NAME=Schduled
 ```
 
 **Mailhog for local dev (zero config — emails never actually send):**
@@ -237,14 +237,14 @@ docker run -d -p 1025:1025 -p 8025:8025 mailhog/mailhog
 ### 4.1 Create the Next.js Project First
 
 ```bash
-npx create-next-app@latest schedica \
+npx create-next-app@latest schduled \
   --typescript \
   --tailwind \
   --app \
   --src-dir \
   --import-alias "@/*"
 
-cd schedica
+cd schduled
 ```
 
 ### 4.2 Install All Dependencies — One Command
@@ -458,7 +458,7 @@ Create a `.env.local` file in the project root. **Never commit this file to git.
 # ─────────────────────────────────────────────────────────────
 
 # PostgreSQL connection string
-DATABASE_URL=postgresql://postgres:password@localhost:5432/schedica_dev
+DATABASE_URL=postgresql://postgres:password@localhost:5432/schduled_dev
 
 # Better Auth — generate with: openssl rand -base64 32
 BETTER_AUTH_SECRET=
@@ -501,8 +501,8 @@ SMTP_PORT=1025
 SMTP_SECURE=false
 SMTP_USER=
 SMTP_PASS=
-SMTP_FROM_EMAIL=noreply@schedica.com
-SMTP_FROM_NAME=Schedica
+SMTP_FROM_EMAIL=noreply@schduled.com
+SMTP_FROM_NAME=Schduled
 
 # ─────────────────────────────────────────────────────────────
 # S3-COMPATIBLE STORAGE — profile photos, logos, banners
@@ -512,7 +512,7 @@ SMTP_FROM_NAME=Schedica
 S3_ACCESS_KEY_ID=
 S3_SECRET_ACCESS_KEY=
 S3_REGION=us-east-1
-S3_BUCKET_NAME=schedica-uploads-dev
+S3_BUCKET_NAME=schduled-uploads-dev
 # Leave blank for AWS S3. Set for other providers:
 #   Cloudflare R2: https://<accountid>.r2.cloudflarestorage.com
 #   MinIO local:   http://localhost:9000
@@ -550,7 +550,7 @@ openssl rand -hex 32
 Create this folder structure manually or let the phases build it. Having it mapped out prevents confusion about where files go.
 
 ```
-schedica/
+schduled/
 │
 ├── src/
 │   │
@@ -776,15 +776,15 @@ Choose **Option A** (you already have PostgreSQL installed) or **Option B** (zer
 psql -U postgres
 
 # Create database and user
-CREATE DATABASE schedica_dev;
-CREATE USER schedica_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE schedica_dev TO schedica_user;
+CREATE DATABASE schduled_dev;
+CREATE USER schduled_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE schduled_dev TO schduled_user;
 \q
 ```
 
 Your `DATABASE_URL`:
 ```
-postgresql://schedica_user:your_password@localhost:5432/schedica_dev
+postgresql://schduled_user:your_password@localhost:5432/schduled_dev
 ```
 
 ---
@@ -859,7 +859,7 @@ main().catch((err) => {
 
 **3. Set `DATABASE_URL` in `.env.local`** — same as Option A, just pointing to the embedded port:
 ```bash
-DATABASE_URL=postgresql://schedica:password@localhost:54329/schedica_dev
+DATABASE_URL=postgresql://schduled:password@localhost:54329/schduled_dev
 ```
 
 **4. How to use** — two terminals:
