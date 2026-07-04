@@ -403,6 +403,12 @@ self-hosted example below.
 
 ### Self-hosted first boot (recommended starting point)
 
+This example assumes Docker Compose's bundled Postgres (`docker-compose.yml`).
+Already have your own database (managed service or self-run)? Use
+`docker-compose.external-db.yml` instead, drop `POSTGRES_USER`/
+`POSTGRES_PASSWORD`/`POSTGRES_DB` (they don't apply), and point `DATABASE_URL`
+at your own host — see `docs/self-hosting/installation.md`, Path A2.
+
 ```env
 DATABASE_URL=postgresql://schduled:strongpass@postgres:5432/schduled
 POSTGRES_USER=schduled
@@ -539,9 +545,6 @@ All are tracked with fixes in `SELF-HOSTING.md` Part 4.
 - **No CORS policy on API routes.** Fine today (no public/cross-origin API
   surface exists), but relevant if you build anything that calls Schduled's
   API from another origin before an official public API ships.
-- **No version endpoint.** There's currently no way to check which version
-  you're running from the UI or an API call — useful to know when filing a
-  bug or comparing against release notes once versioning ships.
 
 ---
 

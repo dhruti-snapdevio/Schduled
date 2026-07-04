@@ -27,6 +27,10 @@ cp .env.example .env
 docker compose up -d
 ```
 
+Already have a Postgres database (managed service, or your own instance)?
+Use `docker compose -f docker-compose.external-db.yml up -d` instead — see
+Installation's Path A2 for the full walkthrough.
+
 The full guide set lives in [`docs/self-hosting/`](./docs/self-hosting/):
 [Installation](./docs/self-hosting/installation.md) ·
 [Docker](./docs/self-hosting/docker.md) ·
@@ -58,7 +62,9 @@ Without `SMTP_HOST`, `SMTP_USER`, and `SMTP_PASS`, the worker logs emails to
 the console instead of sending them.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for coding conventions and the PR
-checklist before submitting changes.
+checklist before submitting changes, [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+for community expectations, and [SECURITY.md](./SECURITY.md) to report a
+vulnerability.
 
 ## Structure
 

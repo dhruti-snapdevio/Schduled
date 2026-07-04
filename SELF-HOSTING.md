@@ -181,15 +181,15 @@ are real · P0/P1/P2 priority.
 ### C. Deployment & packaging
 | Type | Change | Where | P |
 |---|---|---|---|
-| ✅ DONE | Web `Dockerfile` (multi-stage, `output: 'standalone'`, `NODE_OPTIONS` heap cap, non-root `krova` user matching `Dockerfile.worker`) | `Dockerfile` | **P0** |
-| ✅ DONE | `docker-compose.yml` — `web` + `worker` + `postgres`, minimal (no MinIO/Caddy — self-hosters bring their own reverse proxy/storage per decision in Part 5) | `docker-compose.yml` | **P0** |
+| ✅ DONE | Web `Dockerfile` (multi-stage, `output: 'standalone'`, `NODE_OPTIONS` heap cap, non-root `app` user matching `Dockerfile.worker`) | `Dockerfile` | **P0** |
+| ✅ DONE | `docker-compose.yml` — `web` + `worker` + `postgres`, minimal (no MinIO/Caddy — self-hosters bring their own reverse proxy/storage per decision in Part 5). Plus `docker-compose.external-db.yml` — same, minus `postgres`, for self-hosters with their own database | `docker-compose.yml`, `docker-compose.external-db.yml` | **P0** |
 | ✅ DONE | `docker/entrypoint.sh` — runs `pnpm db:migrate` then execs the CMD | `docker/entrypoint.sh` | **P0** |
 | ✅ DONE | `next.config.mjs` → `output: 'standalone'`, build-verified | `next.config.mjs` | **P0** |
 | ✅ DONE | `HTTP /api/health` (real DB ping, not just process-alive) — verified live: returns `{"status":"ok"}` | `app/api/health/route.ts` | **P0** |
 | ✅ DONE | Worker liveness heartbeat (`/tmp/worker-heartbeat`, written every 15s) + Docker `HEALTHCHECK` reading it | `scripts/worker.ts`, `Dockerfile.worker` | P1 |
 | ✅ DONE | `drizzle-kit` moved from `devDependencies` → `dependencies` so the production `--prod` install still has it for `pnpm db:migrate` at boot | `package.json` | P0 |
-| ADD | systemd unit examples (web + worker) for the manual path | docs | P1 |
-| ADD | Resource sizing table (min RAM/CPU/disk for web/worker/Postgres) | docs | P1 |
+| ✅ DONE | systemd unit examples (web + worker) for the manual path | `docs/self-hosting/installation.md` | P1 |
+| ✅ DONE | Resource sizing table (min RAM/CPU/disk for web/worker/Postgres) | `docs/self-hosting/docker.md` | P1 |
 | — | **Note:** `Dockerfile.worker` already existed — only the **web** `Dockerfile` was new | `Dockerfile.worker` | ✅ |
 
 > **`sharp` (native libvips) affects image builds.** `sharp` is used for avatar
@@ -327,7 +327,7 @@ are real · P0/P1/P2 priority.
 | CHANGE | Audit rate-limit coverage across **all** public API routes (present on many) | `app/api/*` | P1 |
 | — | **Verified gap:** rate limiting (`lib/api/helpers.ts`) is an in-process `Map`, explicitly single-instance only (code comment confirms it). Running >1 web replica means each replica has its own independent counter — the real limit becomes N× the documented one, and counters reset on restart. This directly undercuts the horizontal-scaling story elsewhere in this doc. **Do not run >1 web replica without either accepting N× effective limits or replacing this with a DB/Redis-backed limiter** | `lib/api/helpers.ts` | P1 |
 | — | **Correction — this is NOT a bug, verified against Better Auth's source.** An earlier review pass flagged "reverse-proxy cookies may silently fail" as a P0 gap. Reading `node_modules/better-auth/dist/cookies/index.mjs` shows the secure-cookie flag is derived from `options.baseURL` (i.e. our static `NEXT_PUBLIC_APP_URL` string, checked via `.startsWith("https://")`) — **never** from the incoming request's protocol or `X-Forwarded-*` headers. Behind a TLS-terminating reverse proxy, Node sees plain `http://`, but that's irrelevant to Better Auth's decision here. **No code change needed.** The only real requirement (already documented in `ENVIRONMENT.md`): set `NEXT_PUBLIC_APP_URL` to the real public `https://` URL, not `http://localhost`, in production | `lib/auth.ts` (verified, not changed) | — ✅ |
-| ADD | Docs: run behind HTTPS reverse proxy; rotate secrets; **back up `ENCRYPT_KEY`** | docs | P0 |
+| ✅ DONE | Docs: run behind HTTPS reverse proxy (sample Caddy + nginx configs — `docs/self-hosting/installation.md`); rotate secrets (`ENVIRONMENT.md` Security notes); **back up `ENCRYPT_KEY`** (`docs/self-hosting/backup.md`) | docs | P0 |
 | ADD | Dependency scanning (Dependabot / `pnpm audit` in CI) | `.github/` | P1 |
 | — | Better Auth handles CSRF/session cookies — **keep** | `lib/auth.ts` | ✅ |
 
@@ -446,6 +446,12 @@ curl http://localhost:3000/api/health  # expect {"status":"ok"}
 # open NEXT_PUBLIC_APP_URL → sign up with INITIAL_ADMIN_EMAIL using a password
 ```
 
+Already have a Postgres database (managed service, or your own instance) and
+don't want Compose to also run one? Use `docker-compose.external-db.yml`
+instead (`docker compose -f docker-compose.external-db.yml up -d`) — see the
+full **Path A2** walkthrough in the
+[Installation Guide](./docs/self-hosting/installation.md).
+
 ### Path B — Manual / Node (works today)
 ```bash
 git clone <your-repo-url> schduled && cd schduled
@@ -511,8 +517,9 @@ paths, real verified redirect URIs and scopes — not aspirational outlines):
   against `app/api/integrations/*` and `lib/zoom/client.ts`), plus SMTP
   provider guidance.
 
-The `docker-compose.yml` referenced throughout is the real one at the repo
-root (see §C) — no longer a "target" example.
+The `docker-compose.yml` (and `docker-compose.external-db.yml`, for bringing
+your own Postgres) referenced throughout are the real files at the repo root
+(see §C) — no longer "target" examples.
 
 ---
 

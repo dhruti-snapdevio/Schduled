@@ -37,11 +37,29 @@ docker compose ps                 # check health status
 docker compose down                # stop (keeps volumes)
 ```
 
+### `docker-compose.external-db.yml` — bring your own Postgres
+
+If you already have a Postgres database (a managed service like Supabase,
+Neon, or RDS, or an instance you run yourself), use this file instead — it
+runs only `web` and `worker`, no local `postgres` service or
+`postgres-data` volume:
+
+```bash
+docker compose -f docker-compose.external-db.yml up -d
+```
+
+Point `DATABASE_URL` at your database in `.env`; `POSTGRES_USER` /
+`POSTGRES_PASSWORD` / `POSTGRES_DB` don't apply here (see "Path A2 — External
+Postgres" in the [Installation guide](./installation.md)). Everything else on
+this page — images, volumes, healthchecks for `web` and `worker`, resource
+sizing — applies the same way; only the `postgres` service and its rows below
+don't exist in this file.
+
 ### Volumes
 
 | Volume | Used by | Purpose |
 |---|---|---|
-| `postgres-data` | `postgres` | Database files — this is your actual data. Back it up. |
+| `postgres-data` | `postgres` | Database files — this is your actual data. Back it up. **Bundled compose file only** — doesn't exist in `docker-compose.external-db.yml`, since your database lives outside Compose entirely. |
 | `uploads` | `web` | Avatar/logo uploads, **only when `STORAGE_DRIVER=local`** (the default). Not used at all if `STORAGE_DRIVER=s3`. |
 
 Docker Compose prefixes volume names with the **project name**, which
@@ -59,7 +77,10 @@ it differs.
 ### Healthchecks
 
 - `postgres`: `pg_isready`, so `web`/`worker` don't start against a
-  not-yet-ready database.
+  not-yet-ready database. **Bundled compose file only** — with
+  `docker-compose.external-db.yml` there's no local database to gate on, so
+  `web`/`worker` start immediately and rely on `restart: unless-stopped` to
+  retry if your external database isn't reachable yet.
 - `web`: hits its own `/api/health` endpoint, which does a real `SELECT 1`
   against Postgres — not just "is the process alive."
 - `worker`: has a `HEALTHCHECK` in `Dockerfile.worker` that checks a
@@ -92,7 +113,7 @@ volume). Scale up if you see OOM restarts or slow response times.
 |---|---|---|---|
 | `web` | 512MB–1GB | 0.5–1 vCPU | `NODE_OPTIONS=--max-old-space-size=768` caps the heap so an OOM is a clean restart, not a silent kill |
 | `worker` | 256–512MB | 0.25–0.5 vCPU | Lighter — no HTTP serving, just job processing. Heap capped at 384MB. |
-| `postgres` | 512MB–2GB | 0.5–1 vCPU | Depends on data volume; the default `shared_buffers` etc. are fine for a small instance |
+| `postgres` | 512MB–2GB | 0.5–1 vCPU | Depends on data volume; the default `shared_buffers` etc. are fine for a small instance. Bundled compose file only — not applicable to `docker-compose.external-db.yml`, where sizing is your database provider's concern. |
 | Disk | 10GB+ | — | Postgres data + uploads (if `STORAGE_DRIVER=local`) — grows with booking history and avatar count |
 
 If you deploy on a memory-limited host (many VPS/PaaS platforms enforce a

@@ -5,7 +5,6 @@ import { FeaturesSection } from '@/components/landing/features-section'
 import { LandingHeader } from '@/components/landing/landing-header'
 import { LandingFooter } from '@/components/landing/landing-footer'
 import { Reveal } from '@/components/landing/reveal'
-import { TestimonialCarousel } from '@/components/landing/testimonial-carousel'
 import { env } from '@/lib/env'
 
 // Illustrative example domain shown in "how it works" copy — derives from
@@ -17,17 +16,19 @@ import {
   ArrowRight,
   Bell,
   CalendarBlank,
-  CalendarCheck,
   CaretLeft,
   CaretRight,
   CheckCircle,
   Clock,
   Code,
+  CodeSimple,
+  Database,
   Globe,
   Lightning,
   LinkSimple,
+  PaintBrush,
   ShieldCheck,
-  Star,
+  Stack,
   VideoCamera,
 } from '@phosphor-icons/react/dist/ssr'
 import { getCurrentSession } from '@/lib/authz'
@@ -39,118 +40,14 @@ export const metadata = {
 
 // ── Static data ───────────────────────────────────────────────────────────────
 
-/* Real SVG logos for the Trusted By marquee */
-const BRAND_LOGOS = [
-  {
-    id: 'github',
-    el: (
-      <div className="flex items-center gap-2">
-        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
-          <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12z" />
-        </svg>
-        <span className="text-[19px] font-black tracking-tight">GitHub</span>
-      </div>
-    ),
-  },
-  {
-    id: 'vercel',
-    el: (
-      <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="26" fill="currentColor" aria-hidden>
-          <path d="M24 22.525H0l12-21.05 12 21.05z" />
-        </svg>
-        <span className="text-[19px] font-black tracking-tight">Vercel</span>
-      </div>
-    ),
-  },
-  {
-    id: 'figma',
-    el: (
-      <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 38 57" height="30" fill="currentColor" aria-hidden>
-          <path d="M19 28.5A9.5 9.5 0 1 1 28.5 19 9.511 9.511 0 0 1 19 28.5zm-9.5-19A9.5 9.5 0 0 1 19 0h9.5a9.5 9.5 0 0 1 0 19H19A9.5 9.5 0 0 1 9.5 9.5zM0 28.5A9.5 9.5 0 0 1 9.5 19H19v9.5a9.5 9.5 0 1 1-19 0zM9.5 38H19v9.5a9.5 9.5 0 1 1-9.5-9.5zm9.5 0h9.5a9.5 9.5 0 1 1-9.5 9.5z" />
-        </svg>
-        <span className="text-[19px] font-black tracking-tight">Figma</span>
-      </div>
-    ),
-  },
-  {
-    id: 'linear',
-    el: (
-      <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 100 100" height="28" fill="currentColor" aria-hidden>
-          <path d="M1.225 61.54 38.46 98.775a50.03 50.03 0 0 1-37.235-37.235zM0 49.74 50.26 100a50.028 50.028 0 0 1-6.944-.664L.664 56.684A50.028 50.028 0 0 1 0 49.74zm2.347-12.6 60.513 60.513a50.275 50.275 0 0 1-8.714 2.057L4.404 58.454a50.275 50.275 0 0 1 2.057-8.714zM8.212 27.008l64.78 64.78a50.118 50.118 0 0 1-6.561 4.286L11.926 33.569a50.118 50.118 0 0 1 4.286-6.561zm12.077-12.02 64.723 64.723C74.38 85.626 59.414 91.4 43.09 91.4c-22.865 0-42.766-12.838-52.981-31.725L4.982 43.09c0-16.324 5.774-31.29 15.307-41.922zM50 0c27.614 0 50 22.386 50 50 0 16.324-5.774 31.29-15.307 41.922L35.386 32.615C37.52 20.527 46.56 11 50 0z" />
-        </svg>
-        <span className="text-[19px] font-black tracking-tight">Linear</span>
-      </div>
-    ),
-  },
-  {
-    id: 'stripe',
-    el: (
-      <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
-          <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z" />
-        </svg>
-        <span className="text-[19px] font-black tracking-tight">Stripe</span>
-      </div>
-    ),
-  },
-  {
-    id: 'notion',
-    el: (
-      <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
-          <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.14c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z" />
-        </svg>
-        <span className="text-[19px] font-black tracking-tight">Notion</span>
-      </div>
-    ),
-  },
-  {
-    id: 'google',
-    el: (
-      <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
-          <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
-        </svg>
-        <span className="text-[19px] font-black tracking-tight">Google</span>
-      </div>
-    ),
-  },
-  {
-    id: 'hubspot',
-    el: (
-      <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
-          <path d="M22.175 11.073a4.175 4.175 0 0 0-3.357-4.1V4.898a1.51 1.51 0 0 0 .87-1.37V3.51A1.51 1.51 0 0 0 18.18 2h-.016a1.51 1.51 0 0 0-1.508 1.51v.018a1.51 1.51 0 0 0 .87 1.37v2.075a4.176 4.176 0 0 0-1.99.912L8.572 3.24a1.757 1.757 0 1 0-.926 1.594L15.1 8.94a4.175 4.175 0 0 0-.35 1.653 4.175 4.175 0 0 0 2.198 3.683l-1.26 1.749a1.384 1.384 0 1 0 1.175.645l1.36-1.887a4.175 4.175 0 0 0 3.952-3.71zm-4.004 2.37a2.37 2.37 0 1 1 0-4.74 2.37 2.37 0 0 1 0 4.74z" />
-        </svg>
-        <span className="text-[19px] font-black tracking-tight">HubSpot</span>
-      </div>
-    ),
-  },
-  {
-    id: 'slack',
-    el: (
-      <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
-          <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" />
-        </svg>
-        <span className="text-[19px] font-black tracking-tight">Slack</span>
-      </div>
-    ),
-  },
-  {
-    id: 'zoom',
-    el: (
-      <div className="flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" height="28" fill="currentColor" aria-hidden>
-          <path d="M24 12c0 6.627-5.373 12-12 12S0 18.627 0 12 5.373 0 12 0s12 5.373 12 12zM9.947 8.04c-1.193 0-2.16.968-2.16 2.16v4.517l.004.145a3.84 3.84 0 0 0 3.836 3.695h6.213a2.16 2.16 0 0 0 2.16-2.16v-4.517l-.004-.145a3.84 3.84 0 0 0-3.836-3.695H9.947zm7.97 1.44 1.023 1.023v2.994l-1.022 1.022V9.48z" />
-        </svg>
-        <span className="text-[19px] font-black tracking-tight">Zoom</span>
-      </div>
-    ),
-  },
+/* The real, open-source stack this project actually runs on (see README.md) */
+const TECH_STACK = [
+  { id: 'nextjs', icon: Lightning, label: 'Next.js' },
+  { id: 'typescript', icon: CodeSimple, label: 'TypeScript' },
+  { id: 'postgresql', icon: Database, label: 'PostgreSQL' },
+  { id: 'tailwind', icon: PaintBrush, label: 'Tailwind CSS' },
+  { id: 'better-auth', icon: ShieldCheck, label: 'Better Auth' },
+  { id: 'drizzle', icon: Stack, label: 'Drizzle ORM' },
 ]
 
 const STEPS = [
@@ -181,69 +78,6 @@ const STATS = [
   { icon: Lightning,   value: '< 2 min', title: 'Setup Time',       sub: 'Get started in seconds. No config, no friction.' },
   { icon: ShieldCheck, value: '0',       title: 'Double Bookings',   sub: 'Calendar sync prevents every double-booking.' },
   { icon: LinkSimple,  value: '1 link',  title: 'Share Everywhere',  sub: 'Book meetings from anywhere you share it.' },
-]
-
-const TESTIMONIALS = [
-  {
-    quote: "I replaced Calendly the same day I found Schduled. Cleaner UI, faster setup, and it's genuinely free — no catch.",
-    highlight: "it's genuinely free — no catch",
-    name: 'A. C.',
-    role: 'Product Lead',
-    company: 'SaaS startup',
-    initials: 'AC',
-    avatarGrad: 'from-teal-500 to-emerald-600',
-    chips: ['Google Calendar sync', 'Custom booking page'],
-  },
-  {
-    quote: "My clients book through my Schduled link and it looks more professional than any tool I've used. And I pay nothing.",
-    highlight: 'looks more professional than any tool',
-    name: 'M. W.',
-    role: 'Freelance Designer',
-    company: 'Independent',
-    initials: 'MW',
-    avatarGrad: 'from-violet-500 to-indigo-600',
-    chips: ['Custom booking page', 'Buffer times'],
-  },
-  {
-    quote: "The timezone handling alone saves my global team an hour of confusion every single week. Effortless.",
-    highlight: 'saves my global team an hour of confusion',
-    name: 'E. R.',
-    role: 'Operations Lead',
-    company: 'Remote-first team',
-    initials: 'ER',
-    avatarGrad: 'from-orange-500 to-rose-600',
-    chips: ['Timezone detection', 'Google Meet'],
-  },
-  {
-    quote: "Switched from Calendly after they capped my plan's meeting types. Schduled gives me unlimited everything for free.",
-    highlight: 'unlimited everything for free',
-    name: 'D. K.',
-    role: 'Sales Manager',
-    company: 'B2B software',
-    initials: 'DK',
-    avatarGrad: 'from-blue-500 to-cyan-600',
-    chips: ['Round robin', 'Meeting types'],
-  },
-  {
-    quote: "Set it up during onboarding, forgot about it, and it just quietly runs. Exactly what scheduling software should be.",
-    highlight: 'it just quietly runs',
-    name: 'S. P.',
-    role: 'Engineering Manager',
-    company: 'Fintech startup',
-    initials: 'SP',
-    avatarGrad: 'from-pink-500 to-fuchsia-600',
-    chips: ['Availability rules', 'Email reminders'],
-  },
-  {
-    quote: "My coaching clients book themselves in seconds now. No more back-and-forth emails trying to find a slot that works.",
-    highlight: 'book themselves in seconds',
-    name: 'L. N.',
-    role: 'Career Coach',
-    company: 'Self-employed',
-    initials: 'LN',
-    avatarGrad: 'from-amber-500 to-orange-600',
-    chips: ['Buffer times', 'Custom booking page'],
-  },
 ]
 
 const FEATURE_GROUPS = [
@@ -593,25 +427,29 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        {/* ─── TRUSTED BY ──────────────────────────────────────────────────────── */}
+        {/* ─── TECH STACK ──────────────────────────────────────────────────────── */}
         <section className="border-y border-border bg-background py-7">
           <Reveal className="mb-6 text-center">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-foreground/50">
-              Trusted by teams at
+              Built on a real open-source stack
             </p>
           </Reveal>
           <div className="relative overflow-hidden">
             <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-24 bg-gradient-to-r from-background to-transparent" />
             <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-24 bg-gradient-to-l from-background to-transparent" />
             <div className="flex animate-schduled-ticker items-center whitespace-nowrap">
-              {[...BRAND_LOGOS, ...BRAND_LOGOS].map((brand, i) => (
-                <div
-                  key={i}
-                  className="mx-12 inline-flex shrink-0 items-center text-foreground/55 grayscale transition-all duration-300 hover:text-foreground hover:grayscale-0"
-                >
-                  {brand.el}
-                </div>
-              ))}
+              {[...TECH_STACK, ...TECH_STACK].map((tech, i) => {
+                const Icon = tech.icon
+                return (
+                  <div
+                    key={`${tech.id}-${i}`}
+                    className="mx-12 inline-flex shrink-0 items-center gap-2.5 text-foreground/55 transition-colors duration-300 hover:text-foreground"
+                  >
+                    <Icon size={22} weight="duotone" className="text-primary" />
+                    <span className="text-[19px] font-black tracking-tight">{tech.label}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </section>
@@ -1028,58 +866,6 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        {/* ─── TESTIMONIALS ────────────────────────────────────────────────────── */}
-        <section className="relative overflow-clip bg-gradient-to-b from-background to-muted/40 py-28">
-          {/* Soft teal glows + faint grid — echoes the Hero/Product Preview treatment, toned for a light section */}
-          <div
-            className="pointer-events-none absolute -left-32 top-0 h-[420px] w-[420px]"
-            style={{ background: 'radial-gradient(circle, rgba(20,184,166,.14) 0%, transparent 70%)', filter: 'blur(20px)' }}
-          />
-          <div
-            className="pointer-events-none absolute -right-32 bottom-0 h-[420px] w-[420px]"
-            style={{ background: 'radial-gradient(circle, rgba(13,148,136,.12) 0%, transparent 70%)', filter: 'blur(20px)' }}
-          />
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.05]"
-            style={{
-              backgroundImage:
-                'linear-gradient(rgba(20,184,166,1) 1px,transparent 1px),linear-gradient(90deg,rgba(20,184,166,1) 1px,transparent 1px)',
-              backgroundSize: '52px 52px',
-            }}
-          />
-
-          {/* Subtle floating decorations */}
-          <CalendarCheck size={28} weight="duotone" className="pointer-events-none absolute left-[8%] top-[18%] hidden text-primary/10 sm:block" />
-          <Bell size={24} weight="duotone" className="pointer-events-none absolute right-[10%] top-[28%] hidden text-primary/10 lg:block" />
-          <CheckCircle size={26} weight="duotone" className="pointer-events-none absolute bottom-[14%] left-[12%] hidden text-primary/10 lg:block" />
-
-          <div className="relative mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
-            <Reveal className="mb-14 text-center">
-              <p className="mb-3 text-xs font-black uppercase tracking-eyebrow text-primary">Testimonials</p>
-              <h2 className="font-black text-3xl sm:text-4xl lg:text-5xl">
-                Trusted by teams that<br className="hidden sm:block" /> schedule smarter.
-              </h2>
-
-              {/* Rating bar */}
-              <div className="mt-6 inline-flex items-center gap-4 border border-border bg-background px-6 py-3">
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} size={14} weight="fill" className="text-primary" />
-                  ))}
-                </div>
-                <div className="h-4 w-px bg-border" />
-                <span className="text-sm font-bold text-foreground">4.9 / 5</span>
-                <div className="h-4 w-px bg-border" />
-                <span className="text-sm text-muted-foreground">Based on 10,000+ bookings</span>
-              </div>
-            </Reveal>
-
-            <Reveal delay={150}>
-              <TestimonialCarousel items={TESTIMONIALS} />
-            </Reveal>
-          </div>
-        </section>
-
         {/* ─── FAQ ─────────────────────────────────────────────────────────────── */}
         <section id="faq" className="relative overflow-hidden border-t border-border bg-background py-24 lg:py-32">
           <div className="relative mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
@@ -1099,10 +885,10 @@ export default async function LandingPage() {
                     {/* Host row */}
                     <div className="mb-5 flex items-center gap-3 border-b border-white/[0.08] pb-5">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-primary text-sm font-bold text-white">
-                        D
+                        J
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-white">Dhruti Hirapara</p>
+                        <p className="text-sm font-semibold text-white">Jane Smith</p>
                         <p className="text-xs text-white/40">30-Minute Meeting</p>
                       </div>
                     </div>

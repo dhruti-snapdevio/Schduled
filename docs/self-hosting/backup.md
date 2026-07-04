@@ -13,10 +13,21 @@ pg_dump "$DATABASE_URL" -Fc -f schduled-$(date +%F).dump
 The `-Fc` (custom format) flag produces a compressed, restore-flexible dump
 — it's what [Restore](./restore.md) expects.
 
-**Docker Compose:**
+**Docker Compose, bundled Postgres** (`docker-compose.yml`):
 ```bash
+# ${POSTGRES_USER}/${POSTGRES_DB} below come from your shell, not from .env —
+# if you changed them from the defaults, export .env into your shell first,
+# otherwise this silently falls back to "schduled"/"schduled" and backs up
+# the wrong database.
+set -a; source .env; set +a
+
 docker compose exec postgres pg_dump -U "${POSTGRES_USER:-schduled}" -Fc "${POSTGRES_DB:-schduled}" > schduled-$(date +%F).dump
 ```
+
+**Docker Compose, external Postgres** (`docker-compose.external-db.yml`) —
+there's no local `postgres` container to `exec` into; use the plain
+`pg_dump "$DATABASE_URL" ...` form above instead, from anywhere with network
+access to your database.
 
 ### Cron example (daily, 7-day retention)
 
