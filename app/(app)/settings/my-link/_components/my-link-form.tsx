@@ -143,12 +143,14 @@ export function MyLinkForm({ currentUsername, appUrl }: MyLinkFormProps) {
             </div>
           )}
 
-          <Button
-            type="submit"
-            disabled={saving || avail === 'taken' || avail === 'invalid' || avail === 'checking' || username === currentUsername}
-          >
-            {saving ? 'Saving…' : 'Save link'}
-          </Button>
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              disabled={saving || avail === 'taken' || avail === 'invalid' || avail === 'checking' || username === currentUsername}
+            >
+              {saving ? 'Saving…' : 'Save link'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </form>

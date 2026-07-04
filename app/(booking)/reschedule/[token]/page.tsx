@@ -48,6 +48,8 @@ export default async function ReschedulePage({
       id: booking.id,
       status: booking.status,
       startTime: booking.startTime,
+      rescheduleTokenExpiresAt: booking.rescheduleTokenExpiresAt,
+      rescheduleCount: booking.rescheduleCount,
       duration: booking.duration,
       eventTypeId: booking.eventTypeId,
       inviteeTimezone: booking.inviteeTimezone,
@@ -93,11 +95,20 @@ export default async function ReschedulePage({
     );
   }
 
+  if (b.rescheduleTokenExpiresAt && b.rescheduleTokenExpiresAt < new Date()) {
+    return (
+      <RescheduleNotice backHref={`/${b.hostUsername}/${b.etSlug}`}>
+        This reschedule link has expired. Please contact the host to arrange a new time.
+      </RescheduleNotice>
+    );
+  }
+
   // Enforce reschedule policy before showing the UI — no late 403 surprises
   const [reschedulePolicy] = await db
     .select({
       allowRescheduling:     cancellationPolicy.allowRescheduling,
       rescheduleCutoffHours: cancellationPolicy.rescheduleCutoffHours,
+      maxReschedules:        cancellationPolicy.maxReschedules,
     })
     .from(cancellationPolicy)
     .where(eq(cancellationPolicy.eventTypeId, b.eventTypeId))
@@ -123,6 +134,16 @@ export default async function ReschedulePage({
         </RescheduleNotice>
       );
     }
+  }
+
+  const maxReschedules = reschedulePolicy?.maxReschedules;
+  if (maxReschedules !== null && maxReschedules !== undefined && b.rescheduleCount >= maxReschedules) {
+    return (
+      <RescheduleNotice backHref={`/${b.hostUsername}/${b.etSlug}`}>
+        This booking has already been rescheduled {b.rescheduleCount} time{b.rescheduleCount === 1 ? "" : "s"},
+        which is the maximum allowed. Please contact the host directly.
+      </RescheduleNotice>
+    );
   }
 
   const schedule = await db.query.availabilitySchedule.findFirst({

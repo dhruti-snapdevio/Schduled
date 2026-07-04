@@ -55,6 +55,8 @@ interface EventTypeListProps {
   eventTypes: EventType[]
   username: string | null
   statsMap: Map<string, EventTypeStats>
+  googleMeetConnected: boolean
+  zoomConnected: boolean
 }
 
 interface SortableItemProps {
@@ -63,9 +65,11 @@ interface SortableItemProps {
   stats?: EventTypeStats
   isSelected: boolean
   onSelect: (id: string, selected: boolean) => void
+  googleMeetConnected: boolean
+  zoomConnected: boolean
 }
 
-function SortableItem({ et, username, stats, isSelected, onSelect }: SortableItemProps) {
+function SortableItem({ et, username, stats, isSelected, onSelect, googleMeetConnected, zoomConnected }: SortableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: et.id })
 
   const style: React.CSSProperties = {
@@ -100,12 +104,14 @@ function SortableItem({ et, username, stats, isSelected, onSelect }: SortableIte
         stats={stats}
         isSelected={isSelected}
         onSelect={onSelect}
+        googleMeetConnected={googleMeetConnected}
+        zoomConnected={zoomConnected}
       />
     </div>
   )
 }
 
-export function EventTypeList({ eventTypes: initialEventTypes, username, statsMap }: EventTypeListProps) {
+export function EventTypeList({ eventTypes: initialEventTypes, username, statsMap, googleMeetConnected, zoomConnected }: EventTypeListProps) {
   const router = useRouter()
   const [orderedTypes, setOrderedTypes] = useState(initialEventTypes)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -217,6 +223,8 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
                 stats={statsMap.get(et.id)}
                 isSelected={selectedIds.has(et.id)}
                 onSelect={handleSelect}
+                googleMeetConnected={googleMeetConnected}
+                zoomConnected={zoomConnected}
               />
             ))}
           </div>
@@ -240,6 +248,8 @@ export function EventTypeList({ eventTypes: initialEventTypes, username, statsMa
                 stats={statsMap.get(activeType.id)}
                 isSelected={false}
                 onSelect={() => {}}
+                googleMeetConnected={googleMeetConnected}
+                zoomConnected={zoomConnected}
               />
             </div>
           )}

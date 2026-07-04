@@ -21,6 +21,7 @@ import {
   Trash,
   User,
   VideoCamera,
+  Warning,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import {
@@ -85,6 +86,8 @@ interface EventTypeCardProps {
   isSelected?: boolean
   onSelect?: (id: string, selected: boolean) => void
   dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>  // kept for API compat but no longer used
+  googleMeetConnected?: boolean
+  zoomConnected?: boolean
 }
 
 // ── Location meta ────────────────────────────────────────────────────────────
@@ -121,7 +124,7 @@ function relativeDate(date: Date): string {
 
 export function EventTypeCard({
   id, name, slug, color, locationType, meetingType = 'one_on_one', isActive, isHidden, durations, username, stats,
-  isSelected = false, onSelect, dragHandleProps,
+  isSelected = false, onSelect, dragHandleProps, googleMeetConnected = true, zoomConnected = true,
 }: EventTypeCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -254,6 +257,13 @@ export function EventTypeCard({
               {loc.icon}
               {loc.label}
             </span>
+            {((locationType === 'google_meet' && !googleMeetConnected) ||
+              (locationType === 'zoom' && !zoomConnected)) && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Warning size={12} weight="fill" />
+                Not connected
+              </span>
+            )}
           </div>
 
           {/* Booking stats */}

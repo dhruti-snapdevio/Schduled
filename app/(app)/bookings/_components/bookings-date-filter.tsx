@@ -1,9 +1,25 @@
 'use client'
 
-import { X } from '@phosphor-icons/react'
+import { useState, useTransition } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
-import { Input } from '@/components/ui/input'
+import { CalendarBlank, X } from '@phosphor-icons/react'
+import type { DateRange } from 'react-day-picker'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+function parseDate(s: string): Date | undefined {
+  if (!s) return undefined
+  const d = new Date(s + 'T00:00:00')
+  return isNaN(d.getTime()) ? undefined : d
+}
+
+function formatISO(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+const fmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' })
 
 interface BookingsDateFilterProps {
   tab: string
@@ -12,79 +28,86 @@ interface BookingsDateFilterProps {
 }
 
 export function BookingsDateFilter({ tab, dateFrom, dateTo }: BookingsDateFilterProps) {
-  const router = useRouter()
-  const pathname = usePathname()
+  const router       = useRouter()
+  const pathname     = usePathname()
   const searchParams = useSearchParams()
   const [, startTransition] = useTransition()
+  const [open, setOpen] = useState(false)
 
-  // Local draft state: typing/picking a date updates this only. We apply the
-  // filter (navigate) when the field is committed — on blur or Enter — so a
-  // half-typed date never triggers a reload. Stays in sync with the URL props.
-  const [from, setFrom] = useState(dateFrom)
-  const [to, setTo] = useState(dateTo)
-  useEffect(() => { setFrom(dateFrom) }, [dateFrom])
-  useEffect(() => { setTo(dateTo) }, [dateTo])
+  const range: DateRange = {
+    from: parseDate(dateFrom),
+    to:   parseDate(dateTo),
+  }
 
-  function push(nextFrom: string, nextTo: string) {
+  function push(from: Date | undefined, to: Date | undefined) {
     const params = new URLSearchParams(searchParams.toString())
     params.set('tab', tab)
     params.delete('page')
-    if (nextFrom) params.set('dateFrom', nextFrom)
+    if (from) params.set('dateFrom', formatISO(from))
     else params.delete('dateFrom')
-    if (nextTo) params.set('dateTo', nextTo)
+    if (to) params.set('dateTo', formatISO(to))
     else params.delete('dateTo')
     startTransition(() => {
       router.replace(`${pathname}?${params.toString()}`, { scroll: false })
     })
   }
 
-  // Apply only when the committed values actually differ from the URL — avoids
-  // a redundant navigation when blurring a field that wasn't changed.
-  function commit() {
-    if (from === dateFrom && to === dateTo) return
-    push(from, to)
+  function handleSelect(next: DateRange | undefined) {
+    push(next?.from, next?.to)
+    if (next?.from && next?.to) setOpen(false)
   }
 
-  function clear() {
-    setFrom('')
-    setTo('')
-    push('', '')
+  function clear(e: React.MouseEvent) {
+    e.stopPropagation()
+    push(undefined, undefined)
   }
 
-  const hasFilter = from || to
+  const hasFilter = range.from || range.to
+  const label = range.from
+    ? range.to
+      ? `${fmt.format(range.from)} – ${fmt.format(range.to)}`
+      : `From ${fmt.format(range.from)}`
+    : 'Date range'
 
   return (
-    <div className="flex items-center gap-1.5">
-      <Input
-        type="date"
-        value={from}
-        onChange={(e) => setFrom(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => e.key === 'Enter' && commit()}
-        title="From date"
-        className="h-9 w-[150px] shrink-0 px-2 text-sm"
-      />
-      <span className="text-xs text-muted-foreground shrink-0">to</span>
-      <Input
-        type="date"
-        value={to}
-        min={from || undefined}
-        onChange={(e) => setTo(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => e.key === 'Enter' && commit()}
-        title="To date"
-        className="h-9 w-[150px] shrink-0 px-2 text-sm"
-      />
-      {hasFilter && (
-        <button
-          type="button"
-          title="Clear date filter"
-          onClick={clear}
-          className="flex h-9 w-9 items-center justify-center border border-border text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            'h-9 gap-2 px-3 font-normal',
+            hasFilter
+              ? 'border-primary/50 text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
         >
-          <X size={14} />
-        </button>
-      )}
-    </div>
+          <CalendarBlank
+            size={14}
+            className={cn(hasFilter ? 'text-primary' : 'text-muted-foreground')}
+          />
+          <span className="text-sm">{label}</span>
+          {hasFilter && (
+            <span
+              role="button"
+              aria-label="Clear date filter"
+              onClick={clear}
+              className="ml-0.5 flex h-4 w-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X size={11} weight="bold" />
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="range"
+          selected={range}
+          onSelect={handleSelect}
+          numberOfMonths={1}
+          autoFocus
+        />
+      </PopoverContent>
+    </Popover>
   )
 }

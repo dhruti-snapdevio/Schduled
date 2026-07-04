@@ -24,13 +24,13 @@ export function StepCalendar({ onNext, onBack }: StepCalendarProps) {
   }
 
   async function handleConnect() {
-    // Save progress first so that when OAuth redirects back to /dashboard,
-    // onboardingStep = 4 in the DB and the modal resumes at step 5.
+    // Save progress first so that when OAuth redirects back to /onboarding,
+    // onboardingStep = 4 in the DB and the wizard resumes at step 5.
     setLoading(true)
     setError('')
     const result = await skipCalendarStep()
     if ('error' in result) { setError(result.error); setLoading(false); return }
-    window.location.href = '/api/integrations/google?returnTo=/dashboard'
+    window.location.href = '/api/integrations/google?returnTo=/onboarding'
   }
 
   return (

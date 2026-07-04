@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
+import { toast } from 'sonner'
 import { Archive, ArrowCounterClockwise, MagnifyingGlass, Note, Spinner, Trash } from '@phosphor-icons/react'
 import {
   Pagination,
@@ -116,21 +117,29 @@ export function ContactsTable({ contacts, total, page, pageSize, search, archive
 
   function handleArchive(email: string, name: string) {
     startTransition(async () => {
-      await archiveContact(email, name)
-      router.refresh()
+      const result = await archiveContact(email, name)
+      if ('error' in result) { toast.error(result.error); return }
+      toast.success(`${name} archived.`)
+      // Navigate to Archived tab so the user can see the contact + Unarchive button
+      router.push('/contacts?archived=1')
     })
   }
 
-  function handleUnarchive(email: string) {
+  function handleUnarchive(email: string, name: string) {
     startTransition(async () => {
-      await unarchiveContact(email)
-      router.refresh()
+      const result = await unarchiveContact(email)
+      if ('error' in result) { toast.error(result.error); return }
+      toast.success(`${name} restored to contacts.`)
+      // Navigate back to All contacts tab
+      router.push('/contacts')
     })
   }
 
-  function handleDelete(email: string) {
+  function handleDelete(email: string, name: string) {
     startTransition(async () => {
-      await deleteContact(email)
+      const result = await deleteContact(email)
+      if ('error' in result) { toast.error(result.error); return }
+      toast.success(`${name} removed from contacts.`)
       router.refresh()
     })
   }
@@ -289,7 +298,7 @@ export function ContactsTable({ contacts, total, page, pageSize, search, archive
                           variant="ghost"
                           size="icon-sm"
                           title="Restore" aria-label="Restore"
-                          onClick={() => handleUnarchive(c.email)}
+                          onClick={() => handleUnarchive(c.email, c.name)}
                           disabled={isPending}
                         >
                           <ArrowCounterClockwise size={15} />
@@ -327,8 +336,8 @@ export function ContactsTable({ contacts, total, page, pageSize, search, archive
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              onClick={() => handleDelete(c.email)}
+                              variant="destructive"
+                              onClick={() => handleDelete(c.email, c.name)}
                             >
                               Remove
                             </AlertDialogAction>

@@ -410,6 +410,34 @@ function locationMeta(type: string): { icon: React.ReactNode; label: string } {
   return { icon: <LinkIcon size={13} />, label: 'Online' }
 }
 
+const POLICY_PREVIEW = 110
+
+function PolicyBox({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const needsTruncation = text.length > POLICY_PREVIEW
+  const displayed = !expanded && needsTruncation ? text.slice(0, POLICY_PREVIEW).trimEnd() + '…' : text
+
+  return (
+    <div className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2.5 dark:border-amber-800/50 dark:bg-amber-950/20">
+      <p className="mb-1 text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+        Cancellation Policy
+      </p>
+      <p className="text-xs leading-relaxed text-amber-700/80 dark:text-amber-400">
+        {displayed}
+      </p>
+      {needsTruncation && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-1.5 text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-100"
+        >
+          {expanded ? 'Show less' : 'Learn more'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function BookingCalendar({
@@ -1019,10 +1047,7 @@ export function BookingCalendar({
                   </p>
                 )}
                 {eventType.policyText && (
-                  <div className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800/50 dark:bg-amber-950/20">
-                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-0.5">Cancellation Policy</p>
-                    <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">{eventType.policyText}</p>
-                  </div>
+                  <PolicyBox text={eventType.policyText} />
                 )}
               </div>
 

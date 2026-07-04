@@ -8,10 +8,12 @@ import {
   booking,
   bookingAnswer,
   bookingBlocklist,
+  connectedCalendar,
   eventType,
   idempotencyKey,
   meetingLimit,
   user,
+  videoConnection,
 } from "@/db/schema";
 import { db } from "@/lib/db";
 import { checkRateLimit, jsonError, rateLimitKey } from "@/lib/api/helpers";
@@ -94,6 +96,46 @@ export async function POST(request: Request) {
     });
 
     if (!et) return jsonError("Event type not found", 404);
+
+    // ── Integration connectivity check ───────────────────────────────────────
+    if (et.locationType === 'google_meet') {
+      const [cal] = await db
+        .select({ id: connectedCalendar.id })
+        .from(connectedCalendar)
+        .where(
+          and(
+            eq(connectedCalendar.userId, host.id),
+            eq(connectedCalendar.status, 'connected'),
+            eq(connectedCalendar.isWriteTarget, true)
+          )
+        )
+        .limit(1);
+      if (!cal) {
+        return jsonError(
+          "This meeting requires Google Meet, but the host hasn't connected their Google Calendar. Please contact the host.",
+          422
+        );
+      }
+    }
+
+    if (et.locationType === 'zoom') {
+      const [zoomConn] = await db
+        .select({ id: videoConnection.id })
+        .from(videoConnection)
+        .where(
+          and(
+            eq(videoConnection.userId, host.id),
+            eq(videoConnection.provider, 'zoom')
+          )
+        )
+        .limit(1);
+      if (!zoomConn) {
+        return jsonError(
+          "This meeting requires Zoom, but the host hasn't connected their Zoom account. Please contact the host.",
+          422
+        );
+      }
+    }
 
     // ── Blocklist check ──────────────────────────────────────────────────────
     const inviteeDomain = email.split("@")[1] ?? "";

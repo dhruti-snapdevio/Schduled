@@ -61,7 +61,7 @@ function NavItem({
         "data-[tour-dim=true]:!bg-transparent data-[tour-dim=true]:!border-l-transparent data-[tour-dim=true]:!text-sidebar-foreground/25",
       )}
     >
-      <Icon size={17} weight={active ? "fill" : "regular"} className={active ? "text-sidebar-primary-foreground" : ""} />
+      <Icon size={17} weight={active ? "fill" : "regular"} />
       {label}
     </Link>
   );
