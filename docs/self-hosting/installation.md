@@ -270,23 +270,22 @@ in `.env`, and confirm `curl https://schedule.example.com/api/health` returns
 
 ## First login — read this before you deploy
 
-If you deploy with **no SMTP and no Google configured**, and leave
-`NEXT_PUBLIC_PASSWORD_AUTH_ENABLED` at its default (`false`), the *only*
-sign-in path is a magic link — which gets logged to the server console
-instead of emailed anywhere. That's not a bug, but it's an easy way to lock
-yourself out on a fresh deploy.
+**Email + password is the primary login method and is on by default**, so a
+fresh deploy with no SMTP and no Google can still sign in — no lockout risk.
+(Magic link and Google are optional secondary methods; magic link needs SMTP
+to actually deliver, otherwise the link only reaches the server console.)
 
-**Recommended:** set these three together, from the start:
+**Recommended:** set these two alongside the default password login, from the
+start:
 ```env
-NEXT_PUBLIC_PASSWORD_AUTH_ENABLED=true
 SIGNUP_ENABLED=false
 INITIAL_ADMIN_EMAIL=you@example.com
+# NEXT_PUBLIC_PASSWORD_AUTH_ENABLED defaults to true — only set it to false
+# if you want a magic-link/Google-only deployment.
 ```
-This guarantees you can always sign in with a password, that the
-`INITIAL_ADMIN_EMAIL` account is exempt from the signup gate (so it always
-gets through, even with signup closed), and that nobody else can create an
-account. See `ENVIRONMENT.md` §3 for the full explanation and a live-tested
-walkthrough of exactly this configuration.
+This closes public sign-up while the `INITIAL_ADMIN_EMAIL` account stays exempt
+(so it can always create itself, even with signup closed) and is auto-promoted
+to admin. See `ENVIRONMENT.md` §3 for the full explanation.
 
 ## Post-install checklist
 

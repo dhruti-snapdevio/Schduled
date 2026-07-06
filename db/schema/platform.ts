@@ -14,3 +14,11 @@ export const newsletterSubscriber = pgTable('newsletter_subscriber', {
   email:     text('email').notNull().unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+// Admin-editable global platform settings (single-org, one admin). Key-value so
+// new toggles don't need a migration each time; values are stored as text.
+export const appSetting = pgTable('app_setting', {
+  key:       text('key').primaryKey(),
+  value:     text('value').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})

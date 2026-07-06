@@ -15,11 +15,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { requireAdmin } from "@/lib/authz";
+import {
+  getStoredSignInMethods,
+  signInMethodAvailability,
+} from "@/lib/settings/sign-in-methods";
+import { SignInMethodsCard } from "./_components/sign-in-methods-card";
 
 export const metadata = { title: "Platform Settings" };
 
 export default async function OrbitSettingsPage() {
   await requireAdmin();
+
+  const signInMethods = await getStoredSignInMethods();
 
   const smtpConfigured = !!(
     process.env.SMTP_HOST &&
@@ -42,118 +49,125 @@ export default async function OrbitSettingsPage() {
   return (
     <div className="space-y-6">
       <OrbitPageHeader
-        description="Read-only view of environment configuration and feature status."
+        description="Manage sign-in methods and review environment configuration."
         title="Platform Settings"
       />
 
       <div className="space-y-5">
+        {/* Sign-in methods (editable) */}
+        <SignInMethodsCard
+          availability={signInMethodAvailability}
+          initial={signInMethods}
+          smtpConfigured={smtpConfigured}
+        />
+
         {/* General */}
         <Card>
-          <CardHeader className="py-4">
-            <div className="flex items-center gap-2">
-              <GearSix
-                className="text-muted-foreground"
-                size={16}
-                weight="bold"
-              />
-              <CardTitle className="text-base font-semibold">General</CardTitle>
-            </div>
-            <CardDescription>Core platform configuration.</CardDescription>
-          </CardHeader>
+          <SectionHeader
+            description="Core platform configuration."
+            icon={<GearSix size={15} weight="bold" />}
+            title="General"
+          />
           <CardContent className="p-0">
             <ConfigRow label="App URL" mono value={appUrl} />
             <ConfigRow label="Environment" value={nodeEnv} />
           </CardContent>
         </Card>
 
-        {/* Integrations */}
-        <Card>
-          <CardHeader className="py-4">
-            <div className="flex items-center gap-2">
-              <Stack
-                className="text-muted-foreground"
-                size={16}
-                weight="bold"
-              />
-              <CardTitle className="text-base font-semibold">
-                Integrations
-              </CardTitle>
-            </div>
-            <CardDescription>
-              Third-party service connection status based on environment
-              variables.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <StatusRow
-              description="Outbound transactional email via nodemailer"
-              failText="Not configured"
-              icon={<Envelope size={15} weight="bold" />}
-              label="SMTP / Email"
-              ok={smtpConfigured}
-              okText="Configured"
-            />
-            <StatusRow
-              description="Social sign-in and Google Calendar integration"
-              failText="Not configured"
-              icon={<GoogleLogo size={15} weight="bold" />}
-              label="Google OAuth + Calendar"
-              ok={googleConfigured}
-              okText="Configured"
-            />
-            <StatusRow
-              description="Zoom OAuth for automatic meeting creation"
-              failText="Not configured"
-              icon={<VideoCamera size={15} weight="bold" />}
-              label="Zoom"
-              ok={zoomConfigured}
-              okText="Configured"
-            />
-            <StatusRow
-              description="Background job processing (reminders, emails, calendar)"
-              failText="DATABASE_URL missing"
+        {/* Integrations (left) + Security (right) */}
+        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+          <Card>
+            <SectionHeader
+              description="Third-party service connection status based on environment variables."
               icon={<Stack size={15} weight="bold" />}
-              label="pg-boss Job Queue"
-              ok={databaseUrlSet}
-              okText="Configured"
+              title="Integrations"
             />
-          </CardContent>
-        </Card>
+            <CardContent className="p-0">
+              <StatusRow
+                description="Outbound transactional email via nodemailer"
+                failText="Not configured"
+                icon={<Envelope size={15} weight="bold" />}
+                label="SMTP / Email"
+                ok={smtpConfigured}
+                okText="Configured"
+              />
+              <StatusRow
+                description="Social sign-in and Google Calendar integration"
+                failText="Not configured"
+                icon={<GoogleLogo size={15} weight="bold" />}
+                label="Google OAuth + Calendar"
+                ok={googleConfigured}
+                okText="Configured"
+              />
+              <StatusRow
+                description="Zoom OAuth for automatic meeting creation"
+                failText="Not configured"
+                icon={<VideoCamera size={15} weight="bold" />}
+                label="Zoom"
+                ok={zoomConfigured}
+                okText="Configured"
+              />
+              <StatusRow
+                description="Background job processing (reminders, emails, calendar)"
+                failText="DATABASE_URL missing"
+                icon={<Stack size={15} weight="bold" />}
+                label="pg-boss Job Queue"
+                ok={databaseUrlSet}
+                okText="Configured"
+              />
+            </CardContent>
+          </Card>
 
-        {/* Security */}
-        <Card>
-          <CardHeader className="py-4">
-            <div className="flex items-center gap-2">
-              <Lock className="text-muted-foreground" size={16} weight="bold" />
-              <CardTitle className="text-base font-semibold">
-                Security
-              </CardTitle>
-            </div>
-            <CardDescription>
-              Authentication secrets and encryption keys.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <StatusRow
-              description="Better Auth session signing key (APP_SECRET)"
-              failText="Not set — CRITICAL"
+          <Card>
+            <SectionHeader
+              description="Authentication secrets and encryption keys."
               icon={<Lock size={15} weight="bold" />}
-              label="App Secret"
-              ok={appSecretSet}
-              okText="Set"
+              title="Security"
             />
-            <StatusRow
-              description="AES-GCM key for OAuth token storage (ENCRYPT_KEY)"
-              failText="Not set — CRITICAL"
-              icon={<Lock size={15} weight="bold" />}
-              label="Encryption Key"
-              ok={encryptionKeySet}
-              okText="Set"
-            />
-          </CardContent>
-        </Card>
+            <CardContent className="p-0">
+              <StatusRow
+                description="Better Auth session signing key (APP_SECRET)"
+                failText="Not set — CRITICAL"
+                icon={<Lock size={15} weight="bold" />}
+                label="App Secret"
+                ok={appSecretSet}
+                okText="Set"
+              />
+              <StatusRow
+                description="AES-GCM key for OAuth token storage (ENCRYPT_KEY)"
+                failText="Not set — CRITICAL"
+                icon={<Lock size={15} weight="bold" />}
+                label="Encryption Key"
+                ok={encryptionKeySet}
+                okText="Set"
+              />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
+  );
+}
+
+function SectionHeader({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <CardHeader className="gap-2.5 border-b border-border">
+      <div className="flex items-center gap-2.5">
+        <span className="flex size-7 shrink-0 items-center justify-center border border-border bg-muted/40 text-muted-foreground">
+          {icon}
+        </span>
+        <CardTitle className="text-base font-semibold">{title}</CardTitle>
+      </div>
+      <CardDescription>{description}</CardDescription>
+    </CardHeader>
   );
 }
 
@@ -195,11 +209,13 @@ function StatusRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-6 border-t border-border px-6 py-4 first:border-0">
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 shrink-0 text-muted-foreground">{icon}</span>
+      <div className="flex items-start gap-3.5">
+        <span className="flex size-9 shrink-0 items-center justify-center border border-border bg-muted/40 text-muted-foreground">
+          {icon}
+        </span>
         <div>
-          <p className="text-sm font-medium">{label}</p>
-          <p className="text-xs text-muted-foreground">{description}</p>
+          <p className="text-sm font-semibold">{label}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
         </div>
       </div>
       <span

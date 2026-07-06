@@ -183,6 +183,7 @@ export default async function BookingDetailPage({
             <p className="mt-1 text-sm text-muted-foreground">{b.eventName} · {b.duration} min</p>
           </div>
         </div>
+        {isUpcoming && <Countdown startUtc={b.startTime.toISOString()} />}
       </div>
 
       {/* ── Info cards ── */}
@@ -302,8 +303,6 @@ export default async function BookingDetailPage({
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {isUpcoming && <Countdown startUtc={b.startTime.toISOString()} />}
-
           {hasActions && (
             <Card title="Quick actions" icon={<VideoCamera size={14} />} sticky>
               <div className="flex flex-col gap-2">

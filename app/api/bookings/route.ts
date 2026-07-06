@@ -16,6 +16,7 @@ import {
   videoConnection,
 } from "@/db/schema";
 import { db } from "@/lib/db";
+import { isSlotBookable } from "@/lib/calendar/validate-slot";
 import { checkRateLimit, jsonError, rateLimitKey } from "@/lib/api/helpers";
 import { isValidTimezone, sanitizeText, validateEmail } from "@/lib/validators";
 import { enqueueJob } from "@/lib/worker/enqueue";
@@ -151,10 +152,12 @@ export async function POST(request: Request) {
     );
     if (isBlocked) return jsonError("You have been blocked from booking with this host.", 403);
 
-    // Enforce minimum notice
-    const minimumNoticeMs = (et.minimumNotice ?? 0) * 60_000;
+    // Enforce minimum notice (default 60 — matches the DB column default and
+    // the /api/slots display, so a direct API call can't bypass the notice the
+    // booking UI already hides).
+    const minimumNoticeMs = (et.minimumNotice ?? 60) * 60_000;
     if (minimumNoticeMs > 0 && startTime.getTime() - nowMs < minimumNoticeMs) {
-      const mins = et.minimumNotice ?? 0;
+      const mins = et.minimumNotice ?? 60;
       const label = mins >= 60 ? `${mins / 60} hour${mins / 60 === 1 ? "" : "s"}` : `${mins} minute${mins === 1 ? "" : "s"}`;
       return jsonError(`This event type requires at least ${label} notice before booking.`, 400);
     }
@@ -206,6 +209,24 @@ export async function POST(request: Request) {
     // Phone required server-side for phone_host_calls
     if (et.locationType === 'phone_host_calls' && !phone?.trim()) {
       return jsonError('Phone number is required for this meeting type.', 400);
+    }
+
+    // Server-side availability check — the requested time must be a real slot on
+    // the host's schedule (working hours / override, aligned to the increment,
+    // not a blocked date). Without this a direct POST could book any arbitrary
+    // time, bypassing the /api/slots gating the UI relies on.
+    const bookable = await isSlotBookable({
+      hostUserId: host.id,
+      scheduleId: schedule?.id,
+      hostTz,
+      startUtc: startTime,
+      durationMinutes: duration,
+      bufferBefore: et.bufferBefore ?? 0,
+      bufferAfter: et.bufferAfter ?? 0,
+      increment: et.startTimeIncrement ?? 30,
+    });
+    if (!bookable) {
+      return jsonError("That time isn't available. Please choose an open slot.", 409);
     }
 
     // ── Idempotency check ────────────────────────────────────────────────────

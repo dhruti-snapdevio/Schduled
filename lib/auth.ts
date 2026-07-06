@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin } from "better-auth/plugins/admin";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { eq } from "drizzle-orm";
@@ -9,7 +10,16 @@ import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { enqueueEmail } from "@/lib/email";
 import { magicLinkTemplate } from "@/lib/email/templates/magic-link";
+import { resetPasswordTemplate } from "@/lib/email/templates/reset-password";
 import { env } from "@/lib/env";
+import { getEffectiveSignInMethods } from "@/lib/settings/sign-in-methods";
+
+// Password sign-in / sign-up / reset all funnel through these paths.
+const PASSWORD_PATHS = new Set([
+  "/sign-in/email",
+  "/sign-up/email",
+  "/request-password-reset",
+]);
 
 export const googleAuthEnabled = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 export const passwordAuthEnabled = env.NEXT_PUBLIC_PASSWORD_AUTH_ENABLED;
@@ -50,6 +60,69 @@ export const auth = betterAuth({
     : {}),
   emailAndPassword: {
     enabled: passwordAuthEnabled,
+    // Delivered the same way as magic links: enqueued to the outbox → worker →
+    // SMTP (or logged to the server console if no SMTP is configured).
+    sendResetPassword: async ({ user, url }) => {
+      const { html, text } = await resetPasswordTemplate({
+        email: user.email,
+        resetUrl: url,
+      });
+
+      await enqueueEmail({
+        to: user.email,
+        subject: `Reset your ${PRODUCT_NAME} password`,
+        html,
+        text,
+      });
+
+      await audit({
+        action: "auth.password_reset_requested",
+        actorEmail: user.email,
+        actorId: user.id,
+        description: `Password reset link sent to ${user.email}`,
+        entityType: "user",
+        entityId: user.id,
+        metadata: { email: user.email },
+      });
+    },
+  },
+  // Server-side enforcement of the admin's "Sign-in Methods" toggles. The UI
+  // hides disabled methods, but this is what actually blocks a direct API call
+  // to a disabled method (defense in depth, not just cosmetic).
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      const path = ctx.path;
+      const needsPassword = PASSWORD_PATHS.has(path);
+      const needsMagicLink = path === "/sign-in/magic-link";
+      const isGoogleSocial =
+        path === "/sign-in/social" &&
+        (ctx.body as { provider?: string } | undefined)?.provider === "google";
+      if (!needsPassword && !needsMagicLink && !isGoogleSocial) return;
+
+      // Fail open: a transient error reading the toggles must not turn into a
+      // login outage. This is defense-in-depth over the UI, not the only gate.
+      let methods: Awaited<ReturnType<typeof getEffectiveSignInMethods>>;
+      try {
+        methods = await getEffectiveSignInMethods();
+      } catch {
+        return;
+      }
+      if (needsPassword && !methods.password) {
+        throw new APIError("FORBIDDEN", {
+          message: "Email & password sign-in is currently disabled.",
+        });
+      }
+      if (needsMagicLink && !methods.magicLink) {
+        throw new APIError("FORBIDDEN", {
+          message: "Magic link sign-in is currently disabled.",
+        });
+      }
+      if (isGoogleSocial && !methods.google) {
+        throw new APIError("FORBIDDEN", {
+          message: "Google sign-in is currently disabled.",
+        });
+      }
+    }),
   },
   plugins: [
     admin({
