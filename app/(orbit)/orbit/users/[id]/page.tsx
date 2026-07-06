@@ -1,4 +1,4 @@
-import { count, desc, eq, max, min } from "drizzle-orm";
+import { and, count, desc, eq, ilike, max, min, or } from "drizzle-orm";
 import { format, formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,31 +6,63 @@ import {
   ArrowLeft,
   CalendarCheck,
   CalendarDot,
+  CalendarPlus,
+  CheckCircle,
   Clock,
+  ClockCounterClockwise,
+  Globe,
   IdentificationCard,
+  PencilSimple,
+  Prohibit,
   ShieldCheck,
+  SignIn,
+  SignOut,
   User,
+  UserPlus,
+  XCircle,
 } from "@phosphor-icons/react/dist/ssr";
-import { OrbitPageHeader } from "@/components/admin/orbit-page-header";
 import { UserDetailActions } from "@/components/orbit/user-detail-actions";
 import { BookingCancelButton } from "@/components/orbit/booking-cancel-button";
 import { EventTypeDeleteButton } from "@/components/orbit/event-type-delete-button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { ADMIN_ROLE } from "@/config/platform";
 import { auditLogs, booking, eventType, eventTypeDuration, session, user } from "@/db/schema";
 import { requireAdmin } from "@/lib/authz";
 import { db } from "@/lib/db";
+import { cn, paginationRange } from "@/lib/utils";
+import { SectionSearch } from "./_components/section-search";
 
 export const metadata = { title: "User Detail" };
 
+const PER_PAGE = 5;
+
 export default async function OrbitUserDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string>>;
 }) {
   const admin = await requireAdmin();
   const { id } = await params;
+  const sp = await searchParams;
+
+  const mpPage = Math.max(1, Number(sp.mp) || 1);
+  const bPage  = Math.max(1, Number(sp.bp) || 1);
+  const aPage  = Math.max(1, Number(sp.ap) || 1);
+
+  const mq = sp.mq?.trim() ?? '';
+  const bq = sp.bq?.trim() ?? '';
+  const aq = sp.aq?.trim() ?? '';
 
   const [profile] = await db
     .select({
@@ -51,17 +83,31 @@ export default async function OrbitUserDetailPage({
   if (!profile) notFound();
 
   const isSelf = profile.id === admin.user.id;
+  const isAdmin = profile.role === ADMIN_ROLE;
+
+  // Search-filtered where clauses
+  const bWhere  = bq
+    ? and(eq(booking.hostUserId, id), or(ilike(booking.inviteeName, `%${bq}%`), ilike(booking.inviteeEmail, `%${bq}%`)))
+    : eq(booking.hostUserId, id);
+  const mpWhere = mq
+    ? and(eq(eventType.userId, id), or(ilike(eventType.name, `%${mq}%`), ilike(eventType.slug, `%${mq}%`)))
+    : eq(eventType.userId, id);
+  const aWhere  = aq
+    ? and(eq(auditLogs.actorId, id), or(ilike(auditLogs.action, `%${aq}%`), ilike(auditLogs.description, `%${aq}%`)))
+    : eq(auditLogs.actorId, id);
 
   const [
     [bookingCount],
     [eventTypeCount],
+    [auditCount],
     [lastSeen],
     recentBookings,
     userEventTypes,
     recentAudit,
   ] = await Promise.all([
-    db.select({ value: count() }).from(booking).where(eq(booking.hostUserId, id)),
-    db.select({ value: count() }).from(eventType).where(eq(eventType.userId, id)),
+    db.select({ value: count() }).from(booking).where(bWhere),
+    db.select({ value: count() }).from(eventType).where(mpWhere),
+    db.select({ value: count() }).from(auditLogs).where(aWhere),
     db.select({ lastSeen: max(session.createdAt) }).from(session).where(eq(session.userId, id)),
     db
       .select({
@@ -70,34 +116,58 @@ export default async function OrbitUserDetailPage({
         inviteeEmail: booking.inviteeEmail,
         startTime: booking.startTime,
         status: booking.status,
+        duration: booking.duration,
       })
       .from(booking)
-      .where(eq(booking.hostUserId, id))
+      .where(bWhere)
       .orderBy(desc(booking.startTime))
-      .limit(20),
+      .limit(PER_PAGE)
+      .offset((bPage - 1) * PER_PAGE),
     db
       .select({
         id: eventType.id,
         name: eventType.name,
         slug: eventType.slug,
         isActive: eventType.isActive,
+        color: eventType.color,
         minDuration: min(eventTypeDuration.duration),
       })
       .from(eventType)
       .leftJoin(eventTypeDuration, eq(eventTypeDuration.eventTypeId, eventType.id))
-      .where(eq(eventType.userId, id))
+      .where(mpWhere)
       .groupBy(eventType.id)
-      .orderBy(desc(eventType.createdAt)),
+      .orderBy(desc(eventType.createdAt))
+      .limit(PER_PAGE)
+      .offset((mpPage - 1) * PER_PAGE),
     db
       .select()
       .from(auditLogs)
-      .where(eq(auditLogs.actorId, id))
+      .where(aWhere)
       .orderBy(desc(auditLogs.createdAt))
-      .limit(8),
+      .limit(PER_PAGE)
+      .offset((aPage - 1) * PER_PAGE),
   ]);
 
+  const displayName = profile.name ?? profile.email;
+  const initials    = displayName.slice(0, 2).toUpperCase();
+  const lastSeenStr = lastSeen?.lastSeen
+    ? formatDistanceToNow(lastSeen.lastSeen, { addSuffix: true })
+    : "Never";
+
+  const mpTotal = Math.ceil((eventTypeCount?.value ?? 0) / PER_PAGE);
+  const bTotal  = Math.ceil((bookingCount?.value ?? 0) / PER_PAGE);
+  const aTotal  = Math.ceil((auditCount?.value ?? 0) / PER_PAGE);
+
+  // Build href helper that preserves existing search params
+  function pageHref(key: string, page: number) {
+    const next = new URLSearchParams(sp as Record<string, string>);
+    next.set(key, String(page));
+    return `?${next.toString()}`;
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+
       {/* Back link */}
       <Link
         href="/orbit/users"
@@ -107,299 +177,425 @@ export default async function OrbitUserDetailPage({
         Back to Users
       </Link>
 
-      <OrbitPageHeader
-        eyebrow="User Detail"
-        title={profile.name ?? profile.email}
-        description={profile.email}
-      />
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Profile card */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="py-4">
-            <CardTitle className="text-base font-semibold">Profile</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Avatar + name row */}
-            <div className="flex items-center gap-4">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center bg-primary/10 text-lg font-bold text-primary">
-                {(profile.name ?? profile.email).slice(0, 2).toUpperCase()}
-              </span>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-lg font-semibold">{profile.name ?? "—"}</p>
-                  <Badge
-                    variant={profile.role === ADMIN_ROLE ? "default" : "secondary"}
-                    className="text-xs"
-                  >
-                    {profile.role ?? "user"}
-                  </Badge>
-                  {profile.banned && (
-                    <span className="inline-flex items-center gap-1 rounded-none border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
-                      Suspended
-                    </span>
-                  )}
-                  {isSelf && (
-                    <span className="rounded-none bg-primary/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-ui text-primary">
-                      You
-                    </span>
-                  )}
-                </div>
-                <p className="mt-0.5 text-sm text-muted-foreground">{profile.email}</p>
+      {/* ── Hero ── */}
+      <div className="border border-border bg-background p-6">
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="flex items-start gap-5">
+            <span
+              className="flex size-16 shrink-0 items-center justify-center rounded-full text-xl font-black text-white"
+              style={{ backgroundColor: 'var(--primary)' }}
+            >
+              {initials}
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-black tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
+                  {displayName}
+                </h1>
+                <span className={cn(
+                  'inline-flex items-center border px-2 py-0.5 text-xs font-bold uppercase tracking-wide',
+                  isAdmin
+                    ? 'border-primary/30 bg-primary/10 text-primary'
+                    : 'border-border bg-muted text-muted-foreground'
+                )}>
+                  {profile.role ?? 'user'}
+                </span>
+                <span className={cn(
+                  'inline-flex items-center gap-1 border px-2 py-0.5 text-xs font-bold',
+                  profile.banned
+                    ? 'border-destructive/30 bg-destructive/10 text-destructive'
+                    : 'border-success/30 bg-success/10 text-success'
+                )}>
+                  <span className={cn('size-1.5 rounded-full', profile.banned ? 'bg-destructive' : 'bg-success')} />
+                  {profile.banned ? 'Suspended' : 'Active'}
+                </span>
+                {isSelf && (
+                  <span className="border border-primary/20 bg-primary/[0.06] px-2 py-0.5 text-xs font-bold text-primary">
+                    You
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{profile.email}</p>
+              <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Clock size={12} /> Last active · {lastSeenStr}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <CalendarDot size={12} /> Joined · {format(profile.createdAt, "MMM d, yyyy")}
+                </span>
+                {profile.timezone && (
+                  <span className="flex items-center gap-1.5">
+                    <Globe size={12} /> {profile.timezone}
+                  </span>
+                )}
               </div>
             </div>
+          </div>
+        </div>
+        {profile.banned && profile.banReason && (
+          <div className="mt-4 flex items-start gap-2 border border-destructive/20 bg-destructive/[0.04] px-4 py-3">
+            <Prohibit size={14} className="mt-0.5 shrink-0 text-destructive" />
+            <p className="text-sm text-destructive"><span className="font-semibold">Suspend reason:</span> {profile.banReason}</p>
+          </div>
+        )}
+      </div>
 
-            {/* Details grid */}
-            <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
-              <InfoRow
-                icon={<User size={14} />}
-                label="Username"
-                value={profile.username ? `@${profile.username}` : "—"}
-              />
-              <InfoRow
-                icon={<Clock size={14} />}
-                label="Timezone"
-                value={profile.timezone ?? "UTC"}
-              />
-              <InfoRow
-                icon={<IdentificationCard size={14} />}
-                label="User ID"
-                value={profile.id}
-                mono
-              />
-              <InfoRow
-                icon={<CalendarDot size={14} />}
-                label="Joined"
-                value={format(profile.createdAt, "MMM d, yyyy")}
-              />
-              <InfoRow
-                icon={<Clock size={14} />}
-                label="Last Seen"
-                value={
-                  lastSeen?.lastSeen
-                    ? formatDistanceToNow(lastSeen.lastSeen, { addSuffix: true })
-                    : "Never"
-                }
-              />
-              {profile.banned && profile.banReason && (
+      {/* ── 4 KPI Cards ── */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <KpiCard icon={<CalendarCheck size={16} />} label="Total Bookings" value={String(bookingCount?.value ?? 0)} numeric />
+        <KpiCard icon={<CalendarDot size={16} />} label="Meeting Types" value={String(eventTypeCount?.value ?? 0)} numeric />
+        <KpiCard icon={<Clock size={16} />} label="Last Active" value={lastSeenStr} />
+        <KpiCard icon={<CalendarDot size={16} />} label="Member Since" value={format(profile.createdAt, "MMM yyyy")} />
+      </div>
+
+      {/* ── Profile + Actions ── */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className={isSelf ? 'lg:col-span-3' : 'lg:col-span-2'}>
+          <CardHeader className="border-b border-border py-3.5">
+            <div className="flex items-center gap-2">
+              <span className="flex size-6 items-center justify-center bg-primary/10 text-primary">
+                <User size={13} weight="bold" />
+              </span>
+              <CardTitle className="text-sm font-bold uppercase tracking-ui text-foreground/70">Profile</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="grid divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+              <div className="divide-y divide-border">
+                <InfoRow icon={<User size={14} />} label="Username" value={profile.username ? `@${profile.username}` : '—'} />
+                <InfoRow icon={<IdentificationCard size={14} />} label="User ID" value={profile.id} mono />
+                <InfoRow icon={<Clock size={14} />} label="Last Active" value={lastSeenStr} />
+              </div>
+              <div className="divide-y divide-border">
+                <InfoRow icon={<Globe size={14} />} label="Timezone" value={profile.timezone ?? 'UTC'} />
+                <InfoRow icon={<CalendarDot size={14} />} label="Joined" value={format(profile.createdAt, 'MMM d, yyyy')} />
                 <InfoRow
-                  icon={<ShieldCheck size={14} />}
-                  label="Ban Reason"
-                  value={profile.banReason}
+                  icon={profile.banned ? <Prohibit size={14} /> : <CheckCircle size={14} />}
+                  label="Status"
+                  value={profile.banned ? 'Suspended' : 'Active'}
+                  highlight={profile.banned ? 'destructive' : 'success'}
                 />
-              )}
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Stats + Actions */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-base font-semibold">Stats</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <StatRow
-                icon={<CalendarCheck size={15} />}
-                label="Total Bookings"
-                value={bookingCount?.value ?? 0}
-              />
-              <StatRow
-                icon={<CalendarDot size={15} />}
-                label="Meeting Types"
-                value={eventTypeCount?.value ?? 0}
-              />
-            </CardContent>
-          </Card>
-
-          {!isSelf && (
+        {!isSelf && (
+          <div className="lg:sticky lg:top-6 lg:self-start">
             <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-base font-semibold">Actions</CardTitle>
+              <CardHeader className="border-b border-border py-3.5">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-6 items-center justify-center bg-primary/10 text-primary">
+                    <ShieldCheck size={13} weight="bold" />
+                  </span>
+                  <CardTitle className="text-sm font-bold uppercase tracking-ui text-foreground/70">Account Actions</CardTitle>
+                </div>
               </CardHeader>
-              <CardContent>
-                <UserDetailActions
-                  userId={profile.id}
-                  banned={profile.banned}
-                />
+              <CardContent className="px-4 py-4">
+                <UserDetailActions userId={profile.id} banned={profile.banned} />
               </CardContent>
             </Card>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
+      {/* ── Meeting Types + Bookings side by side ── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
       {/* Meeting Types */}
-      <Card>
-        <CardHeader className="py-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold">Meeting Types</CardTitle>
-            <span className="text-xs text-muted-foreground">
-              {eventTypeCount?.value ?? 0} total
-            </span>
+      <Card className="h-full">
+        <CardHeader className="border-b border-border py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="flex size-6 items-center justify-center bg-primary/10 text-primary">
+                <CalendarDot size={13} weight="bold" />
+              </span>
+              <CardTitle className="text-sm font-bold uppercase tracking-ui text-foreground/70">Meeting Types</CardTitle>
+              <span className="text-xs text-muted-foreground">({eventTypeCount?.value ?? 0})</span>
+            </div>
+            <SectionSearch paramKey="mq" pageKey="mp" placeholder="Search name…" initialValue={mq} />
           </div>
         </CardHeader>
         <CardContent className="p-0">
           {userEventTypes.length === 0 ? (
-            <p className="px-6 py-8 text-center text-sm text-muted-foreground">
-              No meeting types yet.
-            </p>
+            <EmptyState icon={<CalendarDot size={24} />} title="No meeting types yet" description="This user hasn't created any meeting types." />
           ) : (
-            <div>
-              {userEventTypes.map((et) => (
-                <div
-                  key={et.id}
-                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3 first:border-0"
-                >
+            userEventTypes.map((et) => (
+              <div
+                key={et.id}
+                className="flex items-center justify-between gap-4 border-t border-border px-5 py-4 first:border-0 transition-colors hover:bg-muted/30"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="size-3 shrink-0" style={{ backgroundColor: et.color ?? 'var(--primary)' }} />
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium truncate">{et.name}</p>
-                      <span className={`shrink-0 inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-2xs font-semibold ${
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold truncate">{et.name}</p>
+                      <span className={cn(
+                        'shrink-0 inline-flex items-center gap-1 border px-1.5 py-0.5 text-xs font-semibold',
                         et.isActive
-                          ? "border-success/25 bg-success/10 text-success"
-                          : "border-border bg-muted text-muted-foreground"
-                      }`}>
-                        {et.isActive ? "Active" : "Inactive"}
+                          ? 'border-success/25 bg-success/10 text-success'
+                          : 'border-border bg-muted text-muted-foreground'
+                      )}>
+                        <span className={cn('size-1 rounded-full', et.isActive ? 'bg-success' : 'bg-muted-foreground/40')} />
+                        {et.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      /{et.slug}{et.minDuration ? ` · ${et.minDuration} min` : ""}
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      /{et.slug}{et.minDuration ? ` · ${et.minDuration} min` : ''}
                     </p>
                   </div>
-                  <EventTypeDeleteButton eventTypeId={et.id} hostUserId={id} />
                 </div>
-              ))}
-            </div>
+                <EventTypeDeleteButton eventTypeId={et.id} hostUserId={id} />
+              </div>
+            ))
+          )}
+          {mpTotal > 1 && (
+            <SectionPager page={mpPage} totalPages={mpTotal} total={eventTypeCount?.value ?? 0} paramKey="mp" sp={sp} perPage={PER_PAGE} />
           )}
         </CardContent>
       </Card>
 
       {/* Bookings */}
-      <Card>
-        <CardHeader className="py-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold">Bookings</CardTitle>
-            <span className="text-xs text-muted-foreground">
-              {bookingCount?.value ?? 0} total · showing last 20
-            </span>
+      <Card className="h-full">
+        <CardHeader className="border-b border-border py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="flex size-6 items-center justify-center bg-primary/10 text-primary">
+                <CalendarCheck size={13} weight="bold" />
+              </span>
+              <CardTitle className="text-sm font-bold uppercase tracking-ui text-foreground/70">Bookings</CardTitle>
+              <span className="text-xs text-muted-foreground">({bookingCount?.value ?? 0})</span>
+            </div>
+            <SectionSearch paramKey="bq" pageKey="bp" placeholder="Search name or email…" initialValue={bq} />
           </div>
         </CardHeader>
         <CardContent className="p-0">
           {recentBookings.length === 0 ? (
-            <p className="px-6 py-8 text-center text-sm text-muted-foreground">
-              No bookings yet.
-            </p>
+            <EmptyState icon={<CalendarCheck size={24} />} title="No bookings yet" description="Bookings created by this user will appear here." />
           ) : (
-            <div>
-              {recentBookings.map((b) => (
-                <div
-                  key={b.id}
-                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3 first:border-0"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{b.inviteeName}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {b.inviteeEmail} · {format(b.startTime, "MMM d, yyyy 'at' h:mm a")}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-none border px-2 py-0.5 text-xs font-semibold capitalize ${
-                        b.status === "confirmed"
-                          ? "border-success/25 bg-success/10 text-success"
-                          : b.status === "cancelled"
-                            ? "border-destructive/25 bg-destructive/10 text-destructive"
-                            : "border-border bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {b.status}
-                    </span>
-                    <BookingCancelButton bookingId={b.id} hostUserId={id} status={b.status} />
-                  </div>
+            recentBookings.map((b) => (
+              <div
+                key={b.id}
+                className="flex items-center justify-between gap-4 border-t border-border px-5 py-3.5 first:border-0 transition-colors hover:bg-muted/30"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">{b.inviteeName}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground truncate">
+                    {b.inviteeEmail} · {format(b.startTime, "MMM d, yyyy 'at' h:mm a")}
+                    {b.duration ? ` · ${b.duration} min` : ''}
+                  </p>
                 </div>
-              ))}
-            </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className={cn(
+                    'inline-flex items-center gap-1 border px-2 py-0.5 text-xs font-semibold capitalize',
+                    b.status === 'confirmed'
+                      ? 'border-success/25 bg-success/10 text-success'
+                      : b.status === 'cancelled'
+                        ? 'border-destructive/25 bg-destructive/10 text-destructive'
+                        : 'border-border bg-muted text-muted-foreground'
+                  )}>
+                    <span className={cn(
+                      'size-1 rounded-full',
+                      b.status === 'confirmed' ? 'bg-success' : b.status === 'cancelled' ? 'bg-destructive' : 'bg-muted-foreground/40'
+                    )} />
+                    {b.status}
+                  </span>
+                  <BookingCancelButton bookingId={b.id} hostUserId={id} status={b.status} />
+                </div>
+              </div>
+            ))
+          )}
+          {bTotal > 1 && (
+            <SectionPager page={bPage} totalPages={bTotal} total={bookingCount?.value ?? 0} paramKey="bp" sp={sp} perPage={PER_PAGE} />
           )}
         </CardContent>
       </Card>
 
-      {/* Activity log */}
+      </div>{/* end side-by-side grid */}
+
+      {/* ── Activity Timeline ── */}
       <Card>
-        <CardHeader className="py-4">
-          <CardTitle className="text-base font-semibold">Activity Log</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {recentAudit.length === 0 ? (
-            <p className="px-6 py-8 text-center text-sm text-muted-foreground">
-              No activity recorded.
-            </p>
-          ) : (
-            <div>
-              {recentAudit.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-center justify-between gap-4 border-t border-border px-6 py-3"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium capitalize">
-                      {log.action.replace(/[._]/g, " ")}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {log.description}
-                    </p>
-                  </div>
-                  <p className="shrink-0 text-xs text-muted-foreground">
-                    {format(log.createdAt, "MMM d, h:mm a")}
-                  </p>
-                </div>
-              ))}
+        <CardHeader className="border-b border-border py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="flex size-6 items-center justify-center bg-primary/10 text-primary">
+                <ClockCounterClockwise size={13} weight="bold" />
+              </span>
+              <CardTitle className="text-sm font-bold uppercase tracking-ui text-foreground/70">Activity Log</CardTitle>
+              <span className="text-xs text-muted-foreground">({auditCount?.value ?? 0})</span>
             </div>
+            <SectionSearch paramKey="aq" pageKey="ap" placeholder="Search action…" initialValue={aq} />
+          </div>
+        </CardHeader>
+        <CardContent className="px-5 py-4">
+          {recentAudit.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-sm text-muted-foreground">No activity recorded yet.</p>
+            </div>
+          ) : (
+            <ol className="space-y-0">
+              {recentAudit.map((log, i) => {
+                const { iconEl, colorClass } = getAuditMeta(log.action)
+                return (
+                  <li key={log.id} className="relative flex gap-4 pb-5 last:pb-0">
+                    {i < recentAudit.length - 1 && (
+                      <span className="absolute left-[15px] top-8 h-full w-px bg-border" aria-hidden />
+                    )}
+                    <span className={cn('relative z-10 flex size-8 shrink-0 items-center justify-center', colorClass)}>
+                      {iconEl}
+                    </span>
+                    <div className="min-w-0 flex-1 pt-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold capitalize">
+                            {log.action.replace(/[._]/g, ' ')}
+                          </p>
+                          {log.description && (
+                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                              {log.description}
+                            </p>
+                          )}
+                        </div>
+                        <p className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
+                          {format(log.createdAt, 'MMM d, h:mm a')}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
           )}
         </CardContent>
+        {aTotal > 1 && (
+          <SectionPager page={aPage} totalPages={aTotal} total={auditCount?.value ?? 0} paramKey="ap" sp={sp} perPage={PER_PAGE} />
+        )}
       </Card>
+
     </div>
   );
 }
 
-function InfoRow({
-  icon,
-  label,
-  value,
-  mono = false,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  mono?: boolean;
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function getAuditMeta(action: string): { iconEl: React.ReactNode; colorClass: string } {
+  const a = action.toLowerCase()
+  if (a.includes('user') && a.includes('creat'))
+    return { iconEl: <UserPlus size={14} />, colorClass: 'bg-primary/10 text-primary' }
+  if (a.includes('logout') || a.includes('sign_out'))
+    return { iconEl: <SignOut size={14} />, colorClass: 'bg-amber-500/10 text-amber-600' }
+  if (a.includes('login') || a.includes('sign_in'))
+    return { iconEl: <SignIn size={14} />, colorClass: 'bg-success/10 text-success' }
+  if (a.includes('event_type') || a.includes('meeting'))
+    return { iconEl: <CalendarPlus size={14} />, colorClass: 'bg-primary/10 text-primary' }
+  if (a.includes('availability'))
+    return { iconEl: <CalendarCheck size={14} />, colorClass: 'bg-primary/10 text-primary' }
+  if (a.includes('profile') || a.includes('update'))
+    return { iconEl: <PencilSimple size={14} />, colorClass: 'bg-muted text-muted-foreground' }
+  if (a.includes('ban') || a.includes('suspend'))
+    return { iconEl: <Prohibit size={14} />, colorClass: 'bg-destructive/10 text-destructive' }
+  return { iconEl: <ClockCounterClockwise size={14} />, colorClass: 'bg-muted text-muted-foreground' }
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function KpiCard({ icon, label, value, numeric = false }: {
+  icon: React.ReactNode; label: string; value: string; numeric?: boolean
 }) {
   return (
-    <div className="flex items-start gap-2.5">
+    <div className="border border-border bg-background p-4">
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground">{icon}</span>
+      </div>
+      <p className={cn('mt-2 tracking-tight text-foreground', numeric ? 'text-3xl font-bold' : 'text-lg font-semibold leading-tight')}>
+        {value}
+      </p>
+      <p className="mt-0.5 text-xs font-medium uppercase tracking-ui text-muted-foreground">{label}</p>
+    </div>
+  )
+}
+
+function InfoRow({ icon, label, value, mono = false, highlight }: {
+  icon: React.ReactNode; label: string; value: string; mono?: boolean; highlight?: 'success' | 'destructive'
+}) {
+  return (
+    <div className="flex items-start gap-3 px-5 py-3.5">
       <span className="mt-0.5 shrink-0 text-muted-foreground">{icon}</span>
       <div className="min-w-0">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className={`truncate text-sm font-medium ${mono ? "font-mono text-xs" : ""}`}>
+        <p className="text-xs font-medium uppercase tracking-ui text-muted-foreground">{label}</p>
+        <p className={cn(
+          'mt-0.5 truncate text-sm font-semibold',
+          mono && 'font-mono text-xs text-muted-foreground',
+          highlight === 'success' && 'text-success',
+          highlight === 'destructive' && 'text-destructive',
+        )}>
           {value}
         </p>
       </div>
     </div>
-  );
+  )
 }
 
-function StatRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
+function EmptyState({ icon, title, description }: {
+  icon: React.ReactNode; title: string; description: string
 }) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <span className="flex size-12 items-center justify-center bg-muted text-muted-foreground">
         {icon}
-        {label}
-      </div>
-      <p className="text-sm font-bold">{value}</p>
+      </span>
+      <p className="mt-3 text-sm font-semibold text-foreground">{title}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
     </div>
-  );
+  )
+}
+
+function SectionPager({ page, totalPages, total, paramKey, sp, perPage }: {
+  page: number; totalPages: number; total: number
+  paramKey: string; sp: Record<string, string>; perPage: number
+}) {
+  const from = (page - 1) * perPage + 1;
+  const to   = Math.min(page * perPage, total);
+
+  function href(p: number) {
+    const params = new URLSearchParams(sp);
+    params.set(paramKey, String(p));
+    return `?${params.toString()}`;
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-border px-5 py-3">
+      <p className="text-xs text-muted-foreground">
+        <strong className="font-semibold text-foreground">{from}–{to}</strong> of{' '}
+        <strong className="font-semibold text-foreground">{total}</strong>
+      </p>
+      <Pagination className="mx-0 w-auto">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              href={page > 1 ? href(page - 1) : '#'}
+              aria-disabled={page <= 1}
+              className={page <= 1 ? 'pointer-events-none opacity-40' : ''}
+            />
+          </PaginationItem>
+          {paginationRange(page, totalPages).map((p, i) =>
+            p === 'ellipsis' ? (
+              <PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>
+            ) : (
+              <PaginationItem key={p}>
+                <PaginationLink href={href(p)} isActive={p === page}>{p}</PaginationLink>
+              </PaginationItem>
+            )
+          )}
+          <PaginationItem>
+            <PaginationNext
+              href={page < totalPages ? href(page + 1) : '#'}
+              aria-disabled={page >= totalPages}
+              className={page >= totalPages ? 'pointer-events-none opacity-40' : ''}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    </div>
+  )
 }

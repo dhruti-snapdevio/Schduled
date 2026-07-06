@@ -105,6 +105,11 @@ export async function GET(req: NextRequest) {
         tokenExpiresAt,
         status: 'connected',
         disconnectedAt: null,
+        // Restore write + conflict-check on reconnect. Disconnect clears
+        // isWriteTarget, and without this the calendar would look "Connected"
+        // but silently stop receiving events / Meet links.
+        isWriteTarget: true,
+        isConflictCheck: true,
       })
       .where(eq(connectedCalendar.id, existing.id))
   } else {

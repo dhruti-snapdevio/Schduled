@@ -155,33 +155,51 @@ async function generateZoomLink(b: {
     throw err; // transient (network/refresh) — let pg-boss retry
   }
 
+  let meeting;
   try {
-    const meeting = await createZoomMeeting(accessToken, {
+    meeting = await createZoomMeeting(accessToken, {
       topic: `${b.etName} with ${b.inviteeName}`,
       startTimeIso: b.startTime.toISOString(),
       durationMinutes: b.duration,
       timezone: "UTC",
       agenda: `Scheduled via Schduled with ${b.inviteeName}`,
     });
-
-    await db
-      .update(booking)
-      .set({
-        videoLinkHost: meeting.startUrl, // host start link
-        videoLinkInvitee: meeting.joinUrl, // invitee join link
-        locationValue: meeting.joinUrl,
-        updatedAt: new Date(),
-      })
-      .where(eq(booking.id, b.id));
-
-    console.log(
-      `[video-link-generate] booking ${b.id}: created Zoom meeting ${meeting.meetingId}`
-    );
   } catch (err) {
+    // The meeting was not created — safe for pg-boss to retry.
     console.error(
       `[video-link-generate] booking ${b.id}: Zoom meeting create failed:`,
       err
     );
-    throw err; // let pg-boss retry
+    throw err;
   }
+
+  // Persist the link inline-retrying the DB write. Zoom's create has no
+  // idempotency key, so if this write threw and the whole handler re-ran, a
+  // SECOND Zoom meeting would be created. Retrying just the write keeps a
+  // transient DB blip from duplicating the meeting.
+  let persisted = false;
+  for (let attempt = 0; attempt < 3 && !persisted; attempt++) {
+    try {
+      await db
+        .update(booking)
+        .set({
+          videoLinkHost: meeting.startUrl, // host start link
+          videoLinkInvitee: meeting.joinUrl, // invitee join link
+          locationValue: meeting.joinUrl,
+          updatedAt: new Date(),
+        })
+        .where(eq(booking.id, b.id));
+      persisted = true;
+    } catch (dbErr) {
+      if (attempt === 2) throw dbErr;
+      console.warn(
+        `[video-link-generate] booking ${b.id}: persist attempt ${attempt + 1} failed, retrying:`,
+        dbErr
+      );
+    }
+  }
+
+  console.log(
+    `[video-link-generate] booking ${b.id}: created Zoom meeting ${meeting.meetingId}`
+  );
 }

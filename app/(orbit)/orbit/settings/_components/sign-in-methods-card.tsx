@@ -8,6 +8,7 @@ import {
   LockKey,
   MagicWand,
   SignIn,
+  Warning,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { updateSignInMethodsAction } from "@/app/actions/orbit-settings";
@@ -179,23 +180,45 @@ export function SignInMethodsCard({ initial, availability, smtpConfigured }: Pro
             }
           )}
         </div>
-        <div className="flex justify-end border-t border-border px-6 py-4">
-          <Button
-            className="gap-2"
-            disabled={!dirty || pending}
-            onClick={save}
-            type="button"
-          >
-            {pending ? (
-              <>
-                <CircleNotch className="animate-spin" size={14} /> Saving…
-              </>
-            ) : (
-              "Save changes"
-            )}
-          </Button>
-        </div>
       </CardContent>
+
+      {/* Sticky save bar — slides up when there are unsaved changes */}
+      <div
+        className={`fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background transition-transform duration-200 ease-out md:left-60 ${
+          dirty ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="flex items-center justify-between gap-4 px-6 py-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Warning size={15} weight="fill" className="text-amber-500" />
+            <span>Unsaved changes in Sign-in Methods</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pending}
+              onClick={() => setMethods(saved)}
+              type="button"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="gap-1.5"
+              disabled={pending}
+              onClick={save}
+              type="button"
+            >
+              {pending ? (
+                <><CircleNotch className="animate-spin" size={13} /> Saving…</>
+              ) : (
+                'Save changes'
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
     </Card>
   );
 }

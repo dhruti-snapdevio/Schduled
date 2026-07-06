@@ -248,9 +248,11 @@ export async function POST(request: Request) {
     // ── Transaction: advisory lock → conflict check → INSERT ─────────────────
     const result = await db.transaction(async (tx) => {
       // Serialise concurrent requests targeting the same host + slot.
-      // pg_advisory_xact_lock is released automatically on COMMIT/ROLLBACK.
-      const lockKey = `${host.id}:${startTime.toISOString()}`;
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+      // Host-wide lock: serialise ALL concurrent bookings for this host, not
+      // just identical start times — otherwise two overlapping-but-different
+      // starts each miss the other's uncommitted row under READ COMMITTED and
+      // double-book. Released automatically on COMMIT/ROLLBACK.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${host.id}))`);
 
       // Re-check conflicts inside the locked transaction
       const existingBookings = await tx

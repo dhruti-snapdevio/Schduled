@@ -1,6 +1,6 @@
 'use server'
 
-import { and, eq, inArray, ne, sql } from 'drizzle-orm'
+import { and, eq, gt, inArray, ne, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { createId } from '@paralleldrive/cuid2'
 import { requireSession } from '@/lib/authz'
@@ -406,6 +406,26 @@ export async function deleteEventType(id: string): Promise<ActionResult> {
       .limit(1)
     if (!existing) return { error: 'Event type not found' }
 
+    // Never silently wipe upcoming meetings: deleting the event type would
+    // cascade-delete its bookings, so an invitee with a confirmed future slot
+    // would be left with a meeting that no longer exists. Block the delete
+    // while upcoming bookings remain — the host can hide the meeting type instead.
+    const upcoming = await db
+      .select({ id: booking.id })
+      .from(booking)
+      .where(
+        and(
+          eq(booking.eventTypeId, id),
+          gt(booking.startTime, new Date()),
+          sql`${booking.status} IN ('confirmed', 'pending')`
+        )
+      )
+    if (upcoming.length > 0) {
+      return {
+        error: `This meeting type has ${upcoming.length} upcoming booking${upcoming.length === 1 ? '' : 's'}. Cancel ${upcoming.length === 1 ? 'it' : 'them'} first, or hide the meeting type instead of deleting it.`,
+      }
+    }
+
     await db.transaction(async (tx) => {
       await tx.delete(booking).where(eq(booking.eventTypeId, id))
       await tx.delete(eventType).where(eq(eventType.id, id))
@@ -434,6 +454,29 @@ export async function bulkDeleteEventTypes(ids: string[]): Promise<ActionResult>
   if (!ids.length) return { ok: true }
   try {
     const session = await requireSession()
+
+    // Block the batch if any selected meeting type still has upcoming bookings
+    // (see deleteEventType — a cascade delete would strand confirmed invitees).
+    const upcoming = await db
+      .select({ id: booking.id })
+      .from(booking)
+      .innerJoin(eventType, eq(eventType.id, booking.eventTypeId))
+      .where(
+        and(
+          inArray(booking.eventTypeId, ids),
+          eq(eventType.userId, session.user.id),
+          gt(booking.startTime, new Date()),
+          sql`${booking.status} IN ('confirmed', 'pending')`
+        )
+      )
+      .limit(1)
+    if (upcoming.length > 0) {
+      return {
+        error:
+          'One or more selected meeting types have upcoming bookings. Cancel those bookings first, or hide the meeting types instead of deleting them.',
+      }
+    }
+
     await db.transaction(async (tx) => {
       await tx.delete(booking).where(inArray(booking.eventTypeId, ids))
       await tx.delete(eventType).where(
