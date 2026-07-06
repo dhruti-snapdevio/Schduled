@@ -4,7 +4,8 @@ import type { calendar_v3 } from 'googleapis'
 import { db } from '@/lib/db'
 import { booking, connectedCalendar, eventType, user } from '@/db/schema'
 import { getGoogleCalendarClient } from '@/lib/worker/google-calendar-client'
-import { type CalendarWritePayload } from '@/lib/worker/job-types'
+import { enqueueJob } from '@/lib/worker/enqueue'
+import { JOB_NAMES, type CalendarWritePayload } from '@/lib/worker/job-types'
 
 export async function handleCalendarWrite(jobs: Job<CalendarWritePayload>[]) {
   for (const job of jobs) {
@@ -75,6 +76,26 @@ async function processCalendarWrite(job: Job<CalendarWritePayload>) {
   try {
     calApi = await getGoogleCalendarClient(cal)
   } catch (err) {
+    // A revoked / expired grant (invalid_grant) never recovers on retry. Flip
+    // the calendar to disconnected and alert the host once — previously this
+    // was swallowed, leaving status='connected' forever with no calendar
+    // writes and no signal to the user.
+    const msg = getGoogleErrorMessage(err)
+    if (/invalid_grant/i.test(msg) || getGoogleErrorStatus(err) === 401) {
+      const [flipped] = await db
+        .update(connectedCalendar)
+        .set({ status: 'disconnected', disconnectedAt: new Date() })
+        .where(and(eq(connectedCalendar.id, cal.id), eq(connectedCalendar.status, 'connected')))
+        .returning({ id: connectedCalendar.id })
+      if (flipped) {
+        await enqueueJob(JOB_NAMES.CALENDAR_DISCONNECT_ALERT, {
+          connectedCalendarId: cal.id,
+          userId: b.hostUserId,
+        })
+      }
+      console.warn(`[calendar-write] calendar ${cal.id} grant is invalid — marked disconnected + alerted host`)
+      return
+    }
     console.error(`[calendar-write] failed to get calendar client for ${cal.id}:`, err)
     return
   }
@@ -124,18 +145,32 @@ async function processCalendarWrite(job: Job<CalendarWritePayload>) {
       meetUrl = entry?.uri ?? null
     }
 
-    await db
-      .update(booking)
-      .set({
-        calendarEventId:  googleEventId,
-        ...(meetUrl && {
-          videoLinkHost:    meetUrl,
-          videoLinkInvitee: meetUrl,
-          locationValue:    meetUrl,
-        }),
-        updatedAt: new Date(),
-      })
-      .where(eq(booking.id, bookingId))
+    // Persist the event id inline-retrying the DB write. The Google event has
+    // no idempotency key (requestId only dedupes the Meet conference), so if
+    // this write threw and pg-boss re-ran the whole handler, events.insert
+    // would create a SECOND calendar event. Retrying just the write keeps a
+    // transient DB blip from turning into a duplicate event.
+    let persisted = false
+    for (let attempt = 0; attempt < 3 && !persisted; attempt++) {
+      try {
+        await db
+          .update(booking)
+          .set({
+            calendarEventId:  googleEventId,
+            ...(meetUrl && {
+              videoLinkHost:    meetUrl,
+              videoLinkInvitee: meetUrl,
+              locationValue:    meetUrl,
+            }),
+            updatedAt: new Date(),
+          })
+          .where(eq(booking.id, bookingId))
+        persisted = true
+      } catch (dbErr) {
+        if (attempt === 2) throw dbErr
+        console.warn(`[calendar-write] persist attempt ${attempt + 1} failed for booking ${bookingId}, retrying:`, dbErr)
+      }
+    }
 
     console.log(`[calendar-write] created event ${googleEventId} for booking ${bookingId}${meetUrl ? ' + Meet link' : ''}`)
   } catch (err) {

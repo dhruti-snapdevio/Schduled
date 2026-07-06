@@ -9,6 +9,37 @@ import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/authz";
 import { db } from "@/lib/db";
 
+/**
+ * Records an admin starting an impersonation session. The impersonation itself
+ * runs client-side via authClient.admin.impersonateUser, which wrote nothing to
+ * the audit trail — a silent privilege-escalation action. Call this first so
+ * every impersonation is attributable.
+ */
+export async function recordImpersonationAction(
+  targetUserId: string
+): Promise<{ error: string } | { ok: true }> {
+  const admin = await requireAdmin();
+  if (!targetUserId) return { error: "Missing user id." };
+
+  const [target] = await db
+    .select({ email: user.email })
+    .from(user)
+    .where(eq(user.id, targetUserId))
+    .limit(1);
+  if (!target) return { error: "User not found." };
+
+  await audit({
+    action: "orbit.impersonation_start",
+    actorId: admin.user.id,
+    actorEmail: admin.user.email,
+    entityType: "user",
+    entityId: targetUserId,
+    description: `Admin ${admin.user.email} started impersonating ${target.email}`,
+    metadata: { targetUserId, targetEmail: target.email },
+  });
+  return { ok: true };
+}
+
 /** Returns the subset of `ids` that are NOT admins — admins can't be acted on. */
 async function nonAdminIds(ids: string[]): Promise<string[]> {
   if (ids.length === 0) return [];

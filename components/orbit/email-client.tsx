@@ -2,18 +2,23 @@
 
 import {
   ArrowClockwise,
+  CalendarBlank,
   CheckCircle,
   Clock,
   Envelope,
   EnvelopeSimple,
   MagnifyingGlass,
+  X,
   XCircle,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -45,7 +50,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { paginationRange } from "@/lib/utils";
+import { cn, paginationRange } from "@/lib/utils";
+
+function parseDate(s: string): Date | undefined {
+  if (!s) return undefined
+  const d = new Date(s + 'T00:00:00')
+  return isNaN(d.getTime()) ? undefined : d
+}
+function fmtISO(d: Date): string { return d.toISOString().slice(0, 10) }
+const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' })
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -328,6 +341,7 @@ export function EmailClient({
   const [isPending, startTransition] = useTransition();
   const [secondsAgo, setSecondsAgo] = useState(0);
   const [searchInput, setSearchInput] = useState(filter.q);
+  const [dateOpen, setDateOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -487,31 +501,62 @@ export function EmailClient({
                 </SelectContent>
               </Select>
               <div className="flex w-full items-center gap-2 sm:w-auto">
-                <Input
-                  aria-label="From date"
-                  className="h-9 min-w-0 flex-1 text-sm sm:w-32 sm:flex-none"
-                  onChange={(e) => navigate({ from: e.target.value })}
-                  type="date"
-                  value={filter.from}
-                />
-                <span className="text-xs text-muted-foreground">to</span>
-                <Input
-                  aria-label="To date"
-                  className="h-9 min-w-0 flex-1 text-sm sm:w-32 sm:flex-none"
-                  onChange={(e) => navigate({ to: e.target.value })}
-                  type="date"
-                  value={filter.to}
-                />
+                <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        'h-9 gap-2 px-3 font-normal',
+                        (filter.from || filter.to)
+                          ? 'border-primary/50 text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      <CalendarBlank
+                        size={14}
+                        className={cn(filter.from || filter.to ? 'text-primary' : 'text-muted-foreground')}
+                      />
+                      <span className="text-sm">
+                        {filter.from
+                          ? filter.to
+                            ? `${dateFmt.format(parseDate(filter.from)!)} – ${dateFmt.format(parseDate(filter.to)!)}`
+                            : `From ${dateFmt.format(parseDate(filter.from)!)}`
+                          : 'Date range'}
+                      </span>
+                      {(filter.from || filter.to) && (
+                        <span
+                          role="button"
+                          aria-label="Clear date filter"
+                          onClick={(e) => { e.stopPropagation(); navigate({ from: '', to: '' }) }}
+                          className="ml-0.5 flex h-4 w-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <X size={11} weight="bold" />
+                        </span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="range"
+                      selected={{ from: parseDate(filter.from), to: parseDate(filter.to) } as DateRange}
+                      onSelect={(range) => {
+                        navigate({ from: range?.from ? fmtISO(range.from) : '', to: range?.to ? fmtISO(range.to) : '' })
+                        if (range?.from && range?.to) setDateOpen(false)
+                      }}
+                      numberOfMonths={1}
+                      autoFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 {filtersActive && (
                   <Button
                     className="h-9 text-xs"
-                    onClick={() =>
-                      navigate({ status: "all", q: "", from: "", to: "" })
-                    }
+                    onClick={() => navigate({ status: "all", q: "", from: "", to: "" })}
                     size="sm"
                     variant="ghost"
                   >
-                    Clear
+                    Clear all
                   </Button>
                 )}
               </div>

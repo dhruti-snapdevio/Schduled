@@ -82,8 +82,9 @@ export async function POST(request: Request) {
     // Without this, two pending bookings for the same slot could both be
     // approved, double-booking the host.
     const result = await db.transaction(async (tx) => {
-      const lockKey = `${b.hostUserId}:${start.toISOString()}`;
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+      // Host-wide lock (see create route) so two overlapping pending bookings
+      // can't both be approved concurrently.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${b.hostUserId}))`);
 
       const existing = await tx
         .select({ startTime: booking.startTime, endTime: booking.endTime })

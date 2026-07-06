@@ -33,11 +33,12 @@ export async function handleBookingConfirmation(
   jobs: Job<BookingConfirmationPayload>[]
 ) {
   for (const job of jobs) {
-    await processOne(job.data.bookingId);
+    await processOne(job);
   }
 }
 
-async function processOne(bookingId: string) {
+async function processOne(job: Job<BookingConfirmationPayload>) {
+  const bookingId = job.data.bookingId;
   const b = await loadBookingForLifecycle(bookingId);
   if (!b) {
     console.warn(`[booking-confirmation] booking ${bookingId} not found`);
@@ -48,6 +49,29 @@ async function processOne(bookingId: string) {
       `[booking-confirmation] booking ${bookingId} is ${b.status} — skipping`
     );
     return;
+  }
+
+  // Video events carry a join link written by CALENDAR_WRITE (Meet) /
+  // VIDEO_LINK_GENERATE (Zoom), which may still be running. Wait via retries
+  // instead of firing on a fixed timer, so the invitee never receives a
+  // "confirmed" email with no join link. On the final attempt, send anyway —
+  // a link-less confirmation still beats no confirmation at all.
+  const needsVideoLink =
+    b.etLocationType === "google_meet" || b.etLocationType === "zoom";
+  if (needsVideoLink && !b.videoLinkInvitee) {
+    const attempt = Number(
+      (job as { retryCount?: number; retrycount?: number }).retryCount ??
+        (job as { retrycount?: number }).retrycount ??
+        0
+    );
+    if (attempt < 2) {
+      throw new Error(
+        `[booking-confirmation] booking ${bookingId}: video link not ready yet — retrying`
+      );
+    }
+    console.warn(
+      `[booking-confirmation] booking ${bookingId}: sending confirmation without a video link after retries`
+    );
   }
 
   const prefs = await loadHostPrefs(b.hostUserId);

@@ -40,6 +40,21 @@ export const auth = betterAuth({
     ...(env.NODE_ENV === "development" ? ["http://localhost:3000"] : []),
     env.NEXT_PUBLIC_APP_URL,
   ],
+  // Throttle auth endpoints — without this, /sign-in/email is brute-forceable
+  // and /request-password-reset + /sign-in/magic-link can be used to bomb any
+  // address with unlimited outbound email. In-memory limiter (per node), which
+  // is sufficient for a single-node self-hosted deployment.
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 30,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+      "/sign-up/email": { window: 300, max: 5 },
+      "/request-password-reset": { window: 300, max: 3 },
+      "/sign-in/magic-link": { window: 300, max: 3 },
+    },
+  },
   account: {
     accountLinking: {
       // Magic link never creates a row in the account table, so Google is

@@ -9,6 +9,7 @@ import {
   eventType,
 } from "@/db/schema";
 import { checkRateLimit, jsonError, rateLimitKey } from "@/lib/api/helpers";
+import { checkBookingLimits } from "@/lib/calendar/limits";
 import { isSlotBookable } from "@/lib/calendar/validate-slot";
 import { db } from "@/lib/db";
 import { enqueueJob } from "@/lib/worker/enqueue";
@@ -219,8 +220,9 @@ export async function POST(request: Request) {
     // ── Transaction: advisory lock → conflict re-check → UPDATE ──────────────
     const result = await db.transaction(async (tx) => {
       // Serialise concurrent writes targeting the same host + slot.
-      const lockKey = `${b.hostUserId}:${newStart.toISOString()}`;
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+      // Host-wide lock (see create route) so overlapping-but-different-start
+      // moves can't both pass the conflict re-check under READ COMMITTED.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${b.hostUserId}))`);
 
       const existing = await tx
         .select({ startTime: booking.startTime, endTime: booking.endTime })
@@ -241,6 +243,21 @@ export async function POST(request: Request) {
           bufferStart < new Date(e.endTime) && bufferEnd > new Date(e.startTime)
       );
       if (hasConflict) return { conflict: true } as const;
+
+      // Moving to a new day must still respect the per-day cap and the host's
+      // global weekly/monthly limits — the create path enforces these, the
+      // reschedule path previously did not (the booking being moved is excluded
+      // so it never counts against itself).
+      const limit = await checkBookingLimits(tx, {
+        hostUserId: b.hostUserId,
+        hostTz,
+        startTime: newStart,
+        dayStartUtc,
+        dayEndUtc,
+        maxBookingsPerDay: et.maxBookingsPerDay,
+        excludeBookingId: b.id,
+      });
+      if (limit) return { limit } as const;
 
       await tx
         .update(booking)
@@ -266,6 +283,14 @@ export async function POST(request: Request) {
         "That time is no longer available. Please pick another.",
         409
       );
+    }
+
+    if ("limit" in result && result.limit) {
+      const msg =
+        result.limit.kind === "daily"
+          ? "The host is fully booked on that day. Please choose another date."
+          : `The host has reached their ${{ day: "daily", week: "weekly", month: "monthly" }[result.limit.period]} meeting limit for that period. Please choose another time.`;
+      return jsonError(msg, 409);
     }
 
     if (b.status === "pending") {

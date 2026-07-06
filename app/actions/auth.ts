@@ -2,6 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { safeReturnTo } from "@/lib/api/helpers";
 import { audit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 
@@ -33,6 +34,8 @@ export async function logoutAction(
     });
   }
 
-  // Only allow internal paths to avoid an open-redirect
-  redirect(redirectTo.startsWith("/") ? redirectTo : "/login");
+  // Only allow same-origin internal paths — safeReturnTo also rejects
+  // protocol-relative ("//evil.com") and backslash targets that startsWith("/")
+  // would let through.
+  redirect(safeReturnTo(redirectTo, "/login"));
 }

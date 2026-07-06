@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   deleteUserAction,
+  recordImpersonationAction,
   toggleUserBanAction,
 } from "@/app/actions/orbit-users";
 import {
@@ -37,6 +38,14 @@ export function UserDetailActions({
     setImpersonating(true);
     setImpersonateError(null);
     try {
+      // Record the impersonation server-side (requireAdmin + audit) before
+      // starting the session, so it can't happen without a trail.
+      const recorded = await recordImpersonationAction(userId);
+      if ("error" in recorded) {
+        setImpersonateError(recorded.error);
+        setImpersonating(false);
+        return;
+      }
       await authClient.admin.impersonateUser({ userId });
       router.push("/dashboard");
       router.refresh();
