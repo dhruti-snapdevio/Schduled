@@ -65,10 +65,10 @@ export interface EventTypeStats {
 }
 
 const MEETING_TYPE_LABEL: Record<string, string> = {
-  one_on_one:   'One-on-One',
-  group:        'Group',
-  round_robin:  'Round Robin',
-  collective:   'Collective',
+  one_on_one:  'One-on-One',
+  group:       'Group',
+  round_robin: 'Round Robin',
+  collective:  'Collective',
 }
 
 interface EventTypeCardProps {
@@ -85,25 +85,22 @@ interface EventTypeCardProps {
   stats?: EventTypeStats
   isSelected?: boolean
   onSelect?: (id: string, selected: boolean) => void
-  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>  // kept for API compat but no longer used
+  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>
   googleMeetConnected?: boolean
   zoomConnected?: boolean
+  viewMode?: 'list' | 'grid'
 }
 
-// ── Location meta ────────────────────────────────────────────────────────────
+// ── Location meta ─────────────────────────────────────────────────────────────
 
-const LOCATION_META: Record<string, {
-  label: string
-  icon: React.ReactNode
-  cls: string
-}> = {
-  zoom:                { label: 'Zoom',              icon: <VideoCamera size={13} weight="fill" />, cls: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
-  google_meet:         { label: 'Google Meet',       icon: <GoogleLogo  size={13} weight="bold"  />, cls: 'bg-green-500/10 text-green-600 dark:text-green-400' },
-  phone_host_calls:    { label: 'Phone call',        icon: <Phone       size={13} weight="fill" />, cls: 'bg-primary/10 text-primary' },
-  phone_invitee_calls: { label: 'Phone (invitee)',   icon: <Phone       size={13} weight="fill" />, cls: 'bg-primary/10 text-primary' },
-  in_person:           { label: 'In-person',         icon: <MapPin      size={13} weight="fill" />, cls: 'bg-orange-500/10 text-orange-600 dark:text-orange-400' },
-  custom:              { label: 'Custom',            icon: <Globe       size={13} weight="fill" />, cls: 'bg-muted text-muted-foreground' },
-  invitees_choice:     { label: "Invitee's choice",  icon: <Screencast  size={13} weight="fill" />, cls: 'bg-violet-500/10 text-violet-600 dark:text-violet-400' },
+const LOCATION_META: Record<string, { label: string; icon: React.ReactNode; cls: string }> = {
+  zoom:                { label: 'Zoom',             icon: <VideoCamera size={13} weight="fill" />, cls: 'bg-blue-500/10 text-blue-600 dark:text-blue-400'    },
+  google_meet:         { label: 'Google Meet',      icon: <GoogleLogo  size={13} weight="bold"  />, cls: 'bg-green-500/10 text-green-600 dark:text-green-400' },
+  phone_host_calls:    { label: 'Phone call',       icon: <Phone       size={13} weight="fill" />, cls: 'bg-primary/10 text-primary'                          },
+  phone_invitee_calls: { label: 'Phone (invitee)',  icon: <Phone       size={13} weight="fill" />, cls: 'bg-primary/10 text-primary'                          },
+  in_person:           { label: 'In-person',        icon: <MapPin      size={13} weight="fill" />, cls: 'bg-orange-500/10 text-orange-600 dark:text-orange-400'},
+  custom:              { label: 'Custom',           icon: <Globe       size={13} weight="fill" />, cls: 'bg-muted text-muted-foreground'                       },
+  invitees_choice:     { label: "Invitee's choice", icon: <Screencast  size={13} weight="fill" />, cls: 'bg-violet-500/10 text-violet-600 dark:text-violet-400'},
 }
 
 function formatDuration(min: number) {
@@ -122,33 +119,46 @@ function relativeDate(date: Date): string {
   return `${Math.floor(days / 30)}mo ago`
 }
 
+// ── Card ──────────────────────────────────────────────────────────────────────
+
 export function EventTypeCard({
-  id, name, slug, color, locationType, meetingType = 'one_on_one', isActive, isHidden, durations, username, stats,
-  isSelected = false, onSelect, dragHandleProps, googleMeetConnected = true, zoomConnected = true,
+  id, name, slug, color, locationType, meetingType = 'one_on_one',
+  isActive, isHidden, durations, username, stats,
+  isSelected = false, onSelect, dragHandleProps,
+  googleMeetConnected = true, zoomConnected = true,
+  viewMode = 'list',
 }: EventTypeCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [copied, setCopied] = useState(false)
   const [lastBookedLabel, setLastBookedLabel] = useState<string | null>(null)
   const [isHovered, setIsHovered] = useState(false)
+
   const loc = LOCATION_META[locationType] ?? LOCATION_META.custom
 
-  // Compute relative date client-side only to avoid SSR/hydration mismatch
   useEffect(() => {
     if (stats?.lastBooked) setLastBookedLabel(relativeDate(stats.lastBooked))
   }, [stats?.lastBooked])
 
   const bookingUrl = username ? `${APP_URL}/${username}/${slug}` : null
+  const cardColor = color || 'var(--primary)'
+  const isActive_ = isSelected || isHovered
+
+  const cardStyle: React.CSSProperties = isActive_
+    ? {
+        borderColor: cardColor,
+        backgroundColor: `color-mix(in srgb, ${cardColor} ${isSelected ? 4 : 2}%, transparent)`,
+      }
+    : {}
+
+  const sortedDurations = [...durations].sort((a, b) => a.duration - b.duration)
+  const durationLabel = sortedDurations.map((d) => formatDuration(d.duration)).join(' / ')
 
   function handleToggle(checked: boolean) {
     startTransition(async () => {
       const res = await toggleEventTypeActive(id, checked)
-      if ('error' in res) {
-        toast.error(res.error)
-      } else {
-        toast.success(checked ? 'Meeting type activated' : 'Meeting type deactivated')
-        router.refresh()
-      }
+      if ('error' in res) toast.error(res.error)
+      else { toast.success(checked ? 'Meeting type activated' : 'Meeting type deactivated'); router.refresh() }
     })
   }
 
@@ -176,251 +186,307 @@ export function EventTypeCard({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const sortedDurations = [...durations].sort((a, b) => a.duration - b.duration)
-  const durationLabel = sortedDurations.map((d) => formatDuration(d.duration)).join(' / ')
+  const notConnected =
+    (locationType === 'google_meet' && !googleMeetConnected) ||
+    (locationType === 'zoom' && !zoomConnected)
 
-  const cardColor = color || 'var(--primary)'
-  const isActive_ = isSelected || isHovered
+  // ── Shared dropdown items ──────────────────────────────────────────────────
 
-  const cardStyle: React.CSSProperties = isActive_
-    ? {
-        borderColor: cardColor,
-        backgroundColor: `color-mix(in srgb, ${cardColor} ${isSelected ? 4 : 2}%, transparent)`,
-      }
-    : {}
+  const moreMenu = (align: 'start' | 'end' = 'end') => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" title="More" aria-label="More" disabled={isPending}
+          className="flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50">
+          <DotsThreeVertical size={16} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align={align} className="w-44">
+        <DropdownMenuItem asChild>
+          <Link href={`/event-types/${id}`} className="flex items-center gap-2">
+            <PencilSimple size={14} /> Edit
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="flex items-center gap-2" onClick={copyLink} disabled={!bookingUrl || !isActive}>
+          <LinkIcon size={14} /> Copy link
+        </DropdownMenuItem>
+        <DropdownMenuItem className="flex items-center gap-2" onClick={handleDuplicate}>
+          <Copy size={14} /> Duplicate
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <DropdownMenuItem className="flex items-center gap-2 text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
+              <Trash size={14} /> Delete
+            </DropdownMenuItem>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete &ldquo;{name}&rdquo;?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete this meeting type and all associated questions. Existing bookings will not be affected.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDelete}>
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
+  // ── Shared badges ─────────────────────────────────────────────────────────
+
+  const badges = (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
+        <User size={11} weight="bold" />
+        {MEETING_TYPE_LABEL[meetingType] ?? 'One-on-One'}
+      </span>
+      {durationLabel && (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary">
+          <Clock size={11} weight="bold" />
+          {durationLabel}
+        </span>
+      )}
+      <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium', loc.cls)}>
+        {loc.icon}{loc.label}
+      </span>
+      {notConnected && (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400">
+          <Warning size={11} weight="fill" /> Not connected
+        </span>
+      )}
+    </div>
+  )
+
+  // ── Toggle + label ─────────────────────────────────────────────────────────
+
+  const toggleControl = (
+    <div className="flex items-center gap-1.5">
+      <Switch checked={isActive} disabled={isPending} onCheckedChange={handleToggle} aria-label={isActive ? 'Deactivate' : 'Activate'} />
+      <span className={cn('w-7 text-xs font-bold leading-none', isActive ? 'text-primary' : 'text-muted-foreground/50')}>
+        {isActive ? 'ON' : 'OFF'}
+      </span>
+    </div>
+  )
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GRID layout
+  // ─────────────────────────────────────────────────────────────────────────
+
+  if (viewMode === 'grid') {
+    return (
+      <div
+        className={cn('group flex flex-col border bg-card transition-all duration-200', !isActive && 'opacity-60')}
+        style={cardStyle}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Top color strip */}
+        <div className="h-1 w-full transition-all duration-200 group-hover:h-1.5" style={{ backgroundColor: cardColor }} />
+
+        {/* Body */}
+        <div className="flex flex-1 flex-col gap-3 p-4">
+
+          {/* Name row */}
+          <div className="flex items-start gap-2">
+            <div className="pt-0.5">
+              <Checkbox checked={isSelected} onCheckedChange={(c) => onSelect?.(id, c === true)} aria-label={`Select ${name}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span
+                className="text-sm font-semibold leading-snug transition-colors duration-150"
+                style={isActive_ ? { color: cardColor } : undefined}
+              >
+                {name}
+              </span>
+            </div>
+            <div className="flex shrink-0 gap-1">
+              {isHidden && <Badge variant="outline" className="rounded-none py-0 px-1.5 text-xs font-medium">Hidden</Badge>}
+              {!isActive && <Badge variant="secondary" className="rounded-none py-0 px-1.5 text-xs font-medium">Inactive</Badge>}
+            </div>
+          </div>
+
+          {/* Badges */}
+          {badges}
+
+          {/* Stats */}
+          {stats && (
+            <div className="mt-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+              <CalendarCheck size={12} weight="bold" />
+              <span>{stats.countThisMonth} booking{stats.countThisMonth !== 1 ? 's' : ''} this month</span>
+              {lastBookedLabel && <span className="text-muted-foreground/50">· {lastBookedLabel}</span>}
+            </div>
+          )}
+        </div>
+
+        {/* Action bar */}
+        <div className="flex items-center justify-between border-t border-border px-3 py-2">
+          <div className="flex items-center gap-0.5">
+            {isActive && (
+              <button type="button" title={copied ? 'Copied!' : 'Copy link'} onClick={copyLink} disabled={!bookingUrl}
+                className={cn('flex h-7 w-7 items-center justify-center transition-colors disabled:pointer-events-none',
+                  copied ? 'text-emerald-600' : 'text-muted-foreground hover:bg-primary/10 hover:text-primary')}>
+                {copied ? <Check size={13} weight="bold" /> : <LinkIcon size={13} />}
+              </button>
+            )}
+            <Link href={`/event-types/${id}`} title="Edit"
+              className="flex h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
+              <PencilSimple size={13} />
+            </Link>
+            {isActive && bookingUrl && (
+              <a href={bookingUrl} target="_blank" rel="noopener noreferrer" title="Open booking page"
+                className="flex h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
+                <ArrowSquareOut size={13} />
+              </a>
+            )}
+            {/* Smaller trigger size for grid */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" title="More" aria-label="More" disabled={isPending}
+                  className="flex h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50">
+                  <DotsThreeVertical size={14} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-44">
+                <DropdownMenuItem asChild>
+                  <Link href={`/event-types/${id}`} className="flex items-center gap-2"><PencilSimple size={14} /> Edit</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-2" onClick={copyLink} disabled={!bookingUrl || !isActive}>
+                  <LinkIcon size={14} /> Copy link
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-2" onClick={handleDuplicate}>
+                  <Copy size={14} /> Duplicate
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem className="flex items-center gap-2 text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
+                      <Trash size={14} /> Delete
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete &ldquo;{name}&rdquo;?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete this meeting type and all associated questions. Existing bookings will not be affected.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDelete}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          {toggleControl}
+        </div>
+      </div>
+    )
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // LIST layout (default)
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <div
-      className={cn(
-        'group flex items-stretch border bg-card transition-all duration-200',
-        !isActive_ && 'border-border',
-        !isActive && 'opacity-60',
-      )}
+      className={cn('group flex items-stretch border bg-card transition-all duration-200', !isActive_ && 'border-border', !isActive && 'opacity-60')}
       style={cardStyle}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Colored left bar — thicker when selected or hovered */}
-      <div
-        className={cn('shrink-0 transition-all duration-200', isActive_ ? 'w-1.5' : 'w-1')}
-        style={{ backgroundColor: cardColor }}
-      />
+      {/* Left color strip */}
+      <div className={cn('shrink-0 transition-all duration-200', isActive_ ? 'w-1.5' : 'w-1')} style={{ backgroundColor: cardColor }} />
 
-      {/* Checkbox area */}
+      {/* Checkbox */}
       <div className="flex items-center pl-4 pr-2">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={(c) => onSelect?.(id, c === true)}
-          aria-label={`Select ${name}`}
-        />
+        <Checkbox checked={isSelected} onCheckedChange={(c) => onSelect?.(id, c === true)} aria-label={`Select ${name}`} />
       </div>
 
-      {/* Card body */}
-      <div className="flex flex-1 items-center gap-4 pr-4 py-3.5 min-w-0">
+      {/* Body */}
+      <div className="flex flex-1 items-center gap-4 min-w-0 py-3.5 pr-4">
 
-        {/* ── Left: info ──────────────────────────────────────────── */}
-        <div className="flex-1 min-w-0 space-y-1">
+        {/* Info */}
+        <div className="flex-1 min-w-0 space-y-1.5">
 
-          {/* Name + status badges */}
+          {/* Name + status */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className="text-sm font-semibold transition-colors duration-150"
-              style={isActive_ ? { color: cardColor } : undefined}
-            >{name}</span>
-            {isHidden && (
-              <Badge variant="outline" className="text-xs py-0 px-1.5 rounded-none font-medium">
-                Hidden
-              </Badge>
-            )}
-            {!isActive && (
-              <Badge variant="secondary" className="text-xs py-0 px-1.5 rounded-none font-medium">
-                Inactive
-              </Badge>
-            )}
+            <span className="text-sm font-semibold transition-colors duration-150" style={isActive_ ? { color: cardColor } : undefined}>
+              {name}
+            </span>
+            {isHidden && <Badge variant="outline" className="rounded-none py-0 px-1.5 text-xs font-medium">Hidden</Badge>}
+            {!isActive && <Badge variant="secondary" className="rounded-none py-0 px-1.5 text-xs font-medium">Inactive</Badge>}
           </div>
 
-          {/* Inline meta: meeting type + duration pill + location badge */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
-              <User size={12} weight="bold" />
-              {MEETING_TYPE_LABEL[meetingType] ?? 'One-on-One'}
-            </span>
-            {durationLabel && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary">
-                <Clock size={12} weight="bold" />
-                {durationLabel}
-              </span>
-            )}
-            <span
-              className={cn('inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium', loc.cls)}
-            >
-              {loc.icon}
-              {loc.label}
-            </span>
-            {((locationType === 'google_meet' && !googleMeetConnected) ||
-              (locationType === 'zoom' && !zoomConnected)) && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                <Warning size={12} weight="fill" />
-                Not connected
-              </span>
-            )}
-          </div>
+          {/* Badges */}
+          {badges}
 
-          {/* Booking stats */}
+          {/* Stats */}
           {stats && (
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <CalendarCheck size={12} weight="bold" />
-                {stats.countThisMonth} this month
+                {stats.countThisMonth} booking{stats.countThisMonth !== 1 ? 's' : ''} this month
               </span>
               {lastBookedLabel && (
-                <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 text-muted-foreground/70">
                   <Clock size={11} weight="bold" />
-                  Last: {lastBookedLabel}
+                  Last {lastBookedLabel}
                 </span>
               )}
             </div>
           )}
         </div>
 
-        {/* ── Right: controls ─────────────────────────────────────── */}
-        <div className="flex items-center gap-1 shrink-0">
+        {/* Controls */}
+        <div className="flex shrink-0 items-center gap-1">
 
-          {/* Drag grip — visual hint only; whole card is the drag zone */}
-          <span className="mr-1 flex h-8 w-6 items-center justify-center text-muted-foreground/40 pointer-events-none select-none">
+          {/* Drag grip — visual hint; whole card is the drag zone */}
+          <span className="pointer-events-none mr-1 flex h-8 w-6 select-none items-center justify-center text-muted-foreground/40">
             <DotsSixVertical size={16} />
           </span>
 
-          {/* Toggle + ON/OFF label */}
-          <div className="flex items-center gap-1.5 mr-1">
-            <Switch
-              checked={isActive}
-              disabled={isPending}
-              onCheckedChange={handleToggle}
-              aria-label={isActive ? 'Deactivate' : 'Activate'}
-            />
-            <span className={cn(
-              'w-7 text-xs font-bold leading-none',
-              isActive ? 'text-primary' : 'text-muted-foreground/50',
-            )}>
-              {isActive ? 'ON' : 'OFF'}
-            </span>
-          </div>
+          {/* Toggle */}
+          <div className="mr-1">{toggleControl}</div>
 
           {/* Copy link */}
           {isActive && (
-            <button
-              type="button"
-              title={copied ? 'Copied!' : 'Copy link'}
-              onClick={copyLink}
-              disabled={!bookingUrl}
-              className={cn(
-                'hidden sm:flex h-8 w-8 items-center justify-center transition-colors disabled:pointer-events-none',
-                copied
-                  ? 'text-emerald-600 bg-emerald-50'
-                  : 'text-muted-foreground hover:bg-primary/10 hover:text-primary',
-              )}
-            >
+            <button type="button" title={copied ? 'Copied!' : 'Copy link'} onClick={copyLink} disabled={!bookingUrl}
+              className={cn('hidden h-8 w-8 items-center justify-center transition-colors disabled:pointer-events-none sm:flex',
+                copied ? 'text-emerald-600 bg-emerald-50' : 'text-muted-foreground hover:bg-primary/10 hover:text-primary')}>
               {copied ? <Check size={15} weight="bold" /> : <LinkIcon size={15} />}
             </button>
           )}
 
           {/* View bookings */}
-          <Link
-            href="/bookings"
-            aria-label={`View bookings for ${name}`}
-            title="View bookings"
-            className="hidden sm:flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-          >
+          <Link href="/bookings" title="View bookings" aria-label={`View bookings for ${name}`}
+            className="hidden h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary sm:flex">
             <CalendarCheck size={15} />
           </Link>
 
           {/* Edit */}
-          <Link
-            href={`/event-types/${id}`}
-            aria-label={`Edit ${name}`}
-            title="Edit"
-            className="hidden sm:flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-          >
+          <Link href={`/event-types/${id}`} title="Edit" aria-label={`Edit ${name}`}
+            className="hidden h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary sm:flex">
             <PencilSimple size={15} />
           </Link>
 
-          {/* Open booking page — only when active; an inactive link 404s */}
+          {/* Open booking page */}
           {isActive && bookingUrl && (
-            <a
-              href={bookingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Open booking page for ${name}`}
-              title="Open booking page"
-              className="hidden sm:flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-            >
+            <a href={bookingUrl} target="_blank" rel="noopener noreferrer" title="Open booking page"
+              className="hidden h-8 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary sm:flex">
               <ArrowSquareOut size={15} />
             </a>
           )}
 
-          {/* ⋮ More */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                title="More" aria-label="More"
-                disabled={isPending}
-                className="flex h-8 w-8 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
-              >
-                <DotsThreeVertical size={16} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem asChild>
-                <Link href={`/event-types/${id}`} className="flex items-center gap-2">
-                  <PencilSimple size={14} /> Edit
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="flex items-center gap-2"
-                onClick={copyLink}
-                disabled={!bookingUrl || !isActive}
-              >
-                <LinkIcon size={14} /> Copy link
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="flex items-center gap-2"
-                onClick={handleDuplicate}
-              >
-                <Copy size={14} /> Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem
-                    className="flex items-center gap-2 text-destructive focus:text-destructive"
-                    onSelect={(e) => e.preventDefault()}
-                  >
-                    <Trash size={14} /> Delete
-                  </DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete &ldquo;{name}&rdquo;?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete this meeting type and all associated questions.
-                      Existing bookings will not be affected.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={handleDelete}
-                    >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* More */}
+          {moreMenu('end')}
         </div>
       </div>
     </div>

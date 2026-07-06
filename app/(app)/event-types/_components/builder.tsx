@@ -381,8 +381,9 @@ export function EventTypeBuilder({
           </div>
         </div>
 
-        {/* Tab bar — custom, no Radix Tabs to avoid scroll arrows */}
-        <div className="sticky top-0 z-10 -mx-4 md:-mx-6 border-b border-border bg-page px-4 md:px-6 mb-6">
+        {/* Tab bar — custom, no Radix Tabs to avoid scroll arrows. Aligns to the
+            header card above (no edge-to-edge bleed) so the borders line up. */}
+        <div className="sticky top-0 z-10 border-b border-border bg-page mb-6">
           <div className="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {TABS.map((tab) => (
               <button
@@ -430,8 +431,9 @@ export function EventTypeBuilder({
             {activeTab === "notifications" && <TabNotifications form={form} />}
             {activeTab === "cancellation" && <TabCancellation form={form} />}
 
-            {/* Prev / Next — sticky three-column nav */}
-            <div className="mt-8 sticky bottom-0 -mx-4 md:-mx-6 px-4 md:px-6 py-3 border-t border-border bg-page flex items-center justify-between">
+            {/* Prev / Next — sticky three-column nav. Aligns to the form column
+                (no edge-to-edge bleed) so its border lines up with the fields. */}
+            <div className="mt-8 sticky bottom-0 py-3 border-t border-border bg-page flex items-center justify-between">
               <Button
                 className="gap-1.5"
                 disabled={isFirst}

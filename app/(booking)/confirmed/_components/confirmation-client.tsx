@@ -32,6 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Logo } from '@/components/logo'
 import { PRODUCT_NAME } from '@/config/platform'
 import { cn } from '@/lib/utils'
 
@@ -48,44 +49,6 @@ function useCountdown(startMs: number) {
   const hours = Math.floor((diff % 86_400_000) / 3_600_000)
   const minutes = Math.floor((diff % 3_600_000) / 60_000)
   return { diff, days, hours, minutes, started: diff === 0 }
-}
-
-function googleCalendarUrl(title: string, start: string, end: string, location: string) {
-  const fmt = (s: string) => s.replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-  return (
-    'https://calendar.google.com/calendar/render?action=TEMPLATE' +
-    `&text=${encodeURIComponent(title)}` +
-    `&dates=${fmt(start)}/${fmt(end)}` +
-    `&location=${encodeURIComponent(location)}`
-  )
-}
-
-function outlookUrl(title: string, start: string, end: string, location: string) {
-  return (
-    'https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent' +
-    `&subject=${encodeURIComponent(title)}` +
-    `&startdt=${encodeURIComponent(start)}` +
-    `&enddt=${encodeURIComponent(end)}` +
-    `&location=${encodeURIComponent(location)}`
-  )
-}
-
-function icsEscape(s: string) {
-  return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
-}
-
-function icsDataUrl(title: string, start: string, end: string, location: string) {
-  const fmt = (s: string) => s.replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-  const body = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${PRODUCT_NAME}//EN`,
-    'BEGIN:VEVENT',
-    `DTSTART:${fmt(start)}`,
-    `DTEND:${fmt(end)}`,
-    `SUMMARY:${icsEscape(title)}`,
-    `LOCATION:${icsEscape(location)}`,
-    'END:VEVENT', 'END:VCALENDAR',
-  ].join('\r\n')
-  return `data:text/calendar;charset=utf8,${encodeURIComponent(body)}`
 }
 
 function locationInfo(type: string): { icon: React.ReactNode; label: string; color: string } {
@@ -170,10 +133,6 @@ export function ConfirmationClient({
   const tzLabel = formatInTimeZone(startDate, timezone, 'zzz')
 
   const loc = locationInfo(locationType)
-  const icsLocation = locationValue || loc.label
-  const gcalUrl = googleCalendarUrl(eventName, startUtc, endUtc ?? startUtc, icsLocation)
-  const outlookCalUrl = outlookUrl(eventName, startUtc, endUtc ?? startUtc, icsLocation)
-  const icsUrl = icsDataUrl(eventName, startUtc, endUtc ?? startUtc, icsLocation)
 
   const countdownLabel = (() => {
     if (countdown.days > 0) return `${countdown.days}d ${countdown.hours}h`
@@ -191,55 +150,60 @@ export function ConfirmationClient({
         <div className="absolute left-[5%] bottom-[10%] h-56 w-56 bg-primary/[0.06] blur-[70px]" />
       </div>
 
-      {/* Toolbar — always visible on confirmation page, like Calendly */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-end gap-2 border-b border-border bg-background/95 px-4 py-2 backdrop-blur-sm">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
-            >
-              Menu
-              <CaretDown size={11} weight="bold" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[180px]">
-            <DropdownMenuItem asChild>
-              {/* Owner → dashboard; invitee → host's booking profile */}
-              <Link
-                href={isOwner ? '/dashboard' : (hostUsername ? `/${hostUsername}` : '/')}
-                className="flex items-center gap-2"
+      {/* Toolbar */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-[56px] border-b border-border bg-background/96 backdrop-blur-md">
+        <div className="mx-auto flex h-full w-full max-w-[580px] items-center justify-between px-0">
+        <Logo size="md" href="/" />
+        <div className="flex items-center gap-2">
+          {/* Copy link — primary filled */}
+          <button
+            type="button"
+            onClick={copyPageLink}
+            className="inline-flex h-8 items-center gap-1.5 bg-primary px-3.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            {copyLinkDone
+              ? <Check size={13} weight="bold" />
+              : <Copy size={13} />
+            }
+            <span>{copyLinkDone ? 'Copied!' : 'Copy link'}</span>
+          </button>
+          {/* Menu — outlined */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex h-8 items-center gap-1.5 border border-border px-3.5 text-xs font-semibold text-foreground/70 transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
               >
-                <House size={14} />
-                Home
-              </Link>
-            </DropdownMenuItem>
-            {isOwner && eventTypeId && (
+                Menu
+                <CaretDown size={11} weight="bold" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[180px]">
               <DropdownMenuItem asChild>
-                <Link href={`/event-types/${eventTypeId}`} className="flex items-center gap-2">
-                  <PencilSimple size={14} />
-                  Edit event type
+                <Link
+                  href={isOwner ? '/dashboard' : (hostUsername ? `/${hostUsername}` : '/')}
+                  className="flex items-center gap-2"
+                >
+                  <House size={14} />
+                  Home
                 </Link>
               </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <button
-          type="button"
-          onClick={copyPageLink}
-          className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
-        >
-          {copyLinkDone
-            ? <Check size={13} weight="bold" className="text-primary" />
-            : <Copy size={13} />
-          }
-          <span>{copyLinkDone ? 'Copied!' : 'Copy link'}</span>
-        </button>
+              {isOwner && eventTypeId && (
+                <DropdownMenuItem asChild>
+                  <Link href={`/event-types/${eventTypeId}`} className="flex items-center gap-2">
+                    <PencilSimple size={14} />
+                    Edit event type
+                  </Link>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        </div>
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-[580px]" style={{ paddingTop: '3rem' }}>
-        <div className="flex flex-col items-center gap-5 bg-card px-5 py-8 sm:px-8 border border-border">
+      <div className="relative z-10 mx-auto w-full max-w-[580px]" style={{ paddingTop: '3.5rem' }}>
+        <div className="flex flex-col items-center gap-5 bg-card px-5 py-8 sm:px-8 border-[3px] border-primary">
 
           {/* Back button */}
           <div className="w-full">
@@ -375,81 +339,6 @@ export function ConfirmationClient({
             </div>
           )}
 
-          {/* ── Add to Calendar — hidden for pending bookings ── */}
-          {!isPending && <div className="w-full">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Add to Calendar
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {[
-                {
-                  href: gcalUrl,
-                  download: undefined as string | undefined,
-                  label: 'Google Calendar',
-                  comingSoon: false,
-                  icon: (
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 2v2M18 2v2M2 8h20M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M9 14l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  ),
-                },
-                {
-                  href: outlookCalUrl,
-                  download: undefined,
-                  label: 'Outlook',
-                  comingSoon: true,
-                  icon: (
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                      <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
-                      <path d="M8 2v4M16 2v4M2 10h20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      <path d="M7 14h4M7 17h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                  ),
-                },
-                {
-                  href: icsUrl,
-                  download: 'meeting.ics',
-                  label: 'Apple Calendar',
-                  comingSoon: true,
-                  icon: (
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z" stroke="currentColor" strokeWidth="2"/>
-                      <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  ),
-                },
-              ].map(({ href, download, label, icon, comingSoon }) =>
-                comingSoon ? (
-                  <div
-                    key={label}
-                    title="Coming soon"
-                    aria-disabled="true"
-                    className="flex cursor-not-allowed items-center gap-2 border border-border px-3 py-2.5 text-sm font-medium text-muted-foreground/50"
-                  >
-                    {icon}
-                    <span className="truncate">{label}</span>
-                    <span className="ml-auto shrink-0 bg-muted px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground/70">
-                      Soon
-                    </span>
-                  </div>
-                ) : (
-                  <a
-                    key={label}
-                    href={href}
-                    download={download}
-                    target={download ? undefined : '_blank'}
-                    rel={download ? undefined : 'noopener noreferrer'}
-                    className="flex items-center gap-2 border border-border px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:border-primary/40 hover:bg-primary/[0.05] hover:text-primary"
-                  >
-                    {icon}
-                    {label}
-                  </a>
-                )
-              )}
-            </div>
-          </div>}
-
           {/* ── Reschedule / Cancel — hidden for pending bookings ── */}
           {!isPending && (rescheduleToken || cancelToken) && (
             <div className="flex w-full flex-col sm:flex-row gap-3">
@@ -516,15 +405,15 @@ export function ConfirmationClient({
           )}
 
         </div>
-      </div>
 
-      {/* ── Powered by <product> ── */}
-      {showPoweredBy && (
-        <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/50">
-          <span>Scheduling powered by</span>
-          <span className="font-semibold text-primary/60">{PRODUCT_NAME}</span>
-        </div>
-      )}
+        {/* ── Powered by ── */}
+        {showPoweredBy && (
+          <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/40">
+            <span>Scheduling powered by</span>
+            <span className="font-semibold text-primary/50">{PRODUCT_NAME}</span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

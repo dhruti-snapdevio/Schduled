@@ -29,12 +29,16 @@ const envSchema = z.object({
   // the moment its account is created (checked once, at signup)
   INITIAL_ADMIN_EMAIL: optionalString,
 
-  // Email + password sign-in — off by default (matches the hosted product's
-  // Google + magic-link-only design). Self-hosted deployments without SMTP or
-  // Google configured yet should set this to 'true' so the first login always
-  // works with no external service.
+  // Email + password sign-in — ON by default. It's the primary login method
+  // (works on a fresh self-hosted box with no SMTP or Google configured).
+  // Magic link and Google are the optional secondary methods. Disable with any
+  // of: false / 0 / off / no / disabled (case-insensitive) for a
+  // magic-link/Google-only deployment.
   NEXT_PUBLIC_PASSWORD_AUTH_ENABLED: z.preprocess(
-    (v) => v === "true" || v === "1",
+    (v) => {
+      const s = typeof v === "string" ? v.trim().toLowerCase() : v;
+      return !(s === "false" || s === "0" || s === "off" || s === "no" || s === "disabled");
+    },
     z.boolean()
   ),
 

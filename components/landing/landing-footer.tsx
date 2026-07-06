@@ -13,6 +13,7 @@ import {
   YoutubeLogo,
 } from '@phosphor-icons/react'
 import { Logo } from '@/components/logo'
+import { Reveal } from '@/components/landing/reveal'
 
 const SOCIAL = [
   { icon: XLogo,         href: 'https://twitter.com',   label: 'X' },
@@ -135,8 +136,8 @@ export function LandingFooter() {
       <div className="mx-auto max-w-[1400px] px-5 py-16 md:px-12 xl:px-20">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
 
-          {/* Brand */}
-          <div>
+          {/* Brand — slides in from left */}
+          <Reveal direction="left" delay={0}>
             <Logo variant="full" size="lg" href="/" />
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               Schduled helps teams schedule meetings, manage availability and automate bookings — completely free, forever.
@@ -155,11 +156,11 @@ export function LandingFooter() {
                 </a>
               ))}
             </div>
-          </div>
+          </Reveal>
 
-          {/* Link columns */}
-          {FOOTER_COLS.map((col) => (
-            <div key={col.title}>
+          {/* Link columns — stagger up */}
+          {FOOTER_COLS.map((col, i) => (
+            <Reveal key={col.title} direction="up" delay={100 + i * 100}>
               <h4 className="mb-4 text-xs font-black uppercase tracking-eyebrow text-foreground">
                 {col.title}
               </h4>
@@ -175,11 +176,11 @@ export function LandingFooter() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </Reveal>
           ))}
 
-          {/* Newsletter */}
-          <div>
+          {/* Newsletter — slides in from right */}
+          <Reveal direction="right" delay={300}>
             <h4 className="mb-4 text-xs font-black uppercase tracking-eyebrow text-foreground">
               Stay Updated
             </h4>
@@ -187,26 +188,28 @@ export function LandingFooter() {
               Join 5,000+ users. Get tips and updates.
             </p>
             <NewsletterForm />
-          </div>
+          </Reveal>
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-12 flex flex-col items-center gap-3 border-t border-border pt-8 sm:flex-row sm:justify-between">
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Schduled. All rights reserved.
-          </p>
-          <div className="flex items-center gap-4">
-            {BOTTOM_LINKS.map(([label, href]) => (
-              <Link
-                key={label}
-                href={href}
-                className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-              >
-                {label}
-              </Link>
-            ))}
+        {/* Bottom bar — fades up last */}
+        <Reveal direction="up" delay={400}>
+          <div className="mt-12 flex flex-col items-center gap-3 border-t border-border pt-8 sm:flex-row sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} Schduled. All rights reserved.
+            </p>
+            <div className="flex items-center gap-4">
+              {BOTTOM_LINKS.map(([label, href]) => (
+                <Link
+                  key={label}
+                  href={href}
+                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        </Reveal>
       </div>
     </footer>
   )

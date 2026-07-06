@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { Archive, ArrowCounterClockwise, MagnifyingGlass, Note, Spinner, Trash } from '@phosphor-icons/react'
+import { Archive, ArrowCounterClockwise, MagnifyingGlass, Note, Spinner, Trash, Users } from '@phosphor-icons/react'
 import {
   Pagination,
   PaginationContent,
@@ -209,7 +209,20 @@ export function ContactsTable({ contacts, total, page, pageSize, search, archive
         ))}
       </div>
 
-      {/* Table */}
+      {/* True empty state — no contacts at all, no active filters */}
+      {total === 0 && !search && !archived && filter === 'all' ? (
+        <div className="flex flex-col items-center justify-center border border-border bg-card py-20 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center bg-primary/10 text-primary">
+            <Users size={28} weight="duotone" />
+          </div>
+          <p className="text-base font-semibold text-foreground">No contacts yet</p>
+          <p className="mt-1.5 max-w-xs text-sm text-muted-foreground">
+            Contacts appear here automatically when someone books a meeting with you.
+          </p>
+        </div>
+      ) : (
+
+      /* Table */
       <div className="overflow-x-auto border border-border">
         <Table className="w-full min-w-[640px] table-fixed">
           <TableHeader>
@@ -352,6 +365,8 @@ export function ContactsTable({ contacts, total, page, pageSize, search, archive
           </TableBody>
         </Table>
       </div>
+
+      )} {/* end table vs empty-state */}
 
       {/* Pagination — always show count; page numbers when more than one page */}
       {total > 0 && (

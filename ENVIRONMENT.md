@@ -110,10 +110,11 @@ NEXT_PUBLIC_PASSWORD_AUTH_ENABLED=true
 SIGNUP_ENABLED=false
 INITIAL_ADMIN_EMAIL=you@example.com
 ```
-Without `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED`, the *only* way to sign in is a
-magic link (needs SMTP, step 8) or Google (needs OAuth, step 8) — on a fresh
-install with neither configured yet, you'd be locked out of the UI. It adds
-email + password login so the very first sign-in always works.
+Email + password is the **primary** login method and is **on by default**, so
+the very first sign-in always works on a fresh box with no SMTP or Google. You
+only need to touch `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED` if you want to *disable*
+password login (`=false`) for a magic-link/Google-only deployment. Magic link
+and Google are the optional secondary methods.
 
 `SIGNUP_ENABLED=false` closes public sign-up — recommended **from the start**,
 not "turn it on, then off later": `INITIAL_ADMIN_EMAIL` is exempt from the
@@ -203,10 +204,9 @@ Only **three** variables are strictly required for the app to start:
 Everything else is optional and unlocks specific features (email, Google, Zoom,
 richer geocoding, S3 storage).
 
-> **Self-hosting? Add a 4th variable in practice: `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED=true`.**
-> The 3 vars above are enough for the app to *boot*, but not necessarily enough
-> to *log in* — with no SMTP and no Google configured, the only sign-in path is
-> a magic link written to the server console. See §3 below.
+> **Login works out of the box:** email + password is the primary method and is
+> on by default, so the 3 vars above are enough to both *boot* and *log in* on a
+> fresh box — no SMTP or Google needed. See §3 below.
 
 ---
 
@@ -259,21 +259,17 @@ Set these for real delivery (booking confirmations, reminders, magic links).
 |---|---|---|---|---|
 | `ENCRYPT_KEY` | **Cond** | — | AES-256-GCM key encrypting Google/Zoom OAuth tokens at rest. **Required when Google or Zoom OAuth is set.** 64 hex chars. | `openssl rand -hex 32`. **Back this up** — losing it makes stored tokens unrecoverable (users must reconnect). |
 | `INITIAL_ADMIN_EMAIL` | Opt | — | **✅ Implemented.** The moment a user with this email signs up (via password, magic link, or Google), they're auto-promoted to admin. Checked once, at account creation only — demoting them later via the admin panel is not overridden by a later sign-in. | Set it before the operator's first sign-up. Alternative: leave blank and run `pnpm make:admin you@example.com` manually after signup (works for any user, any time — e.g. to add a *second* admin). |
-| `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED` | Opt | `false` | **✅ Implemented.** `true` adds email + password sign-in/sign-up to the login page (min. 8-char password) alongside magic link. `false` (default) keeps the hosted product's original Google + magic-link-only login untouched. See `SELF-HOSTING.md` Part 4 §E. | **Strongly recommended for self-host**, especially if you haven't configured SMTP or Google yet — without it, the *only* way to sign in on a fresh install is a magic link that gets logged to the server console (readable via `docker compose logs web`, but easy to miss). Set `true` before first deploy. |
+| `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED` | Opt | `true` | **✅ Implemented.** Email + password is the **primary** login method (min. 8-char password), shown first on both the user and admin login pages; magic link and Google are secondary. **On by default** — works on a fresh box with no SMTP or Google. Set `false` only for a magic-link/Google-only deployment. See `SELF-HOSTING.md` Part 4 §E. | Leave at the default (`true`) unless you specifically want to *disable* password login. |
 | `SIGNUP_ENABLED` | Opt | `true` | **✅ Implemented — verified live.** Gates *all* new-account creation (password sign-up, magic link first-use, Google first-login — they all funnel through the same `databaseHooks.user.create.before` hook). The `INITIAL_ADMIN_EMAIL` account is always exempt, so it's safe to close signup from the very start. Tested against a running instance: a random email was rejected (`HTTP 400 FAILED_TO_CREATE_USER`, no DB row written) while the admin email succeeded and was promoted. | **Recommended: set `false` together with `INITIAL_ADMIN_EMAIL`, from day one** — not "open then close." Only set `true` if you deliberately want open public registration. |
 
-> ⚠️ **The most common self-hosting mistake:** deploying with only the 3
-> "minimum to boot" vars below, no SMTP, no Google, and
-> `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED` left at its default `false`. The app
-> *starts* fine, but nobody can sign in through the UI — the magic link only
-> reaches the server console. Set `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED=true` (or
-> configure SMTP) before your first deploy — and pair it with
-> `SIGNUP_ENABLED=false` + `INITIAL_ADMIN_EMAIL` so turning on password login
-> doesn't also open public registration.
+> ✅ **Login works out of the box.** Email + password is on by default, so a
+> fresh deploy with only the 3 "minimum to boot" vars — no SMTP, no Google — can
+> still sign in. Pair `SIGNUP_ENABLED=false` with `INITIAL_ADMIN_EMAIL` so that
+> account can bootstrap while public registration stays closed.
 >
-> Note: enabling password auth requires the `account.password` column added in
-> migration `db/migrations/0013_stale_flatman.sql` — run `pnpm db:migrate` (or
-> let the Docker entrypoint do it) before setting the flag.
+> Note: password auth uses the `account.password` column added in migration
+> `db/migrations/0013_stale_flatman.sql` — run `pnpm db:migrate` (or let the
+> Docker entrypoint do it) so it exists.
 
 ### 4. Google OAuth (Sign-in + Calendar + Meet)
 

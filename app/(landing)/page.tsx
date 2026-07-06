@@ -429,7 +429,7 @@ export default async function LandingPage() {
 
         {/* ─── TECH STACK ──────────────────────────────────────────────────────── */}
         <section className="border-y border-border bg-background py-7">
-          <Reveal className="mb-6 text-center">
+          <Reveal className="mb-6 text-center" direction="fade">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-foreground/50">
               Built on a real open-source stack
             </p>
@@ -470,7 +470,7 @@ export default async function LandingPage() {
           <div className="relative mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
 
             {/* Heading block */}
-            <Reveal className="pt-14 pb-10 text-center">
+            <Reveal className="pt-14 pb-10 text-center" direction="up">
               <p className="mb-4 text-xs font-black uppercase tracking-eyebrow text-primary">
                 Why people choose Schduled
               </p>
@@ -496,51 +496,52 @@ export default async function LandingPage() {
               </p>
             </Reveal>
 
-            {/* Stats row */}
-            <Reveal delay={80}>
-              <div className="flex flex-col divide-y divide-border sm:flex-row sm:divide-x sm:divide-y-0">
-                {STATS.map((s) => {
-                  const Icon = s.icon
-                  return (
-                    <div
-                      key={s.value}
-                      className="group flex flex-1 flex-col items-center px-10 py-10 text-center transition-all duration-300 hover:-translate-y-1 sm:py-14"
-                    >
-                      {/* Small icon badge */}
-                      <div className="mb-4 flex h-8 w-8 items-center justify-center bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-primary/18">
-                        <Icon size={15} weight="duotone" />
-                      </div>
-
-                      {/* Large metric number */}
-                      <div
-                        className="mb-2 font-black leading-none tracking-tight animate-schduled-text-gradient"
-                        style={{
-                          fontSize: 'clamp(2.8rem, 4.2vw, 4.5rem)',
-                          background: 'linear-gradient(90deg,#0d9488 0%,#14b8a6 45%,#2dd4bf 75%,#0d9488 100%)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text',
-                          backgroundSize: '200% auto',
-                          fontFamily: 'var(--font-heading)',
-                        }}
-                      >
-                        {s.value}
-                      </div>
-
-                      {/* Uppercase label */}
-                      <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-foreground/60">
-                        {s.title}
-                      </p>
-
-                      {/* Supporting sentence */}
-                      <p className="max-w-[200px] text-sm leading-relaxed text-muted-foreground">
-                        {s.sub}
-                      </p>
+            {/* Stats row — each card slides in from its own direction */}
+            <div className="flex flex-col divide-y divide-border sm:flex-row sm:divide-x sm:divide-y-0">
+              {STATS.map((s, idx) => {
+                const Icon = s.icon
+                const dirs = ['left', 'up', 'right'] as const
+                return (
+                  <Reveal
+                    key={s.value}
+                    direction={dirs[idx]}
+                    delay={idx * 110}
+                    className="group flex flex-1 flex-col items-center px-10 py-10 text-center transition-all duration-300 hover:-translate-y-1 sm:py-14"
+                  >
+                    {/* Small icon badge */}
+                    <div className="mb-4 flex h-8 w-8 items-center justify-center bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-primary/18">
+                      <Icon size={15} weight="duotone" />
                     </div>
-                  )
-                })}
-              </div>
-            </Reveal>
+
+                    {/* Large metric number */}
+                    <div
+                      className="mb-2 font-black leading-none tracking-tight animate-schduled-text-gradient"
+                      style={{
+                        fontSize: 'clamp(2.8rem, 4.2vw, 4.5rem)',
+                        background: 'linear-gradient(90deg,#0d9488 0%,#14b8a6 45%,#2dd4bf 75%,#0d9488 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        backgroundSize: '200% auto',
+                        fontFamily: 'var(--font-heading)',
+                      }}
+                    >
+                      {s.value}
+                    </div>
+
+                    {/* Uppercase label */}
+                    <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-foreground/60">
+                      {s.title}
+                    </p>
+
+                    {/* Supporting sentence */}
+                    <p className="max-w-[200px] text-sm leading-relaxed text-muted-foreground">
+                      {s.sub}
+                    </p>
+                  </Reveal>
+                )
+              })}
+            </div>
 
           </div>
         </section>
@@ -559,7 +560,7 @@ export default async function LandingPage() {
             style={{ backgroundImage: 'linear-gradient(rgba(20,184,166,1) 1px,transparent 1px),linear-gradient(90deg,rgba(20,184,166,1) 1px,transparent 1px)', backgroundSize: '48px 48px' }} />
 
           <div className="relative mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
-            <Reveal className="mb-14 text-center">
+            <Reveal className="mb-14 text-center" direction="up">
               <p className="mb-3 text-xs font-black uppercase tracking-eyebrow text-teal-400/60">The product</p>
               <h2 className="font-black text-3xl text-white sm:text-4xl lg:text-5xl">
                 Clean. Fast.<br className="hidden sm:block" /> Everything at a glance.
@@ -568,7 +569,7 @@ export default async function LandingPage() {
             </Reveal>
 
             {/* Dashboard frame with floating labels */}
-            <Reveal delay={150} className="relative">
+            <Reveal delay={150} direction="scale" className="relative">
 
               {/* Floating label — Upcoming */}
               <div
@@ -617,69 +618,167 @@ export default async function LandingPage() {
                   </div>
                 </div>
 
-                <div className="flex h-[520px] sm:h-[620px]" style={{ background: '#0f1f1a' }}>
-                  <div className="hidden w-44 shrink-0 flex-col border-r border-white/8 sm:flex" style={{ background: 'oklch(0.108 0.032 215)' }}>
-                    <div className="flex-1 space-y-0.5 px-2 pt-4">
-                      {[['Dashboard',true],['Meeting Types',false],['Availability',false],['Bookings',false],['Settings',false]].map(([label, active]) => (
-                        <div key={label as string} className={`flex items-center gap-2.5 px-3 py-2 text-xs font-medium ${active ? 'bg-white/10 text-white' : 'text-white/38'}`}>
-                          <div className={`h-1 w-1 rounded-full ${active ? 'bg-primary' : 'bg-transparent'}`} />
+                <div className="flex h-[520px] sm:h-[640px]" style={{ background: '#0f1f1a' }}>
+
+                  {/* Sidebar */}
+                  <div className="hidden w-48 shrink-0 flex-col border-r border-white/8 sm:flex" style={{ background: 'oklch(0.108 0.032 215)' }}>
+                    {/* Logo */}
+                    <div className="flex items-center gap-2 border-b border-white/8 px-4 py-3.5">
+                      <div className="flex h-5 w-5 items-center justify-center bg-primary text-[9px] font-black text-white">S</div>
+                      <span className="text-xs font-black text-white/80">Schduled</span>
+                    </div>
+                    <div className="flex-1 space-y-0.5 px-2 pt-3">
+                      {[
+                        ['Dashboard',     true ],
+                        ['Meeting Types', false],
+                        ['Availability',  false],
+                        ['Bookings',      false],
+                        ['Contacts',      false],
+                        ['Settings',      false],
+                      ].map(([label, active]) => (
+                        <div key={label as string} className={`flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors ${active ? 'bg-white/10 text-white' : 'text-white/35 hover:text-white/60'}`}>
+                          <div className={`h-1 w-1 ${active ? 'bg-primary' : 'bg-transparent'}`} />
                           {label}
                         </div>
                       ))}
                     </div>
-                    <div className="border-t border-white/8 bg-white/[0.05] px-2 py-3 space-y-1">
-                      <div className="px-3 py-1 text-2xs font-semibold uppercase tracking-wider text-white/25">Admin</div>
-                      <div className="flex items-center gap-2 px-3 py-1.5">
-                        <div className="flex h-5 w-5 shrink-0 items-center justify-center bg-primary/30 text-[9px] font-black text-white">DH</div>
-                        <div className="h-2 w-14 bg-white/15" />
+                    <div className="border-t border-white/8 px-2 py-3">
+                      <div className="flex items-center gap-2.5 px-3 py-2">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary/30 text-[9px] font-black text-white">DH</div>
+                        <div className="min-w-0">
+                          <div className="h-2 w-16 bg-white/20" />
+                          <div className="mt-1 h-1.5 w-10 bg-white/10" />
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-hidden p-5 space-y-4" style={{ background: 'oklch(0.96 0.006 85)' }}>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <Bell size={13} weight="fill" className="text-primary/60" />
-                          <div className="h-4 w-44 bg-foreground/12" />
-                        </div>
-                        <div className="mt-1.5 h-2.5 w-60 bg-foreground/6" />
+                  {/* Main content */}
+                  <div className="flex-1 overflow-hidden" style={{ background: 'oklch(0.97 0.004 85)' }}>
+
+                    {/* Top bar */}
+                    <div className="flex items-center gap-3 border-b border-border/60 bg-background/80 px-5 py-2.5">
+                      <div className="flex flex-1 items-center gap-2 border border-border bg-card px-3 py-1.5">
+                        <div className="h-2.5 w-2.5 bg-muted-foreground/30" />
+                        <div className="h-2 w-36 bg-muted-foreground/15" />
                       </div>
-                      <div className="h-8 w-24 border border-border bg-primary/10" />
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 border border-border bg-card" />
+                        <div className="h-7 w-7 border border-border bg-card" />
+                        <div className="h-7 w-7 bg-primary/20" />
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                      {[['TOTAL','24',false],['UPCOMING','10',true],['COMPLETED','19',false],['CANCELLED','2',false]].map(([label, val, accent]) => (
-                        <div key={label as string} className={`border p-3 ${accent ? 'border-primary/40 bg-primary/[0.07]' : 'border-border bg-card'}`}>
-                          <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">{label}</p>
-                          <p className="mt-1 text-2xl font-black text-foreground" style={{ fontFamily: 'var(--font-heading)' }}>{val}</p>
-                          <p className="text-[9px] text-muted-foreground/60">this month</p>
+
+                    <div className="space-y-3 overflow-hidden p-5">
+
+                      {/* Welcome + actions */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="h-5 w-48 bg-foreground/15" />
+                          <div className="mt-1.5 h-2.5 w-64 bg-foreground/6" />
                         </div>
-                      ))}
-                    </div>
-                    <div className="grid gap-2.5 sm:grid-cols-2">
-                      {[
-                        { title: 'Upcoming Meetings', rows: ['Alex Johnson — Mon 9:30 AM', 'Maria Garcia — Tue 2:00 PM', 'Tom Lee — Wed 11:00 AM'] },
-                        { title: 'Recent Bookings',   rows: ['Sarah Chen — confirmed', 'James Park — confirmed', 'Nina Patel — cancelled'] },
-                      ].map((card) => (
-                        <div key={card.title} className="border border-border bg-card">
-                          <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                            <span className="text-2xs font-black uppercase tracking-wider">{card.title}</span>
-                            <span className="text-2xs font-semibold text-primary">View all</span>
+                        <div className="hidden items-center gap-1.5 sm:flex">
+                          <div className="h-7 w-28 bg-primary" />
+                          <div className="h-7 w-24 border border-border bg-card" />
+                          <div className="h-7 w-24 border border-border bg-card" />
+                        </div>
+                      </div>
+
+                      {/* Next meeting strip */}
+                      <div className="flex items-center gap-3 border border-primary/30 bg-primary/[0.04] px-3 py-2.5">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-primary/20">
+                          <Clock size={14} weight="duotone" className="text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[9px] font-black uppercase tracking-wider text-primary">Your next meeting</p>
+                          <div className="mt-0.5 flex items-center gap-1.5">
+                            <div className="h-2 w-20 bg-foreground/20" />
+                            <span className="text-[9px] text-muted-foreground">· Discovery Call</span>
                           </div>
-                          {card.rows.map((r) => (
-                            <div key={r} className="border-b border-border/40 px-3 py-2 text-2xs text-muted-foreground last:border-0">{r}</div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-[10px] font-bold text-foreground">Jul 15</p>
+                          <p className="text-[9px] text-muted-foreground">10:00 AM</p>
+                        </div>
+                      </div>
+
+                      {/* 5 stat cards */}
+                      <div className="grid grid-cols-5 gap-2">
+                        {[
+                          { label: 'MEETING TYPES', val: '4',  sub: 'Active',       accent: false },
+                          { label: 'TOTAL',         val: '24', sub: 'All time',      accent: false },
+                          { label: 'UPCOMING',      val: '10', sub: 'Next: Jul 15',  accent: true  },
+                          { label: 'COMPLETED',     val: '19', sub: '1 this month',  accent: false },
+                          { label: 'CANCELLED',     val: '2',  sub: '0 this month',  accent: false },
+                        ].map(({ label, val, sub, accent }) => (
+                          <div key={label} className={`relative overflow-hidden border p-2.5 ${accent ? 'border-primary/40 bg-primary/[0.06]' : 'border-border bg-card'}`}>
+                            <div className={`absolute inset-x-0 top-0 h-[2px] bg-primary ${accent ? 'opacity-100' : 'opacity-0'}`} />
+                            <p className="text-[7px] font-black uppercase tracking-wider text-muted-foreground">{label}</p>
+                            <p className={`mt-0.5 text-xl font-black leading-none ${accent ? 'text-primary' : 'text-foreground'}`} style={{ fontFamily: 'var(--font-heading)' }}>{val}</p>
+                            <p className="mt-0.5 text-[7px] text-muted-foreground/70">{sub}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Two-column lists */}
+                      <div className="grid gap-2.5 sm:grid-cols-2">
+                        {/* Upcoming meetings */}
+                        <div className="border border-border bg-card">
+                          <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-foreground">Upcoming Meetings</span>
+                              <span className="flex h-4 min-w-4 items-center justify-center bg-primary/10 px-1 text-[8px] font-bold text-primary">3</span>
+                            </div>
+                            <span className="text-[9px] font-semibold text-primary">View all</span>
+                          </div>
+                          {[
+                            { name: 'Alex Johnson', label: 'Discovery Call', date: 'Jul 15 · 9:30 AM', color: 'var(--primary)' },
+                            { name: 'Maria Garcia', label: 'Strategy Session', date: 'Jul 16 · 2:00 PM', color: '#8b5cf6' },
+                            { name: 'Tom Lee',      label: 'Quick Sync', date: 'Jul 17 · 11:00 AM', color: '#f59e0b' },
+                          ].map((r) => (
+                            <div key={r.name} className="flex items-center justify-between gap-2 border-t border-border/50 px-3 py-2">
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold text-foreground truncate">{r.name}</p>
+                                <div className="mt-0.5 flex items-center gap-1">
+                                  <span className="h-1.5 w-1.5 shrink-0" style={{ backgroundColor: r.color }} />
+                                  <p className="text-[9px] text-muted-foreground truncate">{r.label}</p>
+                                </div>
+                              </div>
+                              <p className="shrink-0 text-[9px] text-muted-foreground">{r.date}</p>
+                            </div>
                           ))}
                         </div>
-                      ))}
-                    </div>
-                    <div className="grid gap-2.5 sm:grid-cols-3">
-                      {[['Mon','4'],['Tue','7'],['Wed','2']].map(([day, count]) => (
-                        <div key={day} className="border border-border bg-card p-3 text-center">
-                          <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">{day}</p>
-                          <p className="mt-1 text-xl font-black" style={{ fontFamily: 'var(--font-heading)' }}>{count}</p>
-                          <p className="text-[9px] text-muted-foreground/60">bookings</p>
+
+                        {/* Recent bookings */}
+                        <div className="border border-border bg-card">
+                          <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-foreground">Recent Bookings</span>
+                              <span className="flex h-4 min-w-4 items-center justify-center bg-muted px-1 text-[8px] font-bold text-muted-foreground">5</span>
+                            </div>
+                            <span className="text-[9px] font-semibold text-primary">View all</span>
+                          </div>
+                          {[
+                            { name: 'Sarah Chen',  label: 'Discovery Call',    status: 'confirmed', color: 'var(--primary)' },
+                            { name: 'James Park',  label: 'Strategy Session',  status: 'confirmed', color: '#8b5cf6'        },
+                            { name: 'Nina Patel',  label: 'Quick Sync',        status: 'cancelled', color: '#f59e0b'        },
+                          ].map((b) => (
+                            <div key={b.name} className="flex items-center justify-between gap-2 border-t border-border/50 px-3 py-2">
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold text-foreground truncate">{b.name}</p>
+                                <div className="mt-0.5 flex items-center gap-1">
+                                  <span className="h-1.5 w-1.5 shrink-0" style={{ backgroundColor: b.color }} />
+                                  <p className="text-[9px] text-muted-foreground truncate">{b.label}</p>
+                                </div>
+                              </div>
+                              <span className={`shrink-0 text-[8px] font-bold px-1.5 py-0.5 ${b.status === 'confirmed' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
+                                {b.status === 'confirmed' ? '● Confirmed' : '● Cancelled'}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+
                     </div>
                   </div>
                 </div>
@@ -715,7 +814,7 @@ export default async function LandingPage() {
           />
 
           <div className="relative mx-auto max-w-[1400px] px-5 md:px-12 xl:px-20">
-            <Reveal className="mb-24 text-center">
+            <Reveal className="mb-24 text-center" direction="up">
               <p className="mb-4 text-xs font-black uppercase tracking-eyebrow text-primary">How It Works</p>
               <h2 className="font-black text-3xl sm:text-4xl lg:text-5xl">
                 From sign-up to booked
@@ -731,10 +830,12 @@ export default async function LandingPage() {
             <div className="hidden md:grid md:grid-cols-[1fr_52px_1fr_52px_1fr] items-stretch">
               {STEPS.flatMap((step, i) => {
                 const Icon = step.icon
+                const stepDirs = ['left', 'up', 'right'] as const
                 const card = (
                   <Reveal
                     key={step.num}
-                    delay={i * 160}
+                    delay={i * 140}
+                    direction={stepDirs[i]}
                     className="group relative flex flex-col border border-border bg-card px-8 py-10 transition-all duration-300 hover:-translate-y-2 hover:border-primary/50 hover:bg-primary/[0.025]"
                   >
                     {/* Top accent bar */}
@@ -778,10 +879,12 @@ export default async function LandingPage() {
             <div className="flex flex-col md:hidden">
               {STEPS.map((step, i) => {
                 const Icon = step.icon
+                const mobileDirs = ['left', 'fade', 'right'] as const
                 return (
                   <div key={step.num}>
                     <Reveal
-                      delay={i * 150}
+                      delay={i * 130}
+                      direction={mobileDirs[i]}
                       className="group relative flex flex-col border border-border bg-card px-7 py-9 transition-all duration-300"
                     >
                       {/* Top accent bar */}
@@ -824,7 +927,7 @@ export default async function LandingPage() {
             <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
 
               {/* Left: title + CTA */}
-              <Reveal>
+              <Reveal direction="left">
                 <p className="mb-3 text-xs font-black uppercase tracking-eyebrow text-primary">Everything included</p>
                 <h2 className="mb-4 font-black text-3xl sm:text-4xl">
                   Every feature.<br />Zero paywalls.
@@ -843,7 +946,7 @@ export default async function LandingPage() {
                 {FEATURE_GROUPS.map((group, i) => {
                   const Icon = group.icon
                   return (
-                    <Reveal key={group.label} delay={150 + i * 120}>
+                    <Reveal key={group.label} delay={100 + i * 130} direction="right">
                       <div className="mb-3 flex items-center gap-2">
                         <div className="flex h-7 w-7 shrink-0 items-center justify-center bg-primary/10 text-primary">
                           <Icon size={14} weight="duotone" />
@@ -872,7 +975,7 @@ export default async function LandingPage() {
             <div className="grid grid-cols-1 items-start gap-14 lg:grid-cols-2 lg:gap-20">
 
               {/* ── Left: product UI preview — dark card on white bg ── */}
-              <Reveal className="lg:sticky lg:top-28">
+              <Reveal className="lg:sticky lg:top-28" direction="left">
                 <div className="relative">
                   {/* Soft teal glow — reduced opacity for light background */}
                   <div className="pointer-events-none absolute -inset-6 bg-primary/[0.06] blur-3xl" />
@@ -958,7 +1061,7 @@ export default async function LandingPage() {
               </Reveal>
 
               {/* ── Right: FAQ accordion on white background ── */}
-              <Reveal delay={100}>
+              <Reveal delay={100} direction="right">
                 <p className="mb-3 text-[11px] font-black uppercase tracking-eyebrow text-primary">FAQ</p>
                 <h2 className="mb-8 font-black text-3xl leading-tight text-foreground sm:text-4xl">
                   Frequently Asked<br className="hidden sm:block" /> Questions
@@ -986,7 +1089,7 @@ export default async function LandingPage() {
 
           <div className="relative mx-auto max-w-[1400px] px-5 text-center md:px-12 xl:px-20">
             <div className="mx-auto max-w-2xl">
-            <Reveal>
+            <Reveal direction="scale">
               <p className="mb-5 text-xs font-black uppercase tracking-eyebrow text-teal-400/55">Get started today</p>
               <h2 className="font-black text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
                 Your booking link
@@ -1005,7 +1108,7 @@ export default async function LandingPage() {
                 Share your link. The rest is automatic.
               </p>
             </Reveal>
-            <Reveal delay={150} className="mt-10 flex flex-col items-center gap-4">
+            <Reveal delay={150} direction="up" className="mt-10 flex flex-col items-center gap-4">
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <Link href="/login" className="relative inline-flex items-center gap-2 overflow-hidden bg-primary px-9 py-4 text-base font-semibold text-primary-foreground transition-opacity hover:opacity-90">
                   <span className="animate-schduled-sheen pointer-events-none absolute inset-0"

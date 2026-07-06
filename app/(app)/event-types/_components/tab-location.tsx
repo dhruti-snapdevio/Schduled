@@ -39,6 +39,51 @@ function detectDialCode(): string {
   }
 }
 
+function getAddressPlaceholderForTz(tz: string): string {
+  const exact: Record<string, string> = {
+    'Asia/Kolkata':        'e.g. Shop 4, SV Road, Borivali West, Mumbai 400092',
+    'Asia/Calcutta':       'e.g. Shop 4, SV Road, Borivali West, Mumbai 400092',
+    'Asia/Tokyo':          'e.g. 1-1-1 Shinjuku, Shinjuku-ku, Tokyo 160-0022',
+    'Asia/Shanghai':       'e.g. 123 Nanjing Rd, Huangpu, Shanghai 200001',
+    'Asia/Hong_Kong':      'e.g. 123 Nathan Road, Tsim Sha Tsui, Hong Kong',
+    'Asia/Singapore':      'e.g. 123 Orchard Road, Singapore 238856',
+    'Asia/Dubai':          'e.g. Shop 12, Sheikh Zayed Road, Dubai',
+    'Asia/Karachi':        'e.g. 123 Shahrah-e-Faisal, Karachi 75600',
+    'Asia/Dhaka':          'e.g. 123 Gulshan Avenue, Dhaka 1212',
+    'Asia/Jakarta':        'e.g. Jl. Sudirman No. 123, Jakarta Pusat 10220',
+    'Asia/Bangkok':        'e.g. 123 Sukhumvit Rd, Bangkok 10110',
+    'Asia/Kuala_Lumpur':   'e.g. 123 Jalan Ampang, Kuala Lumpur 50450',
+    'Asia/Manila':         'e.g. 123 Ayala Ave, Makati City, Metro Manila',
+    'Australia/Sydney':    'e.g. 123 George St, Sydney NSW 2000',
+    'Australia/Melbourne': 'e.g. 123 Collins St, Melbourne VIC 3000',
+    'Australia/Brisbane':  'e.g. 123 Queen St, Brisbane QLD 4000',
+    'Europe/London':       'e.g. 12 High Street, London SW1A 1AA',
+    'Europe/Paris':        'e.g. 12 Rue de Rivoli, Paris 75001',
+    'Europe/Berlin':       'e.g. Unter den Linden 12, 10117 Berlin',
+    'Europe/Amsterdam':    'e.g. Damrak 12, 1012 LG Amsterdam',
+    'Europe/Rome':         'e.g. Via Nazionale 12, 00184 Roma',
+    'Europe/Madrid':       'e.g. Calle Gran Vía 12, 28013 Madrid',
+    'America/New_York':    'e.g. 123 Main St, New York, NY 10001',
+    'America/Los_Angeles': 'e.g. 123 Main St, Los Angeles, CA 90001',
+    'America/Chicago':     'e.g. 123 Main St, Chicago, IL 60601',
+    'America/Toronto':     'e.g. 123 King St W, Toronto, ON M5X 1A1',
+    'America/Vancouver':   'e.g. 123 Granville St, Vancouver, BC V6C 1T2',
+    'America/Sao_Paulo':   'e.g. Rua da Consolação 123, São Paulo SP 01301-000',
+    'America/Mexico_City': 'e.g. Av. Insurgentes Sur 123, Ciudad de México 06600',
+    'Africa/Johannesburg': 'e.g. 123 Main Road, Cape Town 8001',
+    'Africa/Lagos':        'e.g. 123 Victoria Island, Lagos 106104',
+    'Africa/Nairobi':      'e.g. 123 Kenyatta Avenue, Nairobi 00100',
+  }
+  if (exact[tz]) return exact[tz]
+  if (tz.startsWith('Asia/'))      return 'e.g. 123 Main Road, Singapore 018989'
+  if (tz.startsWith('Europe/'))    return 'e.g. 12 High Street, London SW1A 1AA'
+  if (tz.startsWith('America/'))   return 'e.g. 123 Main St, New York, NY 10001'
+  if (tz.startsWith('Australia/')) return 'e.g. 123 George St, Sydney NSW 2000'
+  if (tz.startsWith('Pacific/'))   return 'e.g. 123 Queen St, Auckland 1010'
+  if (tz.startsWith('Africa/'))    return 'e.g. 123 Main Road, Cape Town 8001'
+  return 'e.g. 123 Main St'
+}
+
 // ── Location options ──────────────────────────────────────────────────────────
 
 interface LocationOption {
@@ -85,7 +130,6 @@ const LOCATION_OPTIONS: LocationOption[] = [
     sub: "Specify a physical address where you will meet.",
     icon: <MapPin className="text-orange-500" size={22} weight="fill" />,
     requiresValue: true,
-    valuePlaceholder: "e.g. 123 Main St, New York, NY",
     valueLabel: "Location address",
   },
   {
@@ -203,6 +247,9 @@ export function TabLocation({
 }: TabLocationProps) {
   const locationType = form.watch("locationType");
   const selected = LOCATION_OPTIONS.find((o) => o.value === locationType);
+  const addressPlaceholder = getAddressPlaceholderForTz(
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+  );
 
   return (
     <div className="space-y-6">
@@ -317,7 +364,7 @@ export function TabLocation({
               <FormControl>
                 {locationType === "in_person" ? (
                   <AddressAutocomplete
-                    placeholder={selected.valuePlaceholder}
+                    placeholder={addressPlaceholder}
                     value={field.value ?? ""}
                     onChange={field.onChange}
                     onBlur={field.onBlur}

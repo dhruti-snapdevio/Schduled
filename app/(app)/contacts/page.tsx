@@ -1,7 +1,5 @@
 import { Suspense } from 'react'
-import { Users } from '@phosphor-icons/react/dist/ssr'
 import { PageHeader } from '@/components/scaffold/page-header'
-import { Empty } from '@/components/ui/empty'
 import { requireSession } from '@/lib/authz'
 import { getContacts } from '@/app/actions/settings'
 import { ContactsTable } from './_components/contacts-table'
@@ -37,25 +35,17 @@ export default async function ContactsPage({
         description="People who have booked time with you. Add notes, archive, or remove contacts."
       />
 
-      {total === 0 && !search && !archived && filter === 'all' ? (
-        <Empty
-          icon={<Users />}
-          title="No contacts yet"
-          description="Contacts appear here automatically when someone books a meeting with you."
+      <Suspense>
+        <ContactsTable
+          contacts={contacts}
+          total={total}
+          page={page}
+          pageSize={15}
+          search={search}
+          archived={archived}
+          filter={filter}
         />
-      ) : (
-        <Suspense>
-          <ContactsTable
-            contacts={contacts}
-            total={total}
-            page={page}
-            pageSize={15}
-            search={search}
-            archived={archived}
-            filter={filter}
-          />
-        </Suspense>
-      )}
+      </Suspense>
     </div>
   )
 }

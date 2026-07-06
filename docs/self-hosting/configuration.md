@@ -25,11 +25,10 @@ APP_SECRET=<openssl rand -hex 32>
 NEXT_PUBLIC_APP_URL=https://your-domain.example
 ```
 
-**This is enough to start the app — it is not enough to reliably log into
-it.** With no SMTP and no Google configured, and `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED`
-left at its default (`false`), the only sign-in path is a magic link that
-gets logged to the server console. See [Installation → "First login"](./installation.md#first-login--read-this-before-you-deploy)
-for the recommended minimal-but-actually-usable configuration.
+**This is enough to start the app and log into it** — email + password login is
+on by default, so no SMTP or Google is needed for the first sign-in. See
+[Installation → "First login"](./installation.md#first-login--read-this-before-you-deploy)
+for the recommended setup (add `SIGNUP_ENABLED=false` + `INITIAL_ADMIN_EMAIL`).
 
 ## Full config — by feature
 

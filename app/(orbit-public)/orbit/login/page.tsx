@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { getCurrentSession } from "@/lib/authz";
 import { ADMIN_ROLE } from "@/config/platform";
-import { env } from "@/lib/env";
+import { getEffectiveSignInMethods } from "@/lib/settings/sign-in-methods";
 import { AdminLoginForm } from "./_components/admin-login-form";
 
 export const metadata = { title: "Admin Login — Schduled" };
@@ -28,11 +28,14 @@ export default async function AdminLoginPage({
   }
 
   const { error } = await searchParams;
-  const isGoogleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+  const methods = await getEffectiveSignInMethods();
+  const isGoogleEnabled = methods.google;
+  const passwordEnabled = methods.password;
+  const magicLinkEnabled = methods.magicLink;
 
   return (
     <main className="grid min-h-screen place-items-center bg-page px-4 py-10">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-md">
 
         {/* Brand mark */}
         <div className="mb-7 flex flex-col items-center gap-2">
@@ -72,11 +75,16 @@ export default async function AdminLoginPage({
           <CardHeader className="pb-4">
             <CardTitle className="text-lg">Admin sign in</CardTitle>
             <CardDescription>
-              Owner access only. Sign in with Google or use a magic link — admin role required.
+              Owner access only — admin role required. Sign in with one of the
+              enabled methods below.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <AdminLoginForm isGoogleEnabled={isGoogleEnabled} />
+            <AdminLoginForm
+              isGoogleEnabled={isGoogleEnabled}
+              magicLinkEnabled={magicLinkEnabled}
+              passwordEnabled={passwordEnabled}
+            />
           </CardContent>
         </Card>
 

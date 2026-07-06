@@ -387,7 +387,7 @@ export default async function DashboardPage() {
                     </p>
                     <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
                       <span
-                        className="size-2.5 shrink-0 rounded-full"
+                        className="size-2.5 shrink-0"
                         style={{ backgroundColor: m.eventColor ?? "var(--primary)" }}
                       />
                       <p className="truncate text-sm text-muted-foreground">
@@ -651,7 +651,7 @@ function StatusBadge({ status }: { status: string }) {
   const s = STATUS_STYLES[status] ?? STATUS_STYLES.no_show;
   return (
     <span className={`inline-flex items-center gap-1.5 ${s.badge}`}>
-      <span className={`size-1.5 shrink-0 rounded-full ${s.dotColor}`} />
+      <span className={`size-1.5 shrink-0 ${s.dotColor}`} />
       {s.label}
     </span>
   );

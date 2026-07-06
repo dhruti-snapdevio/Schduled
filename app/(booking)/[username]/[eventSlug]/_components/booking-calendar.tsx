@@ -422,7 +422,7 @@ function PolicyBox({ text }: { text: string }) {
       <p className="mb-1 text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">
         Cancellation Policy
       </p>
-      <p className="text-xs leading-relaxed text-amber-700/80 dark:text-amber-400">
+      <p className="break-words text-xs leading-relaxed text-amber-700/80 dark:text-amber-400">
         {displayed}
       </p>
       {needsTruncation && (
@@ -1002,8 +1002,8 @@ export function BookingCalendar({
         <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
 
           {/* ── Left info panel ── */}
-          <div className="flex shrink-0 flex-col gap-0 border-b border-border bg-card lg:w-[230px] lg:border-b-0 lg:border-r lg:overflow-y-auto">
-            <div className="flex flex-col gap-5 p-6">
+          <div className="flex shrink-0 flex-col gap-0 overflow-x-hidden border-b border-border bg-card lg:w-[230px] lg:border-b-0 lg:border-r lg:overflow-y-auto">
+            <div className="flex min-w-0 flex-col gap-5 p-6">
 
               {/* Avatar */}
               {host.image ? (

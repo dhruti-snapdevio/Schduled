@@ -57,6 +57,9 @@ export default async function ReschedulePage({
       etSlug: eventType.slug,
       etUserId: eventType.userId,
       bookingWindow: eventType.bookingWindow,
+      bookingWindowType: eventType.bookingWindowType,
+      bookingRangeStart: eventType.bookingRangeStart,
+      bookingRangeEnd: eventType.bookingRangeEnd,
       availabilityScheduleId: eventType.availabilityScheduleId,
       hostName: user.name,
       hostUsername: user.username,
@@ -161,12 +164,20 @@ export default async function ReschedulePage({
 
   const hostTz = schedule?.timezone ?? "UTC";
   const now = new Date();
-  const today = formatInTimeZone(now, hostTz, "yyyy-MM-dd");
-  const maxDate = formatInTimeZone(
+  const todayStr = formatInTimeZone(now, hostTz, "yyyy-MM-dd");
+  const rollingMax = formatInTimeZone(
     addDays(now, b.bookingWindow ?? 60),
     hostTz,
     "yyyy-MM-dd"
   );
+
+  // Mirror /api/slots and /api/available-days: a fixed window clamps the
+  // selectable range to [rangeStart, rangeEnd] so the calendar never offers a
+  // date the reschedule API would reject.
+  const isFixed =
+    b.bookingWindowType === "fixed" && !!b.bookingRangeStart && !!b.bookingRangeEnd;
+  const today = isFixed && b.bookingRangeStart! > todayStr ? b.bookingRangeStart! : todayStr;
+  const maxDate = isFixed ? b.bookingRangeEnd! : rollingMax;
   const availableDaysOfWeek = Array.from(
     new Set(schedule?.windows.map((w) => w.dayOfWeek) ?? [])
   );

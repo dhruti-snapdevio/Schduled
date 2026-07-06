@@ -9,6 +9,7 @@ import {
   eventType,
 } from "@/db/schema";
 import { checkRateLimit, jsonError, rateLimitKey } from "@/lib/api/helpers";
+import { isSlotBookable } from "@/lib/calendar/validate-slot";
 import { db } from "@/lib/db";
 import { enqueueJob } from "@/lib/worker/enqueue";
 import { JOB_NAMES } from "@/lib/worker/job-types";
@@ -93,9 +94,9 @@ export async function POST(request: Request) {
     }
 
     // ── Enforce the same booking rules as the create path ────────────────────
-    const minimumNoticeMs = (et.minimumNotice ?? 0) * 60_000;
+    const minimumNoticeMs = (et.minimumNotice ?? 60) * 60_000;
     if (minimumNoticeMs > 0 && newStart.getTime() - nowMs < minimumNoticeMs) {
-      const mins = et.minimumNotice ?? 0;
+      const mins = et.minimumNotice ?? 60;
       const label =
         mins >= 60
           ? `${mins / 60} hour${mins / 60 === 1 ? "" : "s"}`
@@ -197,6 +198,23 @@ export async function POST(request: Request) {
       }
     }
 
+    // The new time must be a real slot on the host's schedule — a direct API
+    // call could otherwise POST any arbitrary time, bypassing working hours and
+    // blocked dates (conflicts + notice are enforced separately, below).
+    const bookable = await isSlotBookable({
+      hostUserId: b.hostUserId,
+      scheduleId: schedule?.id,
+      hostTz,
+      startUtc: newStart,
+      durationMinutes: b.duration,
+      bufferBefore: et.bufferBefore ?? 0,
+      bufferAfter: et.bufferAfter ?? 0,
+      increment: et.startTimeIncrement ?? 30,
+    });
+    if (!bookable) {
+      return jsonError("That time isn't available. Please choose an open slot.", 409);
+    }
+
 
     // ── Transaction: advisory lock → conflict re-check → UPDATE ──────────────
     const result = await db.transaction(async (tx) => {
@@ -254,7 +272,11 @@ export async function POST(request: Request) {
       // Pending booking rescheduled — notify the host of the new time to review.
       // isReschedule=true prevents the invitee from getting a redundant "pending" email
       // (they already received one when they first submitted the booking request).
-      await enqueueJob(JOB_NAMES.BOOKING_APPROVAL_REQUEST, { bookingId: b.id, isReschedule: true });
+      // Guarded like the confirmed branch below: the reschedule already committed,
+      // so a pg-boss enqueue failure must not surface as a 500 to the invitee.
+      await Promise.allSettled([
+        enqueueJob(JOB_NAMES.BOOKING_APPROVAL_REQUEST, { bookingId: b.id, isReschedule: true }),
+      ]);
     } else {
       await Promise.allSettled([
         enqueueJob(JOB_NAMES.BOOKING_RESCHEDULE_NOTIFY, {

@@ -34,7 +34,7 @@ and Phase 5 (teams/multi-tenant) remain explicitly out of scope for v1.
 | Secrets out of git (`.env*` ignored, `.env.example` tracked) | ✅ Ready | — |
 | Encrypted OAuth tokens (`lib/encrypt.ts`) | ✅ Ready | — |
 | Background worker (pg-boss, no Redis) | ✅ Ready | K |
-| **Login works on a fresh install (no SMTP/Google)** | ⚠️ **Implemented, opt-in** — set `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED=true` | **E** |
+| **Login works on a fresh install (no SMTP/Google)** | ✅ **Done** — email + password is the primary method, on by default | **E** |
 | **Signup is closed by default when self-hosted the recommended way** | ✅ **Done** (`SIGNUP_ENABLED`, verified live) | **E** |
 | One-command deploy (Docker Compose + web image) | ✅ **Done** — `Dockerfile`, `docker-compose.yml`, migrate-on-boot | C |
 | DB migrations on boot | ✅ Done (`docker/entrypoint.sh`) | C, D |
@@ -226,7 +226,7 @@ are real · P0/P1/P2 priority.
 ### E. Authentication & first-run (the lockout fix)
 | Type | Change | Where | P |
 |---|---|---|---|
-| ✅ DONE | Email+password sign-in/sign-up, gated by `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED` (default `false` — preserves the hosted product's Google + magic-link-only design; self-hosters set it `true`) | `lib/auth.ts`, `lib/env.ts` | **P0** |
+| ✅ DONE | Email+password sign-in/sign-up — the **primary** login method (default `true`), shown first on both user and admin login pages; magic link + Google are secondary. Toggle off via `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED=false` for a magic-link/Google-only deployment | `lib/auth.ts`, `lib/env.ts`, `app/(auth)`, `app/(orbit-public)` | **P0** |
 | ✅ DONE | Password fields + sign-in/sign-up toggle in the login form (only rendered when the flag is on) | `app/(auth)/_components/auth-form.tsx` | P0 |
 | ✅ DONE | `account.password` column (Better Auth's credential-provider hash storage) — migration `0013_stale_flatman.sql` | `db/schema/auth.ts` | P0 |
 | ✅ DONE | `INITIAL_ADMIN_EMAIL` → auto-promote to admin at signup (checked once, at account creation) | `lib/auth.ts` (`databaseHooks.user.create.after`), `lib/env.ts` | P0 |
@@ -234,12 +234,11 @@ are real · P0/P1/P2 priority.
 | ✅ DONE | **Closed-signup control** via `SIGNUP_ENABLED` — a `databaseHooks.user.create.before` hook blocks new-account creation (password sign-up, magic link first-use, **and** Google first-login all funnel through the same hook) unless the email matches `INITIAL_ADMIN_EMAIL`. Default `true` (unchanged behavior); self-hosters set `false` **from day one** — the bootstrap admin always gets through regardless, so there's no "open then close" race window | `lib/auth.ts`, `lib/env.ts` | **P0** |
 | — | Keep magic link (needs SMTP) + Google (optional) alongside password | — | ✅ |
 
-> **The lockout risk is not fully eliminated — it's now opt-in.** Deploying with
-> `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED` left at its default (`false`) and no
-> SMTP/Google configured still leaves an operator locked out of the UI (the
-> magic link only reaches the server console). The Installation Guide (Part 7)
-> and `ENVIRONMENT.md` both flag this — self-hosters should set the flag to
-> `true` before their first deploy.
+> **The lockout risk is eliminated by default.** Email + password is the primary
+> login method and is on by default (`NEXT_PUBLIC_PASSWORD_AUTH_ENABLED` defaults
+> to `true`), so an operator can always sign in on a fresh box with no SMTP or
+> Google. Only a deployment that deliberately sets the flag to `false` (magic-
+> link/Google-only) reintroduces the console-magic-link dependency.
 >
 > ✅ **The open-signup risk flagged in the previous review is now fixed —
 > verified live, not just by reading the code.** `SIGNUP_ENABLED=false` +
