@@ -5,6 +5,8 @@ import {
   CheckCircle,
   CircleNotch,
   Envelope,
+  Eye,
+  EyeSlash,
   GoogleLogo,
   LockSimple,
   PaperPlaneTilt,
@@ -35,6 +37,7 @@ export function AdminLoginForm({ isGoogleEnabled, passwordEnabled, magicLinkEnab
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [resetSent, setResetSent] = useState(false);
@@ -170,10 +173,19 @@ export function AdminLoginForm({ isGoogleEnabled, passwordEnabled, magicLinkEnab
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
-                className="pl-9"
+                className="pl-9 pr-10"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                tabIndex={-1}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {showPassword ? <Eye size={15} /> : <EyeSlash size={15} />}
+              </button>
             </div>
           </label>
           {error && (

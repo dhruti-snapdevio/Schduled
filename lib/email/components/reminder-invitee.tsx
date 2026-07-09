@@ -5,6 +5,7 @@ import {
   Hr,
   Html,
   Img,
+  Link,
   Preview,
   Section,
   Text,
@@ -83,7 +84,7 @@ export function ReminderInviteeEmail({
               <Row label="Host"     value={hostName} />
               <Row label={`Time (${hostTimezone})`}    value={startFormatted} />
               <Row label={`Time (${inviteeTimezone})`} value={inviteeTime} />
-              <Row label="Location" value={locationLabel} />
+              <Row label="Location" value={locationLabel} href={locationLabel.startsWith('http') ? locationLabel : undefined} />
             </Section>
 
             {/* Meet link button */}
@@ -130,15 +131,21 @@ export function ReminderInviteeEmail({
   )
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <Section style={{ marginBottom: '8px' }}>
       <Text style={{ color: '#6B7280', fontSize: '12px', margin: '0 0 1px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         {label}
       </Text>
-      <Text style={{ color: '#111827', fontSize: '14px', fontWeight: 600, margin: 0 }}>
-        {value}
-      </Text>
+      {href ? (
+        <Link href={href} style={{ color: '#0D9488', fontSize: '14px', fontWeight: 600, display: 'block', textDecoration: 'underline' }}>
+          View Location
+        </Link>
+      ) : (
+        <Text style={{ color: '#111827', fontSize: '14px', fontWeight: 600, margin: 0 }}>
+          {value}
+        </Text>
+      )}
     </Section>
   )
 }

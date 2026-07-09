@@ -5,6 +5,8 @@ import { type FormEvent, useState } from "react";
 import {
   CheckCircle,
   CircleNotch,
+  Eye,
+  EyeSlash,
   LockSimple,
   WarningCircle,
 } from "@phosphor-icons/react";
@@ -28,6 +30,7 @@ export function ResetPasswordForm() {
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -125,10 +128,19 @@ export function ResetPasswordForm() {
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="••••••••"
                     required
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
-                    className="pl-9"
+                    className="pl-9 pr-10"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {showPassword ? <Eye size={16} /> : <EyeSlash size={16} />}
+                  </button>
                 </div>
               </label>
               <label className="block" htmlFor="confirm-password">
@@ -144,10 +156,19 @@ export function ResetPasswordForm() {
                     onChange={(event) => setConfirm(event.target.value)}
                     placeholder="••••••••"
                     required
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={confirm}
-                    className="pl-9"
+                    className="pl-9 pr-10"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {showPassword ? <Eye size={16} /> : <EyeSlash size={16} />}
+                  </button>
                 </div>
               </label>
               {error && (

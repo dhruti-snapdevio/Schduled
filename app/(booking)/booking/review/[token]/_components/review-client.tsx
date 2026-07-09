@@ -113,7 +113,18 @@ export function ReviewClient(props: Props) {
       </p>
       <p className="mt-2 text-xs text-muted-foreground">{when}</p>
       <p className="text-xs text-muted-foreground">{props.hostTimezone}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{props.locationLabel}</p>
+      {props.locationLabel.startsWith('http') ? (
+        <a
+          href={props.locationLabel}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary underline underline-offset-2 hover:opacity-80"
+        >
+          View Location
+        </a>
+      ) : (
+        <p className="mt-1 text-xs text-muted-foreground">{props.locationLabel}</p>
+      )}
     </div>
   );
 

@@ -1,4 +1,4 @@
-import { Button, Hr, Section, Text } from "react-email";
+import { Button, Hr, Link, Section, Text } from "react-email";
 import { EmailLayout, emailStyles } from "./layout";
 
 interface ApprovalRequestEmailProps {
@@ -65,7 +65,7 @@ export function ApprovalRequestEmail({
         <DetailRow label="Event" value={eventName} />
         <DetailRow label="Requested by" value={`${inviteeName} (${inviteeEmail})`} />
         <DetailRow label="Date & Time" value={`${whenHost} (${hostTimezone})`} />
-        <DetailRow label="Location" value={locationLabel} />
+        <DetailRow label="Location" value={locationLabel} href={locationLabel.startsWith('http') ? locationLabel : undefined} />
       </Section>
 
       <Hr style={{ borderColor: "#E5E7EB", margin: "20px 0" }} />
@@ -105,13 +105,19 @@ export function ApprovalRequestEmail({
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <Section style={{ marginBottom: "8px" }}>
       <Text style={{ ...emailStyles.muted, margin: "0" }}>{label}</Text>
-      <Text style={{ ...emailStyles.paragraph, fontWeight: 600, margin: "2px 0 0" }}>
-        {value}
-      </Text>
+      {href ? (
+        <Link href={href} style={{ color: "#0D9488", fontSize: "14px", fontWeight: 600, display: "block", textDecoration: "underline" }}>
+          View Location
+        </Link>
+      ) : (
+        <Text style={{ ...emailStyles.paragraph, fontWeight: 600, margin: "2px 0 0" }}>
+          {value}
+        </Text>
+      )}
     </Section>
   );
 }

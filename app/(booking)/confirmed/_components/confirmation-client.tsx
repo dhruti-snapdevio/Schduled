@@ -314,7 +314,18 @@ export function ConfirmationClient({
                   ) : (
                     <LinkIcon size={14} className="mt-0.5 shrink-0 text-muted-foreground" />
                   )}
-                  <span className="break-all text-xs text-foreground">{locationValue}</span>
+                  {locationValue.startsWith('http') ? (
+                    <a
+                      href={locationValue}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-medium text-primary underline underline-offset-2 hover:opacity-80"
+                    >
+                      View Location
+                    </a>
+                  ) : (
+                    <span className="break-all text-xs text-foreground">{locationValue}</span>
+                  )}
                 </div>
               )}
               <div className="col-span-2 flex items-center gap-2">

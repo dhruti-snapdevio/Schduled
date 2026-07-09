@@ -3,6 +3,7 @@ import type { Job } from 'pg-boss'
 import { db } from '@/lib/db'
 import { booking, connectedCalendar } from '@/db/schema'
 import { getGoogleCalendarClient } from '@/lib/worker/google-calendar-client'
+import { isInvalidGrant, markCalendarRevoked } from '@/lib/worker/calendar-grant'
 import { type CalendarUpdatePayload } from '@/lib/worker/job-types'
 
 export async function handleCalendarUpdate(jobs: Job<CalendarUpdatePayload>[]) {
@@ -57,6 +58,11 @@ async function processCalendarUpdate(job: Job<CalendarUpdatePayload>) {
   try {
     calApi = await getGoogleCalendarClient(cal)
   } catch (err) {
+    if (isInvalidGrant(err)) {
+      await markCalendarRevoked(cal.id, b.hostUserId)
+      console.warn(`[calendar-update] calendar ${cal.id} grant invalid — marked disconnected + alerted (event ${b.calendarEventId} left at old time)`)
+      return
+    }
     console.error(`[calendar-update] failed to get calendar client for ${cal.id}:`, err)
     return
   }

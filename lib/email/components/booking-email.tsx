@@ -5,6 +5,7 @@ import {
   Hr,
   Html,
   Img,
+  Link,
   Preview,
   Section,
   Text,
@@ -24,6 +25,7 @@ export interface BookingEmailProps {
   hostTimezone: string;
   inviteeTimezone: string;
   locationLabel: string;
+  locationUrl?: string | null;
   locationType: string; // e.g. "google_meet" | "zoom" | "phone_host_calls" | …
   meetLabel: string; // button text, e.g. "Join Google Meet" / "Join Zoom Meeting"
   meetLink: string | null;
@@ -197,7 +199,7 @@ export function BookingEmail(props: BookingEmailProps) {
                 label={`Time (${props.inviteeTimezone})`}
                 value={props.whenInvitee}
               />
-              <Row label="Location" value={props.locationLabel} />
+              <Row label="Location" value={props.locationLabel} href={props.locationLabel.startsWith('http') ? props.locationLabel : undefined} />
               {props.variant === "cancellation" && props.reason && (
                 <Row label="Reason" value={props.reason} />
               )}
@@ -316,10 +318,12 @@ function Row({
   label,
   value,
   strike,
+  href,
 }: {
   label: string;
   value: string;
   strike?: boolean;
+  href?: string;
 }) {
   return (
     <Section style={{ marginBottom: "8px" }}>
@@ -334,17 +338,32 @@ function Row({
       >
         {label}
       </Text>
-      <Text
-        style={{
-          color: "#111827",
-          fontSize: "14px",
-          fontWeight: 600,
-          margin: 0,
-          textDecoration: strike ? "line-through" : "none",
-        }}
-      >
-        {value}
-      </Text>
+      {href ? (
+        <Link
+          href={href}
+          style={{
+            color: teal,
+            fontSize: "14px",
+            fontWeight: 600,
+            display: "block",
+            textDecoration: "underline",
+          }}
+        >
+          View Location
+        </Link>
+      ) : (
+        <Text
+          style={{
+            color: "#111827",
+            fontSize: "14px",
+            fontWeight: 600,
+            margin: 0,
+            textDecoration: strike ? "line-through" : "none",
+          }}
+        >
+          {value}
+        </Text>
+      )}
     </Section>
   );
 }

@@ -5,6 +5,7 @@ import {
   Hr,
   Html,
   Img,
+  Link,
   Preview,
   Section,
   Text,
@@ -149,7 +150,7 @@ export function ReminderHostEmail({
                 label={`Time (${inviteeTimezone})`}
                 value={inviteeTime}
               />
-              <Row label="Location" value={locationLabel} />
+              <Row label="Location" value={locationLabel} href={locationLabel.startsWith('http') ? locationLabel : undefined} />
             </Section>
 
             {/* Start meeting button */}
@@ -216,7 +217,7 @@ export function ReminderHostEmail({
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <Section style={{ marginBottom: "8px" }}>
       <Text
@@ -230,11 +231,15 @@ function Row({ label, value }: { label: string; value: string }) {
       >
         {label}
       </Text>
-      <Text
-        style={{ color: "#111827", fontSize: "14px", fontWeight: 600, margin: 0 }}
-      >
-        {value}
-      </Text>
+      {href ? (
+        <Link href={href} style={{ color: "#0D9488", fontSize: "14px", fontWeight: 600, display: "block", textDecoration: "underline" }}>
+          View Location
+        </Link>
+      ) : (
+        <Text style={{ color: "#111827", fontSize: "14px", fontWeight: 600, margin: 0 }}>
+          {value}
+        </Text>
+      )}
     </Section>
   );
 }

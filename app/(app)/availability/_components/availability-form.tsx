@@ -34,6 +34,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TimeCombobox } from '@/components/ui/time-combobox'
+import { CountryCombobox } from '@/components/ui/country-combobox'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   AlertDialog,
@@ -113,69 +114,14 @@ const DAYS: { key: DayOfWeek; letter: string; label: string }[] = [
   { key: 'saturday',  letter: 'S', label: 'Saturday' },
 ]
 
-// ── Holidays data ─────────────────────────────────────────────────────────────
+// ── Holidays ──────────────────────────────────────────────────────────────────
+// Countries + public-holiday dates come from the server (date-holidays, ~200
+// countries, computed for the current year) — see lib/holidays.ts and
+// /api/holidays. The picker defaults to the country implied by the user's
+// timezone; changing it fetches that country's holidays.
 
-const HOLIDAY_COUNTRIES = [
-  { code: 'US', label: 'United States' },
-  { code: 'GB', label: 'United Kingdom' },
-  { code: 'IN', label: 'India' },
-  { code: 'CA', label: 'Canada' },
-  { code: 'AU', label: 'Australia' },
-]
-
-const HOLIDAYS: Record<string, { date: string; name: string }[]> = {
-  US: [
-    { date: '2026-01-01', name: "New Year's Day" },
-    { date: '2026-01-19', name: 'Martin Luther King Jr. Day' },
-    { date: '2026-02-16', name: "Presidents' Day" },
-    { date: '2026-05-25', name: 'Memorial Day' },
-    { date: '2026-07-04', name: 'Independence Day' },
-    { date: '2026-09-07', name: 'Labor Day' },
-    { date: '2026-11-26', name: 'Thanksgiving Day' },
-    { date: '2026-12-25', name: 'Christmas Day' },
-  ],
-  GB: [
-    { date: '2026-01-01', name: "New Year's Day" },
-    { date: '2026-04-03', name: 'Good Friday' },
-    { date: '2026-04-06', name: 'Easter Monday' },
-    { date: '2026-05-04', name: 'Early May Bank Holiday' },
-    { date: '2026-05-25', name: 'Spring Bank Holiday' },
-    { date: '2026-08-31', name: 'Summer Bank Holiday' },
-    { date: '2026-12-25', name: 'Christmas Day' },
-    { date: '2026-12-28', name: 'Boxing Day (observed)' },
-  ],
-  IN: [
-    { date: '2026-01-26', name: 'Republic Day' },
-    { date: '2026-03-28', name: 'Holi' },
-    { date: '2026-04-14', name: 'Dr. Ambedkar Jayanti' },
-    { date: '2026-08-15', name: 'Independence Day' },
-    { date: '2026-10-02', name: 'Gandhi Jayanti' },
-    { date: '2026-11-12', name: 'Diwali' },
-    { date: '2026-12-25', name: 'Christmas Day' },
-  ],
-  CA: [
-    { date: '2026-01-01', name: "New Year's Day" },
-    { date: '2026-02-16', name: 'Family Day' },
-    { date: '2026-04-03', name: 'Good Friday' },
-    { date: '2026-05-18', name: 'Victoria Day' },
-    { date: '2026-07-01', name: 'Canada Day' },
-    { date: '2026-09-07', name: 'Labour Day' },
-    { date: '2026-10-12', name: 'Thanksgiving' },
-    { date: '2026-11-11', name: 'Remembrance Day' },
-    { date: '2026-12-25', name: 'Christmas Day' },
-    { date: '2026-12-28', name: 'Boxing Day' },
-  ],
-  AU: [
-    { date: '2026-01-01', name: "New Year's Day" },
-    { date: '2026-01-26', name: 'Australia Day' },
-    { date: '2026-04-03', name: 'Good Friday' },
-    { date: '2026-04-06', name: 'Easter Monday' },
-    { date: '2026-04-25', name: 'ANZAC Day' },
-    { date: '2026-06-08', name: "Queen's Birthday" },
-    { date: '2026-12-25', name: 'Christmas Day' },
-    { date: '2026-12-28', name: 'Boxing Day' },
-  ],
-}
+interface HolidayItem { date: string; name: string }
+interface HolidayCountry { code: string; name: string }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -188,6 +134,9 @@ interface Props {
   initialOverrides: OverrideData[]
   initialMeetingLimits: MeetingLimitRow[]
   userTimezone: string
+  holidayCountryList: HolidayCountry[]
+  defaultHolidayCountry: string
+  initialHolidays: HolidayItem[]
 }
 
 interface ScheduleMeta {
@@ -683,7 +632,7 @@ function FullCalendarView({ grid, overrides, currentTz, onTzClick, onEditDate, o
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function AvailabilityForm({ initialSchedules, initialOverrides, initialMeetingLimits, userTimezone }: Props) {
+export function AvailabilityForm({ initialSchedules, initialOverrides, initialMeetingLimits, userTimezone, holidayCountryList, defaultHolidayCountry, initialHolidays }: Props) {
   const [isPending, startTransition] = useTransition()
   const [pageTab, setPageTab] = useState<PageTab>('schedules')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
@@ -731,7 +680,23 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
 
   // Advanced tab
   const [advName, setAdvName] = useState(firstSchedule?.name ?? 'Working Hours')
-  const [holidayCountry, setHolidayCountry] = useState('US')
+  const [holidayCountry, setHolidayCountry] = useState(defaultHolidayCountry)
+  const [holidays, setHolidays] = useState<HolidayItem[]>(initialHolidays)
+  const [holidaysLoading, setHolidaysLoading] = useState(false)
+
+  // Fetch the selected country's public holidays from the server. The default
+  // country is primed from props (SSR), so only re-fetch when the user changes it.
+  useEffect(() => {
+    if (holidayCountry === defaultHolidayCountry) return
+    let cancelled = false
+    setHolidaysLoading(true)
+    fetch(`/api/holidays?country=${encodeURIComponent(holidayCountry)}`)
+      .then((r) => r.json())
+      .then((data) => { if (!cancelled) setHolidays(data.holidays ?? []) })
+      .catch(() => { if (!cancelled) setHolidays([]) })
+      .finally(() => { if (!cancelled) setHolidaysLoading(false) })
+    return () => { cancelled = true }
+  }, [holidayCountry, defaultHolidayCountry])
   const [meetingLimits, setMeetingLimits] = useState<MeetingLimitRow[]>(initialMeetingLimits)
   const [limitPeriod, setLimitPeriod] = useState<MeetingLimitPeriod>('day')
   const [limitCount, setLimitCount] = useState('4')
@@ -1047,7 +1012,7 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
   }
 
   function handleAllHolidaysToggle(enable: boolean) {
-    const holidays = HOLIDAYS[holidayCountry] ?? []
+    // Uses the `holidays` state (fetched for the selected country).
     // Snapshot the current state so we can roll back if any write fails.
     const prevOverrides = overrides
 
@@ -1303,28 +1268,27 @@ export function AvailabilityForm({ initialSchedules, initialOverrides, initialMe
             </p>
 
             {(() => {
-              const holidays = HOLIDAYS[holidayCountry] ?? []
               const allBlocked = holidays.length > 0 && holidays.every((h) => overrideMap.get(h.date)?.isBlocked)
               return (
                 <>
                   <div className="flex items-center justify-between border border-border px-4 py-3 mb-0 bg-muted/50">
                     <div className="flex items-center gap-3">
-                      <Select value={holidayCountry} onValueChange={setHolidayCountry}>
-                        <SelectTrigger className="w-48 h-9 text-sm border-0 px-3 focus-visible:ring-0 gap-1.5">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent position="popper" side="bottom" sideOffset={4} style={{ maxHeight: '200px' }}>
-                          {HOLIDAY_COUNTRIES.map((c) => (
-                            <SelectItem key={c.code} value={c.code} className="text-sm">{c.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <CountryCombobox
+                        value={holidayCountry}
+                        options={holidayCountryList}
+                        onChange={setHolidayCountry}
+                        triggerClassName="w-56 font-medium"
+                      />
                     </div>
-                    <Switch checked={allBlocked} onCheckedChange={handleAllHolidaysToggle} />
+                    <Switch checked={allBlocked} disabled={holidaysLoading || holidays.length === 0} onCheckedChange={handleAllHolidaysToggle} />
                   </div>
 
                   <div className="border border-t-0 border-border">
-                    {holidays.map((h) => {
+                    {holidaysLoading ? (
+                      <p className="px-4 py-6 text-center text-sm text-muted-foreground">Loading holidays…</p>
+                    ) : holidays.length === 0 ? (
+                      <p className="px-4 py-6 text-center text-sm text-muted-foreground">No public holidays found for this country.</p>
+                    ) : holidays.map((h) => {
                       const isBlocked = overrideMap.get(h.date)?.isBlocked === true
                       return (
                         <div key={h.date}
