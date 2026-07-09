@@ -107,9 +107,10 @@ export default async function BookingDetailPage({
   const locationLabel = LOCATION_LABEL[b.locationType ?? 'custom'] ?? 'Online'
   const joinUrl =
     b.locationValue?.startsWith('http') &&
-    ['zoom', 'google_meet', 'teams', 'custom'].includes(b.locationType ?? '')
+    ['zoom', 'google_meet', 'teams', 'custom', 'in_person'].includes(b.locationType ?? '')
       ? b.locationValue
       : null
+  const isLocationLink = b.locationType === 'in_person' && !!joinUrl
   const isPastConfirmed = b.status === 'confirmed' && b.startTime <= now
   const hasActions = isUpcoming || (isPending && b.approvalToken) || isPastConfirmed
 
@@ -200,7 +201,7 @@ export default async function BookingDetailPage({
           <p className="font-semibold text-foreground">{locationLabel}</p>
           {joinUrl && (
             <a href={joinUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline">
-              Join meeting →
+              {isLocationLink ? 'View location →' : 'Join meeting →'}
             </a>
           )}
         </InfoCard>

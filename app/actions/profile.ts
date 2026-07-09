@@ -7,6 +7,8 @@ import { createId } from "@paralleldrive/cuid2";
 import { account, booking, session as sessionTable, user, userProfile, verification } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { requireSession } from "@/lib/authz";
+import { emailInviteesOfHostRemoval } from "@/lib/booking/host-booking-cleanup";
+import { deleteUserCalendarEvents } from "@/lib/calendar/cleanup-events";
 import { db } from "@/lib/db";
 import { deleteConfirmationTemplate } from "@/lib/email/templates/delete-confirmation";
 import { sendEmailViaSmtp } from "@/lib/smtp/client";
@@ -304,6 +306,12 @@ export async function deleteAccountAction(
     entityType: "user",
     metadata: { reason },
   });
+
+  // Tell invitees their upcoming meetings are cancelled and remove the Google
+  // Calendar events before the account (and its bookings + calendar connection)
+  // is deleted.
+  await emailInviteesOfHostRemoval(freshUser.id);
+  await deleteUserCalendarEvents(freshUser.id);
 
   await db.transaction(async (tx) => {
     await tx.delete(sessionTable).where(eq(sessionTable.userId, freshUser.id));

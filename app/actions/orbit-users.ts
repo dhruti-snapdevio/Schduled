@@ -7,7 +7,14 @@ import { account, booking, eventType, session as sessionTable, user } from "@/db
 import { ADMIN_ROLE } from "@/config/platform";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/authz";
+import {
+  cancelUpcomingBookingsForHost,
+  emailInviteesOfHostRemoval,
+} from "@/lib/booking/host-booking-cleanup";
+import { deleteUserCalendarEvents } from "@/lib/calendar/cleanup-events";
 import { db } from "@/lib/db";
+import { enqueueJob } from "@/lib/worker/enqueue";
+import { JOB_NAMES } from "@/lib/worker/job-types";
 
 /**
  * Records an admin starting an impersonation session. The impersonation itself
@@ -82,6 +89,10 @@ export async function toggleUserBanAction(formData: FormData): Promise<void> {
   // instead of waiting for the existing session to expire.
   if (banned) {
     await db.delete(sessionTable).where(eq(sessionTable.userId, userId));
+    // A suspended host can't take meetings, so cancel their upcoming bookings
+    // and notify the invitees + host + remove the calendar events. Reactivating
+    // does NOT restore them.
+    await cancelUpcomingBookingsForHost(userId, "The host's account was suspended.");
   }
 
   await audit({
@@ -131,6 +142,13 @@ export async function deleteUserAction(formData: FormData): Promise<void> {
     metadata: { email: target.email },
   });
 
+  // Tell invitees their upcoming meetings are cancelled, then remove the Google
+  // Calendar events — BOTH must run before the account (and its bookings +
+  // calendar connection) are deleted, or the invitees are never told and the
+  // events are orphaned.
+  await emailInviteesOfHostRemoval(userId);
+  await deleteUserCalendarEvents(userId);
+
   // Same safe ordering as the user self-delete in profile.ts:
   // booking has NO ACTION on the user FK, so it must be removed before the
   // user row. Everything else cascades from user/booking.
@@ -177,6 +195,15 @@ export async function cancelBookingAction(formData: FormData): Promise<void> {
     entityId:    bookingId,
     entityType:  "booking",
   });
+
+  // Same side-effects as an invitee cancellation: notify the invitee, remove
+  // the Google Calendar event (otherwise it's orphaned), and cancel pending
+  // reminders. Admin cancel previously did none of these.
+  await Promise.allSettled([
+    enqueueJob(JOB_NAMES.BOOKING_CANCELLATION, { bookingId }),
+    enqueueJob(JOB_NAMES.CALENDAR_CANCEL, { bookingId }),
+    enqueueJob(JOB_NAMES.BOOKING_CANCEL_REMINDERS, { bookingId }),
+  ]);
 
   revalidatePath(`/orbit/users/${hostUserId}`);
 }
@@ -264,6 +291,13 @@ export async function bulkDeleteUsersAction(formData: FormData): Promise<void> {
       entityType:  "user",
       metadata:    { email: target.email },
     });
+  }
+
+  // Notify invitees + clean up each user's calendar events before the cascade
+  // removes their bookings & calendar connections (see deleteUserAction).
+  for (const id of ids) {
+    await emailInviteesOfHostRemoval(id);
+    await deleteUserCalendarEvents(id);
   }
 
   await db.transaction(async (tx) => {

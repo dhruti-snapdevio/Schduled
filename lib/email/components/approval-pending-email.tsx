@@ -1,4 +1,4 @@
-import { Hr, Section, Text } from "react-email";
+import { Hr, Link, Section, Text } from "react-email";
 import { EmailLayout, emailStyles } from "./layout";
 
 interface ApprovalPendingEmailProps {
@@ -68,7 +68,7 @@ export function ApprovalPendingEmail({
         {inviteeTimezone !== hostTimezone && (
           <DetailRow label={`Date & Time (${inviteeTimezone})`} value={whenInvitee} />
         )}
-        <DetailRow label="Location" value={locationLabel} />
+        <DetailRow label="Location" value={locationLabel} href={locationLabel.startsWith('http') ? locationLabel : undefined} />
         <DetailRow label="Status" value="Awaiting host approval" />
       </Section>
 
@@ -84,13 +84,19 @@ export function ApprovalPendingEmail({
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <Section style={{ marginBottom: "8px" }}>
       <Text style={{ ...emailStyles.muted, margin: "0" }}>{label}</Text>
-      <Text style={{ ...emailStyles.paragraph, fontWeight: 600, margin: "2px 0 0" }}>
-        {value}
-      </Text>
+      {href ? (
+        <Link href={href} style={{ color: "#0D9488", fontSize: "14px", fontWeight: 600, display: "block", textDecoration: "underline" }}>
+          View Location
+        </Link>
+      ) : (
+        <Text style={{ ...emailStyles.paragraph, fontWeight: 600, margin: "2px 0 0" }}>
+          {value}
+        </Text>
+      )}
     </Section>
   );
 }
