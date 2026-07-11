@@ -297,14 +297,14 @@ export function EventTypeCard({
             <div className="pt-0.5">
               <Checkbox checked={isSelected} onCheckedChange={(c) => onSelect?.(id, c === true)} aria-label={`Select ${name}`} />
             </div>
-            <div className="flex-1 min-w-0">
+            <Link href={`/event-types/${id}`} className="group/edit flex-1 min-w-0">
               <span
-                className="text-sm font-semibold leading-snug transition-colors duration-150"
+                className="text-sm font-semibold leading-snug underline-offset-2 transition-colors duration-150 group-hover/edit:underline"
                 style={isActive_ ? { color: cardColor } : undefined}
               >
                 {name}
               </span>
-            </div>
+            </Link>
             <div className="flex shrink-0 gap-1">
               {isHidden && <Badge variant="outline" className="rounded-none py-0 px-1.5 text-xs font-medium">Hidden</Badge>}
               {!isActive && <Badge variant="secondary" className="rounded-none py-0 px-1.5 text-xs font-medium">Inactive</Badge>}
@@ -413,12 +413,12 @@ export function EventTypeCard({
       {/* Body */}
       <div className="flex flex-1 items-center gap-4 min-w-0 py-3.5 pr-4">
 
-        {/* Info */}
-        <div className="flex-1 min-w-0 space-y-1.5">
+        {/* Info — clicking anywhere here opens the editor */}
+        <Link href={`/event-types/${id}`} className="group/edit flex-1 min-w-0 space-y-1.5">
 
           {/* Name + status */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold transition-colors duration-150" style={isActive_ ? { color: cardColor } : undefined}>
+            <span className="text-sm font-semibold underline-offset-2 transition-colors duration-150 group-hover/edit:underline" style={isActive_ ? { color: cardColor } : undefined}>
               {name}
             </span>
             {isHidden && <Badge variant="outline" className="rounded-none py-0 px-1.5 text-xs font-medium">Hidden</Badge>}
@@ -443,7 +443,7 @@ export function EventTypeCard({
               )}
             </div>
           )}
-        </div>
+        </Link>
 
         {/* Controls */}
         <div className="flex shrink-0 items-center gap-1">

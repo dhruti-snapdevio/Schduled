@@ -10,6 +10,7 @@ import {
   Section,
   Text,
 } from "react-email";
+import { canonicalizeTz } from "@/lib/utils";
 
 export type BookingEmailVariant =
   | "confirmation"
@@ -192,13 +193,15 @@ export function BookingEmail(props: BookingEmailProps) {
                 <Row label="Previous time" strike value={props.previousWhen} />
               )}
               <Row
-                label={`${props.variant === "reschedule" ? "New time" : "Time"} (${props.hostTimezone})`}
+                label={`${props.variant === "reschedule" ? "New time" : "Time"} (${canonicalizeTz(props.hostTimezone)})`}
                 value={props.whenHost}
               />
-              <Row
-                label={`Time (${props.inviteeTimezone})`}
-                value={props.whenInvitee}
-              />
+              {canonicalizeTz(props.inviteeTimezone) !== canonicalizeTz(props.hostTimezone) && (
+                <Row
+                  label={`Time (${canonicalizeTz(props.inviteeTimezone)})`}
+                  value={props.whenInvitee}
+                />
+              )}
               <Row label="Location" value={props.locationLabel} href={props.locationLabel.startsWith('http') ? props.locationLabel : undefined} />
               {props.variant === "cancellation" && props.reason && (
                 <Row label="Reason" value={props.reason} />

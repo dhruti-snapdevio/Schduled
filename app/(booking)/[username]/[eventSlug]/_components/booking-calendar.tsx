@@ -1389,9 +1389,19 @@ export function BookingCalendar({
                         <Spinner size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" />
                       )}
                       {!checkingBlocked && emailBlocked && (
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-destructive">
+                        <button
+                          type="button"
+                          aria-label="Clear email"
+                          onClick={() => {
+                            setEmail('')
+                            setEmailBlocked(false)
+                            setPrefilled(false)
+                            if (submitError === '__blocked__') setSubmitError(null)
+                          }}
+                          className="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center text-destructive transition-colors hover:text-destructive/70"
+                        >
                           ✕
-                        </span>
+                        </button>
                       )}
                     </div>
                     {emailBlocked && (

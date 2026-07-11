@@ -10,6 +10,7 @@ import {
   Section,
   Text,
 } from 'react-email'
+import { canonicalizeTz } from '@/lib/utils'
 
 interface Props {
   inviteeName:    string
@@ -82,8 +83,10 @@ export function ReminderInviteeEmail({
             <Section style={{ backgroundColor: bg, border: `1px solid ${border}`, padding: '20px 24px', marginBottom: '24px' }}>
               <Row label="Event"    value={eventName} />
               <Row label="Host"     value={hostName} />
-              <Row label={`Time (${hostTimezone})`}    value={startFormatted} />
-              <Row label={`Time (${inviteeTimezone})`} value={inviteeTime} />
+              <Row label={`Time (${canonicalizeTz(hostTimezone)})`} value={startFormatted} />
+              {canonicalizeTz(inviteeTimezone) !== canonicalizeTz(hostTimezone) && (
+                <Row label={`Time (${canonicalizeTz(inviteeTimezone)})`} value={inviteeTime} />
+              )}
               <Row label="Location" value={locationLabel} href={locationLabel.startsWith('http') ? locationLabel : undefined} />
             </Section>
 

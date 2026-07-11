@@ -96,8 +96,8 @@ export function TimeCombobox({
       <PopoverContent
         align="start"
         side="bottom"
-        avoidCollisions={false}
         container={container}
+        collisionPadding={12}
         className="w-[150px] gap-0 p-0"
         onOpenAutoFocus={(e) => e.preventDefault()}
         sideOffset={4}
