@@ -19,6 +19,7 @@ import { db } from "@/lib/db";
 import { isSlotBookable } from "@/lib/calendar/validate-slot";
 import { checkRateLimit, jsonError, rateLimitKey } from "@/lib/api/helpers";
 import { isValidTimezone, sanitizeText, validateEmail } from "@/lib/validators";
+import { canonicalizeTz } from "@/lib/utils";
 import { enqueueJob } from "@/lib/worker/enqueue";
 import { JOB_NAMES } from "@/lib/worker/job-types";
 
@@ -355,7 +356,7 @@ export async function POST(request: Request) {
           inviteeName:      name.trim(),
           inviteeEmail:     email.toLowerCase().trim(),
           inviteePhone:     phone?.trim() || null,
-          inviteeTimezone:  timezone,
+          inviteeTimezone:  canonicalizeTz(timezone),
           startTime,
           endTime,
           duration,

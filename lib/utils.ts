@@ -20,8 +20,8 @@ export function formatDateTime(value: Date | string | null | undefined) {
   }).format(date)
 }
 
-// Maps legacy IANA timezone identifiers to their modern equivalents for display only.
-const TZ_DISPLAY_MAP: Record<string, string> = {
+// Maps deprecated IANA timezone aliases to their current canonical identifiers.
+const TZ_ALIAS_MAP: Record<string, string> = {
   'Asia/Calcutta':   'Asia/Kolkata',
   'Asia/Dacca':      'Asia/Dhaka',
   'Asia/Katmandu':   'Asia/Kathmandu',
@@ -31,8 +31,14 @@ const TZ_DISPLAY_MAP: Record<string, string> = {
   'Pacific/Truk':    'Pacific/Chuuk',
 }
 
+/** Resolve a deprecated IANA timezone alias to its current canonical name. */
+export function canonicalizeTz(tz: string): string {
+  return TZ_ALIAS_MAP[tz] ?? tz
+}
+
+/** Canonical name with underscores replaced by spaces, for human display. */
 export function normalizeTzName(tz: string): string {
-  return (TZ_DISPLAY_MAP[tz] ?? tz).replace(/_/g, ' ')
+  return canonicalizeTz(tz).replace(/_/g, ' ')
 }
 
 // Timezone → international dial code map (shared between event builder + booking calendar)

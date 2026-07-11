@@ -1,4 +1,5 @@
 import { Hr, Link, Section, Text } from "react-email";
+import { canonicalizeTz } from "@/lib/utils";
 import { EmailLayout, emailStyles } from "./layout";
 
 interface ApprovalPendingEmailProps {
@@ -64,9 +65,9 @@ export function ApprovalPendingEmail({
       <Section>
         <DetailRow label="Event" value={eventName} />
         <DetailRow label="With" value={hostName} />
-        <DetailRow label={`Date & Time (${hostTimezone})`} value={whenHost} />
-        {inviteeTimezone !== hostTimezone && (
-          <DetailRow label={`Date & Time (${inviteeTimezone})`} value={whenInvitee} />
+        <DetailRow label={`Date & Time (${canonicalizeTz(hostTimezone)})`} value={whenHost} />
+        {canonicalizeTz(inviteeTimezone) !== canonicalizeTz(hostTimezone) && (
+          <DetailRow label={`Date & Time (${canonicalizeTz(inviteeTimezone)})`} value={whenInvitee} />
         )}
         <DetailRow label="Location" value={locationLabel} href={locationLabel.startsWith('http') ? locationLabel : undefined} />
         <DetailRow label="Status" value="Awaiting host approval" />

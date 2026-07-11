@@ -187,8 +187,9 @@ export default async function BookingDetailPage({
         {isUpcoming && <Countdown startUtc={b.startTime.toISOString()} />}
       </div>
 
-      {/* ── Info cards ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {/* ── Info cards ── (gap-6 matches the body grid below so the Location
+           card lines up with the Quick Actions column) */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <InfoCard icon={<CalendarBlank size={18} />} label="Date">
           <p className="font-semibold text-foreground">{formatInTimeZone(b.startTime, hostTz, 'EEEE')}</p>
           <p className="text-sm text-muted-foreground">{formatInTimeZone(b.startTime, hostTz, 'MMMM d, yyyy')}</p>
@@ -303,9 +304,9 @@ export default async function BookingDetailPage({
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
           {hasActions && (
-            <Card title="Quick actions" icon={<VideoCamera size={14} />} sticky>
+            <Card title="Quick actions" icon={<VideoCamera size={14} />}>
               <div className="flex flex-col gap-2">
                 {isUpcoming && joinUrl && (
                   <Button asChild className="w-full justify-center gap-1.5">
@@ -371,9 +372,9 @@ export default async function BookingDetailPage({
   )
 }
 
-function Card({ title, icon, children, sticky }: { title: string; icon?: React.ReactNode; children: React.ReactNode; sticky?: boolean }) {
+function Card({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className={cn('border border-border bg-background', sticky && 'lg:sticky lg:top-6')}>
+    <section className="border border-border bg-background">
       <div className="flex items-center gap-2 border-b border-border bg-muted/20 px-5 py-2.5">
         {icon && (
           <span className="flex size-5 items-center justify-center bg-primary/10 text-primary">{icon}</span>
