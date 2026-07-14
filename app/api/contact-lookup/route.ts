@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   // This endpoint is unauthenticated (the public booking form prefills a
   // returning invitee's name as they type their email). Rate-limit it hard so
   // it can't be used to enumerate which emails have booked a given host.
-  if (!checkRateLimit(rateLimitKey('GET:/api/contact-lookup', request), 15, 60_000)) {
+  if (!(await checkRateLimit(rateLimitKey('GET:/api/contact-lookup', request), 15, 60_000))) {
     return NextResponse.json({ found: false })
   }
 

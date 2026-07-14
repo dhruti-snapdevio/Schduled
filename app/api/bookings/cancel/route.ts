@@ -13,7 +13,7 @@ interface CancelBody {
 
 export async function POST(request: Request) {
   try {
-    if (!checkRateLimit(rateLimitKey("POST:/api/bookings/cancel", request), 10, 60_000)) {
+    if (!(await checkRateLimit(rateLimitKey("POST:/api/bookings/cancel", request), 10, 60_000))) {
       return jsonError("Too many requests. Please wait a moment.", 429);
     }
 

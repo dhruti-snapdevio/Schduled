@@ -5,7 +5,7 @@ import { newsletterSubscriber } from '@/db/schema'
 import { checkRateLimit, rateLimitKey } from '@/lib/api/helpers'
 
 export async function POST(request: Request) {
-  if (!checkRateLimit(rateLimitKey('POST:/api/newsletter', request), 5, 60_000)) {
+  if (!(await checkRateLimit(rateLimitKey('POST:/api/newsletter', request), 5, 60_000))) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
   }
 

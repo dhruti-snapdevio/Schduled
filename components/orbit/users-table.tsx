@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { format } from "date-fns";
-
-const PAGE_SIZE = 10;
 import Link from "next/link";
-import { ArrowRight, MagnifyingGlass, Trash, ProhibitInset } from "@phosphor-icons/react";
+import { ArrowRight, Trash, ProhibitInset } from "@phosphor-icons/react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,13 +19,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Pagination,
   PaginationContent,
@@ -64,44 +55,36 @@ type Filter = "all" | "active" | "admins" | "suspended";
 export function UsersTable({
   users,
   currentUserId,
+  total,
+  page,
+  totalPages,
+  search,
+  filter,
 }: {
   users: UserRow[];
   currentUserId: string;
+  total: number;
+  page: number;
+  totalPages: number;
+  search: string;
+  filter: Filter;
 }) {
-  const [search, setSearch]       = useState("");
-  const [filter, setFilter]       = useState<Filter>("all");
-  const [selected, setSelected]   = useState<Set<string>>(new Set());
-  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
 
-  // Reset to first page when the search/filter narrows the list
-  useEffect(() => {
-    setPage(1);
-  }, [search, filter]);
+  const pageUsers = users;
 
-  const filtered = users.filter((u) => {
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      u.email.toLowerCase().includes(q) ||
-      (u.name ?? "").toLowerCase().includes(q);
-    const matchFilter =
-      filter === "all" ||
-      (filter === "active"    && !u.banned) ||
-      (filter === "admins"    && u.role === ADMIN_ROLE) ||
-      (filter === "suspended" && u.banned);
-    return matchSearch && matchFilter;
-  });
+  function pageHref(p: number) {
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    if (filter !== "all") params.set("filter", filter);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return qs ? `/orbit/users?${qs}` : "/orbit/users";
+  }
 
-  const selectableIds = filtered.filter((u) => u.id !== currentUserId).map((u) => u.id);
+  const selectableIds = pageUsers.filter((u) => u.id !== currentUserId).map((u) => u.id);
   const allSelected   = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pageUsers = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-
-  const adminCount     = users.filter((u) => u.role === ADMIN_ROLE).length;
-  const suspendedCount = users.filter((u) => u.banned).length;
 
   function toggleAll() {
     if (allSelected) {
@@ -137,56 +120,6 @@ export function UsersTable({
 
   return (
     <div className="relative">
-      {/* ── Title + Search/Filter bar ───────────────────────────────── */}
-      <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-base font-semibold text-foreground">All Users</p>
-          <p className="text-sm text-muted-foreground">
-            All registered accounts ordered by sign-up date.
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative">
-            <MagnifyingGlass
-              size={15}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
-            <input
-              type="search"
-              placeholder="Search by name or email..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setSelected(new Set()); }}
-              className="h-9 w-full rounded-none border border-border bg-page pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:w-64"
-            />
-          </div>
-
-          <Select
-            value={filter}
-            onValueChange={(v) => { setFilter(v as Filter); setSelected(new Set()); }}
-          >
-            <SelectTrigger className="h-9 w-40 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Users</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="admins">Admins</SelectItem>
-              <SelectItem value="suspended">Suspended</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* ── Summary strip ───────────────────────────────────────────── */}
-      <div className="flex items-center gap-2.5 border-b border-border px-4 py-2 text-xs text-muted-foreground">
-        <span><strong className="font-semibold text-foreground">{users.length}</strong> total</span>
-        <span className="text-border">·</span>
-        <span><strong className="font-semibold text-foreground">{adminCount}</strong> admin{adminCount !== 1 ? "s" : ""}</span>
-        <span className="text-border">·</span>
-        <span><strong className="font-semibold text-foreground">{suspendedCount}</strong> suspended</span>
-      </div>
-
       {/* ── Table ───────────────────────────────────────────────────── */}
       <div className="overflow-x-auto">
         <Table className="w-full text-sm">
@@ -197,8 +130,8 @@ export function UsersTable({
                   checked={allSelected}
                   onCheckedChange={() => toggleAll()}
                   disabled={selectableIds.length === 0}
-                  title={selectableIds.length === 0 ? "No other accounts to select" : "Select all"}
-                  aria-label="Select all"
+                  title={selectableIds.length === 0 ? "No other accounts to select" : "Select all on this page"}
+                  aria-label="Select all on this page"
                 />
               </TableHead>
               <TableHead className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-ui text-muted-foreground">
@@ -219,7 +152,7 @@ export function UsersTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {pageUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="px-6 py-10 text-center text-sm text-muted-foreground">
                   No users match your search.
@@ -317,32 +250,27 @@ export function UsersTable({
       </div>
 
       {/* Row count + pagination */}
-      {filtered.length > 0 && selected.size === 0 && (
+      {total > 0 && selected.size === 0 && (
         <div className="flex items-center justify-between gap-3 border-t border-border px-6 py-3">
           <p className="text-xs text-muted-foreground">
-            {filtered.length} of {users.length} user{users.length !== 1 ? "s" : ""}
+            Page {page} of {totalPages} · {total} user{total !== 1 ? "s" : ""}
           </p>
           {totalPages > 1 && (
             <Pagination className="mx-0 w-auto">
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
-                    href="#"
-                    aria-disabled={safePage <= 1}
-                    className={safePage <= 1 ? "pointer-events-none opacity-40" : ""}
-                    onClick={(e) => { e.preventDefault(); if (safePage > 1) setPage(safePage - 1); }}
+                    href={page > 1 ? pageHref(page - 1) : "#"}
+                    aria-disabled={page <= 1}
+                    className={page <= 1 ? "pointer-events-none opacity-40" : ""}
                   />
                 </PaginationItem>
-                {paginationRange(safePage, totalPages).map((p, i) =>
+                {paginationRange(page, totalPages).map((p, i) =>
                   p === "ellipsis" ? (
                     <PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>
                   ) : (
                     <PaginationItem key={p}>
-                      <PaginationLink
-                        href="#"
-                        isActive={p === safePage}
-                        onClick={(e) => { e.preventDefault(); setPage(p); }}
-                      >
+                      <PaginationLink href={pageHref(p)} isActive={p === page}>
                         {p}
                       </PaginationLink>
                     </PaginationItem>
@@ -350,10 +278,9 @@ export function UsersTable({
                 )}
                 <PaginationItem>
                   <PaginationNext
-                    href="#"
-                    aria-disabled={safePage >= totalPages}
-                    className={safePage >= totalPages ? "pointer-events-none opacity-40" : ""}
-                    onClick={(e) => { e.preventDefault(); if (safePage < totalPages) setPage(safePage + 1); }}
+                    href={page < totalPages ? pageHref(page + 1) : "#"}
+                    aria-disabled={page >= totalPages}
+                    className={page >= totalPages ? "pointer-events-none opacity-40" : ""}
                   />
                 </PaginationItem>
               </PaginationContent>

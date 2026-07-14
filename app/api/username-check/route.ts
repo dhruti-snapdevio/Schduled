@@ -12,7 +12,7 @@ const RESERVED = new Set([
 ])
 
 export async function GET(req: NextRequest) {
-  if (!checkRateLimit(rateLimitKey('GET:/api/username-check', req), 20, 60_000)) {
+  if (!(await checkRateLimit(rateLimitKey('GET:/api/username-check', req), 20, 60_000))) {
     return NextResponse.json({ available: false, reason: 'Too many requests. Please slow down.' })
   }
 

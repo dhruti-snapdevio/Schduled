@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { LockKey } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { setPasswordAction } from "@/app/actions/auth";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/config/platform";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { PasswordInput } from "@/components/common/password-input";
@@ -18,9 +19,6 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-
-// Must match `emailAndPassword.minPasswordLength` in lib/auth.ts.
-const MIN_PASSWORD_LENGTH = 8;
 
 interface Props {
   hasPassword: boolean;
@@ -52,8 +50,8 @@ export function PasswordCard({ hasPassword: initialHasPassword, passwordAuthEnab
     if (newPassword.length < MIN_PASSWORD_LENGTH) {
       return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
     }
-    if (newPassword.length > 128) {
-      return "Password must be at most 128 characters.";
+    if (newPassword.length > MAX_PASSWORD_LENGTH) {
+      return `Password must be at most ${MAX_PASSWORD_LENGTH} characters.`;
     }
     if (newPassword !== confirmPassword) {
       return "Passwords do not match.";

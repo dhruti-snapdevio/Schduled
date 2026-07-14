@@ -5,7 +5,7 @@ import { user, bookingBlocklist } from '@/db/schema'
 import { checkRateLimit, rateLimitKey } from '@/lib/api/helpers'
 
 export async function GET(request: Request) {
-  if (!checkRateLimit(rateLimitKey('GET:/api/check-blocked', request), 20, 60_000)) {
+  if (!(await checkRateLimit(rateLimitKey('GET:/api/check-blocked', request), 20, 60_000))) {
     return NextResponse.json({ blocked: false })
   }
 

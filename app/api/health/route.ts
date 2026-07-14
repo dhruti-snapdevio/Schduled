@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { dbClient } from "@/lib/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("health");
 
 // Used by Docker Compose / Kubernetes healthchecks. Checks real DB
 // connectivity (not just "the process is alive") since a Next.js process
@@ -9,7 +12,7 @@ export async function GET() {
     await dbClient`select 1`;
     return NextResponse.json({ status: "ok" });
   } catch (error) {
-    console.error("[health] database check failed", error);
+    log.error({ err: error }, "database check failed");
     return NextResponse.json({ status: "error" }, { status: 503 });
   }
 }
