@@ -1,9 +1,10 @@
 import { desc, eq } from 'drizzle-orm'
-import { ShieldCheck } from '@phosphor-icons/react/dist/ssr'
+import { PasswordCard } from '@/components/profile/password-card'
 import { type SessionRow, SessionsCard } from '@/components/profile/sessions-card'
 import { PageHeader } from '@/components/scaffold/page-header'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { bookingBlocklist, eventType, session as sessionTable } from '@/db/schema'
+import { passwordAuthEnabled } from '@/lib/auth'
+import { userHasPassword } from '@/lib/auth-password'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
 import { BookingVerificationCard } from './_components/booking-verification-card'
@@ -14,7 +15,7 @@ export const metadata = { title: 'Security' }
 export default async function SecurityPage() {
   const current = await requireSession()
 
-  const [sessions, eventTypes, blocklist] = await Promise.all([
+  const [sessions, eventTypes, blocklist, hasPassword] = await Promise.all([
     db
       .select({
         createdAt: sessionTable.createdAt,
@@ -52,6 +53,7 @@ export default async function SecurityPage() {
       .from(bookingBlocklist)
       .where(eq(bookingBlocklist.userId, current.user.id))
       .orderBy(desc(bookingBlocklist.createdAt)),
+    userHasPassword(current.user.id),
   ])
 
   const sessionRows: SessionRow[] = sessions.map((s) => ({
@@ -63,8 +65,6 @@ export default async function SecurityPage() {
     userAgent: s.userAgent,
   }))
 
-  const currentSession = sessions.find((s) => s.token === current.session.token)
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -73,36 +73,8 @@ export default async function SecurityPage() {
         description="Manage your login method, active sessions, and booking security settings."
       />
 
-      {/* Auth method */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Authentication Method</CardTitle>
-          <CardDescription>How you sign in to Schduled.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center gap-3 border border-border bg-muted/40 px-4 py-3">
-            <ShieldCheck size={20} className="shrink-0 text-primary" />
-            <div>
-              <p className="text-sm font-medium">Magic Link (passwordless)</p>
-              <p className="text-sm text-muted-foreground">
-                We send a one-time sign-in link to{' '}
-                <strong>{current.user.email}</strong> — no password required.
-              </p>
-            </div>
-          </div>
-          {currentSession && (
-            <p className="text-xs text-muted-foreground">
-              Last signed in:{' '}
-              <span className="font-medium text-foreground">
-                {new Intl.DateTimeFormat('en-US', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                }).format(currentSession.createdAt)}
-              </span>
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      {/* Password */}
+      <PasswordCard hasPassword={hasPassword} passwordAuthEnabled={passwordAuthEnabled} />
 
       {/* Active sessions */}
       <SessionsCard sessions={sessionRows} />

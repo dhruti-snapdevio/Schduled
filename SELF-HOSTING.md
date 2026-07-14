@@ -346,7 +346,8 @@ are real · P0/P1/P2 priority.
 
 ## Part 5 — Decisions needed before implementation
 
-1. **License:** AGPLv3 (Cal.com-style copyleft) vs MIT (permissive). *(deferred)*
+1. **License:** ~~AGPLv3 (copyleft) vs MIT (permissive)~~ — **decided:** MIT,
+   matching Kanbanica. Now implemented (`LICENSE`, `package.json`).
 2. **Login:** ~~confirm add email+password as the P0 baseline~~ — **decided:**
    added, gated behind `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED` (default `false` so the
    hosted product's login is untouched), now implemented (§E).

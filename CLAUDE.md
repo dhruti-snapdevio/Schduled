@@ -116,3 +116,23 @@ Examples:
 - `components/ui/` — shadcn/ui primitives (customized, no radius, no shadow)
 - `components/orbit/` — admin panel components
 - `components/scaffold/` — app shell (sidebar, header)
+
+---
+
+## Bug Documentation (STRICT)
+
+Whenever a bug is found and fixed in this project (whether the user reports it or it turns up during a review pass), write it up in `docs/bugs/` as two paired files:
+
+1. **As soon as the bug is identified** — before or while working on the fix — create:
+   `docs/bugs/{YYYY-MM-DD}-bug-{kebab-case-title}.md`
+   Contents: what's broken, where (file/page), how it was found or reproduced, and the root cause if already known.
+
+2. **Once the fix is implemented and verified** — create the paired file:
+   `docs/bugs/{YYYY-MM-DD}-solution-{kebab-case-title}.md`
+   Contents: what changed (files touched), why that fixes the root cause, and how it was verified (typecheck, live test, screenshots, etc).
+
+Rules:
+- Use the actual date the file is written (not a placeholder).
+- The `{kebab-case-title}` must be **identical** between the bug file and its solution file, so the two pair up when sorted alphabetically.
+- One bug = one pair of files. Don't batch multiple unrelated bugs into a single file.
+- If a fix is applied in the same turn the bug is found (no separate discovery step), it's fine to write both files back to back — don't skip the bug file just because the fix was fast.

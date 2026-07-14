@@ -9,6 +9,8 @@ const SECTIONS = [
   { id: 'general',      label: 'General' },
   { id: 'integrations', label: 'Integrations' },
   { id: 'security',     label: 'Security' },
+  { id: 'account',      label: 'Account' },
+  { id: 'appearance',   label: 'Appearance' },
 ]
 
 export function SettingsNav() {

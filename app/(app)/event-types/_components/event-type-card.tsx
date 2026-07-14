@@ -453,9 +453,6 @@ export function EventTypeCard({
             <DotsSixVertical size={16} />
           </span>
 
-          {/* Toggle */}
-          <div className="mr-1">{toggleControl}</div>
-
           {/* Copy link */}
           {isActive && (
             <button type="button" title={copied ? 'Copied!' : 'Copy link'} onClick={copyLink} disabled={!bookingUrl}
@@ -484,6 +481,9 @@ export function EventTypeCard({
               <ArrowSquareOut size={15} />
             </a>
           )}
+
+          {/* Toggle — sits just before the ⋮ menu */}
+          <div className="ml-1">{toggleControl}</div>
 
           {/* More */}
           {moreMenu('end')}
