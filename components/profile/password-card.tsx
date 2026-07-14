@@ -142,8 +142,8 @@ export function PasswordCard({ hasPassword: initialHasPassword, passwordAuthEnab
             : "You currently sign in with a magic link or Google. Add a password to sign in with your email as well."}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="flex max-w-sm flex-col gap-4">
+      <CardContent className="flex justify-center">
+        <form onSubmit={onSubmit} className="flex w-full max-w-md flex-col gap-4">
           {hasPassword && (
             <div className="space-y-2">
               <Label htmlFor="current-password">Current password</Label>

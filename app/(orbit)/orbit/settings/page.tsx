@@ -68,38 +68,27 @@ export default async function OrbitSettingsPage() {
   const allHealthy   = healthyCount === totalCount
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <OrbitPageHeader
         title="Platform Settings"
         description="Manage sign-in methods and review environment configuration."
-        actions={
-          <div className={cn(
-            'inline-flex items-center gap-2 border px-3.5 py-2 text-sm font-semibold',
-            allHealthy
-              ? 'border-success/25 bg-success/[0.08] text-success'
-              : 'border-amber-500/25 bg-amber-500/[0.08] text-amber-600 dark:text-amber-500'
-          )}>
-            {allHealthy
-              ? <CheckCircle size={15} weight="fill" />
-              : <Warning size={15} weight="fill" />
-            }
-            {healthyCount}/{totalCount} Services Healthy
-          </div>
-        }
       />
 
       <SettingsNav />
 
-      <div className="space-y-8 pt-2">
+      <div className="space-y-6 pt-1">
 
         {/* ── Platform Health ── */}
         <section id="health" className="scroll-mt-6">
           <SectionLabel
             icon={<ShieldCheck size={15} weight="bold" />}
             title="Platform Health"
-            description="Real-time status of all connected services and credentials."
+            description="Status of all connected services and credentials, checked on page load."
           />
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+
+          <HealthBanner allHealthy={allHealthy} healthyCount={healthyCount} totalCount={totalCount} />
+
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {healthItems.map(item => (
               <HealthItem key={item.label} {...item} />
             ))}
@@ -132,80 +121,72 @@ export default async function OrbitSettingsPage() {
           </Card>
         </section>
 
-        {/* ── Integrations + Security (2-col) ── */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <section id="integrations" className="scroll-mt-6">
-            <Card className="h-full">
-              <SectionHeader
-                icon={<Stack size={15} weight="bold" />}
-                title="Integrations"
-                description="Third-party service connection status based on environment variables."
-              />
-              <CardContent className="p-0">
-                <StatusRow
-                  icon={<Envelope size={15} weight="bold" />}
-                  label="SMTP / Email"
-                  description="Outbound transactional email via nodemailer"
-                  ok={smtpConfigured}
-                  okText="Configured"
-                  failText="Not configured"
-                />
-                <StatusRow
-                  icon={<GoogleLogo size={15} weight="bold" />}
-                  label="Google OAuth + Calendar"
-                  description="Social sign-in and Google Calendar integration"
-                  ok={googleConfigured}
-                  okText="Configured"
-                  failText="Not configured"
-                />
-                <StatusRow
-                  icon={<VideoCamera size={15} weight="bold" />}
-                  label="Zoom"
-                  description="Zoom OAuth for automatic meeting creation"
-                  ok={zoomConfigured}
-                  okText="Configured"
-                  failText="Not configured"
-                />
-                <StatusRow
-                  icon={<Stack size={15} weight="bold" />}
-                  label="pg-boss Job Queue"
-                  description="Background job processing (reminders, emails, calendar)"
-                  ok={databaseUrlSet}
-                  okText="Configured"
-                  failText="DATABASE_URL missing"
-                />
-              </CardContent>
-            </Card>
-          </section>
+        {/* ── Integrations ── */}
+        <section id="integrations" className="scroll-mt-6">
+          <SectionLabel
+            icon={<Stack size={15} weight="bold" />}
+            title="Integrations"
+            description="Third-party service connection status based on environment variables."
+          />
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <IntegrationCard
+              icon={<Envelope size={18} weight="bold" />}
+              name="SMTP / Email"
+              description="Outbound transactional email via nodemailer"
+              ok={smtpConfigured}
+              docAnchor="email-smtp"
+            />
+            <IntegrationCard
+              icon={<GoogleLogo size={18} weight="bold" />}
+              name="Google OAuth + Calendar"
+              description="Social sign-in and Google Calendar integration"
+              ok={googleConfigured}
+              docAnchor="google-calendar--google-meet"
+            />
+            <IntegrationCard
+              icon={<VideoCamera size={18} weight="bold" />}
+              name="Zoom"
+              description="Zoom OAuth for automatic meeting creation"
+              ok={zoomConfigured}
+              docAnchor="zoom"
+            />
+            <IntegrationCard
+              icon={<Stack size={18} weight="bold" />}
+              name="pg-boss Job Queue"
+              description="Background job processing (reminders, emails, calendar)"
+              ok={databaseUrlSet}
+              failText="DATABASE_URL missing"
+            />
+          </div>
+        </section>
 
-          <section id="security" className="scroll-mt-6">
-            <Card className="h-full">
-              <SectionHeader
-                icon={<ShieldCheck size={15} weight="bold" />}
-                title="Security"
-                description="Authentication secrets and encryption keys."
+        <section id="security" className="scroll-mt-6">
+          <Card>
+            <SectionHeader
+              icon={<ShieldCheck size={15} weight="bold" />}
+              title="Security"
+              description="Authentication secrets and encryption keys."
+            />
+            <CardContent className="p-0">
+              <StatusRow
+                icon={<LockKey size={15} weight="bold" />}
+                label="App Secret"
+                description="Better Auth session signing key (APP_SECRET)"
+                ok={appSecretSet}
+                okText="Set"
+                failText="Not set — CRITICAL"
               />
-              <CardContent className="p-0">
-                <StatusRow
-                  icon={<LockKey size={15} weight="bold" />}
-                  label="App Secret"
-                  description="Better Auth session signing key (APP_SECRET)"
-                  ok={appSecretSet}
-                  okText="Set"
-                  failText="Not set — CRITICAL"
-                />
-                <StatusRow
-                  icon={<Key size={15} weight="bold" />}
-                  label="Encryption Key"
-                  description="AES-GCM key for OAuth token storage (ENCRYPT_KEY)"
-                  ok={encryptionKeySet}
-                  okText="Set"
-                  failText="Not set — CRITICAL"
-                />
-              </CardContent>
-            </Card>
-          </section>
-        </div>
+              <StatusRow
+                icon={<Key size={15} weight="bold" />}
+                label="Encryption Key"
+                description="AES-GCM key for OAuth token storage (ENCRYPT_KEY)"
+                ok={encryptionKeySet}
+                okText="Set"
+                failText="Not set — CRITICAL"
+              />
+            </CardContent>
+          </Card>
+        </section>
 
         {/* ── Account (admin's own credentials) ── */}
         <section id="account" className="scroll-mt-6">
@@ -340,6 +321,86 @@ function StatusRow({
         <span className={cn('size-1.5 rounded-full', ok ? 'bg-success' : 'bg-destructive')} />
         {ok ? okText : failText}
       </span>
+    </div>
+  )
+}
+
+function HealthBanner({
+  allHealthy, healthyCount, totalCount,
+}: {
+  allHealthy: boolean; healthyCount: number; totalCount: number
+}) {
+  const attentionCount = totalCount - healthyCount
+  return (
+    <div className={cn(
+      'mt-4 flex items-center justify-between gap-4 border px-5 py-4',
+      allHealthy
+        ? 'border-success/25 bg-success/[0.06]'
+        : 'border-amber-500/25 bg-amber-500/[0.06]'
+    )}>
+      <div className="flex items-center gap-3">
+        {allHealthy
+          ? <CheckCircle size={22} weight="fill" className="shrink-0 text-success" />
+          : <Warning size={22} weight="fill" className="shrink-0 text-amber-600 dark:text-amber-500" />
+        }
+        <div>
+          <p className="text-sm font-semibold">
+            {allHealthy ? 'All services operational' : `${attentionCount} service${attentionCount === 1 ? '' : 's'} need attention`}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Checked on this page load — not a live monitor.
+          </p>
+        </div>
+      </div>
+      <div className={cn(
+        'shrink-0 text-sm font-semibold tabular-nums',
+        allHealthy ? 'text-success' : 'text-amber-600 dark:text-amber-500'
+      )}>
+        {healthyCount}/{totalCount} Healthy
+      </div>
+    </div>
+  )
+}
+
+function IntegrationCard({
+  icon, name, description, ok, failText = 'Not configured', docAnchor,
+}: {
+  icon: React.ReactNode; name: string; description: string; ok: boolean
+  failText?: string; docAnchor?: string
+}) {
+  return (
+    <div className={cn(
+      'flex flex-col gap-3 border p-4 transition-colors',
+      ok ? 'border-success/20 bg-success/[0.03]' : 'border-border'
+    )}>
+      <div className="flex items-center justify-between">
+        <span className="flex size-9 shrink-0 items-center justify-center border border-border bg-muted/40 text-muted-foreground">
+          {icon}
+        </span>
+        <span className={cn(
+          'inline-flex shrink-0 items-center gap-1.5 border px-2 py-0.5 text-xs font-semibold',
+          ok
+            ? 'border-success/25 bg-success/10 text-success'
+            : 'border-destructive/25 bg-destructive/10 text-destructive'
+        )}>
+          <span className={cn('size-1.5 rounded-full', ok ? 'bg-success' : 'bg-destructive')} />
+          {ok ? 'Configured' : failText}
+        </span>
+      </div>
+      <div>
+        <p className="text-sm font-semibold">{name}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+      </div>
+      {!ok && docAnchor && (
+        <a
+          href={`https://github.com/dhruti-snapdevio/Schduled/blob/main/docs/self-hosting/integrations.md#${docAnchor}`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs font-semibold text-primary hover:underline"
+        >
+          Configure →
+        </a>
+      )}
     </div>
   )
 }

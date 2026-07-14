@@ -46,16 +46,42 @@ export function AppearanceCard() {
               type="button"
               onClick={() => setTheme(value)}
               className={cn(
-                "flex flex-col items-center gap-2 border p-4 transition-colors hover:bg-muted/50",
+                "flex flex-col items-center gap-2.5 border p-3 transition-colors hover:bg-muted/50",
                 selected ? "border-primary ring-2 ring-primary/20" : "border-border"
               )}
             >
-              <OptionIcon size={20} className={selected ? "text-primary" : "text-muted-foreground"} />
-              <span className="text-sm font-medium">{label}</span>
+              <ThemePreview value={value} />
+              <div className="flex items-center gap-1.5">
+                <OptionIcon size={14} className={selected ? "text-primary" : "text-muted-foreground"} />
+                <span className="text-sm font-medium">{label}</span>
+              </div>
             </button>
           );
         })}
       </div>
     </Card>
+  );
+}
+
+function ThemePreview({ value }: { value: "light" | "dark" | "system" }) {
+  const Pane = ({ dark }: { dark: boolean }) => (
+    <div className={cn("flex h-full flex-1 flex-col gap-1 p-1.5", dark ? "bg-neutral-900" : "bg-neutral-100")}>
+      <div className={cn("h-1.5 w-1/2", dark ? "bg-neutral-700" : "bg-neutral-300")} />
+      <div className={cn("h-1.5 w-3/4", dark ? "bg-neutral-700" : "bg-neutral-300")} />
+      <div className="mt-auto h-1.5 w-1/3 bg-primary" />
+    </div>
+  );
+
+  return (
+    <div className="flex h-12 w-full overflow-hidden border border-border">
+      {value === "light" && <Pane dark={false} />}
+      {value === "dark" && <Pane dark />}
+      {value === "system" && (
+        <>
+          <Pane dark={false} />
+          <Pane dark />
+        </>
+      )}
+    </div>
   );
 }
