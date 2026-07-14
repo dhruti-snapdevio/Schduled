@@ -51,8 +51,12 @@ pnpm db:migrate
 pnpm dev            # runs the web app + background worker together
 ```
 
-Open `http://localhost:3000`, sign in (password login works out of the box
-in dev — see `ENVIRONMENT.md` §3), then promote your user to admin:
+Open `http://localhost:3000` — on a fresh (empty) database you're redirected
+straight to the **setup wizard** at `/setup`, which creates your admin
+account in one step (pick an appearance, set a name/email/password, you're
+signed in). No separate promote step needed.
+
+Prefer a magic link, or already have a non-admin account to promote?
 
 ```bash
 pnpm make:admin you@example.com
@@ -60,6 +64,8 @@ pnpm make:admin you@example.com
 
 Without `SMTP_HOST`, `SMTP_USER`, and `SMTP_PASS`, the worker logs emails to
 the console instead of sending them.
+
+📖 Full step-by-step walkthrough (with troubleshooting): **[SETUP.md](./SETUP.md)**.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for coding conventions and the PR
 checklist before submitting changes, [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
@@ -76,6 +82,7 @@ vulnerability.
 - `components/` — shared UI kit and scaffold shell
 - `docker/` — Docker Compose entrypoint script
 - `docs/self-hosting/` — the self-hosting guide set
+- [SETUP.md](./SETUP.md) — local development, start to finish
 
 See [docs/project-structure.md](./docs/project-structure.md) for the full
 project layout.

@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { requireAdmin } from '@/lib/authz'
+import { userHasPassword } from '@/lib/auth-password'
 import {
   getStoredSignInMethods,
   signInMethodAvailability,
@@ -28,13 +29,18 @@ import {
 import { cn } from '@/lib/utils'
 import { SignInMethodsCard } from './_components/sign-in-methods-card'
 import { SettingsNav } from './_components/settings-nav'
+import { AppearanceCard } from './_components/appearance-card'
+import { PasswordCard } from '@/components/profile/password-card'
 
 export const metadata = { title: 'Platform Settings' }
 
 export default async function OrbitSettingsPage() {
-  await requireAdmin()
+  const session = await requireAdmin()
 
-  const signInMethods = await getStoredSignInMethods()
+  const [signInMethods, hasPassword] = await Promise.all([
+    getStoredSignInMethods(),
+    userHasPassword(session.user.id),
+  ])
 
   const smtpConfigured      = !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER)
   const googleConfigured    = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
@@ -200,6 +206,16 @@ export default async function OrbitSettingsPage() {
             </Card>
           </section>
         </div>
+
+        {/* ── Account (admin's own credentials) ── */}
+        <section id="account" className="scroll-mt-6">
+          <PasswordCard hasPassword={hasPassword} passwordAuthEnabled={passwordAuthEnabled} />
+        </section>
+
+        {/* ── Appearance ── */}
+        <section id="appearance" className="scroll-mt-6">
+          <AppearanceCard />
+        </section>
 
       </div>
     </div>
