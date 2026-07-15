@@ -9,10 +9,7 @@ const SECTIONS = [
   { id: 'health',       label: 'Platform Health', keywords: 'status uptime services' },
   { id: 'sign-in',      label: 'Sign-in Methods', keywords: 'login magic link google password' },
   { id: 'general',      label: 'General',         keywords: 'app url environment signup' },
-  { id: 'integrations', label: 'Integrations',    keywords: 'smtp email google zoom queue pg-boss' },
-  { id: 'security',     label: 'Security',        keywords: 'app secret encryption key' },
-  { id: 'account',      label: 'Account',         keywords: 'password change' },
-  { id: 'appearance',   label: 'Appearance',      keywords: 'theme light dark system' },
+  { id: 'account',      label: 'Account & Appearance', keywords: 'password change theme light dark system appearance' },
 ]
 
 export function SettingsNav() {

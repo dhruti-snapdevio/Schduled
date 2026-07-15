@@ -25,7 +25,7 @@ export function AppearanceCard() {
   React.useEffect(() => setMounted(true), []);
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="gap-2.5 border-b border-border">
         <div className="flex items-center gap-2.5">
           <span className="flex size-7 shrink-0 items-center justify-center border border-border bg-muted/40 text-muted-foreground">
@@ -37,7 +37,7 @@ export function AppearanceCard() {
           Choose how the Orbit admin panel looks on this device.
         </CardDescription>
       </CardHeader>
-      <div className="grid grid-cols-3 gap-3 p-6">
+      <div className="flex flex-col gap-3 p-6">
         {OPTIONS.map(({ value, label, icon: OptionIcon }) => {
           const selected = mounted && (theme ?? "system") === value;
           return (
@@ -46,13 +46,15 @@ export function AppearanceCard() {
               type="button"
               onClick={() => setTheme(value)}
               className={cn(
-                "flex flex-col items-center gap-2.5 border p-3 transition-colors hover:bg-muted/50",
+                "flex items-center gap-4 border p-3 text-left transition-colors hover:bg-muted/50",
                 selected ? "border-primary ring-2 ring-primary/20" : "border-border"
               )}
             >
-              <ThemePreview value={value} />
-              <div className="flex items-center gap-1.5">
-                <OptionIcon size={14} className={selected ? "text-primary" : "text-muted-foreground"} />
+              <div className="min-w-0 flex-1">
+                <ThemePreview value={value} />
+              </div>
+              <div className="flex w-28 shrink-0 items-center gap-1.5">
+                <OptionIcon size={15} className={selected ? "text-primary" : "text-muted-foreground"} />
                 <span className="text-sm font-medium">{label}</span>
               </div>
             </button>

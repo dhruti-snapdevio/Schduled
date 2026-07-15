@@ -105,7 +105,7 @@ export function PasswordCard({ hasPassword: initialHasPassword, passwordAuthEnab
 
   if (!passwordAuthEnabled) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader className="gap-2.5 border-b border-border">
           <div className="flex items-center gap-2.5">
             <span className="flex size-7 shrink-0 items-center justify-center border border-border bg-muted/40 text-muted-foreground">
@@ -124,7 +124,7 @@ export function PasswordCard({ hasPassword: initialHasPassword, passwordAuthEnab
   }
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="gap-2.5 border-b border-border">
         <div className="flex items-center gap-2.5">
           <span className="flex size-7 shrink-0 items-center justify-center border border-border bg-muted/40 text-muted-foreground">
@@ -140,7 +140,7 @@ export function PasswordCard({ hasPassword: initialHasPassword, passwordAuthEnab
             : "You currently sign in with a magic link or Google. Add a password to sign in with your email as well."}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex justify-center">
+      <CardContent className="flex justify-start">
         <form onSubmit={onSubmit} className="flex w-full max-w-md flex-col gap-4">
           {hasPassword && (
             <div className="space-y-2">

@@ -10,9 +10,9 @@ import {
   Stack,
   VideoCamera,
   Warning,
-  XCircle,
 } from '@phosphor-icons/react/dist/ssr'
 import { OrbitPageHeader } from '@/components/admin/orbit-page-header'
+import { CopyButton } from '@/components/orbit/copy-button'
 import {
   Card,
   CardContent,
@@ -55,23 +55,44 @@ export default async function OrbitSettingsPage() {
   const nodeEnv = process.env.NODE_ENV ?? '—'
 
   const healthItems = [
-    { label: 'Database',       ok: databaseUrlSet,   description: 'PostgreSQL connection',       icon: <Database size={15} weight="bold" /> },
-    { label: 'SMTP / Email',   ok: smtpConfigured,   description: 'Transactional email',         icon: <Envelope size={15} weight="bold" /> },
-    { label: 'Google OAuth',   ok: googleConfigured, description: 'Social sign-in + Calendar',   icon: <GoogleLogo size={15} weight="bold" /> },
-    { label: 'Zoom',           ok: zoomConfigured,   description: 'Meeting creation',            icon: <VideoCamera size={15} weight="bold" /> },
-    { label: 'App Secret',     ok: appSecretSet,     description: 'Session signing key',         icon: <LockKey size={15} weight="bold" /> },
-    { label: 'Encryption Key', ok: encryptionKeySet, description: 'OAuth token encryption',      icon: <Key size={15} weight="bold" /> },
+    { label: 'Database',       ok: databaseUrlSet,   description: 'PostgreSQL connection',    okText: 'Connected', failText: 'Disconnected',   icon: <Database size={16} weight="bold" /> },
+    { label: 'SMTP / Email',   ok: smtpConfigured,   description: 'Transactional email',      okText: 'Connected', failText: 'Not configured', icon: <Envelope size={16} weight="bold" /> },
+    { label: 'Google OAuth',   ok: googleConfigured, description: 'Social sign-in + Calendar',okText: 'Connected', failText: 'Not configured', icon: <GoogleLogo size={16} weight="bold" /> },
+    { label: 'Zoom',           ok: zoomConfigured,   description: 'Meeting creation',         okText: 'Connected', failText: 'Not configured', icon: <VideoCamera size={16} weight="bold" /> },
+    { label: 'Job Queue',      ok: databaseUrlSet,   description: 'pg-boss background jobs',   okText: 'Running',   failText: 'Stopped',        icon: <Stack size={16} weight="bold" /> },
+    { label: 'App Secret',     ok: appSecretSet,     description: 'Session signing key',       okText: 'Healthy',   failText: 'Missing',        icon: <LockKey size={16} weight="bold" /> },
+    { label: 'Encryption Key', ok: encryptionKeySet, description: 'OAuth token encryption',    okText: 'Healthy',   failText: 'Missing',        icon: <Key size={16} weight="bold" /> },
   ]
 
   const healthyCount = healthItems.filter(h => h.ok).length
   const totalCount   = healthItems.length
   const allHealthy   = healthyCount === totalCount
 
+  const version = process.env.npm_package_version ?? '0.1.0'
+  const envName = String(nodeEnv)
+  const envBadge =
+    envName === 'production'
+      ? { label: 'Production',  cls: 'border-success/25 bg-success/10 text-success',                          dot: 'bg-success' }
+      : envName === 'staging' || envName === 'test'
+      ? { label: 'Staging',     cls: 'border-primary/25 bg-primary/10 text-primary',                          dot: 'bg-primary' }
+      : { label: 'Development',  cls: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-500', dot: 'bg-amber-500' }
+
   return (
     <div className="space-y-4">
       <OrbitPageHeader
         title="Platform Settings"
-        description="Manage sign-in methods and review environment configuration."
+        description="Manage authentication, integrations, security and platform configuration."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={cn('inline-flex items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold', envBadge.cls)}>
+              <span className={cn('size-1.5 rounded-full', envBadge.dot)} />
+              {envBadge.label}
+            </span>
+            <span className="inline-flex items-center border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              v{version}
+            </span>
+          </div>
+        }
       />
 
       <SettingsNav />
@@ -113,7 +134,7 @@ export default async function OrbitSettingsPage() {
               description="Core platform configuration and runtime environment."
             />
             <CardContent className="p-0">
-              <ConfigRow label="App URL"         value={appUrl}                                      mono />
+              <ConfigRow label="App URL"         value={appUrl}                                      mono copyable />
               <ConfigRow label="Environment"     value={nodeEnv}                                     />
               <ConfigRow label="Password Auth"   value={passwordAuthEnabled ? 'Enabled' : 'Disabled'} ok={passwordAuthEnabled} />
               <ConfigRow label="User Signup"     value={signupEnabled ? 'Enabled' : 'Disabled'}       ok={signupEnabled} />
@@ -121,82 +142,19 @@ export default async function OrbitSettingsPage() {
           </Card>
         </section>
 
-        {/* ── Integrations ── */}
-        <section id="integrations" className="scroll-mt-6">
-          <SectionLabel
-            icon={<Stack size={15} weight="bold" />}
-            title="Integrations"
-            description="Third-party service connection status based on environment variables."
-          />
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <IntegrationCard
-              icon={<Envelope size={18} weight="bold" />}
-              name="SMTP / Email"
-              description="Outbound transactional email via nodemailer"
-              ok={smtpConfigured}
-              docAnchor="email-smtp"
-            />
-            <IntegrationCard
-              icon={<GoogleLogo size={18} weight="bold" />}
-              name="Google OAuth + Calendar"
-              description="Social sign-in and Google Calendar integration"
-              ok={googleConfigured}
-              docAnchor="google-calendar--google-meet"
-            />
-            <IntegrationCard
-              icon={<VideoCamera size={18} weight="bold" />}
-              name="Zoom"
-              description="Zoom OAuth for automatic meeting creation"
-              ok={zoomConfigured}
-              docAnchor="zoom"
-            />
-            <IntegrationCard
-              icon={<Stack size={18} weight="bold" />}
-              name="pg-boss Job Queue"
-              description="Background job processing (reminders, emails, calendar)"
-              ok={databaseUrlSet}
-              failText="DATABASE_URL missing"
-            />
-          </div>
-        </section>
 
-        <section id="security" className="scroll-mt-6">
-          <Card>
-            <SectionHeader
-              icon={<ShieldCheck size={15} weight="bold" />}
-              title="Security"
-              description="Authentication secrets and encryption keys."
-            />
-            <CardContent className="p-0">
-              <StatusRow
-                icon={<LockKey size={15} weight="bold" />}
-                label="App Secret"
-                description="Better Auth session signing key (APP_SECRET)"
-                ok={appSecretSet}
-                okText="Set"
-                failText="Not set — CRITICAL"
-              />
-              <StatusRow
-                icon={<Key size={15} weight="bold" />}
-                label="Encryption Key"
-                description="AES-GCM key for OAuth token storage (ENCRYPT_KEY)"
-                ok={encryptionKeySet}
-                okText="Set"
-                failText="Not set — CRITICAL"
-              />
-            </CardContent>
-          </Card>
-        </section>
+        {/* ── Account (left) + Appearance (right), side by side, equal height ── */}
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
+          {/* Account (admin's own credentials) */}
+          <section id="account" className="scroll-mt-6 h-full">
+            <PasswordCard hasPassword={hasPassword} passwordAuthEnabled={passwordAuthEnabled} />
+          </section>
 
-        {/* ── Account (admin's own credentials) ── */}
-        <section id="account" className="scroll-mt-6">
-          <PasswordCard hasPassword={hasPassword} passwordAuthEnabled={passwordAuthEnabled} />
-        </section>
-
-        {/* ── Appearance ── */}
-        <section id="appearance" className="scroll-mt-6">
-          <AppearanceCard />
-        </section>
+          {/* Appearance */}
+          <section id="appearance" className="scroll-mt-6 h-full">
+            <AppearanceCard />
+          </section>
+        </div>
 
       </div>
     </div>
@@ -242,25 +200,32 @@ function SectionHeader({
 }
 
 function HealthItem({
-  icon, label, description, ok,
+  icon, label, description, ok, okText = 'Healthy', failText = 'Attention',
 }: {
   icon: React.ReactNode; label: string; description: string; ok: boolean
+  okText?: string; failText?: string
 }) {
   return (
     <div className={cn(
       'flex flex-col gap-3 border p-4 transition-colors',
       ok
-        ? 'border-success/20 bg-success/[0.03]'
-        : 'border-destructive/20 bg-destructive/[0.03]'
+        ? 'border-success/20 bg-success/[0.03] hover:border-success/40'
+        : 'border-destructive/20 bg-destructive/[0.03] hover:border-destructive/40'
     )}>
-      <div className="flex items-center justify-between">
-        <span className="flex size-7 items-center justify-center border border-border bg-muted/50 text-muted-foreground">
+      <div className="flex items-center justify-between gap-2">
+        <span className={cn(
+          'flex size-9 shrink-0 items-center justify-center border',
+          ok ? 'border-success/25 bg-success/10 text-success' : 'border-destructive/25 bg-destructive/10 text-destructive'
+        )}>
           {icon}
         </span>
-        {ok
-          ? <CheckCircle size={16} weight="fill" className="text-success" />
-          : <XCircle    size={16} weight="fill" className="text-destructive" />
-        }
+        <span className={cn(
+          'inline-flex shrink-0 items-center gap-1.5 border px-2 py-0.5 text-xs font-semibold',
+          ok ? 'border-success/25 bg-success/10 text-success' : 'border-destructive/25 bg-destructive/10 text-destructive'
+        )}>
+          <span className={cn('size-1.5 rounded-full', ok ? 'bg-success' : 'bg-destructive')} />
+          {ok ? okText : failText}
+        </span>
       </div>
       <div>
         <p className="text-sm font-semibold">{label}</p>
@@ -271,56 +236,27 @@ function HealthItem({
 }
 
 function ConfigRow({
-  label, value, mono = false, ok,
+  label, value, mono = false, ok, copyable = false,
 }: {
-  label: string; value: string; mono?: boolean; ok?: boolean
+  label: string; value: string; mono?: boolean; ok?: boolean; copyable?: boolean
 }) {
   return (
-    <div className="flex items-center justify-between border-t border-border px-6 py-3 first:border-0">
-      <p className="text-sm font-medium">{label}</p>
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between gap-4 border-t border-border px-6 py-3 first:border-0">
+      <p className="shrink-0 text-sm font-medium">{label}</p>
+      <div className="flex min-w-0 items-center gap-2">
         {ok !== undefined && (
-          <span className={cn('size-1.5 rounded-full', ok ? 'bg-success' : 'bg-muted-foreground/40')} />
+          <span className={cn('size-1.5 shrink-0 rounded-full', ok ? 'bg-success' : 'bg-muted-foreground/40')} />
         )}
         <p className={cn(
-          'text-sm text-muted-foreground',
+          'truncate text-sm text-muted-foreground',
           mono && 'font-mono text-xs',
           ok === true  && 'text-success',
           ok === false && 'text-muted-foreground',
         )}>
           {value}
         </p>
+        {copyable && value !== '—' && <CopyButton value={value} />}
       </div>
-    </div>
-  )
-}
-
-function StatusRow({
-  icon, label, description, ok, okText, failText,
-}: {
-  icon: React.ReactNode; label: string; description: string
-  ok: boolean; okText: string; failText: string
-}) {
-  return (
-    <div className="flex items-center justify-between gap-6 border-t border-border px-6 py-4 first:border-0">
-      <div className="flex items-start gap-3.5">
-        <span className="flex size-9 shrink-0 items-center justify-center border border-border bg-muted/40 text-muted-foreground">
-          {icon}
-        </span>
-        <div>
-          <p className="text-sm font-semibold">{label}</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-        </div>
-      </div>
-      <span className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold',
-        ok
-          ? 'border-success/25 bg-success/10 text-success'
-          : 'border-destructive/25 bg-destructive/10 text-destructive'
-      )}>
-        <span className={cn('size-1.5 rounded-full', ok ? 'bg-success' : 'bg-destructive')} />
-        {ok ? okText : failText}
-      </span>
     </div>
   )
 }
@@ -358,49 +294,6 @@ function HealthBanner({
       )}>
         {healthyCount}/{totalCount} Healthy
       </div>
-    </div>
-  )
-}
-
-function IntegrationCard({
-  icon, name, description, ok, failText = 'Not configured', docAnchor,
-}: {
-  icon: React.ReactNode; name: string; description: string; ok: boolean
-  failText?: string; docAnchor?: string
-}) {
-  return (
-    <div className={cn(
-      'flex flex-col gap-3 border p-4 transition-colors',
-      ok ? 'border-success/20 bg-success/[0.03]' : 'border-border'
-    )}>
-      <div className="flex items-center justify-between">
-        <span className="flex size-9 shrink-0 items-center justify-center border border-border bg-muted/40 text-muted-foreground">
-          {icon}
-        </span>
-        <span className={cn(
-          'inline-flex shrink-0 items-center gap-1.5 border px-2 py-0.5 text-xs font-semibold',
-          ok
-            ? 'border-success/25 bg-success/10 text-success'
-            : 'border-destructive/25 bg-destructive/10 text-destructive'
-        )}>
-          <span className={cn('size-1.5 rounded-full', ok ? 'bg-success' : 'bg-destructive')} />
-          {ok ? 'Configured' : failText}
-        </span>
-      </div>
-      <div>
-        <p className="text-sm font-semibold">{name}</p>
-        <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-      </div>
-      {!ok && docAnchor && (
-        <a
-          href={`https://github.com/dhruti-snapdevio/Schduled/blob/main/docs/self-hosting/integrations.md#${docAnchor}`}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs font-semibold text-primary hover:underline"
-        >
-          Configure →
-        </a>
-      )}
     </div>
   )
 }

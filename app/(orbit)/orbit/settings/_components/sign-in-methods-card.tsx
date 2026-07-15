@@ -101,13 +101,19 @@ export function SignInMethodsCard({ initial, availability, smtpConfigured }: Pro
   return (
     <Card>
       <CardHeader className="gap-2.5 border-b border-border">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-7 shrink-0 items-center justify-center border border-border bg-muted/40 text-muted-foreground">
-            <SignIn size={15} weight="bold" />
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-7 shrink-0 items-center justify-center border border-border bg-muted/40 text-muted-foreground">
+              <SignIn size={15} weight="bold" />
+            </span>
+            <CardTitle className="text-base font-semibold">
+              Sign-in Methods
+            </CardTitle>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1.5 border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+            <span className="size-1.5 rounded-full bg-primary" />
+            {enabledCount} of {METHODS.length} enabled
           </span>
-          <CardTitle className="text-base font-semibold">
-            Sign-in Methods
-          </CardTitle>
         </div>
         <CardDescription>
           Choose which methods users and admins can use to sign in. At least one
