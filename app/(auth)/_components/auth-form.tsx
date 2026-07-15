@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
+import { MIN_PASSWORD_LENGTH } from "@/config/platform";
 import { authClient, signIn, signUp, useSession } from "@/lib/auth-client";
 
 interface AuthFormProps {
@@ -346,7 +347,7 @@ function AuthFormInner({ googleEnabled, passwordEnabled, magicLinkEnabled }: Aut
                         <Input
                           autoComplete={mode === "password-signup" ? "new-password" : "current-password"}
                           id="password"
-                          minLength={8}
+                          minLength={MIN_PASSWORD_LENGTH}
                           onChange={(event) => setPassword(event.target.value)}
                           placeholder="••••••••"
                           required

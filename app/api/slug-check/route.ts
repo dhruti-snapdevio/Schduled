@@ -6,7 +6,7 @@ import { eventType } from '@/db/schema'
 import { checkRateLimit, rateLimitKey } from '@/lib/api/helpers'
 
 export async function GET(req: NextRequest) {
-  if (!checkRateLimit(rateLimitKey('GET:/api/slug-check', req), 30, 60_000)) {
+  if (!(await checkRateLimit(rateLimitKey('GET:/api/slug-check', req), 30, 60_000))) {
     return NextResponse.json({ available: false })
   }
 

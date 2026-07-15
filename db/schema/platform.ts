@@ -1,5 +1,5 @@
 import { createId } from '@paralleldrive/cuid2'
-import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 export const idempotencyKey = pgTable('idempotency_key', {
   id:        text('id').primaryKey().$defaultFn(createId),
@@ -7,7 +7,21 @@ export const idempotencyKey = pgTable('idempotency_key', {
   result:    text('result'),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-})
+}, (t) => [
+  index('idempotency_key_expires_at_idx').on(t.expiresAt),
+])
+
+// Postgres-backed rate limit buckets — shared across all web replicas (unlike
+// an in-process Map, which only enforces limits per-instance). One row per
+// "<route>:<ip>" key; the upsert in lib/api/helpers.ts resets the counter
+// atomically once resetAt has passed.
+export const rateLimitBucket = pgTable('rate_limit_bucket', {
+  key:       text('key').primaryKey(),
+  count:     integer('count').notNull().default(1),
+  resetAt:   timestamp('reset_at', { withTimezone: true }).notNull(),
+}, (t) => [
+  index('rate_limit_bucket_reset_at_idx').on(t.resetAt),
+])
 
 export const newsletterSubscriber = pgTable('newsletter_subscriber', {
   id:        text('id').primaryKey().$defaultFn(createId),

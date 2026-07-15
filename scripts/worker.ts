@@ -17,8 +17,10 @@ const HEARTBEAT_INTERVAL_MS = 15_000;
 async function main() {
   await import("@/lib/env");
   const { startWorker, stopWorker } = await import("@/lib/worker/boss");
+  const { createLogger } = await import("@/lib/logger");
+  const log = createLogger("worker");
 
-  console.log("Starting Schduled background worker...");
+  log.info("Starting Schduled background worker...");
   await startWorker();
 
   const heartbeat = () => writeFileSync(HEARTBEAT_FILE, String(Date.now()));
@@ -32,7 +34,7 @@ async function main() {
     }
     shuttingDown = true;
     clearInterval(heartbeatTimer);
-    console.log(`[worker] received ${signal}; draining jobs`);
+    log.info({ signal }, "received shutdown signal; draining jobs");
     await stopWorker();
     process.exit(0);
   }
@@ -41,7 +43,8 @@ async function main() {
   process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
-main().catch((error) => {
-  console.error("Worker failed to start:", error);
+main().catch(async (error) => {
+  const { createLogger } = await import("@/lib/logger");
+  createLogger("worker").fatal({ err: error }, "worker failed to start");
   process.exit(1);
 });

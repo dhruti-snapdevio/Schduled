@@ -9,3 +9,11 @@ export const LOGO_PATH = "/logo.svg";
 
 export const ADMIN_ROLE = "admin";
 export const USER_ROLE = "user";
+
+// Single source of truth for password length constraints — read by
+// lib/auth.ts (Better Auth's minPasswordLength/maxPasswordLength config) and
+// every UI/action that validates a password client- or server-side, so none
+// of them can silently drift out of sync with what the server actually
+// enforces.
+export const MIN_PASSWORD_LENGTH = 8;
+export const MAX_PASSWORD_LENGTH = 128;

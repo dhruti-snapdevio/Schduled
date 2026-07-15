@@ -23,11 +23,11 @@ interface RescheduleBody {
 export async function POST(request: Request) {
   try {
     if (
-      !checkRateLimit(
+      !(await checkRateLimit(
         rateLimitKey("POST:/api/bookings/reschedule", request),
         10,
         60_000
-      )
+      ))
     ) {
       return jsonError("Too many requests. Please wait a moment.", 429);
     }

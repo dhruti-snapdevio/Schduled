@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/config/platform";
 import { authClient } from "@/lib/auth-client";
 
 export function ResetPasswordForm() {
@@ -41,8 +42,12 @@ export function ResetPasswordForm() {
     event.preventDefault();
     setError(null);
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+    if (password.length > MAX_PASSWORD_LENGTH) {
+      setError(`Password must be at most ${MAX_PASSWORD_LENGTH} characters.`);
       return;
     }
     if (password !== confirm) {
@@ -124,7 +129,7 @@ export function ResetPasswordForm() {
                   <Input
                     autoComplete="new-password"
                     id="new-password"
-                    minLength={8}
+                    minLength={MIN_PASSWORD_LENGTH}
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="••••••••"
                     required
@@ -152,7 +157,7 @@ export function ResetPasswordForm() {
                   <Input
                     autoComplete="new-password"
                     id="confirm-password"
-                    minLength={8}
+                    minLength={MIN_PASSWORD_LENGTH}
                     onChange={(event) => setConfirm(event.target.value)}
                     placeholder="••••••••"
                     required

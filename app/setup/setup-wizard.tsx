@@ -19,11 +19,10 @@ import { createFirstAdmin } from "@/app/actions/setup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PRODUCT_NAME } from "@/config/platform";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, PRODUCT_NAME } from "@/config/platform";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
-const MIN_PASSWORD_LENGTH = 8;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Appearance = "light" | "dark" | "system";
@@ -94,6 +93,11 @@ export function SetupWizard() {
     if (password.length < MIN_PASSWORD_LENGTH) {
       return setError(
         `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+      );
+    }
+    if (password.length > MAX_PASSWORD_LENGTH) {
+      return setError(
+        `Password must be at most ${MAX_PASSWORD_LENGTH} characters`
       );
     }
     if (password !== confirm) {
@@ -229,7 +233,7 @@ export function SetupWizard() {
                     disabled={submitting}
                     id="setup-password"
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="At least 8 characters"
+                    placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
                     type={showPassword ? "text" : "password"}
                     value={password}
                   />

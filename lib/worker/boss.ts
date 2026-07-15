@@ -1,9 +1,12 @@
 import { type Job, PgBoss } from "pg-boss";
 import { env } from "@/lib/env";
+import { createLogger } from "@/lib/logger";
 import { normalizePgConnectionString } from "@/lib/pg-connection";
 import { sleep } from "@/lib/utils";
 import { ensureJobQueues } from "@/lib/worker/ensure-queues";
 import { JOB_NAMES } from "@/lib/worker/job-types";
+
+const log = createLogger("pg-boss");
 
 const boss = new PgBoss({
   connectionString: normalizePgConnectionString(env.DATABASE_URL),
@@ -19,18 +22,16 @@ async function startBossWithRetry(maxRetries = 10) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       await boss.start();
-      console.log("[worker] pg-boss started");
+      log.info("pg-boss started");
       return;
     } catch (error) {
       if (attempt === maxRetries) {
         throw error;
       }
       const delay = Math.min(2000 * 2 ** (attempt - 1), 30_000);
-      console.error(
-        `[worker] pg-boss start failed (${attempt}/${maxRetries}); retrying in ${
-          delay / 1000
-        }s`,
-        error
+      log.error(
+        { err: error, attempt, maxRetries, retryInMs: delay },
+        "pg-boss start failed; retrying"
       );
       await sleep(delay);
     }
@@ -39,7 +40,7 @@ async function startBossWithRetry(maxRetries = 10) {
 
 export async function startWorker() {
   boss.on("error", (error) => {
-    console.error("[worker] pg-boss error", error);
+    log.error({ err: error }, "pg-boss error");
   });
 
   await startBossWithRetry();
@@ -131,7 +132,7 @@ export async function startWorker() {
   // so proactive refresh + disconnect alerts never ran.
   await boss.schedule(JOB_NAMES.CALENDAR_TOKEN_REFRESH,  "*/30 * * * *", {});
 
-  console.log("[worker] handlers registered");
+  log.info("handlers registered");
 }
 
 export async function stopWorker() {

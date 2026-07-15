@@ -4,7 +4,7 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin } from "better-auth/plugins/admin";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { eq } from "drizzle-orm";
-import { ADMIN_ROLE, PRODUCT_NAME } from "@/config/platform";
+import { ADMIN_ROLE, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, PRODUCT_NAME } from "@/config/platform";
 import * as schema from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
@@ -75,6 +75,8 @@ export const auth = betterAuth({
     : {}),
   emailAndPassword: {
     enabled: passwordAuthEnabled,
+    minPasswordLength: MIN_PASSWORD_LENGTH,
+    maxPasswordLength: MAX_PASSWORD_LENGTH,
     // Delivered the same way as magic links: enqueued to the outbox → worker →
     // SMTP (or logged to the server console if no SMTP is configured).
     sendResetPassword: async ({ user, url }) => {

@@ -61,11 +61,21 @@ export const onRequestError: Instrumentation.onRequestError = async (
   context
 ) => {
   const err = error instanceof Error ? error : new Error(String(error));
+  const fields = {
+    method: request.method ?? "?",
+    path: request.path ?? "?",
+    routerKind: context.routerKind,
+    routeType: context.routeType,
+    routePath: context.routePath ?? "?",
+  };
 
-  console.error(
-    `[server-error] ${request.method ?? "?"} ${request.path ?? "?"} ` +
-      `routerKind=${context.routerKind} routeType=${context.routeType} ` +
-      `routePath=${context.routePath ?? "?"}\n` +
-      formatError(err)
-  );
+  // pino needs Node.js APIs (streams) it doesn't have on the Edge runtime —
+  // fall back to plain console output there instead of importing it.
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { createLogger } = await import("@/lib/logger");
+    createLogger("server-error").error({ ...fields, err }, "unhandled server error");
+    return;
+  }
+
+  console.error(`[server-error] ${fields.method} ${fields.path}\n${formatError(err)}`);
 };

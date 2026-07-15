@@ -42,7 +42,7 @@ interface BookingBody {
 export async function POST(request: Request) {
   try {
     // ── Rate limit: 10 bookings/minute per IP ────────────────────────────────
-    if (!checkRateLimit(rateLimitKey("POST:/api/bookings", request), 10, 60_000)) {
+    if (!(await checkRateLimit(rateLimitKey("POST:/api/bookings", request), 10, 60_000))) {
       return jsonError("Too many requests. Please wait a moment and try again.", 429);
     }
 

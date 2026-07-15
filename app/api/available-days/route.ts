@@ -14,11 +14,11 @@ import { db } from "@/lib/db";
 
 export async function GET(request: Request) {
   if (
-    !checkRateLimit(
+    !(await checkRateLimit(
       rateLimitKey("GET:/api/available-days", request),
       30,
       60_000
-    )
+    ))
   ) {
     return jsonError("Too many requests. Please slow down.", 429);
   }

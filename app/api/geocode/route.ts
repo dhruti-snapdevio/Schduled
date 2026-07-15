@@ -106,7 +106,7 @@ function parseCoords(params: URLSearchParams): Coords | null {
 }
 
 export async function GET(request: Request) {
-  if (!checkRateLimit(rateLimitKey("GET:/api/geocode", request), 30, 60_000)) {
+  if (!(await checkRateLimit(rateLimitKey("GET:/api/geocode", request), 30, 60_000))) {
     return NextResponse.json({ suggestions: [] }, { status: 429 });
   }
 
