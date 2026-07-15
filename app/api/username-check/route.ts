@@ -8,7 +8,7 @@ import { checkRateLimit, rateLimitKey } from '@/lib/api/helpers'
 const RESERVED = new Set([
   'orbit', 'api', 'admin', 'dashboard', 'settings', 'login',
   'signup', 'post-auth', 'onboarding', 'privacy', 'terms', 'cookies',
-  'cancel', 'reschedule', 'help', 'support', 'about', 'pricing',
+  'cancel', 'reschedule', 'help', 'support', 'about', 'pricing', 'invite',
 ])
 
 export async function GET(req: NextRequest) {

@@ -1,11 +1,15 @@
 import { existsSync } from "node:fs";
 import { eq } from "drizzle-orm";
-import { ADMIN_ROLE } from "@/config/platform";
+import { MANAGER_ROLE } from "@/config/platform";
 
 if (existsSync(".env")) {
   process.loadEnvFile();
 }
 
+// Promotes to Manager, not Owner — the workspace has exactly one Owner, set
+// during first-run setup or via ownership transfer in the Admin Center. This
+// script is the recovery path for granting a second person Admin Center
+// access outside the normal invite flow.
 async function main() {
   const email = process.argv[2];
   if (!email) {
@@ -20,7 +24,7 @@ async function main() {
 
   const [updated] = await db
     .update(user)
-    .set({ role: ADMIN_ROLE, updatedAt: new Date() })
+    .set({ role: MANAGER_ROLE, updatedAt: new Date() })
     .where(eq(user.email, email))
     .returning({ email: user.email, role: user.role });
 
@@ -29,7 +33,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`${updated.email} is now an Orbit admin.`);
+  console.log(`${updated.email} is now an Orbit manager.`);
   process.exit(0);
 }
 

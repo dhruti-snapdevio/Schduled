@@ -90,7 +90,7 @@ Examples:
 ## Code Rules
 - `tsc --noEmit` must pass clean after every change
 - No S3 uploads (feature skipped)
-- Only one admin in the system — no "Make Admin / Remove Admin" UI
+- Multi-user workspace: one deployment = one workspace, invite-only signup — see [boss-employee-flow.md](./docs/self-hosting/boss-employee-flow.md)
 - Booking emails: teal-only color scheme
 - No `max-w-4xl` wrappers in admin/orbit pages — full width layouts
 - Use `cn()` from `lib/utils` for conditional class merging
@@ -99,10 +99,13 @@ Examples:
 
 ---
 
-## Auth
-- Admin email: `dhruti.hirapara@snapdevio.com`
+## Auth & Roles
+- Admin email: `dhruti.hirapara@snapdevio.com` (the workspace owner, bootstrapped via `INITIAL_ADMIN_EMAIL`)
 - Users log in via magic link only (no Google OAuth for admin)
-- Use `requireAdmin()` for orbit (admin panel) routes
+- Three roles on `user.role` — `owner` (exactly one, full control), `manager` (delegated Admin Center access, can't touch ownership/infra), `member` (own scheduling only, no `/orbit`). See `config/platform.ts` (`OWNER_ROLE`/`MANAGER_ROLE`/`MEMBER_ROLE`/`PANEL_ROLES`).
+- Signup is invite-only (`SIGNUP_ENABLED=false`) — new accounts come from `/orbit/users` → Invite, never public signup.
+- Use `requireAdmin()` for orbit (admin panel) routes — passes for owner or manager
+- Use `requireOwner()` for ownership transfer / instance-critical config (sign-in methods, infra)
 - Use `requireSession()` for app routes
 
 ---

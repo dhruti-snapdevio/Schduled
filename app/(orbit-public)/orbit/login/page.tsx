@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCurrentSession } from "@/lib/authz";
-import { ADMIN_ROLE } from "@/config/platform";
+import { PANEL_ROLES } from "@/config/platform";
 import { getEffectiveSignInMethods } from "@/lib/settings/sign-in-methods";
 import { AdminLoginForm } from "./_components/admin-login-form";
 
@@ -23,8 +23,8 @@ export default async function AdminLoginPage({
 
   // Already logged in → go to orbit (requireAdmin there handles role check)
   if (session) {
-    if (session.user.role === ADMIN_ROLE) redirect("/orbit");
-    // Logged in but NOT admin — show a clear error instead of silent redirect
+    if (PANEL_ROLES.includes(session.user.role as (typeof PANEL_ROLES)[number])) redirect("/orbit");
+    // Logged in but NOT owner/manager — show a clear error instead of silent redirect
   }
 
   const { error } = await searchParams;
@@ -48,7 +48,7 @@ export default async function AdminLoginPage({
         </div>
 
         {/* Non-admin signed-in banner */}
-        {session && session.user.role !== ADMIN_ROLE && (
+        {session && !PANEL_ROLES.includes(session.user.role as (typeof PANEL_ROLES)[number]) && (
           <div className="mb-4 flex items-start gap-3 border border-destructive/25 bg-destructive/[0.06] px-4 py-3">
             <WarningCircle size={16} weight="fill" className="mt-0.5 shrink-0 text-destructive" />
             <div>

@@ -2,9 +2,18 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin } from "better-auth/plugins/admin";
+import { adminAc, userAc } from "better-auth/plugins/admin/access";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { eq } from "drizzle-orm";
-import { ADMIN_ROLE, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, PRODUCT_NAME } from "@/config/platform";
+import {
+  MANAGER_ROLE,
+  MAX_PASSWORD_LENGTH,
+  MEMBER_ROLE,
+  MIN_PASSWORD_LENGTH,
+  OWNER_ROLE,
+  PANEL_ROLES,
+  PRODUCT_NAME,
+} from "@/config/platform";
 import * as schema from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
@@ -12,6 +21,8 @@ import { enqueueEmail } from "@/lib/email";
 import { magicLinkTemplate } from "@/lib/email/templates/magic-link";
 import { resetPasswordTemplate } from "@/lib/email/templates/reset-password";
 import { env } from "@/lib/env";
+import { findPendingInvitationByEmail, markInvitationAccepted } from "@/lib/invitations";
+import { createNotification } from "@/lib/notifications/create";
 import { getEffectiveSignInMethods } from "@/lib/settings/sign-in-methods";
 
 // Password sign-in / sign-up / reset all funnel through these paths.
@@ -143,6 +154,20 @@ export const auth = betterAuth({
   },
   plugins: [
     admin({
+      // Better Auth's admin plugin defaults to a single "admin" role backed
+      // by its own `roles` access-control map (keyed "admin"/"user") — our
+      // workspace model uses three different role names, so `adminRoles`
+      // must be paired with a matching `roles` map or the plugin rejects it
+      // at boot ("Invalid admin roles"). Owner and manager both get full
+      // admin-plugin permissions (ban/impersonate/etc. — panel access is
+      // still gated separately by PANEL_ROLES in lib/authz.ts); member gets
+      // none. See docs/self-hosting/boss-employee-flow.md §4.
+      adminRoles: [...PANEL_ROLES],
+      roles: {
+        [OWNER_ROLE]: adminAc,
+        [MANAGER_ROLE]: adminAc,
+        [MEMBER_ROLE]: userAc,
+      },
       impersonationSessionDuration: 3600,
       allowImpersonatingAdmins: false,
     }),
@@ -188,8 +213,10 @@ export const auth = betterAuth({
         // first-use, Google first-login all funnel through this hook) —
         // the bootstrap admin always gets through regardless of SIGNUP_ENABLED,
         // so it's safe to close signup from day one rather than "open then
-        // close later". Returning false blocks creation (surfaces as a clean
-        // BAD_REQUEST to the client).
+        // close later". A pending, unexpired invitation for this exact email
+        // also gets through — that's the only other door into the workspace
+        // (invite-only, no public signup). Returning false blocks creation
+        // (surfaces as a clean BAD_REQUEST to the client).
         before: async (user) => {
           if (env.SIGNUP_ENABLED) {
             return;
@@ -199,6 +226,11 @@ export const auth = betterAuth({
             env.INITIAL_ADMIN_EMAIL &&
             user.email.toLowerCase() === env.INITIAL_ADMIN_EMAIL.toLowerCase();
           if (isBootstrapAdmin) {
+            return;
+          }
+
+          const invitation = await findPendingInvitationByEmail(user.email);
+          if (invitation) {
             return;
           }
 
@@ -224,16 +256,47 @@ export const auth = betterAuth({
           ) {
             await db
               .update(schema.user)
-              .set({ role: ADMIN_ROLE, updatedAt: new Date() })
+              .set({ role: OWNER_ROLE, updatedAt: new Date() })
               .where(eq(schema.user.id, user.id));
 
             await audit({
               action: "user.role_changed",
               actorEmail: user.email,
               actorId: user.id,
-              description: `${user.email} auto-promoted to admin via INITIAL_ADMIN_EMAIL`,
+              description: `${user.email} auto-promoted to owner via INITIAL_ADMIN_EMAIL`,
               entityId: user.id,
               entityType: "user",
+            });
+            return;
+          }
+
+          // Invited account: the invitation — not the auth method used to
+          // sign up — decides the role. Works the same whether they came in
+          // via magic link, password, or Google.
+          const invitation = await findPendingInvitationByEmail(user.email);
+          if (invitation) {
+            await db
+              .update(schema.user)
+              .set({ role: invitation.role, updatedAt: new Date() })
+              .where(eq(schema.user.id, user.id));
+
+            await markInvitationAccepted(invitation.id, user.id);
+
+            await audit({
+              action: "invitation.accepted",
+              actorEmail: user.email,
+              actorId: user.id,
+              description: `${user.email} accepted an invitation as ${invitation.role}`,
+              entityId: invitation.id,
+              entityType: "invitation",
+              metadata: { role: invitation.role, invitedBy: invitation.invitedBy },
+            });
+
+            await createNotification({
+              userId: invitation.invitedBy,
+              type: "member_joined",
+              title: `${user.name || user.email} joined the workspace`,
+              body: `Joined as ${invitation.role === MANAGER_ROLE ? "Manager" : "Member"}.`,
             });
           }
         },

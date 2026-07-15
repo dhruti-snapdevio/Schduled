@@ -34,7 +34,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { ADMIN_ROLE } from "@/config/platform";
+import { OWNER_ROLE } from "@/config/platform";
+import { canActOnRole, isPanelRole } from "@/lib/roles";
 import { auditLogs, booking, eventType, eventTypeDuration, session, user } from "@/db/schema";
 import { requireAdmin } from "@/lib/authz";
 import { db } from "@/lib/db";
@@ -83,7 +84,9 @@ export default async function OrbitUserDetailPage({
   if (!profile) notFound();
 
   const isSelf = profile.id === admin.user.id;
-  const isAdmin = profile.role === ADMIN_ROLE;
+  const isOwner = profile.role === OWNER_ROLE;
+  const isProfilePanelRole = isPanelRole(profile.role);
+  const canManage = !isSelf && canActOnRole(admin.user.role, profile.role);
 
   // Search-filtered where clauses
   const bWhere  = bq
@@ -194,11 +197,11 @@ export default async function OrbitUserDetailPage({
                 </h1>
                 <span className={cn(
                   'inline-flex items-center border px-2 py-0.5 text-xs font-bold uppercase tracking-wide',
-                  isAdmin
+                  isProfilePanelRole
                     ? 'border-primary/30 bg-primary/10 text-primary'
                     : 'border-border bg-muted text-muted-foreground'
                 )}>
-                  {profile.role ?? 'user'}
+                  {profile.role ?? 'member'}
                 </span>
                 <span className={cn(
                   'inline-flex items-center gap-1 border px-2 py-0.5 text-xs font-bold',
@@ -250,7 +253,7 @@ export default async function OrbitUserDetailPage({
 
       {/* ── Profile + Actions ── */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className={isSelf ? 'lg:col-span-3' : 'lg:col-span-2'}>
+        <Card className={canManage ? 'lg:col-span-2' : 'lg:col-span-3'}>
           <CardHeader className="border-b border-border py-3.5">
             <div className="flex items-center gap-2">
               <span className="flex size-6 items-center justify-center bg-primary/10 text-primary">
@@ -280,7 +283,7 @@ export default async function OrbitUserDetailPage({
           </CardContent>
         </Card>
 
-        {!isSelf && (
+        {canManage && (
           <div className="lg:sticky lg:top-6 lg:self-start">
             <Card>
               <CardHeader className="border-b border-border py-3.5">
@@ -345,7 +348,7 @@ export default async function OrbitUserDetailPage({
                     </p>
                   </div>
                 </div>
-                <EventTypeDeleteButton eventTypeId={et.id} hostUserId={id} />
+                {canManage && <EventTypeDeleteButton eventTypeId={et.id} hostUserId={id} />}
               </div>
             ))
           )}
@@ -400,7 +403,7 @@ export default async function OrbitUserDetailPage({
                     )} />
                     {b.status}
                   </span>
-                  <BookingCancelButton bookingId={b.id} hostUserId={id} status={b.status} />
+                  {canManage && <BookingCancelButton bookingId={b.id} hostUserId={id} status={b.status} />}
                 </div>
               </div>
             ))

@@ -48,6 +48,7 @@ export async function startWorker() {
 
   // ── Platform handlers ──────────────────────────────────────────────────────
   const { handleIdempotencyKeysPrune } = await import("@/lib/worker/handlers/idempotency-keys-prune");
+  const { handleAuditLogsPrune } = await import("@/lib/worker/handlers/audit-logs-prune");
 
   // ── Email handlers ─────────────────────────────────────────────────────────
   const { handleEmailSend } = await import("@/lib/worker/handlers/email-send");
@@ -85,6 +86,7 @@ export async function startWorker() {
   await Promise.all([
     // Platform
     work(JOB_NAMES.IDEMPOTENCY_KEYS_PRUNE, handleIdempotencyKeysPrune),
+    work(JOB_NAMES.AUDIT_LOGS_PRUNE, handleAuditLogsPrune),
 
     // Email
     work(JOB_NAMES.EMAIL_SEND,           handleEmailSend),
@@ -126,6 +128,7 @@ export async function startWorker() {
   await boss.schedule(JOB_NAMES.EMAIL_EVENTS_PRUNE,      "17 3 * * *",   {});
   await boss.schedule(JOB_NAMES.HEALTHCHECK,             "*/10 * * * *", {});
   await boss.schedule(JOB_NAMES.IDEMPOTENCY_KEYS_PRUNE,  "5 4 * * *",    {});
+  await boss.schedule(JOB_NAMES.AUDIT_LOGS_PRUNE,        "23 4 * * *",   {});
   await boss.schedule(JOB_NAMES.CALENDAR_SYNC_ALL,       "*/20 * * * *", {});
   // Proactively refresh OAuth tokens (and flip status → disconnected + alert
   // when a grant is revoked). The handler was registered but never scheduled,

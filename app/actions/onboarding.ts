@@ -36,7 +36,7 @@ const DAYS: DayOfWeek[] = [
 const RESERVED = new Set([
   'orbit', 'api', 'admin', 'dashboard', 'settings', 'login',
   'signup', 'post-auth', 'onboarding', 'privacy', 'terms', 'cookies',
-  'cancel', 'reschedule', 'help', 'support', 'about', 'pricing',
+  'cancel', 'reschedule', 'help', 'support', 'about', 'pricing', 'invite',
 ])
 
 function validateUsername(raw: string): string | null {

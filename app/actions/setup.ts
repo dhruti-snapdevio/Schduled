@@ -1,7 +1,7 @@
 "use server";
 
 import { eq, ne } from "drizzle-orm";
-import { ADMIN_ROLE, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/config/platform";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, OWNER_ROLE } from "@/config/platform";
 import { user } from "@/db/schema";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -88,7 +88,7 @@ export async function createFirstAdmin(data: {
 
         await tx
           .update(user)
-          .set({ role: ADMIN_ROLE, updatedAt: new Date() })
+          .set({ role: OWNER_ROLE, updatedAt: new Date() })
           .where(eq(user.id, adminId));
         return true;
       });
@@ -103,12 +103,12 @@ export async function createFirstAdmin(data: {
     }
 
     await audit({
-      action: "user.created_as_admin",
+      action: "user.created_as_owner",
       actorId: adminId,
       actorEmail: email,
       entityType: "user",
       entityId: adminId,
-      description: "First admin account created during setup",
+      description: "First (owner) account created during setup",
     });
 
     return { ok: true };

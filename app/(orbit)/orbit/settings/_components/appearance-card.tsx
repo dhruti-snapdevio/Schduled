@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Desktop, type Icon, Moon, PaintBrush, Sun } from "@phosphor-icons/react";
 import { useTheme } from "next-themes";
+import { PRODUCT_NAME } from "@/config/platform";
 import {
   Card,
   CardDescription,
@@ -34,7 +35,8 @@ export function AppearanceCard() {
           <CardTitle className="text-base font-semibold">Appearance</CardTitle>
         </div>
         <CardDescription>
-          Choose how the Orbit admin panel looks on this device.
+          Choose how {PRODUCT_NAME} looks on this device — this is one
+          shared theme, not just the Admin Center.
         </CardDescription>
       </CardHeader>
       <div className="grid grid-cols-3 gap-3 p-6">

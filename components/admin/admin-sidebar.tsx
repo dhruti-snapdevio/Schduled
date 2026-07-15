@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/orbit",               label: "Overview",    icon: ChartBar,              exact: true },
-  { href: "/orbit/users",         label: "Users",       icon: Users,                 exact: false },
+  { href: "/orbit/users",         label: "Members",     icon: Users,                 exact: false },
   { href: "/orbit/subscribers",   label: "Subscribers", icon: EnvelopeSimple,        exact: false },
   { href: "/orbit/audit",         label: "Audit",       icon: ClockCounterClockwise, exact: false },
   { href: "/orbit/queues",        label: "Queues",      icon: Stack,                 exact: false },
@@ -29,7 +29,13 @@ const NAV_ITEMS = [
   { href: "/orbit/settings",      label: "Settings",    icon: GearSix,               exact: false },
 ];
 
-export function AdminSidebar({ email }: { email: string }) {
+export function AdminSidebar({
+  email,
+  workspaceName = "Admin Panel",
+}: {
+  email: string;
+  workspaceName?: string;
+}) {
   const pathname = usePathname();
 
   return (
@@ -38,8 +44,8 @@ export function AdminSidebar({ email }: { email: string }) {
       <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-4">
         <Logo variant="icon" size="sm" href="/orbit" />
         <div className="min-w-0">
-          <p className="text-sm font-bold text-sidebar-foreground leading-none">
-            Admin Panel
+          <p className="truncate text-sm font-bold text-sidebar-foreground leading-none">
+            {workspaceName}
           </p>
           <p className="mt-1 text-2xs font-medium text-sidebar-foreground/40 uppercase tracking-ui">
             Orbit

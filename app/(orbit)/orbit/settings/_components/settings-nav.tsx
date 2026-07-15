@@ -7,10 +7,12 @@ import { cn } from '@/lib/utils'
 
 const SECTIONS = [
   { id: 'health',       label: 'Platform Health', keywords: 'status uptime services' },
+  { id: 'workspace',    label: 'Workspace',       keywords: 'name logo branding' },
   { id: 'sign-in',      label: 'Sign-in Methods', keywords: 'login magic link google password' },
   { id: 'general',      label: 'General',         keywords: 'app url environment signup' },
   { id: 'integrations', label: 'Integrations',    keywords: 'smtp email google zoom queue pg-boss' },
   { id: 'security',     label: 'Security',        keywords: 'app secret encryption key' },
+  { id: 'data-deletion', label: 'Data Deletion',  keywords: 'gdpr privacy invitee redact' },
   { id: 'account',      label: 'Account',         keywords: 'password change' },
   { id: 'appearance',   label: 'Appearance',      keywords: 'theme light dark system' },
 ]

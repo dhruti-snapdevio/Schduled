@@ -52,6 +52,14 @@ const envSchema = z.object({
     z.boolean()
   ),
 
+  // Activity-log retention, in days. Unset = keep forever (the self-hosted
+  // default — an operator owns their own Postgres, unlike a SaaS storage-cost
+  // driven cap). Set e.g. 180 to prune older audit_logs rows nightly.
+  ACTIVITY_LOG_RETENTION_DAYS: z.preprocess(
+    (v) => (v ? Number(v) : undefined),
+    z.number().int().positive().optional()
+  ),
+
   // Marketing landing page at "/" — on by default. Set to 'false' for
   // internal/team deployments that don't want a public marketing page;
   // "/" then redirects to "/login" instead. Booking + legal pages are

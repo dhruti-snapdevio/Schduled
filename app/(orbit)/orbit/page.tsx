@@ -24,7 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ADMIN_ROLE } from "@/config/platform";
+import { PANEL_ROLES } from "@/config/platform";
 import { auditLogs, booking, emailOutbox, session, user } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getQueueSummary } from "@/lib/worker/queue-inspection";
@@ -205,7 +205,7 @@ export default async function OrbitPage() {
                       <TableCell className="px-4 py-3">
                         <Badge
                           variant={
-                            u.role === ADMIN_ROLE ? "default" : "secondary"
+                            PANEL_ROLES.includes(u.role as (typeof PANEL_ROLES)[number]) ? "default" : "secondary"
                           }
                           className="text-xs"
                         >

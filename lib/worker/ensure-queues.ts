@@ -37,6 +37,11 @@ export const QUEUE_OPTIONS: Record<
     policy: "exclusive",
     retryLimit: 0,
   },
+  [JOB_NAMES.AUDIT_LOGS_PRUNE]: {
+    expireInSeconds: 120,
+    policy: "exclusive",
+    retryLimit: 0,
+  },
 
   // Booking lifecycle
   [JOB_NAMES.VIDEO_LINK_GENERATE]: { expireInSeconds: 60,  policy: "singleton", retryLimit: 2, retryDelay: 30 },

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { ADMIN_ROLE } from "@/config/platform";
+import { OWNER_ROLE, PANEL_ROLES } from "@/config/platform";
 import { user } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -32,6 +32,7 @@ export async function requireSession() {
   return session;
 }
 
+/** Owner or Manager — anyone who can reach the /orbit Admin Center. */
 export async function requireAdmin() {
   const session = await requireSession();
   const [freshUser] = await db
@@ -45,7 +46,7 @@ export async function requireAdmin() {
     .where(eq(user.id, session.user.id))
     .limit(1);
 
-  if (!freshUser || freshUser.banned || freshUser.role !== ADMIN_ROLE) {
+  if (!freshUser || freshUser.banned || !PANEL_ROLES.includes(freshUser.role as (typeof PANEL_ROLES)[number])) {
     redirect("/dashboard");
   }
 
@@ -58,4 +59,13 @@ export async function requireAdmin() {
       role: freshUser.role,
     },
   };
+}
+
+/** Owner only — ownership transfer, instance config, removing panel staff. */
+export async function requireOwner() {
+  const session = await requireAdmin();
+  if (session.user.role !== OWNER_ROLE) {
+    redirect("/orbit");
+  }
+  return session;
 }

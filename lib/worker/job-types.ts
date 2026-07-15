@@ -32,6 +32,7 @@ export const JOB_NAMES = {
   // ── Platform ─────────────────────────────────────────────────────────
   HEALTHCHECK: "platform.healthcheck",
   IDEMPOTENCY_KEYS_PRUNE: "platform.idempotency-keys-prune",
+  AUDIT_LOGS_PRUNE: "platform.audit-logs-prune",
   CALENDAR_SYNC_ALL: "calendar.sync-all",
 } as const;
 
@@ -141,6 +142,7 @@ export type JobPayloads = {
   [JOB_NAMES.CALENDAR_DISCONNECT_ALERT]: CalendarDisconnectAlertPayload;
   [JOB_NAMES.HEALTHCHECK]: Record<string, never>;
   [JOB_NAMES.IDEMPOTENCY_KEYS_PRUNE]: Record<string, never>;
+  [JOB_NAMES.AUDIT_LOGS_PRUNE]: Record<string, never>;
   [JOB_NAMES.BOOKING_APPROVAL_REQUEST]: BookingApprovalRequestPayload;
   [JOB_NAMES.BOOKING_APPROVED]: BookingApprovedPayload;
   [JOB_NAMES.BOOKING_APPROVED_NOTIFY]: BookingApprovedPayload;

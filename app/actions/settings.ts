@@ -38,6 +38,7 @@ const RESERVED = new Set([
   "support",
   "about",
   "pricing",
+  "invite",
 ]);
 
 function validateUsername(raw: string): string | null {

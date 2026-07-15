@@ -1,316 +1,452 @@
-# Boss + Employee Flow — Open Source Self-Hosted Model
+# Workspace, Roles & Invite Flow — Implementation Spec (Open Source Self-Hosted)
 
-Status: **planning doc, nothing in this file has been implemented yet.**
-Owner decision: Schduled ships as a **Calendly-style feature set** on a
-**Cal.com-style hosting model** — one self-hosted instance, one admin (the
-boss), many independent users (employees). This is not a "v2" feature; the
-multi-user architecture already exists in the current codebase. Only the
-invite mechanism and a handful of copy/content fixes are missing.
+Status: **Phase 1 implemented and verified — see §16 (tracking table) and
+§17 (what shipped, including a live end-to-end smoke test). Sections 1–15
+below are the original design spec, kept as-is for the reasoning trail;
+read §16/§17 first for what's actually true of the code today.**
+Branch: `feature/employee-invite-flow`.
 
----
+Schduled ships as a **Calendly-style feature set** on a **self-hosted,
+single-workspace** model — one instance = one **workspace** (the boss's company)
+with **role-based access**: `owner` (exactly one, the setup-wizard account),
+`manager` (delegated Admin Center access), `member` (own scheduling only).
+Public signup is invite-only; new accounts come from `/orbit/users` → Invite,
+never a public sign-up form. See `config/platform.ts`
+(`OWNER_ROLE`/`MANAGER_ROLE`/`MEMBER_ROLE`/`PANEL_ROLES`) and `lib/invitations.ts`
+for the implementation, and `CLAUDE.md` → "Auth & Roles" for the house rules.
 
-## 1. Why this model (context for future readers)
-
-- **Calendly** is the reference for *features* (event types, availability
-  rules, one booking link, buffers, reminders). Calendly itself cannot be
-  self-hosted — there is nothing to copy from it for the hosting model.
-- **Cal.com** is the reference for *hosting/account model*, because it's the
-  only proven open-source self-hosted product in this space: one instance,
-  one admin, N users, each with an isolated workspace and public page.
-- Conclusion: multi-user is not optional or deferrable — a single-user-only
-  build would not be a "Calendly-style" product at all, just a personal
-  calendar widget.
+**Phasing rule:** the whole workspace layer shipped in **Phase 1** (§7 / §11 /
+§16); everything else is **Coming soon** (§12) — Managed Events (P2), Groups /
+Team Manager (P3), and round-robin/routing/SSO/SCIM (later).
 
 ---
 
-## 2. End-to-end flow (target)
+## 1. Terminology — Calendly → self-hosted Schduled
+
+| Calendly | Schduled |
+|---|---|
+| **Organization** (top-level account) | **Workspace** — the single instance. One deployment = one workspace = one company. Created at first-run setup. |
+| **Owner** | The boss (setup-wizard account). |
+| **Manager / Member** | Managers / employees invited into the workspace. Our **Manager** = Calendly's **Admin** role, renamed so the middle tier doesn't sound like "Owner". |
+| **Admin Center** | The existing **`/orbit`** panel. |
+| Groups / Managed Events / SSO / SCIM / Billing / Seats | Adapted or dropped — §3. |
+
+Not building multi-tenant SaaS: one instance = one company (§8 Option B if that changes).
+
+---
+
+## 2. Complete Calendly research (reference model — nothing omitted)
+
+### 2.1 Roles (Calendly has five)
+- **Owner** — all Admin powers + edit others' roles + **transfer ownership** (old owner → Admin). Exactly one.
+- **Admin** — manage users (invite, assign roles, pending invites, bulk, **CSV export**), create groups, billing, org-wide settings & branding. Can't change existing roles (owner-gated).
+- **Group Admin** — manage users/roles/invites **within assigned group(s)**; group reports. Limited Admin Center.
+- **Team Manager** — manage team-level event types & workflows.
+- **User (Member)** — personal scheduling page; own event types/availability; can *use* team/managed events, not change them.
+
+### 2.2 Admin Center (complete)
+Users (add/remove, roles, resend/pending invites, bulk, CSV export Active/Pending, transfer ownership, seats, per-user role + calendar-connection + activity) · Groups · Branding (org name + logo) · **Managed Events** (event-type templates: create, **lock** editable fields, assign, sync) · **Managed Workflows** (templates) · **Permissions** (who manages shared events/workflows/invites) · Login (SSO, SCIM, domain control) · Billing · Security (**data deletion** + **activity log**).
+
+### 2.3 Activity log
+90-day retention (SaaS); searchable by email/event/team; CSV export up to 10k events.
+
+### 2.4 Data deletion / compliance
+Delete an invitee's personal data by email; processed within 7 days (GDPR/CCPA).
+
+### 2.5 Enterprise workspace features
+SSO (SAML), **SCIM** provisioning, **domain control** (verify domain → see/invite domain users, auto-accept).
+
+### 2.6 Scheduling product (for completeness)
+Event types (one-on-one, **group**, **collective**, **round robin**); availability (hours, buffers, daily limits, up to 6 calendars); **Meeting Polls**; **one-off meetings**; **Workflows**; **Routing** forms; **Analytics**; integrations (Zoom/Meet/**Teams**, **Stripe/PayPal**, Salesforce/HubSpot, Zapier, embeds).
+
+### 2.7 Plan gating
+Free: 1 event type · Standard: unlimited events + integrations + group + collective + polls + payments · Teams: **round robin + routing + Salesforce + managed events (lock/sync) + admin controls + reporting** · Enterprise: **SSO + SCIM + audit/data-deletion + domain control + full routing + compliance**.
+
+### 2.8 What Calendly lacks
+**No custom/granular RBAC** (fixed roles; only Workflows have per-action control). Cal.com is the granular one.
+
+---
+
+## 3. Self-hosted adaptation (every capability mapped)
+
+| Calendly capability | Self-hosted Schduled | Phase |
+|---|---|---|
+| Owner/Manager/Member roles | ✅ on `user.role` | **P1** |
+| Role selection at invite | ✅ | **P1** |
+| Admin Center | ✅ = `/orbit` | **P1** |
+| Invite by email + accept + copy-link | ✅ hand-rolled | **P1** |
+| Pending invites / resend / revoke | ✅ | **P1** |
+| CSV export of members | ✅ plain CSV | **P1** |
+| Transfer ownership | ✅ | **P1** |
+| Workspace branding (name/logo) | ✅ on `app_setting` | **P1** |
+| Activity log | ✅ reuse `/orbit/audit`; retention **configurable** (not 90-day) | **P1** |
+| Data deletion (per invitee) | ✅ GDPR still applies | **P1** |
+| Permissions (who manages what) | ⚠️ role-based only in P1 | **P1** |
+| Managed Events / Workflows | ⏭ Coming soon | P2/P3 |
+| Groups + Group Admin/Team Manager | ⏭ Coming soon | P3 |
+| Team scheduling (round robin/collective) | ⏭ Coming soon (separate, large) | later |
+| Routing / Meeting Polls / One-off / Analytics | ⏭ Coming soon | later |
+| Billing / seats | ❌ Drop (self-hosted) | — |
+| SSO / SAML | ❌ Optional later (Better Auth SSO plugin) | later |
+| SCIM / domain control | ❌ Drop (SaaS-only) | — |
+| Multiple workspaces per instance | ❌ Drop (multi-tenant) | — |
+
+**Open-source principle:** no seats, no billing, no paywalled roles/admin
+controls; data stays in the operator's Postgres; Calendly's SaaS limits (90-day
+logs, 6-calendar cap, 10k export) become operator-configurable/unlimited.
+
+---
+
+## 4. Roles & permissions model (Phase 1)
+
+**Naming:** we use **Owner / Manager / Member** — Calendly's structure with its
+middle role renamed **Admin → Manager** so it doesn't overlap with "Owner". Our
+**Manager** = Calendly's **Admin**. (The `/orbit` console keeps the name *Admin
+Center* / admin panel — that's the area's name, not a role.) Stored `user.role`
+values: `owner`, `manager`, `member`.
+
+### 4.1 Definitions
+- **`owner`** — the boss. **Exactly one.** Setup-created. Full control + the only role that changes others' roles / transfers ownership / edits infra.
+- **`manager`** — trusted manager(s), zero or many. Day-to-day member management + workspace settings; **cannot** change roles, transfer ownership, or act on the owner. *(= Calendly's "Admin", renamed.)*
+- **`member`** — host/employee, zero or many. Own scheduling only; **no `/orbit`**. Default invited role.
+
+### 4.2 Permission matrix
+
+| Capability | Owner | Manager | Member |
+|---|:--:|:--:|:--:|
+| Own event types / availability / bookings | ✅ | ✅ | ✅ |
+| Own `/username` page + personal branding | ✅ | ✅ | ✅ |
+| Access Admin Center (`/orbit`) | ✅ | ✅ | ❌ |
+| Invite members (choose Member / Manager) | ✅ | ✅ | ❌ |
+| Resend / revoke pending invites | ✅ | ✅ | ❌ |
+| Change an existing member's role | ✅ | ⚠️¹ | ❌ |
+| Suspend / remove a member | ✅ | ✅² | ❌ |
+| Impersonate a member | ✅ | ✅² | ❌ |
+| Export members CSV | ✅ | ✅ | ❌ |
+| Workspace branding | ✅ | ✅ | ❌ |
+| Activity log | ✅ | ✅ | ❌ |
+| Data deletion (invitee) | ✅ | ✅ | ❌ |
+| Sign-in methods / integrations / infra config | ✅ | ⚠️³ | ❌ |
+| Transfer ownership | ✅ | ❌ | ❌ |
+
+¹ Owner-gated (matches Calendly) — §13 Q1. ² Members only, never the owner/other managers. ³ Recommend owner-only for infra — §13 Q2.
+
+### 4.3 Reconciling with today's `admin`/`user`
+- `config/platform.ts` currently: `ADMIN_ROLE="admin"`, `USER_ROLE="user"`.
+- Add `OWNER_ROLE="owner"`, `MANAGER_ROLE="manager"`, `MEMBER_ROLE="member"`, `PANEL_ROLES=[OWNER_ROLE, MANAGER_ROLE]`. Retire `ADMIN_ROLE` as a role value (replace usages with `PANEL_ROLES`/`OWNER_ROLE`).
+- **Data migration:** `admin → owner`, `user → member` (no existing `manager` rows).
+- `lib/authz.ts`: `requireAdmin()` keeps its name (it gates the panel) but passes for any `PANEL_ROLES`; add `requireOwner()`.
+- **Better Auth admin plugin** (`lib/auth.ts:145`): the role value is no longer `"admin"`, so set `admin({ adminRoles: [OWNER_ROLE, MANAGER_ROLE], … })` — otherwise its ban/impersonate APIs (which default to the `"admin"` role) would silently stop recognizing owners + managers.
+
+---
+
+## 5. End-to-end flow
 
 ```
-① Boss clones repo from GitHub
-     git clone … && cp .env.example .env   (DB, APP_SECRET, SMTP, etc.)
-     docker-compose up      (app + worker + Postgres come up)
-
-② Boss opens the site → FIRST-RUN SETUP WIZARD (app/setup)
-     Step 1: Appearance (theme)
-     Step 2: Create the ADMIN account  ← this is the boss
-     Step 3: Signing in…
-     → wizard self-destructs once 1 user exists (lib/setup.ts hasAnyUser())
-
-③ Boss lands in ONBOARDING (name, username, avatar) → /dashboard
-     Boss now has his own booking page: yoursite.com/boss-username
-     [If it's a solo instance, the flow stops here — this already works today.]
-
-④ Boss opens ADMIN PANEL (/orbit) → Users → "Invite user"   ← NOT YET BUILT
-     Types employee email → invite email sent (magic-link style)
-     Public signup stays OFF (SIGNUP_ENABLED=false) — only invited people get in
-
-⑤ Employee clicks invite link → sets up account → ONBOARDING
-     → employee gets THEIR OWN dashboard + THEIR OWN page: yoursite.com/john
-
-⑥ Each employee manages ONLY their own event-types, availability, bookings.
-     Boss (admin) sees EVERYONE via /orbit. Employees never see each other.
+① docker-compose up (app + worker + Postgres)
+② SETUP WIZARD (app/setup) → creates WORKSPACE + OWNER (first account → role 'owner')
+③ Owner → ONBOARDING → /dashboard; page yoursite.com/boss-username  [solo? stop here — works today]
+④ Owner → /orbit → Members → "Invite": email + SELECT ROLE (Member|Manager); signup stays invite-only
+     Pending row: Copy-link / Resend / Revoke
+⑤ Invitee clicks /invite/<token> → signs up WITH THE INVITED EMAIL → role auto-assigned by the create hook → ONBOARDING → own page yoursite.com/john
+⑥ Role-based access: Member = own scheduling only; Manager = Admin Center; Owner = all + infra + transfer
 ```
 
-Confirmed from the current schema: all core tables (`booking`, `event_type`,
-`availability_schedule`, `contact`, `user_profile`) are already scoped by
-`userId` / `hostUserId`. An invited employee's data is private by
-construction — no schema change needed for isolation.
-
 ---
 
-## 3. What already exists today (do not rebuild)
+## 6. Current codebase state (verified — extend these)
 
-| Piece | File | Status |
+| Piece | File(s) | Notes |
 |---|---|---|
-| Role-based admin (`user.role`) | `db/schema/auth.ts`, `config/platform.ts` | ✅ done |
-| `requireAdmin()` / `requireSession()` gates | `lib/authz.ts` | ✅ done |
-| First-run setup wizard | `app/setup/page.tsx`, `app/setup/setup-wizard.tsx` | ✅ done |
-| Per-user onboarding | `app/(onboarding)/onboarding/page.tsx` | ✅ done |
-| Per-user public booking page | `app/(booking)/[username]/page.tsx` | ✅ done |
-| Signup on/off toggle | `SIGNUP_ENABLED` env, gate in `lib/auth.ts:191-204` | ✅ done |
-| Admin user list / suspend / delete / impersonate | `app/(orbit)/orbit/users/`, `app/actions/orbit-users.ts` | ✅ done |
-| Orbit sidebar "Users" link | `components/admin/admin-sidebar.tsx:24` | ✅ done — already labeled "Users", not "Team" (correct, no rename needed) |
+| Role column | `db/schema/auth.ts:9` (`user.role text notNull default 'user'`) | add owner/member values |
+| Roles config | `config/platform.ts` (`ADMIN_ROLE`,`USER_ROLE`) | client-safe file (no `lib/env` import) |
+| Authz guards | `lib/authz.ts` (`requireSession`, `requireAdmin`→`role===ADMIN_ROLE`, `getCurrentSession`) | generalize + add `requireOwner` |
+| Better Auth | `lib/auth.ts` (admin+magicLink plugins; `databaseHooks.user.create.before` `:193-206`, `.after` `:207-239`) | invite-aware gate + role-on-accept |
+| Signup gate env | `lib/env.ts` (`SIGNUP_ENABLED`, `INITIAL_ADMIN_EMAIL`, `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED`) | keep invite-only via `SIGNUP_ENABLED=false` |
+| Setup | `app/setup/`, `app/actions/setup.ts` (`createFirstAdmin`→`ADMIN_ROLE`), `lib/setup.ts` (`hasAnyUser`) | first account → `OWNER_ROLE` |
+| Onboarding | `app/(onboarding)/onboarding/page.tsx`, `components/onboarding/*`, `app/actions/onboarding.ts`, `app/api/username-check/route.ts` | invited users flow through unchanged; add `invite` to RESERVED |
+| Auth UI | `app/(auth)/login/page.tsx`, `_components/auth-form.tsx` (`AuthForm{googleEnabled,passwordEnabled,magicLinkEnabled}`, funnels to `/post-auth`) | new invite variant |
+| Admin Users panel | `app/(orbit)/orbit/users/page.tsx`, `users/[id]/page.tsx`, `components/orbit/users-table.tsx`,`users-search.tsx`,`user-actions.tsx`,`user-detail-actions.tsx`,`booking-cancel-button.tsx`,`event-type-delete-button.tsx` | extend with invite/roles/pending/CSV |
+| Admin actions | `app/actions/orbit-users.ts` (`toggleUserBanAction`,`deleteUserAction`,`bulkBanUsersAction`,`bulkDeleteUsersAction`,`cancelBookingAction`,`deleteEventTypeAction`,`recordImpersonationAction`,`nonAdminIds`) | update guards for owner/manager/member |
+| Admin nav | `components/admin/admin-sidebar.tsx`,`admin-mobile-nav.tsx` (NAV_ITEMS incl. `/orbit/users` "Users") | rename label → "Members" (optional) |
+| Admin settings | `app/(orbit)/orbit/settings/page.tsx` + `_components/{settings-nav,appearance-card,sign-in-methods-card}.tsx` | add Workspace-branding + Data-deletion sections |
+| Activity log | `app/(orbit)/orbit/audit/page.tsx`, `app/actions/orbit-audit.ts`, `components/orbit/{audit-table,audit-filters}.tsx` | add CSV export + configurable retention |
+| Email | `lib/email/index.ts` (`enqueueEmail(opts,{startAfter,idempotencyKey})`), `templates/*.ts`→`{html,text}`, `components/*.tsx`+`EmailLayout` | add invite template |
+| Audit | `lib/audit.ts` (`audit({action,actorId?,actorEmail?,description,entityType,entityId?,metadata?})` — `action` is **free-text**) | new `invitation.*` actions |
+| DB wiring | `db/schema/index.ts` (barrel; order: auth→enums→domain→relations), `db/schema/relations.ts`, `db/schema/enums.ts` (no role enum today; audit enum defined but column is `text`) | register `invitation` |
+| Workspace singleton | `app_setting` (`db/schema/platform.ts:34`, "single-org, one admin") | store workspace branding |
+| Middleware | `middleware.ts` (default fall-through **public**; `/invite/*` already public) | optionally pin `/invite/` public |
 
 ---
 
-## 4. What to BUILD — the one real feature
+## 7. Architecture decision
 
-### Why not Better Auth's `organization` plugin
+**Option A — extend current stack (admin plugin + `invitation` table).** ✅ RECOMMENDED.
+Roles on `user.role`; one new `invitation` table; workspace settings on
+`app_setting`; reuse existing admin actions/components. No `workspaceId` threading.
 
-Better Auth 1.6.18 (the installed version, confirmed in `package.json`) ships
-a full `organization` plugin with `createInvitation`/`acceptInvitation`/
-`listMembers`/etc. It was evaluated and **rejected for this product**:
+**Option B — Better Auth `organization` plugin.** Only if you want **multiple
+workspaces per instance** or Groups/RBAC out-of-box soon (multi-tenant, heavier).
 
-- It is inherently multi-tenant — every operation is scoped to an
-  `organizationId`, requiring new `organization`, `member`, `invitation`
-  (and optionally `team`) tables plus a real Drizzle migration. This product
-  has exactly one tenant per instance (the boss's company), so adopting it
-  means creating one throwaway `Organization` row just to satisfy foreign
-  keys, forever.
-- It brings a full custom access-control/permissions system
-  (`allowUserToCreateOrganization`, `organizationLimit`, teams, dynamic
-  roles) that doesn't map to the existing simple `user.role: admin | user`
-  column already used cleanly throughout the app (`db/schema/auth.ts`).
-- **External validation** (see §11 below): none of the comparable
-  single-tenant-per-instance open-source self-hosted products (Ghost,
-  Plausible CE, Umami) model an "organization" either — they all invite
-  directly into one flat user list, exactly like this plan. Multi-tenant
-  building blocks are for products where one deployment serves many
-  unrelated companies (which is not this app's model).
-
-**Decision: hand-roll the invite using the existing `verification` table**,
-gated by the existing `role` column and `admin` plugin already in use.
-
-### Invite-user flow (`P1`, not built yet)
-
-1. **"Invite user" button** in `/orbit/users` (`app/(orbit)/orbit/users/page.tsx`,
-   `components/orbit/users-table.tsx`) → opens a dialog (shadcn `Dialog`,
-   per CLAUDE.md component rule) asking for email (+ optional name).
-2. **New server action** in a new `app/actions/orbit-invites.ts`: writes a
-   pending invite row into the existing `verification` table
-   (`db/schema/auth.ts:74-85`), then enqueues an invite email via the
-   existing outbox (`enqueueEmail`, `lib/email/index.ts`).
-   - **Identifier must be prefixed**, e.g. `identifier: \`invite:${token}\``.
-     Confirmed by reading Better Auth 1.6.18's internal usage
-     (`node_modules/better-auth/dist/`): magic-link tokens are stored
-     **unprefixed** (`identifier: <raw 32-char token>`), while Better Auth's
-     own password-reset (`reset-password:${token}`) and account-deletion
-     (`delete-account-${token}`) flows already namespace their identifiers.
-     `consumeVerificationValue` does a flat, un-namespaced lookup by
-     `identifier` with no `type`/`purpose` column to disambiguate — so an
-     invite implementation should follow the prefixed convention, not the
-     magic-link one, to stay unambiguously outside Better Auth's own token
-     space.
-3. **Accept route** — new page, e.g. `app/(auth)/invite/[token]/page.tsx` —
-   validates the token against `verification` (looking up
-   `invite:<token>`), then creates the account as `role: "user"` (never
-   `"admin"`) and routes into the existing onboarding flow
-   (`app/(onboarding)/onboarding/page.tsx`).
-4. **Recommended default**: keep `SIGNUP_ENABLED=false` once the boss has
-   his admin account — invite-only becomes the supported path for adding
-   employees, not public signup. (Plausible CE's `DISABLE_REGISTRATION=
-   invite_only` env value is the same pattern under a different name — see
-   §11.)
-5. Audit log the invite send + invite accept via `lib/audit.ts` (`audit()`),
-   same pattern already used for suspend/delete/impersonate in
-   `app/actions/orbit-users.ts`.
-6. **Email template**: new `lib/email/templates/invite.ts` +
-   `lib/email/components/invite.tsx`, following the exact pattern of
-   `lib/email/templates/magic-link.ts` / `lib/email/components/magic-link.tsx`
-   — same `EmailLayout` wrapper (`lib/email/components/layout.tsx`) every
-   other transactional email in this app already uses.
-
-No schema migration is required — the `verification` table's shape
-(`identifier`, `value`, `expiresAt`) already fits an invite token as-is.
+Rest of spec assumes **Option A**.
 
 ---
 
-## 5. Sidebar / navigation — reviewed, nothing to add
+## 8. 📦 Implementation manifest — file by file (Phase 1)
 
-Full audit of `components/scaffold/` (main app) and
-`components/admin/admin-sidebar.tsx` (orbit):
+### 8.1 NEW files
 
-**Main app sidebar** (`components/scaffold/sidebar-nav.tsx`) — Dashboard,
-Meeting Types, Availability, Bookings, Contacts, Settings, plus
-Profile / Admin Panel (admin-only, conditional) / Sign out at the bottom.
-**No "Team"/"Members" link exists, and none should be added** — an employee
-must never see a roster of other users; that view belongs to the admin
-panel only. Confirmed no team-scoping is missing here.
-
-**Orbit admin sidebar** (`components/admin/admin-sidebar.tsx`) — Overview,
-Users, Subscribers, Audit, Queues, Email, Settings. The "Users" link
-(`/orbit/users`, line 24) is where the new "Invite user" button belongs —
-**no new sidebar entry needed**, it's an addition to an existing page, not
-a new nav item.
-
-**Conclusion: zero sidebar/navigation changes required.** The invite flow is
-a button + dialog on the existing Users page, not a new section.
-
----
-
-## 6. Theme flow — reviewed, one accuracy gap found
-
-Full audit of every `useTheme()` / `ThemeProvider` usage:
-
-- `ThemeProvider` is mounted once in the root layout (`app/layout.tsx:37-41`,
-  `attribute="class" defaultTheme="light"`) and wraps **every** route group
-  — `(app)`, `(auth)`, `(booking)`, `(landing)`, `(onboarding)`, `(orbit)`,
-  `(orbit-public)` — all share the same global theme value via `next-themes`.
-- **Three separate UI entry points write to that same single theme value:**
-  1. `components/theme-toggle.tsx` — light/dark toggle in the main app
-     header (`components/scaffold/app-shell.tsx:57`), visible to every
-     logged-in user (boss or employee) on every `(app)` page.
-  2. `app/(orbit)/orbit/settings/_components/appearance-card.tsx` — 3-way
-     Light/Dark/System picker in Orbit settings, labeled "Choose how the
-     **Orbit admin panel** looks on this device."
-  3. `app/setup/setup-wizard.tsx` — one-time theme step during first run.
-- **Gap found**: the Orbit appearance card's copy claims it controls "the
-  Orbit admin panel," but because there is only one global `next-themes`
-  context, changing it there **also changes the main app theme for that
-  same browser/user** (and vice versa — the header toggle also affects what
-  Orbit shows). This is not a bug that breaks anything, but the copy is
-  misleading. **Action for later**: either (a) reword the Orbit appearance
-  card description to "Choose how Schduled looks on this device" (accurate,
-  cheap fix), or (b) actually scope it to admin-only via a second
-  `next-themes` storage key (real work, not needed for this flow). Fix (a)
-  is a one-line copy change and can ride along with the other landing/copy
-  fixes in this doc — not urgent, not blocking the invite flow.
-- **Public booking pages** (`app/(booking)/`) use themable CSS variables
-  (`bg-page`, `text-foreground`, etc.) and correctly follow whichever theme
-  is active — no issue.
-- **Landing page** (`app/(landing)/page.tsx`, `about/page.tsx`) uses
-  hardcoded hex/oklch colors in the hero and product-preview sections
-  (e.g. `page.tsx:426,621,624,985`, `about/page.tsx:331`) — it does **not**
-  respond to theme changes at all, always renders the dark marketing look.
-  This is a deliberate marketing-page design choice, not a bug — flagging
-  only so it's not mistaken for a missed theme-wiring issue.
-
-**Conclusion: theme flow is functionally consistent (one shared value
-everywhere); only the Orbit appearance-card copy is misleading and worth a
-cheap wording fix.**
-
----
-
-## 7. Admin panel — keep vs. remove
-
-| Page | Keep? | Reason |
+| # | File | Purpose / key contents |
 |---|---|---|
-| `/orbit` (dashboard) | ✅ Keep | Instance overview — boss needs this |
-| `/orbit/users` + `[id]` | ✅ Keep | Core of boss+employee — gets the new Invite button |
-| `/orbit/settings` | ✅ Keep | Sign-in methods, integrations, platform health |
-| `/orbit/queues` | ✅ Keep | Self-hoster needs background-job visibility |
-| `/orbit/email` | ✅ Keep | Self-hoster needs outbox/delivery debugging |
-| `/orbit/audit` | ✅ Keep | Security log |
-| `/orbit/subscribers` | ❌ Remove | Newsletter has no audience on a private company instance |
-| Footer newsletter signup + `app/api/newsletter/route.ts` | ❌ Remove | Same — no mailing list use case in self-hosted. **Correction**: the original pass only flagged the footer form; the backing API route (`app/api/newsletter/route.ts`) must be removed too, or it becomes a dead unreachable POST endpoint. |
+| N1 | `db/schema/invitation.ts` | `invitation` table. Cols: `id text pk $defaultFn(createId)`, `email text notNull`, `role text notNull default 'member'` (member\|manager — never `owner`), `token text notNull unique`, `status text notNull default 'pending'` (pending\|accepted\|revoked\|expired), `inviterId text notNull → user.id`, `acceptedBy text → user.id`, `expiresAt timestamptz notNull`, `createdAt/acceptedAt timestamptz`. Indexes (array form): partial-unique on `email WHERE status='pending'`, index on `token`. Follow `db/schema/platform.ts` conventions. |
+| N2 | `lib/invitations.ts` | Shared helpers used by hooks + actions: `createInvitation({email,role,inviterId})` (generates token via `crypto.randomUUID()`/cuid, sets `expiresAt = now + INVITE_TTL_HOURS`), `findPendingInvitation(email)`, `validateInviteToken(token)` (pending + unexpired), `markInvitationAccepted(inviteId, userId)`, `expireStaleInvitations()`. Keeps the `lib/auth.ts` hook thin. |
+| N3 | `app/actions/members.ts` | `'use server'`. `ActionResult<T>` union. All `requireAdmin()` first line. Exports: `inviteMemberAction(formData)` (email+role → `createInvitation` → `invitationTemplate` → `enqueueEmail` with `idempotencyKey`; audit `invitation.sent`; `revalidatePath('/orbit/users')`), `resendInviteAction`, `revokeInviteAction`, `changeRoleAction` (owner-gated per §4.2¹; guards: can't change owner, can't self-demote last panel role), `transferOwnershipAction` (`requireOwner`; atomic demote-old/promote-new), `exportMembersCsvAction(filter: 'active'|'pending')` (returns CSV string), `deleteInviteeDataAction(email)` (delete invitee bookings/contacts by email; audit `invitee.data_deleted`). |
+| N4 | `lib/email/templates/invitation.ts` | `invitationTemplate({inviteeEmail, inviterName, workspaceName, acceptUrl, role})` → `{html,text}`, mirroring `templates/magic-link.ts` (render `InvitationEmail` via `renderEmailTemplate`). |
+| N5 | `lib/email/components/invitation.tsx` | `InvitationEmail` React-email component wrapped in `EmailLayout`, teal-only per CLAUDE.md; CTA button → `acceptUrl`; plain-text fallback. |
+| N6 | `app/(auth)/invite/[token]/page.tsx` | Server component. `await validateInviteToken(token)`; invalid → friendly "expired/used" screen (no account-existence leak). Valid → render `InviteAcceptForm` with the invited email + sign-in methods (`getEffectiveSignInMethods()`). Gets branded layout free (route group). |
+| N7 | `app/(auth)/invite/[token]/_components/invite-accept-form.tsx` | `'use client'`. Variant of `AuthForm`: email **prefilled + read-only** (locked to invite), token prop; on success funnels to `/post-auth` (role is assigned by the create hook, so no token threading needed post-signup). Reuses `signUp.email` / `signIn.magicLink` / Google. |
+| N8 | `components/orbit/invite-dialog.tsx` | `'use client'`. shadcn `Dialog` (per CLAUDE.md): email input(s) + **role `Select`** (Member default / Manager) → `inviteMemberAction`. Opened by an "Invite" button on the Users page. |
+| N9 | `components/orbit/pending-invites-table.tsx` | `'use client'`. Lists pending invites (email, role, invitedBy, expiry) with **Copy link** (`/invite/<token>`), **Resend**, **Revoke** wired to actions. |
+| N10 | `app/(orbit)/orbit/settings/_components/workspace-branding-card.tsx` | Workspace name + logo, saved to `app_setting` via a new `orbit-settings.ts` action. Mirrors `appearance-card.tsx`. |
+| N11 | `app/(orbit)/orbit/settings/_components/data-deletion-card.tsx` | Email input → `deleteInviteeDataAction`; two-step confirm (AlertDialog). |
+| N12 | Drizzle migration (generated) | `drizzle-kit generate` → creates `invitation` table + partial-unique index. Add a hand-written data step: `UPDATE "user" SET role='owner' WHERE role='admin'; UPDATE "user" SET role='member' WHERE role='user';` |
 
----
+### 8.2 MODIFIED files
 
-## 8. Landing page content — corrections needed
-
-Confirmed against actual implemented features (grepped `lib/`, `db/schema`,
-`app/(app)/event-types/_components/tab-location.tsx`):
-
-| Claim | File:line | Verdict | Fix |
-|---|---|---|---|
-| "Microsoft Teams" in feature list | `app/(landing)/page.tsx:92` (`FEATURE_GROUPS`) | ❌ False. `locationTypeEnum` has a `'teams'` value used only for *displaying* legacy/label text in bookings list + emails (`app/(app)/bookings/page.tsx:48`, `lib/email/components/booking-email.tsx:104`); `LOCATION_OPTIONS` in `tab-location.tsx:101-109` only offers `google_meet` and `zoom` — a host cannot actually select Teams when creating an event type. | Remove "Microsoft Teams" from the feature list, or scope it down to "Zoom · Google Meet" only |
-| "+28%" / "Analytics" floating label | `app/(landing)/page.tsx:594-602` | ❌ No analytics feature exists anywhere in the app | Remove this floating label entirely |
-| "No credit card required" (×3: hero badge, hero sub-line, CTA checkmarks) | `page.tsx:221,271-275,1126` | ⚠️ Meaningless on self-hosted — nobody pays, there's no card to not-require | Replace with "Open source" / "Self-hosted" / "Your data stays yours" |
-| "Start for free" (hero CTA) | `page.tsx:261` | ⚠️ Wrong verb once signup is invite-only | Change to "Sign in" |
-| "Start free today" (feature-list CTA) | `page.tsx:940` | ⚠️ Same | Change to "Sign in" |
-| "Sign up in 30 seconds… No credit card" (final CTA sub-line + checkmarks) | `page.tsx:1107,1126` | ⚠️ Same | Change to "Log in and share your link" |
-| FAQ: "Is Schduled really free?" | `page.tsx:102` | ⚠️ SaaS-framed question, doesn't fit self-hosted | Replace with "How do I self-host this?" |
-| FAQ: "How is Schduled different from Calendly?" | `page.tsx:106` | ⚠️ Same framing issue | Replace with "How do I add my team?" (answers the invite flow) |
-| "Team · 4 active members" floating label | `page.tsx:584-591` | ✅ Accurate for multi-user — keep | No change |
-| "Smart scheduling for modern teams" (title/meta) | `page.tsx:37` | ✅ Accurate | No change |
-
-**Keep as-is (verified real):** Meeting Types, Availability Rules, Booking
-Limits, Buffer Times, Google Meet, Zoom, Google Calendar, Email Reminders,
-Reschedule & Cancel, Custom Questions, ICS Downloads.
-
----
-
-## 9. CLAUDE.md alignment note
-
-`CLAUDE.md` currently states *"Only one admin in the system — no 'Make
-Admin / Remove Admin' UI."* The code is role-based and technically
-multi-admin-capable (`user.role`), but the product decision for this flow
-is **single admin = the boss**. No code conflict — just confirming the doc
-and the chosen flow agree. No action needed unless the boss later wants
-delegated admins (e.g. an office manager), which would be a separate,
-larger decision.
-
----
-
-## 10. Full change list (tracking table)
-
-Update the **Status** column as work lands. Nothing below is implemented yet.
-
-| # | Area | File(s) | Change | Status |
-|---|---|---|---|---|
-| 1 | Invite flow | `app/(orbit)/orbit/users/page.tsx`, `components/orbit/users-table.tsx` | Add "Invite user" button + dialog | ⬜ Not started |
-| 2 | Invite flow | `app/actions/orbit-users.ts` or new `app/actions/orbit-invites.ts` | Server action: create invite row in `verification`, enqueue invite email | ⬜ Not started |
-| 3 | Invite flow | New: `app/(auth)/invite/[token]/page.tsx` | Accept-invite page → create `role: "user"` account → onboarding | ⬜ Not started |
-| 4 | Invite flow | Email template (new, alongside `lib/email/components/`) | "You've been invited to Schduled" email | ⬜ Not started |
-| 5 | Invite flow | `lib/audit.ts` call sites | Log invite-sent / invite-accepted events | ⬜ Not started |
-| 6 | Admin panel | `app/(orbit)/orbit/subscribers/`, `components/admin/admin-sidebar.tsx` | Remove Subscribers page + its sidebar entry | ⬜ Not started |
-| 7 | Landing | `components/landing/landing-footer.tsx` | Remove newsletter signup form | ⬜ Not started |
-| 8 | Landing | `app/(landing)/page.tsx:92` (`FEATURE_GROUPS`) | Remove "Microsoft Teams" | ⬜ Not started |
-| 9 | Landing | `app/(landing)/page.tsx:594-602` | Remove "Analytics +28%" floating label | ⬜ Not started |
-| 10 | Landing | `app/(landing)/page.tsx:221,271-275,1126` | Replace "No credit card" badges/lines | ⬜ Not started |
-| 11 | Landing | `app/(landing)/page.tsx:261,940` | "Start for free" → "Sign in" | ⬜ Not started |
-| 12 | Landing | `app/(landing)/page.tsx:1107,1126` | "Sign up in 30 seconds…" → "Log in and share your link" | ⬜ Not started |
-| 13 | Landing | `app/(landing)/page.tsx:102,106` (`FAQ_ITEMS`) | Replace 2 SaaS-framed FAQ entries with self-host ones | ⬜ Not started |
-| 14 | Theme copy | `app/(orbit)/orbit/settings/_components/appearance-card.tsx:37` | Reword description to not imply admin-only scope | ⬜ Not started |
-| 15 | Sidebar / theme | — | **Reviewed — no changes needed** (see §5, §6) | ✅ Reviewed, no action |
-
----
-
-## 11. External research — how comparable open-source self-hosted products do this
-
-Checked four real single-tenant-per-instance open-source products for their
-invite/admin model, to validate this plan isn't inventing a nonstandard
-pattern:
-
-| Product | Model | Matches this plan? |
+| # | File | Change |
 |---|---|---|
-| **Ghost** | Admin → Settings → Staff → "Invite people" (email + role) → recipient must accept the email invite before any user record is created. No direct staff creation exists — invite is the *only* path. | ✅ Same shape as §4 above |
-| **Plausible CE** (Community Edition) | First user registers as owner/admin. `DISABLE_REGISTRATION=invite_only` env var then locks out public signup — only admin-issued invites can create new accounts. | ✅ Exactly the `SIGNUP_ENABLED=false` + invite-only pattern already planned |
-| **Umami** | Ships with a single admin account (must be changed on first login). Additional users can only be added by an admin through the UI — no public signup at all in the default flow. | ✅ Same admin-gated addition pattern |
-| **Outline** | Admin invites users and assigns roles (Admin/Editor/Viewer) from settings; SSO is recommended for larger teams but invite-by-admin is the base mechanism. | ✅ Same admin-gated addition pattern |
+| M1 | `config/platform.ts` | Add `OWNER_ROLE='owner'`, `MANAGER_ROLE='manager'`, `MEMBER_ROLE='member'`, `PANEL_ROLES=[OWNER_ROLE, MANAGER_ROLE]`, `INVITE_TTL_HOURS=24*7`, `ACTIVITY_LOG_RETENTION_DAYS` (nullable = unlimited). Retire `ADMIN_ROLE` as a role value. |
+| M2 | `lib/authz.ts` | `requireAdmin()`: pass when `PANEL_ROLES.includes(role)` (owner or manager). Add `requireOwner()` (redirect unless `role===OWNER_ROLE`). Optional `isPanelRole(role)` helper. **Also** set the Better Auth admin plugin's `adminRoles: [OWNER_ROLE, MANAGER_ROLE]` in `lib/auth.ts` (role value is no longer `"admin"`). |
+| M3 | `lib/auth.ts` | `databaseHooks.user.create.before` (`:193-206`): after the bootstrap-admin check, also `return` (allow) when `await findPendingInvitation(user.email)` exists. `.after` (`:207-239`): after bootstrap block, if a pending invite exists → set `user.role = invite.role`, `markInvitationAccepted`, audit `invitation.accepted`. |
+| M4 | `app/actions/setup.ts` | `createFirstAdmin`: set first account to `OWNER_ROLE` (was `ADMIN_ROLE`); audit action string updated accordingly. |
+| M5 | `db/schema/index.ts` | Add `export * from "@/db/schema/invitation"` in the domain-tables block (after enums, before relations). |
+| M6 | `db/schema/relations.ts` | Add `invitationRelations` (`inviter: one(user)`, `acceptedByUser: one(user)`); add `invitations: many(invitation)` to `userRelations`. |
+| M7 | `db/schema/enums.ts` | *(Optional/cosmetic)* add `invitation.sent/accepted/revoked/resent`, `user.role_changed`, `ownership.transferred`, `invitee.data_deleted` to `auditActionEnum`. Not required — `audit.action` column is free-text. |
+| M8 | `app/(orbit)/orbit/users/page.tsx` | Add an **Invite** button → `InviteDialog`; render `PendingInvitesTable` above/below the users table (query `invitation WHERE status='pending'`); add **Export CSV** buttons (Active/Pending) → `exportMembersCsvAction`. Role filter already exists. |
+| M9 | `components/orbit/users-table.tsx` | Add a role-change control per row (owner-gated visibility) → `changeRoleAction`; keep existing suspend/bulk. Show `owner` badge distinctly; exclude owner from bulk/select-all. |
+| M10 | `components/orbit/user-actions.tsx`, `user-detail-actions.tsx` | Hide suspend/impersonate/role controls when target is `owner` or (for a manager actor) another `manager`. |
+| M11 | `app/actions/orbit-users.ts` | Update `nonAdminIds` → `nonPanelIds` (exclude owner **and** managers from member-level bulk actions); `toggleUserBanAction`/`deleteUserAction` refuse to act on the owner; keep self-guards. |
+| M12 | `components/admin/admin-sidebar.tsx`, `admin-mobile-nav.tsx` | Rename the `/orbit/users` label `"Users"` → `"Members"` (optional but matches Calendly). No route change needed. |
+| M13 | `app/api/username-check/route.ts` + `app/actions/onboarding.ts` | Add `invite` (and `orbit`, `login`, `api`, `settings`, `setup` if missing) to the `RESERVED` username set so no member can take `/invite`. |
+| M14 | `app/(orbit)/orbit/settings/_components/settings-nav.tsx` + `app/(orbit)/orbit/settings/page.tsx` | Add **Workspace** (branding) and **Data deletion** sections/anchors; render N10 + N11 cards. |
+| M15 | `app/(orbit)/orbit/audit/page.tsx`, `app/actions/orbit-audit.ts`, `components/orbit/audit-filters.tsx` | Add **CSV export** of the activity log and honor `ACTIVITY_LOG_RETENTION_DAYS` (a scheduled prune job or a view filter). Search already exists via filters. |
+| M16 | `app/(orbit)/orbit/settings/_components/appearance-card.tsx` | Copy fix: "Choose how **Schduled** looks on this device" (theme is global, not orbit-only — §14). |
+| M17 | `middleware.ts` | *(Optional/defensive)* add `/invite/` to `PUBLIC_PREFIXES` (already public by fall-through). |
+| M18 | `.env.example` + `lib/env.ts` | *(Optional)* document `ACTIVITY_LOG_RETENTION_DAYS`; reaffirm `SIGNUP_ENABLED=false` for invite-only. |
 
-**Conclusion**: every comparable product uses admin-issued, email-based
-invites into one flat user list — none of them model a multi-tenant
-"organization" for a single self-hosted instance. This directly supports
-the §4 decision to skip Better Auth's `organization` plugin.
+### 8.3 Auth-hook logic (the crux — pseudocode)
 
-Sources: [Ghost — Invite your team](https://ghost.org/help/managing-your-team/), [Ghost — Staff Users developer docs](https://docs.ghost.org/staff), [Plausible CE — Configure](https://github.com/plausible/community-edition/wiki/Configure), [Umami — self-hosting setup](https://pennyblacksolutions.com/how-to-self-host-umami/), [Outline — Users & roles](https://docs.getoutline.com/s/guide/doc/users-groups-cwCxXP8R3V), [Better Auth — Organization plugin docs](https://better-auth.com/docs/plugins/organization)
+```
+// lib/auth.ts  databaseHooks.user.create
+before(user):
+  if SIGNUP_ENABLED: return                      // allow
+  if user.email == INITIAL_ADMIN_EMAIL: return   // bootstrap
+  if await findPendingInvitation(user.email): return   // invited
+  return false                                   // block
+
+after(user):
+  ...existing audit + INITIAL_ADMIN_EMAIL → OWNER promotion...
+  inv = await findPendingInvitation(user.email)
+  if inv:
+    await db.update(user).set({ role: inv.role }).where(eq(user.id, user.id))
+    await markInvitationAccepted(inv.id, user.id)
+    await audit({ action: 'invitation.accepted', actorId: user.id, actorEmail: user.email,
+                  description: `${user.email} accepted invite as ${inv.role}`,
+                  entityType: 'invitation', entityId: inv.id })
+```
+
+Works for magic-link, password, **and** Google — role is decided by the invite,
+matched on email. Invitees must sign up with the **invited email**.
+
+---
+
+## 9. Docs / MD updates
+
+| File | Change |
+|---|---|
+| `docs/self-hosting/boss-employee-flow.md` | **This spec** (source of truth for the build). |
+| `CLAUDE.md` | Update *"Only one admin…"* → workspace model: "One workspace per instance; roles owner/manager/member; invite-only signup." |
+| `docs/self-hosting/configuration.md` | Document `SIGNUP_ENABLED=false` invite-only + the role model + `ACTIVITY_LOG_RETENTION_DAYS`. |
+| `docs/self-hosting/installation.md` | Note: first account = owner; invite teammates from `/orbit → Members`. |
+
+---
+
+## 10. Security checklist (must-do in P1)
+
+- [ ] **Query-scoping audit** — every read/write in `app/(app)/` & `app/actions/` filters by `session.user.id`/`hostUserId`. A miss = cross-member leak. #1 risk.
+- [ ] Admin dashboard is **intentionally workspace-wide** (`app/(orbit)/orbit/page.tsx`) — keep panel-role-only; never reuse those unscoped queries on member screens.
+- [ ] Invite tokens signed, single-use, time-boxed; invalid token leaks nothing about account existence.
+- [ ] Role-escalation guards: a manager can't grant `owner`, can't edit the owner, can't self-promote; invites carry `member`/`manager` only.
+- [ ] Last-owner + self-lockout protection; ownership transfer atomic.
+- [ ] Rate-limit `inviteMemberAction` (reuse `lib/auth.ts:47` rateLimit pattern) — no email-bombing.
+- [ ] `invite` (+ orbit/login/api/settings/setup) reserved as usernames.
+- [ ] Ban re-check already enforced mid-session (`lib/authz.ts:19-28`).
+
+---
+
+## 11. ✅ PHASE 1 checklist (the whole workspace layer) — ~2–3 weeks
+
+- [ ] **Roles**: M1 config + M2 authz + M12 nav + M4 setup owner.
+- [ ] **DB**: N1 table + M5/M6 wiring + M7 enum + N12 migration (incl. role data migration).
+- [ ] **Invite core**: N2 helpers + M3 auth hooks + N3 actions.
+- [ ] **Invite UX**: N6/N7 accept page+form + N8 invite dialog + N9 pending table + M8 users page.
+- [ ] **Members mgmt**: M9/M10/M11 role-aware guards + CSV export.
+- [ ] **Email**: N4/N5 invite template.
+- [ ] **Workspace settings**: N10 branding + M14 settings wiring.
+- [ ] **Activity log & compliance**: M15 CSV+retention + N11 data-deletion.
+- [ ] **Guards/reserved**: M13 usernames + M17 middleware.
+- [ ] **Docs**: §9.
+- [ ] **Security checklist** (§10) — especially the query-scoping audit.
+- [ ] `tsc --noEmit` clean (CLAUDE.md rule); run the `verify` skill on invite→accept→book.
+
+---
+
+## 12. 🔜 COMING SOON (later phases)
+
+- **P2 — Standardization:** Managed Events (event-type templates: create/lock/assign/sync); bulk invite (paste/CSV).
+- **P3 — Org structure & automation:** Groups + `group`/`group_member` tables + **Group Admin** & **Team Manager** roles; Managed Workflows; granular permissions.
+- **Later — Scheduling depth:** team scheduling (round-robin/collective — needs multi-host availability merge, the biggest item); routing forms; meeting polls; one-off meetings; analytics/reporting; MS Teams + Outlook, Stripe/PayPal, Salesforce/HubSpot, Zapier.
+- **Enterprise (on demand):** SSO/SAML (Better Auth SSO plugin), SCIM, domain control.
+
+Open-source note: none of this is paywalled or seat-gated — phasing is build order, not tiers.
+
+---
+
+## 13. Open questions for the PM
+
+1. Manager role-change authority — owner-only (recommended) or can Managers reassign Member↔Manager?
+2. Infra config — owner-only (recommended) or manager-manageable?
+3. Activity-log retention default — unlimited or e.g. 180 days with override?
+4. Managed Events (P2) priority vs personal event types only?
+5. Groups (P3) — realistic member count? (pays off past ~10–15)
+6. Multiple workspaces per instance? If yes → Option B (§7).
+7. Ownership transfer in P1, or fixed single owner for now?
+
+---
+
+## 14. Carried-over review notes (still valid)
+
+**Theme:** `ThemeProvider` mounted once (`app/layout.tsx:37-41`), shared via
+`next-themes`. `appearance-card.tsx` copy wrongly implies orbit-only scope — fix
+wording (M16). Public booking follows theme; landing is intentionally always-dark.
+
+**Landing copy** (verified vs implemented features): remove "Microsoft Teams"
+(`page.tsx:92` — not selectable), remove "Analytics +28%" (`:594-602`), replace
+"No credit card" ×3 (`:221,271-275,1126`) with "Open source / Self-hosted / Your
+data stays yours", "Start for free"→"Sign in" (`:261,940`), fix the two
+SaaS-framed FAQs (`:102,106`). Keep "Team · 4 active members" (`:584-591`).
+*(Optional cleanup — not blocking the invite flow.)*
+
+**Subscribers/newsletter:** if not needed on a private instance, remove
+`/orbit/subscribers`, its sidebar entry, the footer form, and
+`app/api/newsletter/route.ts`. *(Optional.)*
+
+---
+
+## 15. External research — comparable self-hosted products
+
+| Product | Model | Matches? |
+|---|---|---|
+| **Calendly** | Owner/Admin/(Group Admin)/Member; Admin Center; invite by email; fixed roles. | ✅ Adopted (trimmed to Owner/Manager/Member for P1; Calendly's "Admin" → our "Manager"). |
+| **Ghost** | Settings → Staff → "Invite people" (email+role); invite is the only path. | ✅ |
+| **Plausible CE** | First user = owner; `DISABLE_REGISTRATION=invite_only`; admin invites only. | ✅ = `SIGNUP_ENABLED=false` + invite-only. |
+| **Umami** | Single admin default; users added only by admin. | ✅ |
+| **Outline** | Admin invites + assigns roles. | ✅ |
+
+Sources: [Calendly roles](https://help.calendly.com/hc/en-us/articles/4410722852759-User-roles-and-permissions) · [Admin Center](https://help.calendly.com/hc/en-us/articles/16945127422487-Admin-Center) · [Managed Events](https://calendly.com/help/managed-events-overview) · [Activity log](https://calendly.com/help/the-activity-log) · [Data deletion](https://help.calendly.com/hc/en-us/articles/4412601189911-How-to-delete-personal-data-in-Calendly) · [Features](https://calendly.com/features) · [Ghost](https://ghost.org/help/managing-your-team/) · [Plausible CE](https://github.com/plausible/community-edition/wiki/Configure) · [Outline](https://docs.getoutline.com/s/guide/doc/users-groups-cwCxXP8R3V) · [Better Auth org plugin](https://better-auth.com/docs/plugins/organization)
+
+---
+
+## 16. Consolidated tracking table
+
+| # | Manifest | Area | Change | Phase | Status |
+|---|---|---|---|---|---|
+| 1 | M1 | Roles | `config/platform.ts` roles/consts | P1 | ✅ |
+| 2 | M2 | Authz | `requireAdmin`(panel)+`requireOwner` | P1 | ✅ |
+| 3 | N1,M5,M6,M7,N12 | DB | `invitation` table + wiring + migration + role migration | P1 | ✅ |
+| 4 | N2,M3 | Invite core | helpers + auth hooks (gate + role-on-accept) | P1 | ✅ |
+| 5 | N3 | Actions | `members.ts` (invite/resend/revoke/role/transfer/CSV/data-delete) | P1 | ✅ |
+| 6 | N6,N7 | Auth UI | `/invite/[token]` page + accept form | P1 | ✅ |
+| 7 | N8,N9,M8 | Members UI | invite dialog + pending table + users page wiring | P1 | ✅ |
+| 8 | M9,M10,M11 | Members guards | role-aware suspend/impersonate/bulk/role-change | P1 | ✅ |
+| 9 | N4,N5 | Email | invite template + component | P1 | ✅ |
+| 10 | N10,M14 | Workspace | branding card + settings wiring | P1 | ✅ |
+| 11 | N11,M15 | Compliance | data deletion + activity-log CSV/retention | P1 | ✅ |
+| 12 | M4 | Setup | first account → owner | P1 | ✅ |
+| 13 | M13,M17 | Guards | reserved usernames + middleware | P1 | ✅ |
+| 14 | M12,M16 | UI copy | nav label ("Members") + appearance card | P1 | ✅ |
+| 15 | §9 | Docs | CLAUDE.md / configuration.md / installation.md / ENVIRONMENT.md | P1 | ✅ |
+| 16 | — | Managed Events | templates + lock/assign/sync | P2 | ⬜ |
+| 17 | — | Groups | `group`/`group_member` + Group Admin/Team Manager | P3 | ⬜ |
+| 18 | — | Scheduling/enterprise | round-robin/routing/polls/analytics; SSO/SCIM | later | ⬜ |
+
+**Phase 1 implemented and verified** (see §17 below for how). Items 16–18
+remain Coming Soon per §12/§13.
+
+## 17. Implementation notes (what shipped, beyond the original manifest)
+
+A few things surfaced only while building that the spec didn't call out —
+recorded here so the "why" isn't lost:
+
+- **Better Auth's admin plugin needed an explicit `roles` map.** Passing
+  `adminRoles: [OWNER_ROLE, MANAGER_ROLE]` alone isn't enough — the plugin
+  validates those names against its own `roles` access-control option
+  (default: `{admin, user}`), so booting with unrecognized role names threw
+  `BetterAuthError: Invalid admin roles` at build/boot time. Fixed in
+  `lib/auth.ts` by importing `adminAc`/`userAc` from
+  `better-auth/plugins/admin/access` and passing
+  `roles: { owner: adminAc, manager: adminAc, member: userAc }` alongside
+  `adminRoles`. Caught by `pnpm build`, not `tsc` — the admin plugin's role
+  validation runs at plugin-init time, not type-check time.
+- **`user.role`'s column default was still `'user'`.** A stray literal from
+  the old two-role model — anyone signing up with `SIGNUP_ENABLED=true` and
+  no invitation would've gotten `role='user'`, which isn't one of
+  owner/manager/member. Changed the Drizzle column default to `'member'`
+  (migration `0018_sturdy_puck.sql`). Existing rows were already handled by
+  the `admin→owner`/`user→member` data migration (`0017`); this only fixes
+  the default for *future* inserts.
+- **Two `startTransition` callbacks needed rewrapping.** `role-select.tsx`
+  and `pending-invites-table.tsx` originally did
+  `startTransition(() => someAction(fd))`; React's `startTransition` scope
+  requires a `void`-returning callback, but the action's `Promise<ActionResult>`
+  doesn't satisfy that — wrapped in `async () => { await someAction(fd); }`
+  instead (matches the existing `handleBulkSuspend` pattern in
+  `users-table.tsx`).
+- **Activity-log CSV export already existed** (`app/actions/orbit-audit.ts`
+  `exportAuditLogsAction` + `components/orbit/audit-table.tsx`) — only
+  *retention* was net-new. Added as `ACTIVITY_LOG_RETENTION_DAYS` (an env var,
+  not a hardcoded constant — more consistent with "operator-configurable")
+  plus a nightly pg-boss job (`platform.audit-logs-prune`,
+  `lib/worker/handlers/audit-logs-prune.ts`), mirroring the existing
+  `idempotency-keys-prune` pattern.
+- **Sign-in methods became owner-only**, not just documented as a
+  recommendation — `updateSignInMethodsAction` now calls `requireOwner()`
+  (was `requireAdmin()`), and the Settings page renders a read-only notice
+  card for managers instead of the editable form.
+
+### Verified live (not just typechecked)
+
+- `tsc --noEmit` — clean.
+- `pnpm build` — all 66 routes compile, including `/invite/[token]`.
+- `pnpm db:generate` + `pnpm db:migrate` — applied against the real dev
+  Postgres; confirmed the single existing `admin` row became the sole
+  `owner`, all `user` rows became `member`, and the `invitation` table +
+  enums + partial-unique index exist exactly as designed.
+- End-to-end smoke test against a running `pnpm dev`: inserted a real
+  `invitation` row → `GET /invite/<token>` correctly resolved and rendered
+  the accept form with the invited email — → `POST
+  /api/auth/sign-up/email` with that email → the new user's DB row landed on
+  `role='manager'` (not the default), the invitation flipped to `accepted`
+  with `accepted_by` set, and `audit_logs` recorded `user.created` then
+  `invitation.accepted` in order → signed in as that account and confirmed
+  `requireAdmin()` now admits it to `/orbit` and `/orbit/users` (200, not a
+  redirect) — the `PANEL_ROLES` check works end-to-end. Test rows were
+  cleaned up afterward.
 
 ---
 
 ## References
 
-- `docs/self-hosting/installation.md` — existing clone/Docker install steps (step ① above)
-- `docs/self-hosting/configuration.md` — env vars including `SIGNUP_ENABLED`
-- `docs/features/admin-panel.md` — existing Orbit feature documentation
-- `docs/features/user-onboarding.md` — existing onboarding flow documentation
+- Codebase anchors: `lib/auth.ts`, `lib/authz.ts`, `lib/setup.ts`, `lib/email/index.ts`, `lib/audit.ts`, `config/platform.ts`, `db/schema/{auth,platform,enums,index,relations}.ts`, `app/actions/{orbit-users,setup,onboarding}.ts`, `app/(orbit)/orbit/`, `app/(auth)/_components/auth-form.tsx`, `app/(onboarding)/onboarding/`, `middleware.ts`.
+- Calendly + comparable-product sources — §15.
+- Better Auth organization plugin (evaluated, not adopted) — https://better-auth.com/docs/plugins/organization

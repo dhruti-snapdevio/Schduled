@@ -120,13 +120,13 @@ export function LegalShell({
             Scheduling made simple. Free forever.
           </h2>
           <p className="mt-3 text-muted-foreground">
-            No credit card, no paid plans. Your booking link is ready in 2 minutes.
+            Open source, self-hosted, no paid plans. Your booking link is ready in 2 minutes.
           </p>
           <Link
             href="/login"
             className="mt-7 inline-flex items-center gap-2 bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
-            Get started free
+            Sign In
             <ArrowRight size={14} weight="bold" />
           </Link>
         </div>

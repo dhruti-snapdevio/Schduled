@@ -37,7 +37,7 @@ const RESERVED_USERNAMES = new Set([
   "signup", "post-auth", "onboarding", "privacy", "terms", "cookies",
   "cancel", "reschedule", "help", "support", "about", "pricing",
   "contact", "careers", "jobs", "blog", "docs", "status", "app",
-  "www", "mail", "ftp", "cdn", "assets", "static",
+  "www", "mail", "ftp", "cdn", "assets", "static", "invite",
 ]);
 
 export function validateUsername(username: string): string | null {

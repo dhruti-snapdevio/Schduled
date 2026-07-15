@@ -47,6 +47,7 @@ when you need the feature:
 | Branding | `NEXT_PUBLIC_PRODUCT_NAME`, `NEXT_PUBLIC_SHOW_POWERED_BY`, `CONTACT_EMAIL`, `NEXT_PUBLIC_CONTACT_EMAIL`, `PRIVACY_EMAIL` | `ENVIRONMENT.md` §8 |
 | Optional landing page | `NEXT_PUBLIC_LANDING_ENABLED` | `ENVIRONMENT.md` §1 |
 | DB connection pool | `DB_POOL_MAX` | `ENVIRONMENT.md` §1 |
+| Activity-log retention | `ACTIVITY_LOG_RETENTION_DAYS` (unset = forever) | [Workspace roles](./boss-employee-flow.md) |
 
 ## Where variables live
 

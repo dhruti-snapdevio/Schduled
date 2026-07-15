@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { AvatarProvider } from '@/components/avatar-context'
 import { AppShell } from '@/components/scaffold/app-shell'
 import { GuidedTour } from '@/components/tour/guided-tour'
-import { ADMIN_ROLE } from '@/config/platform'
+import { PANEL_ROLES } from '@/config/platform'
 import { user } from '@/db/schema'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
@@ -37,7 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppShell
         email={freshUser?.email ?? session.user.email}
         userName={freshUser?.name ?? null}
-        isAdmin={freshUser?.role === ADMIN_ROLE}
+        isAdmin={PANEL_ROLES.includes(freshUser?.role as (typeof PANEL_ROLES)[number])}
         userImage={freshUser?.image ?? null}
         isImpersonating={isImpersonating}
         impersonatedUserName={freshUser?.name ?? null}

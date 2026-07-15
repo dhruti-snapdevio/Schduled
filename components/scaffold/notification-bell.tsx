@@ -8,6 +8,9 @@ import {
   CheckCircle,
   Clock,
   Hourglass,
+  ShieldCheck,
+  UserPlus,
+  UserSwitch,
   X,
 } from "@phosphor-icons/react";
 import Link from "next/link";
@@ -37,6 +40,10 @@ const ICONS: Record<string, React.ReactNode> = {
   booking_rescheduled:       <ArrowsClockwise className="text-amber-500" size={16} />,
   booking_reminder:          <Clock className="text-amber-500" size={16} />,
   booking_pending_approval:  <Hourglass className="text-amber-500" size={16} />,
+  booking_approved:          <CheckCircle className="text-success" size={16} />,
+  role_changed:              <UserSwitch className="text-primary" size={16} />,
+  ownership_transferred:     <ShieldCheck className="text-primary" size={16} />,
+  member_joined:             <UserPlus className="text-success" size={16} />,
 };
 
 function timeAgo(iso: string): string {

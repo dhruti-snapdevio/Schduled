@@ -4,9 +4,9 @@ import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { account, booking, eventType, session as sessionTable, user } from "@/db/schema";
-import { ADMIN_ROLE } from "@/config/platform";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/authz";
+import { canActOnRole, isPanelRole } from "@/lib/roles";
 import {
   cancelUpcomingBookingsForHost,
   emailInviteesOfHostRemoval,
@@ -29,11 +29,14 @@ export async function recordImpersonationAction(
   if (!targetUserId) return { error: "Missing user id." };
 
   const [target] = await db
-    .select({ email: user.email })
+    .select({ email: user.email, role: user.role })
     .from(user)
     .where(eq(user.id, targetUserId))
     .limit(1);
   if (!target) return { error: "User not found." };
+  if (!canActOnRole(admin.user.role, target.role)) {
+    return { error: "You don't have permission to impersonate this account." };
+  }
 
   await audit({
     action: "orbit.impersonation_start",
@@ -47,14 +50,15 @@ export async function recordImpersonationAction(
   return { ok: true };
 }
 
-/** Returns the subset of `ids` that are NOT admins — admins can't be acted on. */
-async function nonAdminIds(ids: string[]): Promise<string[]> {
+/** Returns the subset of `ids` that are plain members — bulk actions never
+ * touch the owner or a manager, regardless of who's running them. */
+async function nonPanelIds(ids: string[]): Promise<string[]> {
   if (ids.length === 0) return [];
   const rows = await db
     .select({ id: user.id, role: user.role })
     .from(user)
     .where(inArray(user.id, ids));
-  return rows.filter((r) => r.role !== ADMIN_ROLE).map((r) => r.id);
+  return rows.filter((r) => !isPanelRole(r.role)).map((r) => r.id);
 }
 
 export async function toggleUserBanAction(formData: FormData): Promise<void> {
@@ -66,14 +70,15 @@ export async function toggleUserBanAction(formData: FormData): Promise<void> {
     return;
   }
 
-  // Admins cannot suspend other admins.
+  // The owner can never be suspended; a manager can't suspend another
+  // manager — only the owner can act on staff.
   if (banned) {
     const [target] = await db
       .select({ role: user.role })
       .from(user)
       .where(eq(user.id, userId))
       .limit(1);
-    if (target?.role === ADMIN_ROLE) return;
+    if (!target || !canActOnRole(admin.user.role, target.role)) return;
   }
 
   await db
@@ -126,8 +131,8 @@ export async function deleteUserAction(formData: FormData): Promise<void> {
     redirect("/orbit/users");
   }
 
-  // Admins cannot delete other admins.
-  if (target.role === ADMIN_ROLE) {
+  // The owner can never be deleted; a manager can't delete another manager.
+  if (!canActOnRole(admin.user.role, target.role)) {
     redirect("/orbit/users");
   }
 
@@ -169,7 +174,14 @@ export async function cancelBookingAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin();
   const bookingId  = String(formData.get("bookingId")  ?? "");
   const hostUserId = String(formData.get("hostUserId") ?? "");
-  if (!bookingId) return;
+  if (!bookingId || !hostUserId) return;
+
+  const [host] = await db
+    .select({ role: user.role })
+    .from(user)
+    .where(eq(user.id, hostUserId))
+    .limit(1);
+  if (!host || !canActOnRole(admin.user.role, host.role)) return;
 
   const [b] = await db
     .select({ id: booking.id, status: booking.status, inviteeName: booking.inviteeName })
@@ -214,7 +226,14 @@ export async function deleteEventTypeAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin();
   const eventTypeId = String(formData.get("eventTypeId") ?? "");
   const hostUserId  = String(formData.get("hostUserId")  ?? "");
-  if (!eventTypeId) return;
+  if (!eventTypeId || !hostUserId) return;
+
+  const [host] = await db
+    .select({ role: user.role })
+    .from(user)
+    .where(eq(user.id, hostUserId))
+    .limit(1);
+  if (!host || !canActOnRole(admin.user.role, host.role)) return;
 
   const [et] = await db
     .select({ id: eventType.id, name: eventType.name })
@@ -244,7 +263,7 @@ export async function deleteEventTypeAction(formData: FormData): Promise<void> {
 export async function bulkBanUsersAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin();
   const requested = formData.getAll("userId").map(String).filter((id) => id && id !== admin.user.id);
-  const ids = await nonAdminIds(requested);
+  const ids = await nonPanelIds(requested);
   if (ids.length === 0) return;
 
   await db.update(user).set({
@@ -273,7 +292,7 @@ export async function bulkBanUsersAction(formData: FormData): Promise<void> {
 export async function bulkDeleteUsersAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin();
   const requested = formData.getAll("userId").map(String).filter((id) => id && id !== admin.user.id);
-  const ids = await nonAdminIds(requested);
+  const ids = await nonPanelIds(requested);
   if (ids.length === 0) return;
 
   const targets = await db

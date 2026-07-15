@@ -96,9 +96,9 @@ export function UsersFilter({ value }: { value: string }) {
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">All Users</SelectItem>
+        <SelectItem value="all">All Members</SelectItem>
         <SelectItem value="active">Active</SelectItem>
-        <SelectItem value="admins">Admins</SelectItem>
+        <SelectItem value="staff">Owner &amp; Managers</SelectItem>
         <SelectItem value="suspended">Suspended</SelectItem>
       </SelectContent>
     </Select>

@@ -34,8 +34,8 @@ import {
 import { getCurrentSession } from '@/lib/authz'
 
 export const metadata = {
-  title: 'Schduled — Smart scheduling for modern teams',
-  description: 'Share a link. Let people book time with you automatically. No back-and-forth emails.',
+  title: 'Schduled — Open-source scheduling, self-hosted',
+  description: 'Share a link. Let people book time with you automatically. Open source, self-hosted, and free forever.',
 }
 
 // ── Static data ───────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ const FEATURE_GROUPS = [
   {
     label: 'Integrations',
     icon: VideoCamera,
-    items: ['Google Meet', 'Zoom', 'Microsoft Teams', 'Google Calendar'],
+    items: ['Google Meet', 'Zoom', 'Phone Calls', 'Google Calendar'],
   },
   {
     label: 'Automation',
@@ -99,11 +99,11 @@ const FEATURE_GROUPS = [
 ]
 
 const FAQ_ITEMS = [
-  { q: 'Is Schduled really free?', a: 'Yes — completely free. No paid plans, no credit card required, no feature limits. Every capability is available from day one, forever.', defaultOpen: true },
+  { q: 'How do I self-host this?', a: "Clone the repo, set a few environment variables, and run docker-compose up — Postgres and the background worker come up alongside the app. It's free, MIT-licensed, and yours to run forever. No paid plans, no feature limits.", defaultOpen: true },
+  { q: 'How do I add my team?', a: "As the workspace owner, open the Admin Center → Members → Invite, pick Member or Manager, and they'll get an email to set up their own account and booking page. Public sign-up stays closed — only people you invite can join." },
   { q: 'Do my invitees need to sign up?', a: 'No. Invitees open your link, pick a time, and fill in their name and email. No account, no app download, no friction at all.' },
   { q: 'How does calendar sync work?', a: 'Connect your Google Calendar once during setup. Schduled reads your existing events in real time and hides busy slots from your booking page automatically.' },
   { q: 'What happens the moment someone books?', a: 'Both you and the invitee receive a confirmation email with all details, a video link (if configured), and an .ics calendar file. Reminders fire 24 hours and 1 hour before the meeting.' },
-  { q: 'How is Schduled different from Calendly?', a: "Schduled is 100% free with no plan limits, a sharper UI, and it's open source. Everything Calendly charges for on paid plans — Schduled ships free." },
 ]
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -218,10 +218,10 @@ export default async function LandingPage() {
                 {/* 3 premium micro-badges */}
                 <div className="mb-8 flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 border border-teal-600/30 bg-teal-950/70 px-3 py-1 text-xs font-semibold text-teal-300 backdrop-blur-sm">
-                    <Lightning size={10} weight="fill" /> No credit card required
+                    <Code size={10} weight="bold" /> Open Source
                   </span>
                   <span className="inline-flex items-center gap-1.5 border border-teal-600/30 bg-teal-950/70 px-3 py-1 text-xs font-semibold text-teal-300 backdrop-blur-sm">
-                    <Code size={10} weight="bold" /> Open Source
+                    <Database size={10} weight="fill" /> Self-Hosted
                   </span>
                   <span className="inline-flex items-center gap-1.5 border border-teal-600/30 bg-teal-950/70 px-3 py-1 text-xs font-semibold text-teal-300 backdrop-blur-sm">
                     <Globe size={10} weight="duotone" /> Timezone Smart
@@ -258,7 +258,7 @@ export default async function LandingPage() {
                   >
                     <span className="animate-schduled-sheen pointer-events-none absolute inset-0"
                       style={{ background: 'linear-gradient(105deg,transparent 40%,rgba(255,255,255,.22) 50%,transparent 60%)', backgroundSize: '200% auto' }} />
-                    Start for free
+                    Sign In
                     <ArrowRight size={14} weight="bold" />
                   </Link>
                   <a href="#how-it-works"
@@ -268,7 +268,7 @@ export default async function LandingPage() {
                 </div>
 
                 <p className="mt-5 flex items-center gap-2 text-xs text-white/30">
-                  <CheckCircle size={11} weight="fill" className="text-teal-400/60 shrink-0" /> No credit card
+                  <CheckCircle size={11} weight="fill" className="text-teal-400/60 shrink-0" /> Open source
                   <span className="opacity-40">·</span>
                   <CheckCircle size={11} weight="fill" className="text-teal-400/60 shrink-0" /> Free forever
                   <span className="opacity-40">·</span>
@@ -591,14 +591,14 @@ export default async function LandingPage() {
                 <p className="text-2xs text-white/40">active members</p>
               </div>
 
-              {/* Floating label — Analytics */}
+              {/* Floating label — License */}
               <div
                 className="absolute -right-4 bottom-32 z-10 hidden border border-teal-600/35 bg-teal-950/90 px-3 py-2 backdrop-blur-sm xl:block"
                 style={{ animation: 'schduled-float 7s ease-in-out 2s infinite' }}
               >
-                <p className="text-2xs font-black uppercase tracking-wider text-teal-400/60">Analytics</p>
-                <p className="text-lg font-black text-white" style={{ fontFamily: 'var(--font-heading)' }}>+28%</p>
-                <p className="text-2xs text-white/40">bookings this month</p>
+                <p className="text-2xs font-black uppercase tracking-wider text-teal-400/60">License</p>
+                <p className="text-lg font-black text-white" style={{ fontFamily: 'var(--font-heading)' }}>MIT</p>
+                <p className="text-2xs text-white/40">free forever, yours to run</p>
               </div>
 
               {/* Browser frame */}
@@ -933,11 +933,12 @@ export default async function LandingPage() {
                   Every feature.<br />Zero paywalls.
                 </h2>
                 <p className="mb-6 text-muted-foreground leading-relaxed">
-                  We don&apos;t have a paid plan. There&apos;s nothing to unlock.
-                  Everything listed here is yours from the moment you sign up.
+                  It&apos;s open source and self-hosted — there&apos;s no paid
+                  plan and nothing to unlock. Everything listed here is yours
+                  the moment you deploy it.
                 </p>
                 <Link href="/login" className="inline-flex items-center gap-2 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
-                  Start free today <ArrowRight size={14} weight="bold" />
+                  Sign In <ArrowRight size={14} weight="bold" />
                 </Link>
               </Reveal>
 
@@ -1104,8 +1105,8 @@ export default async function LandingPage() {
                 </span>
               </h2>
               <p className="mt-6 text-lg text-white/50">
-                Sign up in 30 seconds. Connect your calendar.
-                Share your link. The rest is automatic.
+                Sign in, connect your calendar, share your link.
+                The rest is automatic.
               </p>
             </Reveal>
             <Reveal delay={150} direction="up" className="mt-10 flex flex-col items-center gap-4">
@@ -1113,7 +1114,7 @@ export default async function LandingPage() {
                 <Link href="/login" className="relative inline-flex items-center gap-2 overflow-hidden bg-primary px-9 py-4 text-base font-semibold text-primary-foreground transition-opacity hover:opacity-90">
                   <span className="animate-schduled-sheen pointer-events-none absolute inset-0"
                     style={{ background: 'linear-gradient(105deg,transparent 40%,rgba(255,255,255,.22) 50%,transparent 60%)', backgroundSize: '200% auto' }} />
-                  Start Free
+                  Sign In
                   <ArrowRight size={16} weight="bold" />
                 </Link>
                 <a href="#how-it-works" className="inline-flex items-center gap-2 border border-white/20 px-9 py-4 text-base font-semibold text-white/75 transition-all hover:border-white/40 hover:text-white">
@@ -1123,7 +1124,7 @@ export default async function LandingPage() {
 
               {/* Checkmarks */}
               <div className="flex flex-wrap items-center justify-center gap-4 mt-2">
-                {['Free forever', 'No credit card', 'Setup in 30 seconds'].map((item) => (
+                {['Free forever', 'Open source', 'Self-hosted'].map((item) => (
                   <span key={item} className="flex items-center gap-1.5 text-sm text-white/35">
                     <CheckCircle size={13} weight="fill" className="text-teal-400/60 shrink-0" />
                     {item}

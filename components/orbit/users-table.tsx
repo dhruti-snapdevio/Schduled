@@ -28,10 +28,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { ADMIN_ROLE } from "@/config/platform";
+import { MANAGER_ROLE, OWNER_ROLE } from "@/config/platform";
+import { canActOnRole, isPanelRole } from "@/lib/roles";
 import { paginationRange } from "@/lib/utils";
 import { bulkBanUsersAction, bulkDeleteUsersAction } from "@/app/actions/orbit-users";
 import { UserSuspendForm } from "./user-actions";
+import { RoleSelect } from "./role-select";
 import {
   Table,
   TableBody,
@@ -50,11 +52,12 @@ type UserRow = {
   createdAt: string;
 };
 
-type Filter = "all" | "active" | "admins" | "suspended";
+type Filter = "all" | "active" | "staff" | "suspended";
 
 export function UsersTable({
   users,
   currentUserId,
+  currentUserRole,
   total,
   page,
   totalPages,
@@ -63,6 +66,7 @@ export function UsersTable({
 }: {
   users: UserRow[];
   currentUserId: string;
+  currentUserRole: string | null;
   total: number;
   page: number;
   totalPages: number;
@@ -83,7 +87,11 @@ export function UsersTable({
     return qs ? `/orbit/users?${qs}` : "/orbit/users";
   }
 
-  const selectableIds = pageUsers.filter((u) => u.id !== currentUserId).map((u) => u.id);
+  // Bulk actions never touch the owner or a manager, regardless of who's
+  // running them (app/actions/orbit-users.ts nonPanelIds enforces the same).
+  const selectableIds = pageUsers
+    .filter((u) => u.id !== currentUserId && !isPanelRole(u.role))
+    .map((u) => u.id);
   const allSelected   = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
 
   function toggleAll() {
@@ -162,6 +170,8 @@ export function UsersTable({
               pageUsers.map((u) => {
                 const isSelf = u.id === currentUserId;
                 const isChecked = selected.has(u.id);
+                const isOwner = u.role === OWNER_ROLE;
+                const rowCanManage = !isSelf && canActOnRole(currentUserRole, u.role);
                 return (
                   <TableRow
                     key={u.id}
@@ -169,7 +179,7 @@ export function UsersTable({
                   >
                     {/* Checkbox */}
                     <TableCell className="w-10 px-4 py-3">
-                      {!isSelf && (
+                      {!isSelf && !isPanelRole(u.role) && (
                         <Checkbox
                           checked={isChecked}
                           onCheckedChange={() => toggleOne(u.id)}
@@ -202,9 +212,13 @@ export function UsersTable({
 
                     {/* Role */}
                     <TableCell className="px-4 py-3">
-                      <Badge variant={u.role === ADMIN_ROLE ? "default" : "secondary"} className="text-xs">
-                        {u.role ?? "user"}
-                      </Badge>
+                      {currentUserRole === OWNER_ROLE && !isSelf && !isOwner ? (
+                        <RoleSelect userId={u.id} role={u.role === MANAGER_ROLE ? MANAGER_ROLE : "member"} />
+                      ) : (
+                        <Badge variant={isPanelRole(u.role) ? "default" : "secondary"} className="text-xs">
+                          {u.role ?? "member"}
+                        </Badge>
+                      )}
                     </TableCell>
 
                     {/* Status */}
@@ -230,7 +244,7 @@ export function UsersTable({
                     {/* Actions */}
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {!isSelf && (
+                        {rowCanManage && (
                           <UserSuspendForm banned={u.banned} userId={u.id} />
                         )}
                         <Link

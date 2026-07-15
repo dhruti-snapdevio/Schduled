@@ -285,13 +285,23 @@ INITIAL_ADMIN_EMAIL=you@example.com
 ```
 This closes public sign-up while the `INITIAL_ADMIN_EMAIL` account stays exempt
 (so it can always create itself, even with signup closed) and is auto-promoted
-to admin. See `ENVIRONMENT.md` §3 for the full explanation.
+to **owner** — the one account that holds the workspace. See `ENVIRONMENT.md`
+§3 for the full explanation.
+
+### Adding teammates
+
+Once you're signed in as the owner, invite people from **Admin Center →
+Members → Invite** — pick **Member** (their own scheduling only) or
+**Manager** (can also manage members and workspace settings). They get an
+email with a link to set up their own account; public sign-up stays closed
+the whole time. See [Workspace roles](./boss-employee-flow.md) for the full
+role model.
 
 ## Post-install checklist
 
 - [ ] `curl <your-url>/api/health` returns `{"status":"ok"}`
-- [ ] You can sign in with the `INITIAL_ADMIN_EMAIL` account
-- [ ] The Orbit admin panel is reachable and shows your admin account
+- [ ] You can sign in with the `INITIAL_ADMIN_EMAIL` account (now the owner)
+- [ ] The Orbit admin panel is reachable and shows your account
 - [ ] `SIGNUP_ENABLED=false` is set (or you've deliberately chosen open signup)
 - [ ] The worker is running — a test booking sends a confirmation
       (or logs one to the console if SMTP isn't configured)

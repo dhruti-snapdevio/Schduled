@@ -20,6 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { OWNER_ROLE } from '@/config/platform'
 import { requireAdmin } from '@/lib/authz'
 import { userHasPassword } from '@/lib/auth-password'
 import {
@@ -30,16 +31,20 @@ import { cn } from '@/lib/utils'
 import { SignInMethodsCard } from './_components/sign-in-methods-card'
 import { SettingsNav } from './_components/settings-nav'
 import { AppearanceCard } from './_components/appearance-card'
+import { WorkspaceBrandingCard } from './_components/workspace-branding-card'
+import { DataDeletionCard } from './_components/data-deletion-card'
 import { PasswordCard } from '@/components/profile/password-card'
+import { getWorkspaceBranding } from '@/lib/settings/workspace'
 
 export const metadata = { title: 'Platform Settings' }
 
 export default async function OrbitSettingsPage() {
   const session = await requireAdmin()
 
-  const [signInMethods, hasPassword] = await Promise.all([
+  const [signInMethods, hasPassword, workspaceBranding] = await Promise.all([
     getStoredSignInMethods(),
     userHasPassword(session.user.id),
+    getWorkspaceBranding(),
   ])
 
   const smtpConfigured      = !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER)
@@ -95,13 +100,31 @@ export default async function OrbitSettingsPage() {
           </div>
         </section>
 
-        {/* ── Sign-in Methods ── */}
-        <section id="sign-in" className="scroll-mt-6">
-          <SignInMethodsCard
-            availability={signInMethodAvailability}
-            initial={signInMethods}
-            smtpConfigured={smtpConfigured}
+        {/* ── Workspace ── */}
+        <section id="workspace" className="scroll-mt-6">
+          <WorkspaceBrandingCard
+            initialName={workspaceBranding.name}
+            initialLogoUrl={workspaceBranding.logoUrl}
           />
+        </section>
+
+        {/* ── Sign-in Methods (owner only — instance-critical config) ── */}
+        <section id="sign-in" className="scroll-mt-6">
+          {session.user.role === OWNER_ROLE ? (
+            <SignInMethodsCard
+              availability={signInMethodAvailability}
+              initial={signInMethods}
+              smtpConfigured={smtpConfigured}
+            />
+          ) : (
+            <Card>
+              <SectionHeader
+                icon={<LockKey size={15} weight="bold" />}
+                title="Sign-in Methods"
+                description="Only the workspace owner can change how people sign in."
+              />
+            </Card>
+          )}
         </section>
 
         {/* ── General ── */}
@@ -186,6 +209,11 @@ export default async function OrbitSettingsPage() {
               />
             </CardContent>
           </Card>
+        </section>
+
+        {/* ── Data Deletion ── */}
+        <section id="data-deletion" className="scroll-mt-6">
+          <DataDeletionCard />
         </section>
 
         {/* ── Account (admin's own credentials) ── */}

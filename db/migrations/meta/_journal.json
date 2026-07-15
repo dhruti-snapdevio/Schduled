@@ -113,6 +113,27 @@
       "when": 1784029838140,
       "tag": "0015_talented_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1784112482047,
+      "tag": "0016_gigantic_pretty_boy",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1784112500552,
+      "tag": "0017_migrate_admin_user_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1784113025345,
+      "tag": "0018_sturdy_puck",
+      "breakpoints": true
     }
   ]
 }

@@ -184,7 +184,7 @@ export default function AboutPage() {
                     href="/login"
                     className="inline-flex items-center gap-2 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                   >
-                    Start for free
+                    Sign In
                     <ArrowRight size={14} weight="bold" />
                   </Link>
                   <a
@@ -368,14 +368,14 @@ export default function AboutPage() {
               two minutes away.
             </h2>
             <p className="mt-4 text-muted-foreground">
-              No credit card. No trial. No paid tiers. Just sign up, connect your calendar, and share your link.
+              No trial. No paid tiers. Deploy it, sign in, connect your calendar, and share your link.
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
               <Link
                 href="/login"
                 className="inline-flex items-center gap-2 bg-primary px-8 py-3.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
               >
-                Start for free
+                Sign In
                 <ArrowRight size={14} weight="bold" />
               </Link>
               <Link
@@ -386,7 +386,7 @@ export default function AboutPage() {
               </Link>
             </div>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-              {["No credit card", "Free forever", "Open source"].map((t) => (
+              {["Self-hosted", "Free forever", "Open source"].map((t) => (
                 <span key={t} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <CheckCircle size={13} weight="fill" className="text-primary" />
                   {t}

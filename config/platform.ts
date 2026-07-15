@@ -4,11 +4,23 @@
 // throw. A literal `process.env.NEXT_PUBLIC_*` access is safely inlined by
 // Next.js for both server and client bundles.
 export const PRODUCT_NAME = process.env.NEXT_PUBLIC_PRODUCT_NAME || "Schduled";
-export const PRODUCT_DESCRIPTION = "Smart scheduling for modern teams.";
+export const PRODUCT_DESCRIPTION = "Open-source scheduling, self-hosted.";
 export const LOGO_PATH = "/logo.svg";
 
-export const ADMIN_ROLE = "admin";
-export const USER_ROLE = "user";
+// Workspace roles — see docs/self-hosting/boss-employee-flow.md.
+// Owner: exactly one, the account created during setup. Manager: delegated
+// staff who run the Admin Center day-to-day but can't touch ownership/infra
+// (Calendly calls this role "Admin"; renamed so it doesn't collide with
+// "Owner"). Member: an invited host with their own scheduling only.
+export const OWNER_ROLE = "owner";
+export const MANAGER_ROLE = "manager";
+export const MEMBER_ROLE = "member";
+
+// Roles that can reach the /orbit Admin Center.
+export const PANEL_ROLES = [OWNER_ROLE, MANAGER_ROLE] as const;
+
+// How long an invite link stays valid before it must be re-sent.
+export const INVITE_TTL_HOURS = 24 * 7;
 
 // Single source of truth for password length constraints — read by
 // lib/auth.ts (Better Auth's minPasswordLength/maxPasswordLength config) and

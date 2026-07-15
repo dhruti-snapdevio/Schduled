@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { ADMIN_ROLE } from "@/config/platform";
+import { PANEL_ROLES } from "@/config/platform";
 import { auth } from "@/lib/auth";
 
 // After Google OAuth, Better Auth redirects here so we can verify admin role
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (session.user.role === ADMIN_ROLE) {
+  if (PANEL_ROLES.includes(session.user.role as (typeof PANEL_ROLES)[number])) {
     return NextResponse.redirect(orbitUrl);
   }
 

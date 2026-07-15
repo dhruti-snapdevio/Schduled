@@ -83,6 +83,18 @@ export const videoProviderEnum = pgEnum('video_provider', [
   'teams',
 ])
 
+// ── Workspace / invitations ──────────────────────────────────────────────────
+
+// Owner is never invited — assigned only at setup or via ownership transfer.
+export const invitationRoleEnum = pgEnum('invitation_role', ['member', 'manager'])
+
+export const invitationStatusEnum = pgEnum('invitation_status', [
+  'pending',
+  'accepted',
+  'revoked',
+  'expired',
+])
+
 // ── Jobs ─────────────────────────────────────────────────────────────────────
 
 export const jobStatusEnum = pgEnum('job_status', [

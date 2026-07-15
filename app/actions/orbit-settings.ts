@@ -2,20 +2,28 @@
 
 import { revalidatePath } from "next/cache";
 import { audit } from "@/lib/audit";
-import { requireAdmin } from "@/lib/authz";
+import { requireAdmin, requireOwner } from "@/lib/authz";
 import {
   type SignInMethods,
   getStoredSignInMethods,
   setSignInMethods,
   signInMethodAvailability,
 } from "@/lib/settings/sign-in-methods";
+import {
+  type WorkspaceBranding,
+  getWorkspaceBranding,
+  setWorkspaceBranding,
+} from "@/lib/settings/workspace";
 
 type ActionResult = { error: string } | { ok: true };
 
+// Instance-critical config stays owner-only — a manager can run the day-to-day
+// Admin Center but shouldn't be able to change how anyone signs in
+// (docs/self-hosting/boss-employee-flow.md §4.2, footnote 3).
 export async function updateSignInMethodsAction(
   next: SignInMethods
 ): Promise<ActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requireOwner();
 
   const previous = await getStoredSignInMethods();
 
@@ -48,6 +56,33 @@ export async function updateSignInMethodsAction(
     description: `Sign-in methods updated — password: ${nextStored.password}, magic link: ${nextStored.magicLink}, Google: ${nextStored.google}`,
     entityType: "setting",
     metadata: { previous, next: nextStored },
+  });
+
+  revalidatePath("/orbit/settings");
+  return { ok: true };
+}
+
+export async function updateWorkspaceBrandingAction(
+  next: WorkspaceBranding
+): Promise<ActionResult> {
+  const admin = await requireAdmin();
+
+  const name = next.name.trim();
+  if (!name) return { error: "Workspace name is required." };
+  if (name.length > 80) return { error: "Workspace name is too long (max 80 characters)." };
+
+  const previous = await getWorkspaceBranding();
+  const nextBranding: WorkspaceBranding = { name, logoUrl: next.logoUrl?.trim() || null };
+
+  await setWorkspaceBranding(nextBranding);
+
+  await audit({
+    action: "settings.workspace_branding_updated",
+    actorEmail: admin.user.email,
+    actorId: admin.user.id,
+    description: `Workspace branding updated — name: "${nextBranding.name}"`,
+    entityType: "setting",
+    metadata: { previous, next: nextBranding },
   });
 
   revalidatePath("/orbit/settings");

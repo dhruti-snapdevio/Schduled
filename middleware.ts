@@ -8,6 +8,7 @@ const PUBLIC_PREFIXES = [
   "/favicon",
   "/cancel/",           // public booking cancel
   "/reschedule/",       // public booking reschedule
+  "/invite/",           // accept-invite links — reachable without a session
 ];
 
 const AUTH_PATHS: string[] = [];  // handled client-side in auth-form via useSession()

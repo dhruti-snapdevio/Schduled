@@ -7,6 +7,7 @@ import { connectedCalendar, calendarEventCache } from './calendars'
 import { videoConnection } from './video'
 import { booking, bookingAnswer, bookingGuest } from './bookings'
 import { notificationPreference, workflowJob } from './notifications'
+import { invitation } from './invitation'
 
 export const userRelations = relations(user, ({ one, many }) => ({
   profile:                one(userProfile, { fields: [user.id], references: [userProfile.userId] }),
@@ -19,6 +20,13 @@ export const userRelations = relations(user, ({ one, many }) => ({
   videoConnections:       many(videoConnection),
   notificationPreference: one(notificationPreference, { fields: [user.id], references: [notificationPreference.userId] }),
   bookings:               many(booking),
+  invitationsSent:        many(invitation, { relationName: 'invitationInviter' }),
+  invitationAccepted:     many(invitation, { relationName: 'invitationAcceptedBy' }),
+}))
+
+export const invitationRelations = relations(invitation, ({ one }) => ({
+  inviter:      one(user, { fields: [invitation.invitedBy], references: [user.id], relationName: 'invitationInviter' }),
+  acceptedUser: one(user, { fields: [invitation.acceptedBy], references: [user.id], relationName: 'invitationAcceptedBy' }),
 }))
 
 export const userProfileRelations = relations(userProfile, ({ one }) => ({
