@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import type { UseFormReturn } from "react-hook-form";
 import type { MeetingIntegrations } from "@/lib/integrations/status";
+import { Button } from "@/components/ui/button";
 import {
   FormControl,
   FormDescription,
@@ -28,6 +29,17 @@ import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Separator } from "@/components/ui/separator";
 import { cn, dialCodeFromTz, extractDialCode } from "@/lib/utils";
 import type { BuilderFormValues } from "./builder";
+
+// Search Google Maps for whatever's already typed (so the host can fine-tune
+// the pin, then copy the resulting Maps link back into the field) — falls
+// back to opening Maps blank when the field is still empty.
+function openGoogleMaps(currentValue: string) {
+  const trimmed = currentValue.trim();
+  const url = trimmed
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trimmed)}`
+    : "https://www.google.com/maps";
+  window.open(url, "_blank", "noopener,noreferrer");
+}
 
 type LocationType = BuilderFormValues["locationType"];
 
@@ -361,25 +373,45 @@ export function TabLocation({
           render={({ field }) => (
             <FormItem>
               <FormLabel>{selected.valueLabel}</FormLabel>
-              <FormControl>
-                {locationType === "in_person" ? (
-                  <AddressAutocomplete
-                    placeholder={addressPlaceholder}
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                ) : (
-                  <Input
-                    placeholder={selected.valuePlaceholder}
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                )}
-              </FormControl>
-              {locationType === "in_person" && (
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <FormControl>
+                    {locationType === "in_person" ? (
+                      <AddressAutocomplete
+                        placeholder={addressPlaceholder}
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                    ) : (
+                      <Input
+                        placeholder={selected.valuePlaceholder}
+                        {...field}
+                        value={field.value ?? ""}
+                      />
+                    )}
+                  </FormControl>
+                </div>
+                <Button
+                  className="shrink-0 gap-1.5"
+                  onClick={() => openGoogleMaps(field.value ?? "")}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <MapPin size={13} />
+                  Open in Google Maps
+                </Button>
+              </div>
+              {locationType === "in_person" ? (
                 <FormDescription>
-                  Start typing to search for an address, or enter it manually.
+                  Start typing to search for an address, or enter it manually —
+                  or open Google Maps, find the spot, and paste its link here.
+                </FormDescription>
+              ) : (
+                <FormDescription>
+                  Or open Google Maps, copy the link to your venue, and paste
+                  it here.
                 </FormDescription>
               )}
               <FormMessage />

@@ -6,6 +6,7 @@ import { booking, connectedCalendar, eventType, user } from '@/db/schema'
 import { getGoogleCalendarClient } from '@/lib/worker/google-calendar-client'
 import { enqueueJob } from '@/lib/worker/enqueue'
 import { JOB_NAMES, type CalendarWritePayload } from '@/lib/worker/job-types'
+import { resolveLocationLabelHost } from './booking-lifecycle-data'
 
 export async function handleCalendarWrite(jobs: Job<CalendarWritePayload>[]) {
   for (const job of jobs) {
@@ -25,12 +26,14 @@ async function processCalendarWrite(job: Job<CalendarWritePayload>) {
       startTime:       booking.startTime,
       endTime:         booking.endTime,
       locationValue:   booking.locationValue,
+      inviteePhone:    booking.inviteePhone,
       hostUserId:      booking.hostUserId,
       status:          booking.status,
       calendarEventId: booking.calendarEventId,
       etName:          eventType.name,
       etDescription:   eventType.description,
       etLocationType:  eventType.locationType,
+      etLocationValue: eventType.locationValue,
       hostName:        user.name,
       hostEmail:       user.email,
     })
@@ -102,9 +105,18 @@ async function processCalendarWrite(job: Job<CalendarWritePayload>) {
 
   const isGoogleMeet = b.etLocationType === 'google_meet'
 
+  // Native Calendar `location` field — same resolver already used by every
+  // email/lifecycle handler for the host's view, so the address/link shown
+  // here matches what the host sees in their confirmation email exactly.
+  // Google Calendar renders this in its own Location UI (map preview,
+  // "get directions") rather than leaving it as plain text inside the
+  // description.
+  const location = resolveLocationLabelHost(b.etLocationType, b.etLocationValue, b.inviteePhone)
+
   const eventBody: calendar_v3.Schema$Event = {
     summary:     `${b.etName} with ${b.inviteeName}`,
     description: buildDescription(b),
+    location,
     start: {
       dateTime: b.startTime.toISOString(),
       timeZone: 'UTC',

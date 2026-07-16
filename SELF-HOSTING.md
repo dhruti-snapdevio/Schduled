@@ -112,7 +112,8 @@ detection · custom intake questions · reschedule & cancel with policies · app
 workflow · full booking lifecycle statuses · email confirmation/reminders(24h,1h)/
 cancellation/reschedule/approval · Google Calendar (conflict + write) + Google Meet ·
 Zoom links · contacts, guests, blocklist · in-app notifications + preferences +
-"join soon" · audit logs · GDPR export (`/api/account/export`) · admin panel (orbit) ·
+"join soon" · audit logs · GDPR export (`/api/account/export`) · admin-only screens
+(user management, audit logs, background jobs, platform settings) inside `/settings` ·
 rate limiting · iCal (.ics).
 
 ### 🟡 Partial
@@ -226,7 +227,7 @@ are real · P0/P1/P2 priority.
 ### E. Authentication & first-run (the lockout fix)
 | Type | Change | Where | P |
 |---|---|---|---|
-| ✅ DONE | Email+password sign-in/sign-up — the **primary** login method (default `true`), shown first on both user and admin login pages; magic link + Google are secondary. Toggle off via `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED=false` for a magic-link/Google-only deployment | `lib/auth.ts`, `lib/env.ts`, `app/(auth)`, `app/(orbit-public)` | **P0** |
+| ✅ DONE | Email+password sign-in/sign-up — the **primary** login method (default `true`), shown first on the single `/login` page (used by admins and regular users alike); magic link + Google are secondary. Toggle off via `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED=false` for a magic-link/Google-only deployment | `lib/auth.ts`, `lib/env.ts`, `app/(auth)` | **P0** |
 | ✅ DONE | Password fields + sign-in/sign-up toggle in the login form (only rendered when the flag is on) | `app/(auth)/_components/auth-form.tsx` | P0 |
 | ✅ DONE | `account.password` column (Better Auth's credential-provider hash storage) — migration `0013_stale_flatman.sql` | `db/schema/auth.ts` | P0 |
 | ✅ DONE | `INITIAL_ADMIN_EMAIL` → auto-promote to admin at signup (checked once, at account creation) | `lib/auth.ts` (`databaseHooks.user.create.after`), `lib/env.ts` | P0 |
@@ -478,7 +479,7 @@ front for TLS → `127.0.0.1:3000`. Example systemd units go in the Installation
 - [ ] You can log in — either `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED=true` is set, or
       SMTP/Google is configured (otherwise the only sign-in path is a magic link
       logged to the server console — check `docker compose logs web` if so)
-- [ ] Admin created (via `INITIAL_ADMIN_EMAIL` signup or `pnpm make:admin`); orbit panel reachable
+- [ ] Admin created (via `INITIAL_ADMIN_EMAIL` signup or `pnpm make:admin`); admin-only tabs under `/settings` are reachable
 - [ ] `SIGNUP_ENABLED=false` is set (recommended default — closes public signup;
       the `INITIAL_ADMIN_EMAIL` account is exempt and always gets through, so this
       is safe to set *before* your first deploy, not just after)

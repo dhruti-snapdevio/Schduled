@@ -113,6 +113,13 @@
       "when": 1784029838140,
       "tag": "0015_talented_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1784196872789,
+      "tag": "0016_drop_newsletter_subscriber",
+      "breakpoints": true
     }
   ]
 }

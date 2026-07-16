@@ -32,6 +32,7 @@ import {
   VideoCamera,
 } from '@phosphor-icons/react/dist/ssr'
 import { getCurrentSession } from '@/lib/authz'
+import { redirectToSetupIfNeeded } from '@/lib/setup'
 
 export const metadata = {
   title: 'Schduled — Smart scheduling for modern teams',
@@ -133,6 +134,7 @@ const PARTICLES = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function LandingPage() {
+  await redirectToSetupIfNeeded()
   const session = await getCurrentSession()
   if (session) redirect('/dashboard')
 

@@ -226,8 +226,14 @@ export function AccountIdentityForms({
             The name shown in navigation, audit logs, and admin views.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form action={nameAction} className="space-y-4">
+        {/* flex-1 + the form filling it lets the button anchor to `mt-auto`
+            regardless of how tall the header above happens to be — without
+            this, a longer sibling-card description (wrapping to more lines)
+            stretches this card via the grid's default row-stretch, and the
+            leftover height collects as unbalanced empty space below the
+            button instead of both cards' buttons lining up. */}
+        <CardContent className="flex flex-1 flex-col">
+          <form action={nameAction} className="flex flex-1 flex-col space-y-4">
             <label className="block" htmlFor="name">
               <span className="mb-2 block font-semibold text-foreground text-sm">
                 Name
@@ -240,7 +246,7 @@ export function AccountIdentityForms({
               />
             </label>
             <ActionMessage state={nameState} />
-            <div className="flex justify-end">
+            <div className="mt-auto flex justify-end">
               <Button disabled={namePending} type="submit">
                 {namePending ? "Saving..." : "Save name"}
               </Button>
@@ -256,8 +262,8 @@ export function AccountIdentityForms({
             Magic-link authentication uses this email as the account identity.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form action={emailAction} className="space-y-4">
+        <CardContent className="flex flex-1 flex-col">
+          <form action={emailAction} className="flex flex-1 flex-col space-y-4">
             <label className="block" htmlFor="email">
               <span className="mb-2 block font-semibold text-foreground text-sm">
                 Email
@@ -271,7 +277,7 @@ export function AccountIdentityForms({
               />
             </label>
             <ActionMessage state={emailState} />
-            <div className="flex justify-end">
+            <div className="mt-auto flex justify-end">
               <Button disabled={emailPending} type="submit">
                 {emailPending ? "Saving..." : "Update email"}
               </Button>

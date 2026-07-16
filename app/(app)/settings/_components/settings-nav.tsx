@@ -10,13 +10,24 @@ const PROFILE_LINKS = [
   { href: "/profile/login",    label: "Connected Accounts" },
 ];
 
-const SETTINGS_LINKS = [
+const WORKSPACE_LINKS = [
   { href: "/settings/my-link",       label: "Booking Link" },
   { href: "/settings/calendars",     label: "Calendar Sync" },
   { href: "/settings/integrations",  label: "Integrations" },
   { href: "/settings/communication", label: "Notifications" },
   { href: "/settings/contacts",      label: "Contact settings" },
   { href: "/settings/cookies",       label: "Cookies" },
+];
+
+const PLATFORM_LINKS = [
+  { href: "/settings/authentication", label: "Authentication" },
+  { href: "/settings/platform",       label: "System Settings" },
+];
+
+const ADMIN_LINKS = [
+  { href: "/settings/users", label: "Members" },
+  { href: "/settings/audit", label: "Audit Logs" },
+  { href: "/settings/jobs",  label: "Background Jobs" },
 ];
 
 const PROFILE_PATHS = ["/profile/profile", "/profile/security", "/profile/login"];
@@ -50,15 +61,44 @@ function NavLinks({ links }: { links: { href: string; label: string }[] }) {
   );
 }
 
-export function SettingsNav() {
-  const pathname = usePathname();
-  const links = isProfileSection(pathname) ? PROFILE_LINKS : SETTINGS_LINKS;
-  return <NavLinks links={links} />;
+function NavGroup({ label, links }: { label: string; links: { href: string; label: string }[] }) {
+  return (
+    <div>
+      <p className="px-3 pb-1 text-2xs font-bold uppercase tracking-ui text-muted-foreground/70">
+        {label}
+      </p>
+      <NavLinks links={links} />
+    </div>
+  );
 }
 
-export function SettingsMobileNav() {
+export function SettingsNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
-  const links = isProfileSection(pathname) ? PROFILE_LINKS : SETTINGS_LINKS;
+
+  if (isProfileSection(pathname)) {
+    return <NavLinks links={PROFILE_LINKS} />;
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <NavGroup label="Workspace" links={WORKSPACE_LINKS} />
+      {isAdmin && (
+        <>
+          <NavGroup label="Platform" links={PLATFORM_LINKS} />
+          <NavGroup label="Administration" links={ADMIN_LINKS} />
+        </>
+      )}
+    </div>
+  );
+}
+
+export function SettingsMobileNav({ isAdmin = false }: { isAdmin?: boolean }) {
+  const pathname = usePathname();
+  const links = isProfileSection(pathname)
+    ? PROFILE_LINKS
+    : isAdmin
+      ? [...WORKSPACE_LINKS, ...PLATFORM_LINKS, ...ADMIN_LINKS]
+      : WORKSPACE_LINKS;
 
   return (
     <nav className="flex overflow-x-auto gap-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-border pb-1">

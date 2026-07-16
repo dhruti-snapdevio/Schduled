@@ -297,13 +297,14 @@ export default async function BookingsPage({
 
                   const joinUrl =
                     b.locationValue?.startsWith('http') &&
-                    ['zoom', 'google_meet', 'teams', 'custom'].includes(b.locationType ?? '')
+                    ['zoom', 'google_meet', 'teams', 'custom', 'in_person'].includes(b.locationType ?? '')
                       ? b.locationValue
                       : null
 
                   const joinLabel =
                     b.locationType === 'zoom' ? 'Open Zoom'
                     : b.locationType === 'google_meet' ? 'Join Meet'
+                    : b.locationType === 'in_person' ? 'View Location'
                     : 'Join Meeting'
 
                   return (
@@ -381,7 +382,11 @@ export default async function BookingsPage({
                             {joinUrl && (
                               <Button asChild size="sm" className="h-7 gap-1 px-2.5 text-xs">
                                 <a href={joinUrl} target="_blank" rel="noopener noreferrer">
-                                  <VideoCamera size={13} weight="fill" />
+                                  {b.locationType === 'in_person' ? (
+                                    <MapPin size={13} weight="fill" />
+                                  ) : (
+                                    <VideoCamera size={13} weight="fill" />
+                                  )}
                                   {joinLabel}
                                 </a>
                               </Button>

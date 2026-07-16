@@ -149,6 +149,7 @@ export default async function BookingPage({
         color: et.color ?? '#0d9488',
         durations: sortedDurations.map((d) => ({ duration: d.duration, isDefault: d.isDefault })),
         locationType: et.locationType,
+        locationValue: et.locationValue,
         bookingWindow: et.bookingWindow ?? 60,
         policyText: (cancelPolicy?.showPolicyText && cancelPolicy.policyText) ? cancelPolicy.policyText : null,
         questions: et.questions.map((q) => ({

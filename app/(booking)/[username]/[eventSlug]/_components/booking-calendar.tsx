@@ -90,6 +90,7 @@ interface EventTypeInfo {
   color: string
   durations: DurationOption[]
   locationType: string
+  locationValue: string | null
   bookingWindow: number
   policyText: string | null
   questions: Question[]
@@ -1088,6 +1089,28 @@ export function BookingCalendar({
                   <span className="shrink-0 text-primary/70">{loc.icon}</span>
                   {loc.label}
                 </span>
+                {/* Gated on locationType, not just locationValue — the field
+                    isn't cleared client-side when a host switches away from
+                    in-person/custom, so a stale address/link can still be
+                    sitting in the column for a Zoom/phone event type. */}
+                {(eventType.locationType === 'in_person' || eventType.locationType === 'custom') &&
+                  eventType.locationValue && (
+                  <span className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <MapPin size={13} className="mt-0.5 shrink-0 text-primary/70" />
+                    {eventType.locationValue.startsWith('http') ? (
+                      <a
+                        href={eventType.locationValue}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-all text-primary underline-offset-2 hover:underline"
+                      >
+                        View location
+                      </a>
+                    ) : (
+                      <span className="break-words">{eventType.locationValue}</span>
+                    )}
+                  </span>
+                )}
                 {step === 'form' && selectedSlot && (
                   <span className="flex items-center gap-2 text-xs font-semibold text-primary">
                     <CheckCircle size={13} weight="fill" className="shrink-0" />

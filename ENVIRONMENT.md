@@ -183,7 +183,7 @@ pnpm make:admin you@example.com
 ### 13. Verify
 
 - [ ] App loads at `NEXT_PUBLIC_APP_URL`
-- [ ] You're signed in and can reach the admin panel (`/orbit`)
+- [ ] You're signed in and, as the admin, can see the admin-only tabs under `/settings` (Users, Audit, Jobs, Platform)
 - [ ] The background worker is running (check its terminal/logs — a test
       booking should trigger a confirmation email, even if it's just logged to
       the console)

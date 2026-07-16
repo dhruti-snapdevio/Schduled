@@ -38,6 +38,7 @@ pnpm-debug.log*
 # embedded postgres (dev)
 /.pgdata
 /.krova-postgres
+/.schduled-postgres
 
 # typescript
 *.tsbuildinfo

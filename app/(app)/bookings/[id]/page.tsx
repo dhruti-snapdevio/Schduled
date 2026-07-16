@@ -343,10 +343,20 @@ export default async function BookingDetailPage({
             <ol className="space-y-0">
               {timeline.map((t, i) => (
                 <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
+                  {/* `left-2` (half of the icon's fixed w-4/16px column) plus
+                      `-translate-x-1/2` (half of the line's own 1px width)
+                      centers the line under the icon by exact arithmetic
+                      instead of a hardcoded left-[Npx] guess that drifts if
+                      the icon size ever changes. Positioned relative to the
+                      `<li>` (not a nested wrapper) so `h-full` correctly
+                      extends through the li's own `pb-4` padding — that
+                      padding is where the line needs to reach to visually
+                      connect to the next row, and a flex-stretched inner
+                      wrapper's content box doesn't include it. */}
                   {i < timeline.length - 1 && (
-                    <span className="absolute left-[7px] top-5 h-full w-px bg-border" aria-hidden />
+                    <span className="absolute left-2 top-5 h-full w-px -translate-x-1/2 bg-border" aria-hidden />
                   )}
-                  <span className="relative z-10 mt-0.5 shrink-0">
+                  <span className="relative z-10 mt-0.5 flex w-4 shrink-0 justify-center">
                     {t.done
                       ? <CheckCircle size={16} weight="fill" className="text-primary" />
                       : <Circle size={16} className="text-muted-foreground/40" />}
