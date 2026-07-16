@@ -278,7 +278,7 @@ matched on email. Invitees must sign up with the **invited email**.
 - [x] Invite tokens signed, single-use, time-boxed; invalid token leaks nothing about account existence. Verified live — an already-accepted invite token correctly shows "expired or used," not the accept form again (§17).
 - [x] Role-escalation guards: a manager can't grant `owner`, can't edit the owner, can't self-promote; invites carry `member`/`manager` only (`isValidInvitationRole`, `lib/invitations.ts`).
 - [x] Last-owner + self-lockout protection; ownership transfer atomic. There is no code path that can ever demote/delete/suspend the owner (`canActOnRole` in `lib/roles.ts` returns `false` whenever the target is `OWNER_ROLE`, full stop) — so "last owner" can't be lost, by construction, not by a special-cased guard.
-- [x] **Rate-limit `inviteMemberAction` and `resendInviteAction`** — fixed. Both now call the existing Postgres-backed `checkRateLimit` (`lib/api/helpers.ts`) keyed per-actor (`members:invite:<userId>` / `members:resend:<userId>`, not per-IP — these are already authenticated behind `requireAdmin()`), capped at 20 sends per 10 minutes. Verified directly against the real rate-limit table: 20 calls allowed, the 21st and 22nd correctly blocked. See `docs/bugs/2026-07-16-*-invite-actions-unrate-limited.md`.
+- [x] **Rate-limit `inviteMemberAction` and `resendInviteAction`** — fixed. Both now call the existing Postgres-backed `checkRateLimit` (`lib/api/helpers.ts`) keyed per-actor (`members:invite:<userId>` / `members:resend:<userId>`, not per-IP — these are already authenticated behind `requireAdmin()`), capped at 20 sends per 10 minutes. Verified directly against the real rate-limit table: 20 calls allowed, the 21st and 22nd correctly blocked. See `docs/bugs/2026-07-16-*-invite-actions-unrate-limited.md` and §21.2/§21.5 for scope notes and the still-missing automated test.
 - [x] `invite` (+ orbit/login/api/settings/setup) reserved as usernames — added to all four `RESERVED` sets (`app/api/username-check/route.ts`, `app/actions/onboarding.ts`, `app/actions/settings.ts`, `lib/validators.ts`).
 - [x] Ban re-check already enforced mid-session (`lib/authz.ts:19-28`) — pre-existing, re-confirmed still true.
 
@@ -637,6 +637,57 @@ This is the same rebuild already scoped in §19.2, restated against this spec's 
 - A "Create Workspace" flow and switcher UI are net-new — nothing today has a concept of "the current workspace" to switch away from.
 
 None of this is a bolt-on to what shipped in Phase 1. It's the Option B rebuild, unchanged in scope from §19.2's estimate. Filed here for reference if this direction is ever deliberately chosen — not scheduled, not started.
+
+---
+
+## 21. Deeper pass — one real bug found, plus scope clarifications
+
+A second, deeper review pass (2026-07-16), specifically hunting for anything the earlier consistency pass (§20's surrounding edits) didn't catch — not re-verifying what §9–17 already confirmed, only looking for genuinely new gaps.
+
+### 21.1 🐛 Real bug — Pending Invites table silently swallows every action error
+
+**Not yet fixed — documentation only, per current instruction.**
+
+`components/orbit/pending-invites-table.tsx` has three handlers — `handleResend`, `handleRevoke`, `handleExport` — that each call their server action and **discard the result entirely** if it's an error:
+
+```ts
+function handleResend(id: string) {
+  startTransition(async () => {
+    await resendInviteAction(id);   // {error} case is never read
+  });
+}
+```
+
+Concretely, this means: if resend hits the rate limit just added in §10/§16 item, or hits the pre-existing "that invite is no longer pending" check (`app/actions/members.ts`), or revoke hits the same, or CSV export hits an unexpected DB error — the owner/manager clicks the button, sees a brief pending state, and then **nothing happens, with zero explanation**. No toast, no inline message, nothing. Compare `components/orbit/invite-dialog.tsx`, which does this correctly (`if ("error" in result) setError(result.error)`, rendered inline) — that's the pattern to copy here.
+
+This bug **predates** the rate-limit fix (the "invite no longer pending" case could already trigger it), but the rate-limit fix makes it meaningfully more likely to be hit in normal use, since sending several invites in a short session is a completely ordinary admin workflow.
+
+**Not written up as a `docs/bugs/` pair yet** — deliberately, since per current instruction nothing is being fixed this pass. Do that once the fix actually lands.
+
+### 21.2 Rate-limit scope — deliberately narrow, not a partial fix
+
+Checked every exported action in `app/actions/members.ts` and `app/actions/orbit-users.ts` for rate-limiting. Only `inviteMemberAction`/`resendInviteAction` have it. This is **intentional, not an oversight** — the security-checklist item (§10) was specifically "no email-bombing," and those are the only two actions that send email. For the record, here's why the rest don't need the same treatment:
+
+| Action | Sends email? | Why no rate limit |
+|---|---|---|
+| `revokeInviteAction` | No | Pure DB status flip, no external side effect |
+| `changeRoleAction` | No | Owner-only, requires a real existing target user; worst case is notification-bell spam to one member, not external cost |
+| `transferOwnershipAction` | No | Owner-only, effectively idempotent (repeated calls just re-assign the same outcome) |
+| `exportMembersCsvAction` | No | Read-only, no external cost; caller already has access to this exact data by virtue of being panel-role |
+| `deleteInviteeDataAction` | No | Mutates data rather than sending anything externally — see 21.3 |
+| `orbit-users.ts` — ban/delete/impersonate/bulk actions | `deleteUserAction` does (`emailInviteesOfHostRemoval`) | Pre-existing code, unchanged by this feature, and consistent with the rest of the admin panel never having had rate limits — not a regression introduced here, just an existing pattern worth knowing about if ever revisited |
+
+### 21.3 `deleteInviteeDataAction` — confirmed intentionally instance-wide
+
+Re-checked its query scope directly: it matches `booking.inviteeEmail`, `bookingGuest.guestEmail`, and `contact.email` **across the whole instance**, not scoped to bookings with the current admin as host. This is correct, not a bug — a GDPR/CCPA-style data-subject deletion request should be honored instance-wide (the person asking to be forgotten doesn't care which host they booked with), not partially applied. Flagging only so a future review doesn't mistake this for a missing `WHERE hostUserId = ...` clause.
+
+### 21.4 Double-invite race — DB-protected, cosmetic error message only
+
+Re-verified `inviteMemberAction`'s check-then-insert (`findPendingInvitationByEmail` then `createInvitation`) isn't atomic at the application level — two admins inviting the same email in the same instant could both pass the check. Confirmed this **can't actually produce two live invitations**: the partial unique index (`invitation_email_pending_idx ... WHERE status = 'pending'`, `db/schema/invitation.ts`) rejects the second insert at the database level. The only real consequence is a worse error message on the losing request — it falls into the generic `catch` block ("Something went wrong. Please try again.") instead of the specific "There's already a pending invite for that email." Correctness is intact; only the error copy is imprecise in this one rare interleaving. Not worth a bug pair — a one-line fix (catch the unique-violation error code specifically) if ever touched.
+
+### 21.5 No automated test for the rate-limit fix
+
+The rate-limiting added in §10/§16 was verified live (a throwaway script against the real `rate_limit_bucket` table, per the solution doc), but there's no test in `lib/roles.test.ts`/`lib/invitations.test.ts`/`lib/csv.test.ts` (or a new file) that exercises `checkInviteRateLimit` or the two actions that use it. `lib/api/rate-limit.test.ts` already tests the underlying `checkRateLimit` primitive thoroughly — what's missing is a test of *this feature's specific usage* of it (the per-actor key pattern, the 20/10-min threshold). Worth a small addition if the test suite is revisited.
 
 ---
 
