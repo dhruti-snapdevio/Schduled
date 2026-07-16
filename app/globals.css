@@ -10,6 +10,11 @@
 
 html {
   background: var(--background);
+  /* Reserves the scrollbar's width permanently so opening a modal/dropdown
+     (which hides the scrollbar via a body scroll-lock) never shifts layout
+     width — without this, every Radix dropdown/dialog open causes a
+     horizontal jerk on any page that scrolls on <body>. */
+  scrollbar-gutter: stable;
 }
 
 body {

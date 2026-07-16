@@ -105,6 +105,15 @@ const schema = z.object({
   message: "The default duration must be one of the offered durations",
   path: ["defaultDuration"],
 }).refine(
+  (v) => v.locationType !== "in_person" || !!v.locationValue?.trim(),
+  { message: "Enter a location address for in-person meetings", path: ["locationValue"] }
+).refine(
+  (v) => v.locationType !== "custom" || !!v.locationValue?.trim(),
+  { message: "Enter a custom location or link", path: ["locationValue"] }
+).refine(
+  (v) => v.locationType !== "phone_invitee_calls" || !!v.hostPhoneNumber?.trim(),
+  { message: "Enter your phone number for invitees to call", path: ["hostPhoneNumber"] }
+).refine(
   (v) =>
     v.bookingWindowType !== "fixed" ||
     (!!v.bookingRangeStart && !!v.bookingRangeEnd),
@@ -469,7 +478,11 @@ export function EventTypeBuilder({
               ) : (
                 <Button
                   className="gap-1.5"
-                  onClick={(e) => { e.preventDefault(); setActiveTab(TABS[tabIndex + 1].id); }}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    const valid = await form.trigger(TAB_FIELDS[activeTab]);
+                    if (valid) setActiveTab(TABS[tabIndex + 1].id);
+                  }}
                   size="sm"
                   type="button"
                   variant="outline"
