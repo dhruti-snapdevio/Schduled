@@ -257,7 +257,7 @@ export function AdminLoginForm({ isGoogleEnabled, passwordEnabled, magicLinkEnab
             )}
             {showMagicSwitch && (
               <Button className="w-full gap-2" onClick={() => { setError(null); setMode("magic-link"); }} type="button" variant="outline">
-                <PaperPlaneTilt size={14} weight="bold" /> Email me a magic link
+                <PaperPlaneTilt size={14} weight="bold" /> Send a magic link
               </Button>
             )}
             {showPasswordSwitch && (

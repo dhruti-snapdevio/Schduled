@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -38,6 +39,11 @@ const ICONS: Record<string, React.ReactNode> = {
   booking_reminder:          <Clock className="text-amber-500" size={16} />,
   booking_pending_approval:  <Hourglass className="text-amber-500" size={16} />,
 };
+
+function notificationCountMessage(count: number, verb: "marked as read" | "cleared"): string {
+  const has = count === 1 ? "has" : "have";
+  return `${count} notification${count === 1 ? "" : "s"} ${has} been ${verb}.`;
+}
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -97,6 +103,7 @@ export function NotificationBell() {
 
   async function markAllRead() {
     if (unread === 0) return;
+    const count = unread;
     setUnread(0);
     setItems((prev) => prev.map((n) => ({ ...n, read: true })));
     try {
@@ -105,6 +112,7 @@ export function NotificationBell() {
         headers: { "Content-Type": "application/json" },
         body: "{}",
       });
+      toast.success(notificationCountMessage(count, "marked as read"));
     } catch {
       /* ignore */
     }
@@ -149,10 +157,13 @@ export function NotificationBell() {
   }
 
   async function clearAll() {
+    const count = items.length;
+    if (count === 0) return;
     setItems([]);
     setUnread(0);
     try {
       await fetch("/api/notifications", { method: "DELETE" });
+      toast.success(notificationCountMessage(count, "cleared"));
     } catch {
       /* ignore */
     }

@@ -984,11 +984,11 @@ export function BookingCalendar({
                 <button
                   type="button"
                   onClick={copyPageLink}
-                  className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
+                  className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary sm:w-[104px] sm:justify-center"
                 >
                   {copyLinkDone
-                    ? <Check size={13} weight="bold" className="text-primary" />
-                    : <Copy size={13} />
+                    ? <Check size={13} weight="bold" className="text-primary shrink-0" />
+                    : <Copy size={13} className="shrink-0" />
                   }
                   <span className="hidden sm:inline">
                     {copyLinkDone ? 'Copied!' : 'Copy link'}

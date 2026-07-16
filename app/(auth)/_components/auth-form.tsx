@@ -483,7 +483,7 @@ function AuthFormInner({ googleEnabled, passwordEnabled, magicLinkEnabled }: Aut
                           variant="outline"
                         >
                           <PaperPlaneTilt size={16} weight="bold" />
-                          Email me a magic link
+                          Send a magic link
                         </Button>
                       )}
                     </div>

@@ -52,6 +52,24 @@ async function uniqueSlug(userId: string, base: string, excludeId?: string): Pro
   }
 }
 
+// Server-side mirror of the client's cross-field location refinement — the
+// form UI marks these fields as required (labels, styling), but nothing
+// stopped a direct action call from saving an empty value underneath it.
+function validateLocation(
+  data: Pick<EventTypeFormData, 'locationType' | 'locationValue' | 'hostPhoneNumber'>
+): string | null {
+  if (data.locationType === 'in_person' && !data.locationValue?.trim()) {
+    return 'Enter a location address for in-person meetings'
+  }
+  if (data.locationType === 'custom' && !data.locationValue?.trim()) {
+    return 'Enter a custom location or link'
+  }
+  if (data.locationType === 'phone_invitee_calls' && !data.hostPhoneNumber?.trim()) {
+    return 'Enter your phone number for invitees to call'
+  }
+  return null
+}
+
 // ── List ──────────────────────────────────────────────────────────────────────
 
 export async function listEventTypes() {
@@ -123,6 +141,8 @@ export async function createEventType(data: EventTypeFormData, initialQuestions?
     if (!name) return { error: 'Event name is required' }
     if (name.length > 100) return { error: 'Event name must be 100 characters or less' }
     if (data.durations.length === 0) return { error: 'At least one duration is required' }
+    const locationError = validateLocation(data)
+    if (locationError) return { error: locationError }
 
     // Slug = slugified name + random 5-char suffix, guaranteed unique per user.
     // The suffix means two events with the same name always get different URLs
@@ -255,6 +275,8 @@ export async function updateEventType(id: string, data: EventTypeFormData): Prom
     const name = data.name.trim()
     if (!name) return { error: 'Event name is required' }
     if (data.durations.length === 0) return { error: 'At least one duration is required' }
+    const locationError = validateLocation(data)
+    if (locationError) return { error: locationError }
 
     // Verify ownership and fetch the existing slug — we never change it on update
     // so that booking URLs are permanent (renaming an event doesn't break links).
