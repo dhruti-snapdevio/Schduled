@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { MANAGER_ROLE, MEMBER_ROLE, OWNER_ROLE } from "@/config/platform";
 import { booking, bookingGuest, contact, invitation, user } from "@/db/schema";
 import { audit } from "@/lib/audit";
-import { checkRateLimit } from "@/lib/api/helpers";
 import { requireAdmin, requireOwner } from "@/lib/authz";
 import { toCsv } from "@/lib/csv";
 import { db } from "@/lib/db";
@@ -13,6 +12,7 @@ import { enqueueEmail } from "@/lib/email";
 import { invitationTemplate } from "@/lib/email/templates/invitation";
 import { env } from "@/lib/env";
 import {
+  checkInviteRateLimit,
   createInvitation,
   findPendingInvitationByEmail,
   isValidInvitationRole,
@@ -26,17 +26,6 @@ import { validateEmail } from "@/lib/validators";
 type ActionResult<T = Record<never, never>> =
   | { error: string }
   | ({ ok: true } & T);
-
-// Keyed per-actor (not per-IP — these are authenticated actions behind
-// requireAdmin() already) so a compromised or scripted owner/manager session
-// can't be used to blast invite emails. Generous enough for a real bulk-invite
-// session; still bounds a runaway loop or bug.
-const INVITE_RATE_LIMIT = 20;
-const INVITE_RATE_WINDOW_MS = 10 * 60 * 1000;
-
-async function checkInviteRateLimit(actorId: string, action: "invite" | "resend"): Promise<boolean> {
-  return checkRateLimit(`members:${action}:${actorId}`, INVITE_RATE_LIMIT, INVITE_RATE_WINDOW_MS);
-}
 
 async function sendInviteEmail(input: {
   email: string;

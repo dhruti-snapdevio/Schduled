@@ -351,12 +351,13 @@ at `/login`, never a signup page), and the two SaaS-framed FAQs replaced with
 directly documents the invite flow this doc describes. "Team · 4 active members"
 kept, and is now literally true.
 
-**Subscribers/newsletter — ❌ still not done, still genuinely optional.**
-`/orbit/subscribers`, its sidebar entry, `newsletterSubscriber` schema/actions,
-and `app/api/newsletter/route.ts` are all still present. Confirmed by checking
-the repo directly — nothing here was touched. Only worth doing if a private
-self-hosted instance genuinely has no use for a mailing-list feature; harmless
-to leave as-is otherwise.
+**Subscribers/newsletter — ✅ removed (2026-07-16).** Per explicit decision
+(§22.1), the mailing-list feature was dropped entirely: `/orbit/subscribers`
+page, its sidebar entry (`admin-sidebar.tsx`, `admin-mobile-nav.tsx`), the
+landing-page signup form (`landing-footer.tsx`), `app/actions/subscribers.ts`,
+`app/api/newsletter/route.ts`, and the `newsletterSubscriber` table
+(`db/schema/platform.ts`, dropped via migration `0019_misty_spectrum.sql`)
+are all gone. See §22 for the full record.
 
 ---
 
@@ -644,25 +645,35 @@ None of this is a bolt-on to what shipped in Phase 1. It's the Option B rebuild,
 
 A second, deeper review pass (2026-07-16), specifically hunting for anything the earlier consistency pass (§20's surrounding edits) didn't catch — not re-verifying what §9–17 already confirmed, only looking for genuinely new gaps.
 
-### 21.1 🐛 Real bug — Pending Invites table silently swallows every action error
+### 21.1 🐛 Pending Invites table silently swallowed every action error — ✅ fixed
 
-**Not yet fixed — documentation only, per current instruction.**
+**Fixed 2026-07-16.** `components/orbit/pending-invites-table.tsx` had three
+handlers — `handleResend`, `handleRevoke`, `handleExport` — that each called
+their server action and **discarded the result entirely** if it was an error,
+so a rate-limited resend, a "no longer pending" resend/revoke, or a failed CSV
+export all failed **completely silently** — no toast, no inline message,
+nothing. See `docs/bugs/2026-07-16-*-pending-invites-silent-errors.md`.
 
-`components/orbit/pending-invites-table.tsx` has three handlers — `handleResend`, `handleRevoke`, `handleExport` — that each call their server action and **discard the result entirely** if it's an error:
+**Fix:** all three handlers now check `"error" in result` and call `toast.error(result.error)`
+(via `sonner`, already globally mounted in `app/layout.tsx` and already used
+for exactly this purpose in `components/orbit/audit-table.tsx`) — matching
+the codebase's established error-surfacing pattern rather than inventing a
+new one. Resend and revoke also now show a `toast.success(...)` confirmation
+naming the affected email, since silence-on-success was nearly as confusing
+as silence-on-failure for a button whose only visible feedback used to be a
+brief spinner.
 
-```ts
-function handleResend(id: string) {
-  startTransition(async () => {
-    await resendInviteAction(id);   // {error} case is never read
-  });
-}
-```
-
-Concretely, this means: if resend hits the rate limit just added in §10/§16 item, or hits the pre-existing "that invite is no longer pending" check (`app/actions/members.ts`), or revoke hits the same, or CSV export hits an unexpected DB error — the owner/manager clicks the button, sees a brief pending state, and then **nothing happens, with zero explanation**. No toast, no inline message, nothing. Compare `components/orbit/invite-dialog.tsx`, which does this correctly (`if ("error" in result) setError(result.error)`, rendered inline) — that's the pattern to copy here.
-
-This bug **predates** the rate-limit fix (the "invite no longer pending" case could already trigger it), but the rate-limit fix makes it meaningfully more likely to be hit in normal use, since sending several invites in a short session is a completely ordinary admin workflow.
-
-**Not written up as a `docs/bugs/` pair yet** — deliberately, since per current instruction nothing is being fixed this pass. Do that once the fix actually lands.
+**Verified:** `tsc --noEmit` clean, `pnpm test` 56/56 (see §21.5), `pnpm build`
+clean, `pnpm db:generate`/`db:migrate` confirm zero schema drift (this fix
+touched no schema). Live-checked against the running dev server: signed in as
+a real invited manager, confirmed `/orbit/users` renders cleanly with a real
+pending-invite row and no runtime/hydration errors from the new `toast`
+import. Full visual confirmation of the toast itself appearing on click needs
+a real browser (not exercised here — Next.js Server Actions aren't invokable
+as a plain REST call the way the earlier live-tests in this doc drove
+`/api/auth/*` directly); the server-side result shape was already proven
+correct by `lib/invitations.test.ts` and the live DB-level rate-limit check
+in §10.
 
 ### 21.2 Rate-limit scope — deliberately narrow, not a partial fix
 
@@ -685,9 +696,44 @@ Re-checked its query scope directly: it matches `booking.inviteeEmail`, `booking
 
 Re-verified `inviteMemberAction`'s check-then-insert (`findPendingInvitationByEmail` then `createInvitation`) isn't atomic at the application level — two admins inviting the same email in the same instant could both pass the check. Confirmed this **can't actually produce two live invitations**: the partial unique index (`invitation_email_pending_idx ... WHERE status = 'pending'`, `db/schema/invitation.ts`) rejects the second insert at the database level. The only real consequence is a worse error message on the losing request — it falls into the generic `catch` block ("Something went wrong. Please try again.") instead of the specific "There's already a pending invite for that email." Correctness is intact; only the error copy is imprecise in this one rare interleaving. Not worth a bug pair — a one-line fix (catch the unique-violation error code specifically) if ever touched.
 
-### 21.5 No automated test for the rate-limit fix
+### 21.5 No automated test for the rate-limit fix — ✅ closed
 
-The rate-limiting added in §10/§16 was verified live (a throwaway script against the real `rate_limit_bucket` table, per the solution doc), but there's no test in `lib/roles.test.ts`/`lib/invitations.test.ts`/`lib/csv.test.ts` (or a new file) that exercises `checkInviteRateLimit` or the two actions that use it. `lib/api/rate-limit.test.ts` already tests the underlying `checkRateLimit` primitive thoroughly — what's missing is a test of *this feature's specific usage* of it (the per-actor key pattern, the 20/10-min threshold). Worth a small addition if the test suite is revisited.
+**Fixed 2026-07-16, alongside 21.1.** `checkInviteRateLimit` was moved from a
+private helper inside `app/actions/members.ts` into `lib/invitations.ts`
+(exported) — the same "extract for testability" pattern already used for
+`lib/roles.ts` and `lib/csv.ts` earlier in this doc — so it could be tested
+directly without importing the whole action file's Better Auth/DB import
+graph. Three new tests added to `lib/invitations.test.ts`: the 20-allowed/
+21st-blocked threshold, that invite and resend track independent buckets for
+the same actor, and that two different actors don't share a bucket. 56/56
+tests passing overall (was 53).
+
+---
+
+## 22. Final scope decisions — multi-workspace and subscribers (2026-07-16)
+
+Two items had been carried as "optional" / "not now, but not formally closed" across §14, §19, and §20. Both were put to an explicit decision this pass instead of staying open indefinitely.
+
+### 22.1 Subscribers/newsletter — removed
+
+**Decision: remove it.** The feature (public newsletter signup on the landing page, `/orbit/subscribers` admin table, CSV export, the `newsletterSubscriber` table) was never part of the Owner/Manager/Member workspace build — it predates this feature and was carried in §14 as a "still optional, harmless to leave" item. Once asked directly, the call was to remove it rather than keep carrying it as dead scope.
+
+**What changed:**
+- Deleted: `app/actions/subscribers.ts`, `app/api/newsletter/route.ts`, `app/(orbit)/orbit/subscribers/page.tsx`, `components/orbit/subscribers-table.tsx`.
+- `components/admin/admin-sidebar.tsx` / `admin-mobile-nav.tsx` — removed the Subscribers nav entry (and now-unused `EnvelopeSimple` import).
+- `components/landing/landing-footer.tsx` — removed the newsletter signup form and its column; footer grid changed from 4 columns to 3 (`lg:grid-cols-4` → `lg:grid-cols-3`). `'use client'` was kept (removing it broke Turbopack's build for `/cookies`/`/privacy`/`/terms`, which share this file's server-component tree via `legal-shell.tsx` — reverted after a live build failure caught it).
+- `db/schema/platform.ts` — removed the `newsletterSubscriber` table export.
+- `db/migrations/0019_misty_spectrum.sql` (new) — `DROP TABLE "newsletter_subscriber" CASCADE`. Applied via `pnpm db:migrate`; confirmed the table is gone (`\dt`, `information_schema.tables` count 0).
+
+**Data loss, flagged explicitly:** the table held 2 real subscriber rows before the drop (`nishankradadiya7297@gmail.com`, `nishan@gmail.com`, both added 2026-06-26). These were destroyed with the table per the explicit "remove it" decision — noted here for the record, not recoverable after the migration ran.
+
+**Verified:** `tsc --noEmit` clean, `pnpm test` unaffected (no tests referenced the removed code), `pnpm build` clean (after the `'use client'` revert above), `pnpm db:generate`/`db:migrate` applied cleanly with zero drift elsewhere. Live-checked against the running dev server: landing page footer renders with no newsletter form and a 3-column grid, `/orbit` sidebar no longer shows "Subscribers," `/orbit/subscribers` now resolves to the not-found boundary.
+
+Not written up as a `docs/bugs/` pair — this is a deliberate feature removal at explicit request, not a bug.
+
+### 22.2 Multi-workspace / workspace switcher — confirmed not now
+
+**Decision: no, not now.** This formally closes the "still open" framing left in §19.2's recommendation and §20's "filed as a future direction" language — both already leaned this way, but hadn't been put to a direct decision until this pass. Nothing about the analysis in §19–20 changes; this section just records that the recommendation was accepted as-is, not deferred-pending-further-discussion. If this direction is picked up later, §19.2 and §20.3 already scope what it would actually require (the Option B rebuild — `workspace_id` threaded through ~15 tables, a `workspace_member` join table, a switcher UI, workspace-scoped usernames).
 
 ---
 

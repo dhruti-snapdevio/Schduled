@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Check, Copy, DownloadSimple, PaperPlaneTilt, X } from "@phosphor-icons/react";
+import { toast } from "sonner";
 import { exportMembersCsvAction, resendInviteAction, revokeInviteAction } from "@/app/actions/members";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,23 +48,35 @@ export function PendingInvitesTable({ invites }: { invites: PendingInvite[] }) {
     });
   }
 
-  function handleResend(id: string) {
+  function handleResend(id: string, email: string) {
     startTransition(async () => {
-      await resendInviteAction(id);
+      const result = await resendInviteAction(id);
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`Invite resent to ${email}.`);
     });
   }
 
-  function handleRevoke(id: string) {
+  function handleRevoke(id: string, email: string) {
     startTransition(async () => {
-      await revokeInviteAction(id);
+      const result = await revokeInviteAction(id);
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`Invite to ${email} revoked.`);
     });
   }
 
   async function handleExport(filter: "active" | "pending") {
     const result = await exportMembersCsvAction(filter);
-    if ("ok" in result) {
-      downloadCsv(result.csv, result.filename);
+    if ("error" in result) {
+      toast.error(result.error);
+      return;
     }
+    downloadCsv(result.csv, result.filename);
   }
 
   return (
@@ -131,7 +144,7 @@ export function PendingInvitesTable({ invites }: { invites: PendingInvite[] }) {
                       <Button
                         className="h-7 gap-1 text-xs"
                         disabled={isPending}
-                        onClick={() => handleResend(invite.id)}
+                        onClick={() => handleResend(invite.id, invite.email)}
                         size="sm"
                         type="button"
                         variant="outline"
@@ -142,7 +155,7 @@ export function PendingInvitesTable({ invites }: { invites: PendingInvite[] }) {
                       <Button
                         className="h-7 gap-1 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
                         disabled={isPending}
-                        onClick={() => handleRevoke(invite.id)}
+                        onClick={() => handleRevoke(invite.id, invite.email)}
                         size="sm"
                         type="button"
                         variant="outline"

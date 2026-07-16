@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { invitation, user } from "@/db/schema";
 import { db, dbClient } from "@/lib/db";
 import {
+  checkInviteRateLimit,
   createInvitation,
   findPendingInvitationByEmail,
   findPendingInvitationByToken,
@@ -198,5 +199,49 @@ describe("revokeInvitation", () => {
     const found = await findPendingInvitationByEmail(email);
     expect(found?.id).toBe(second.id);
     expect(found?.role).toBe("manager");
+  });
+});
+
+// Backs inviteMemberAction/resendInviteAction (app/actions/members.ts) — the
+// fix for docs/bugs/2026-07-16-bug-invite-actions-unrate-limited.md. Uses the
+// same Postgres-backed rate_limit_bucket table as lib/api/rate-limit.test.ts;
+// scoped cleanup here since these tests write to a different table than the
+// rest of this file's `invitation`-table cleanup above.
+describe("checkInviteRateLimit", () => {
+  const RATE_LIMIT_TEST_PREFIX = "vitest-invite-ratelimit-";
+
+  afterEach(async () => {
+    await db.execute(sql`DELETE FROM rate_limit_bucket WHERE key LIKE ${`members:%${RATE_LIMIT_TEST_PREFIX}%`}`);
+  });
+
+  it("allows up to 20 sends per actor within the window, then blocks", async () => {
+    const actorId = `${RATE_LIMIT_TEST_PREFIX}basic`;
+    const results: boolean[] = [];
+    for (let i = 0; i < 22; i++) {
+      results.push(await checkInviteRateLimit(actorId, "invite"));
+    }
+    expect(results.slice(0, 20).every(Boolean)).toBe(true);
+    expect(results[20]).toBe(false);
+    expect(results[21]).toBe(false);
+  });
+
+  it("tracks invite and resend as independent buckets for the same actor", async () => {
+    const actorId = `${RATE_LIMIT_TEST_PREFIX}independent-actions`;
+    for (let i = 0; i < 20; i++) {
+      await checkInviteRateLimit(actorId, "invite");
+    }
+    expect(await checkInviteRateLimit(actorId, "invite")).toBe(false);
+    // Resend has its own key — exhausting invite must not affect it.
+    expect(await checkInviteRateLimit(actorId, "resend")).toBe(true);
+  });
+
+  it("tracks separate actors independently — one admin's usage can't block another's", async () => {
+    const actorA = `${RATE_LIMIT_TEST_PREFIX}actor-a`;
+    const actorB = `${RATE_LIMIT_TEST_PREFIX}actor-b`;
+    for (let i = 0; i < 20; i++) {
+      await checkInviteRateLimit(actorA, "invite");
+    }
+    expect(await checkInviteRateLimit(actorA, "invite")).toBe(false);
+    expect(await checkInviteRateLimit(actorB, "invite")).toBe(true);
   });
 });

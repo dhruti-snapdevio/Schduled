@@ -4,9 +4,24 @@ import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { INVITE_TTL_HOURS } from "@/config/platform";
 import { invitation } from "@/db/schema";
+import { checkRateLimit } from "@/lib/api/helpers";
 import { db } from "@/lib/db";
 
 export type InvitationRole = "member" | "manager";
+
+// Keyed per-actor (not per-IP — inviteMemberAction/resendInviteAction are
+// already authenticated behind requireAdmin()) so a compromised or scripted
+// owner/manager session can't be used to blast invite emails. Generous enough
+// for a real bulk-invite session; still bounds a runaway loop or bug.
+const INVITE_RATE_LIMIT = 20;
+const INVITE_RATE_WINDOW_MS = 10 * 60 * 1000;
+
+export async function checkInviteRateLimit(
+  actorId: string,
+  action: "invite" | "resend"
+): Promise<boolean> {
+  return checkRateLimit(`members:${action}:${actorId}`, INVITE_RATE_LIMIT, INVITE_RATE_WINDOW_MS);
+}
 
 // Owner is never invited — assigned only at setup or via ownership transfer
 // (see config/platform.ts OWNER_ROLE and app/actions/members.ts
