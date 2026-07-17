@@ -23,12 +23,6 @@ export const rateLimitBucket = pgTable('rate_limit_bucket', {
   index('rate_limit_bucket_reset_at_idx').on(t.resetAt),
 ])
 
-export const newsletterSubscriber = pgTable('newsletter_subscriber', {
-  id:        text('id').primaryKey().$defaultFn(createId),
-  email:     text('email').notNull().unique(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-})
-
 // Admin-editable global platform settings (single-org, one admin). Key-value so
 // new toggles don't need a migration each time; values are stored as text.
 export const appSetting = pgTable('app_setting', {

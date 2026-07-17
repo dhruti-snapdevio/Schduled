@@ -15,7 +15,7 @@ document is the map, that one is the rulebook.
 ```
 schduled/
 ├── app/          ← Next.js App Router — route groups, API routes, server actions
-├── components/   ← React components (ui/, scaffold/, orbit/, admin/, landing/, onboarding/, profile/, tour/)
+├── components/   ← React components (ui/, scaffold/, settings-admin/, landing/, onboarding/, profile/, tour/)
 ├── lib/          ← Business logic, integrations, auth, env validation
 ├── db/           ← Drizzle schema + SQL migrations
 ├── config/       ← Small app-wide config (platform.ts — branding, product name)
@@ -44,14 +44,12 @@ pages under a shared `layout.tsx`.
 | `(landing)` | Public marketing site — home, about, contact, privacy/terms/cookies |
 | `(auth)` | Sign-in / login flow |
 | `(onboarding)` | First-run wizard for a freshly-created user |
-| `(app)` | The authenticated product: `dashboard`, `event-types`, `availability`, `bookings`, `contacts`, `profile`, `settings` |
-| `(orbit)` | Admin panel (requires admin role) |
-| `(orbit-public)` | Admin login (separate from the regular `(auth)` login) |
+| `(app)` | The authenticated product: `dashboard`, `event-types`, `availability`, `bookings`, `contacts`, `profile`, `settings` (including admin-only tabs — `settings/users`, `settings/audit`, `settings/jobs`, `settings/platform` — gated by `requireAdmin()`, not a separate route group) |
 | `(booking)` | Public booking flow — `[username]/[eventSlug]`, confirm/cancel/reschedule |
 
 Plus, not route groups:
-- `app/actions/` — Server Actions (`'use server'`), one file per domain: `auth.ts`, `bookings.ts`, `event-types.ts`, `availability.ts`, `profile.ts`, `settings.ts`, `contact.ts`, `subscribers.ts`, `onboarding.ts`, `orbit-users.ts`, `orbit-queues.ts`, `security.ts`
-- `app/api/` — route handlers where a Server Action doesn't fit: `auth/[...all]` (Better Auth), `health`, `version`, `bookings`, `slots`, `available-days`, `upload`, `integrations/*` (Google/Zoom OAuth callbacks), `webhooks`, `notifications`, `newsletter`, `username-check`, `slug-check`, `contact-lookup`, `geocode`, `check-blocked`, `account`, `orbit/*`
+- `app/actions/` — Server Actions (`'use server'`), one file per domain: `auth.ts`, `bookings.ts`, `event-types.ts`, `availability.ts`, `profile.ts`, `settings.ts`, `contact.ts`, `onboarding.ts`, `users.ts`, `audit.ts`, `queues.ts`, `platform-settings.ts`, `security.ts`
+- `app/api/` — route handlers where a Server Action doesn't fit: `auth/[...all]` (Better Auth), `health`, `version`, `bookings`, `slots`, `available-days`, `upload`, `integrations/*` (Google/Zoom OAuth callbacks), `webhooks`, `notifications`, `username-check`, `slug-check`, `contact-lookup`, `geocode`, `check-blocked`, `account`
 - `app/layout.tsx` / `app/globals.css` — root layout, theme, fonts, Tailwind base
 
 ## `lib/` — business logic
@@ -91,7 +89,7 @@ Plus, not route groups:
 |---|---|
 | `ui/` | shadcn/ui primitives, customized to this project's design system (zero radius, no shadow) — see `CLAUDE.md` |
 | `scaffold/` | App shell: `app-shell.tsx`, sidebar, header, mobile nav, search, notification bell |
-| `orbit/`, `admin/` | Admin panel components |
+| `settings-admin/` | Admin-only settings components (users, audit, jobs) |
 | `landing/` | Marketing page sections, header, footer |
 | `onboarding/` | First-run wizard steps |
 | `profile/` | Profile/settings page components |

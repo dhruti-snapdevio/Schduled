@@ -29,7 +29,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`${updated.email} is now an Orbit admin.`);
+  console.log(`${updated.email} is now an admin.`);
   process.exit(0);
 }
 

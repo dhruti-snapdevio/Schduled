@@ -8,8 +8,7 @@ import { auth } from "@/lib/auth";
 import { userHasPassword } from "@/lib/auth-password";
 
 // `redirectTo` is bound per call-site so sign-out returns to the surface the
-// user signed out from — the user dashboard goes to /login, the Orbit admin
-// panel goes to /orbit/login — instead of branching on the user's role.
+// user signed out from, defaulting to /login.
 export async function logoutAction(
   redirectTo: string = "/login",
   _formData?: FormData,

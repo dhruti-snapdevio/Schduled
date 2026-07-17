@@ -13,8 +13,8 @@ event types, availability, and bookings; there's no shared team calendar or
 multi-user workspace. One instance can host multiple independent users (each
 with their own booking page), but they don't share data with each other
 beyond what any user could already see (e.g. contacts they've added).
-Admins (via the Orbit panel) can see all users, but that's an
-administration view, not a shared workspace.
+Admins (via the admin-only tabs under `/settings`) can see all users, but
+that's an administration view, not a shared workspace.
 
 ### Prerequisites
 
@@ -291,7 +291,7 @@ to admin. See `ENVIRONMENT.md` §3 for the full explanation.
 
 - [ ] `curl <your-url>/api/health` returns `{"status":"ok"}`
 - [ ] You can sign in with the `INITIAL_ADMIN_EMAIL` account
-- [ ] The Orbit admin panel is reachable and shows your admin account
+- [ ] Signed in as the admin, the admin-only tabs under `/settings` (Users, Audit, Jobs, Platform) are reachable
 - [ ] `SIGNUP_ENABLED=false` is set (or you've deliberately chosen open signup)
 - [ ] The worker is running — a test booking sends a confirmation
       (or logs one to the console if SMTP isn't configured)

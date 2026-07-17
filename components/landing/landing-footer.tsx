@@ -1,11 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import {
-  ArrowRight,
-  CheckCircle,
-  CircleNotch,
   FacebookLogo,
   InstagramLogo,
   LinkedinLogo,
@@ -50,91 +46,11 @@ const BOTTOM_LINKS = [
   ['Cookies', '/cookies'],
 ] as const
 
-function NewsletterForm() {
-  const [email, setEmail]     = useState('')
-  const [status, setStatus]   = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const [message, setMessage] = useState('')
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (status === 'loading' || status === 'success') return
-
-    setStatus('loading')
-    setMessage('')
-
-    try {
-      const res = await fetch('/api/newsletter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      const data = await res.json()
-
-      if (res.ok) {
-        setStatus('success')
-        setMessage(data.message ?? 'You\'re subscribed!')
-        setEmail('')
-      } else {
-        setStatus('error')
-        setMessage(data.error ?? 'Something went wrong. Please try again.')
-      }
-    } catch {
-      setStatus('error')
-      setMessage('Something went wrong. Please try again.')
-    }
-  }
-
-  if (status === 'success') {
-    return (
-      <div className="flex items-start gap-2.5 border border-primary/25 bg-primary/5 px-3 py-3">
-        <CheckCircle size={16} weight="fill" className="mt-0.5 shrink-0 text-primary" />
-        <p className="text-sm text-primary">{message}</p>
-      </div>
-    )
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2" noValidate>
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => {
-          setEmail(e.target.value)
-          if (status === 'error') setStatus('idle')
-        }}
-        placeholder="you@company.com"
-        required
-        disabled={status === 'loading'}
-        className="border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
-      />
-      {status === 'error' && (
-        <p className="text-xs text-destructive">{message}</p>
-      )}
-      <button
-        type="submit"
-        disabled={status === 'loading'}
-        className="inline-flex items-center justify-center gap-2 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {status === 'loading' ? (
-          <>
-            <CircleNotch size={13} className="animate-spin" />
-            Subscribing…
-          </>
-        ) : (
-          <>
-            Subscribe <ArrowRight size={13} weight="bold" />
-          </>
-        )}
-      </button>
-    </form>
-  )
-}
-
 export function LandingFooter() {
   return (
     <footer className="border-t border-border bg-background">
       <div className="mx-auto max-w-[1400px] px-5 py-16 md:px-12 xl:px-20">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
 
           {/* Brand — slides in from left */}
           <Reveal direction="left" delay={0}>
@@ -178,17 +94,6 @@ export function LandingFooter() {
               </ul>
             </Reveal>
           ))}
-
-          {/* Newsletter — slides in from right */}
-          <Reveal direction="right" delay={300}>
-            <h4 className="mb-4 text-xs font-black uppercase tracking-eyebrow text-foreground">
-              Stay Updated
-            </h4>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Join 5,000+ users. Get tips and updates.
-            </p>
-            <NewsletterForm />
-          </Reveal>
         </div>
 
         {/* Bottom bar — fades up last */}

@@ -7,7 +7,7 @@ Schduled is a smart scheduling platform for modern professionals. Share a bookin
 - Better Auth — magic-link, email + password, and Google login
 - pg-boss background worker queues
 - Durable email outbox via SMTP (nodemailer)
-- Orbit admin panel for users, queue state, and email visibility
+- Admin-only screens (users, queue state, email visibility) built into the dashboard, gated by role
 - S3/R2-compatible file storage (or local disk)
 - Self-hostable — Docker Compose or manual/Node deploy
 
@@ -74,7 +74,7 @@ vulnerability.
 
 ## Structure
 
-- `app/` — public landing, auth, user dashboard, booking pages, Orbit admin, and API routes
+- `app/` — public landing, auth, user dashboard (including admin-only settings tabs), booking pages, and API routes
 - `db/schema/` — all database table definitions
 - `lib/auth.ts` — Better Auth configuration (magic link, password, Google OAuth)
 - `lib/email/` — persists outbound email before enqueueing work

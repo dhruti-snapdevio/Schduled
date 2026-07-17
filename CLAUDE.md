@@ -92,7 +92,7 @@ Examples:
 - No S3 uploads (feature skipped)
 - Only one admin in the system — no "Make Admin / Remove Admin" UI
 - Booking emails: teal-only color scheme
-- No `max-w-4xl` wrappers in admin/orbit pages — full width layouts
+- No `max-w-4xl` wrappers in admin (`/settings/users`, `/settings/audit`, `/settings/jobs`, `/settings/platform`) pages — full width layouts
 - Use `cn()` from `lib/utils` for conditional class merging
 - Prefer server components; add `'use client'` only when needed (state, events, browser APIs)
 - No comments unless the WHY is non-obvious
@@ -102,19 +102,18 @@ Examples:
 ## Auth
 - Admin email: `dhruti.hirapara@snapdevio.com`
 - Users log in via magic link only (no Google OAuth for admin)
-- Use `requireAdmin()` for orbit (admin panel) routes
+- There is no separate admin panel or admin login — admins use the same `/login` and the same dashboard as everyone else
+- Use `requireAdmin()` for admin-only routes under `/settings` (users, audit, jobs, platform)
 - Use `requireSession()` for app routes
 
 ---
 
 ## Project Structure
-- `app/(app)/` — authenticated user app
-- `app/(orbit)/` — admin panel
+- `app/(app)/` — authenticated user app (includes admin-only screens under `app/(app)/settings/{users,audit,jobs,platform}`, gated by `requireAdmin()`)
 - `app/(booking)/` — public booking flow
 - `app/(landing)/` — public marketing pages
-- `app/(orbit-public)/` — admin login
 - `components/ui/` — shadcn/ui primitives (customized, no radius, no shadow)
-- `components/orbit/` — admin panel components
+- `components/settings-admin/` — admin-only settings components (users, audit, jobs)
 - `components/scaffold/` — app shell (sidebar, header)
 
 ---

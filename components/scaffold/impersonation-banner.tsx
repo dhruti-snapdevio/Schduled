@@ -13,7 +13,7 @@ export function ImpersonationBanner({ userName }: { userName: string }) {
     setStopping(true);
     try {
       await authClient.admin.stopImpersonating();
-      router.push("/orbit/users");
+      router.push("/settings/users");
       router.refresh();
     } catch {
       setStopping(false);
