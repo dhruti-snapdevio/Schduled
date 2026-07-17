@@ -93,7 +93,7 @@ export default async function BookingsPage({
       .limit(1)
     if (hb) {
       resolvedTab =
-        hb.status === 'pending' ? 'pending'
+        hb.status === 'pending' || hb.status === 'reschedule_requested' ? 'pending'
         : hb.status === 'cancelled' || hb.status === 'rescheduled' ? 'cancelled'
         : hb.startTime > now ? 'upcoming'
         : 'past'
@@ -117,7 +117,7 @@ export default async function BookingsPage({
       and(eq(booking.hostUserId, session.user.id), or(eq(booking.status, 'cancelled'), eq(booking.status, 'rescheduled')))
     ),
     db.select({ value: count() }).from(booking).where(
-      and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'pending'))
+      and(eq(booking.hostUserId, session.user.id), or(eq(booking.status, 'pending'), eq(booking.status, 'reschedule_requested')))
     ),
   ])
 
@@ -135,7 +135,7 @@ export default async function BookingsPage({
       : tab === 'past'
         ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'confirmed'), lte(booking.startTime, now))
         : tab === 'pending'
-          ? and(eq(booking.hostUserId, session.user.id), eq(booking.status, 'pending'))
+          ? and(eq(booking.hostUserId, session.user.id), or(eq(booking.status, 'pending'), eq(booking.status, 'reschedule_requested')))
           : and(eq(booking.hostUserId, session.user.id), or(eq(booking.status, 'cancelled'), eq(booking.status, 'rescheduled')))
 
   const dateFromFilter = dateFrom ? gte(booking.startTime, new Date(`${dateFrom}T00:00:00`)) : undefined
@@ -164,6 +164,7 @@ export default async function BookingsPage({
         cancellationReason: booking.cancellationReason,
         approvalToken:      booking.approvalToken,
         rejectionReason:    booking.rejectionReason,
+        rescheduleRequestedStart: booking.rescheduleRequestedStart,
         eventName:          eventType.name,
         locationType:       eventType.locationType,
         eventColor:         eventType.color,
@@ -288,9 +289,14 @@ export default async function BookingsPage({
                 {g.items.map((b) => {
                   const isUpcoming = tab === 'upcoming'
                   const isPending = tab === 'pending'
+                  const isRescheduleReq = b.status === 'reschedule_requested'
                   // A pending request whose slot has passed can no longer be
                   // approved — show it as expired and drop the action buttons.
-                  const isExpired = isPending && b.startTime < now
+                  // For a reschedule request, the slot that matters is the
+                  // REQUESTED time, not the still-confirmed original.
+                  const isExpired =
+                    isPending &&
+                    (isRescheduleReq ? (b.rescheduleRequestedStart ?? b.startTime) : b.startTime) < now
                   const statusMeta = STATUS_STYLES[b.status] ?? STATUS_STYLES.no_show
                   const platform = PLATFORM_META[b.locationType ?? 'custom'] ?? PLATFORM_META.custom
                   const PlatformIcon = platform.icon
@@ -346,6 +352,11 @@ export default async function BookingsPage({
                                 <span className="inline-flex items-center gap-1 text-muted-foreground">
                                   <Hourglass size={12} weight="fill" />
                                   Expired — time passed
+                                </span>
+                              ) : isRescheduleReq ? (
+                                <span className="inline-flex items-center gap-1 text-amber-600">
+                                  <ArrowCounterClockwise size={12} weight="bold" />
+                                  Reschedule requested → {formatInTimeZone(b.rescheduleRequestedStart ?? b.startTime, hostTz, 'MMM d, h:mm a')}
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 text-amber-600">
@@ -412,13 +423,13 @@ export default async function BookingsPage({
                         {tab === 'pending' && b.approvalToken && !isExpired && (
                           <div className="flex items-center gap-1">
                             <Button asChild size="sm" className="h-7 gap-1 bg-primary px-2.5 text-xs hover:bg-primary/90">
-                              <Link href={`/booking/review/${b.approvalToken}?action=approve`}>
+                              <Link href={isRescheduleReq ? `/booking/review/${b.approvalToken}?type=reschedule&action=approve` : `/booking/review/${b.approvalToken}?action=approve`}>
                                 <Check size={13} weight="bold" />
                                 Approve
                               </Link>
                             </Button>
                             <Button asChild variant="outline" size="sm" className="h-7 gap-1 border-destructive/40 px-2 text-xs text-destructive hover:border-destructive hover:bg-destructive/5">
-                              <Link href={`/booking/review/${b.approvalToken}`}>
+                              <Link href={isRescheduleReq ? `/booking/review/${b.approvalToken}?type=reschedule` : `/booking/review/${b.approvalToken}`}>
                                 <X size={13} weight="bold" />
                                 Decline
                               </Link>

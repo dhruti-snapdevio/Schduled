@@ -262,7 +262,7 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(booking.hostUserId, host.id),
-            sql`${booking.status} IN ('confirmed', 'pending')`,
+            sql`${booking.status} IN ('confirmed', 'pending', 'reschedule_requested')`,
             lte(booking.startTime, dayEndUtc),
             gte(booking.endTime, dayStartUtc)
           )
@@ -297,7 +297,7 @@ export async function POST(request: Request) {
           .where(
             and(
               eq(booking.hostUserId, host.id),
-              sql`${booking.status} IN ('confirmed', 'pending')`,
+              sql`${booking.status} IN ('confirmed', 'pending', 'reschedule_requested')`,
             )
           );
 

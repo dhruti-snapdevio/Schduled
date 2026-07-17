@@ -1,3 +1,4 @@
+import { createId } from "@paralleldrive/cuid2";
 import { addHours, addMinutes } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { and, eq, gte, lte, ne, sql } from "drizzle-orm";
@@ -9,6 +10,7 @@ import {
   eventType,
 } from "@/db/schema";
 import { checkRateLimit, jsonError, rateLimitKey } from "@/lib/api/helpers";
+import { getCurrentSession } from "@/lib/authz";
 import { checkBookingLimits } from "@/lib/calendar/limits";
 import { isSlotBookable } from "@/lib/calendar/validate-slot";
 import { db } from "@/lib/db";
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
         rescheduleCount: booking.rescheduleCount,
         eventTypeId: booking.eventTypeId,
         rescheduleTokenExpiresAt: booking.rescheduleTokenExpiresAt,
+        approvalToken: booking.approvalToken,
       })
       .from(booking)
       .where(eq(booking.rescheduleToken, token))
@@ -67,6 +70,15 @@ export async function POST(request: Request) {
     if (!b) {
       return jsonError("This reschedule link is invalid.", 404);
     }
+
+    // A logged-in host rescheduling their OWN booking applies immediately (no
+    // self-approval). A guest using the public link who wants to move an already
+    // CONFIRMED booking instead files a reschedule request for the host to
+    // approve — the confirmed meeting stays put until then.
+    const session = await getCurrentSession();
+    const isHostActor = !!session && session.user.id === b.hostUserId;
+    const isGuestRescheduleOfConfirmed =
+      !isHostActor && (b.status === "confirmed" || b.status === "reschedule_requested");
 
     if (b.status === "cancelled") {
       return jsonError("This booking has been cancelled.", 409);
@@ -230,8 +242,9 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(booking.hostUserId, b.hostUserId),
-            // include pending so a reschedule can't collide with an awaiting-approval slot
-            sql`${booking.status} IN ('confirmed', 'pending')`,
+            // include pending + reschedule_requested so a reschedule can't collide
+            // with an awaiting-approval slot or another booking's held original slot
+            sql`${booking.status} IN ('confirmed', 'pending', 'reschedule_requested')`,
             ne(booking.id, b.id),
             lte(booking.startTime, dayEndUtc),
             gte(booking.endTime, dayStartUtc)
@@ -259,12 +272,32 @@ export async function POST(request: Request) {
       });
       if (limit) return { limit } as const;
 
+      if (isGuestRescheduleOfConfirmed) {
+        // Guest moving a confirmed booking: do NOT touch startTime/endTime. Stage
+        // the proposed time and flip to reschedule_requested so the host can
+        // approve/reject. The original meeting stays booked until then. Reuse the
+        // approvalToken column for the host's review link (null on confirmed).
+        const approvalToken = b.approvalToken ?? createId();
+        await tx
+          .update(booking)
+          .set({
+            status: "reschedule_requested",
+            rescheduleRequestedStart: newStart,
+            rescheduleRequestedEnd: newEnd,
+            approvalToken,
+            updatedAt: new Date(),
+          })
+          .where(eq(booking.id, b.id));
+
+        return { requested: true } as const;
+      }
+
       await tx
         .update(booking)
         .set({
           startTime: newStart,
           endTime: newEnd,
-          // A reschedule never changes approval state: a confirmed booking
+          // A host reschedule never changes approval state: a confirmed booking
           // stays confirmed (the host picked the new time, so no re-approval
           // is needed) and a still-pending booking stays pending.
           rescheduleCount: b.rescheduleCount + 1,
@@ -291,6 +324,26 @@ export async function POST(request: Request) {
           ? "The host is fully booked on that day. Please choose another date."
           : `The host has reached their ${{ day: "daily", week: "weekly", month: "monthly" }[result.limit.period]} meeting limit for that period. Please choose another time.`;
       return jsonError(msg, 409);
+    }
+
+    if ("requested" in result && result.requested) {
+      // Guest reschedule request on a confirmed booking — notify the host to
+      // approve/reject. No calendar/reminder/notify changes: the original meeting
+      // is untouched until the host approves. The guest gets no email now; their
+      // UI shows the "Awaiting host approval" screen via requiresApproval below.
+      await Promise.allSettled([
+        enqueueJob(JOB_NAMES.BOOKING_RESCHEDULE_REQUEST, {
+          bookingId: b.id,
+          previousStartUtc,
+        }),
+      ]);
+
+      return NextResponse.json({
+        ok: true,
+        requiresApproval: true,
+        startUtc: newStart.toISOString(),
+        endUtc: newEnd.toISOString(),
+      });
     }
 
     if (b.status === "pending") {

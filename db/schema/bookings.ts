@@ -37,6 +37,13 @@ export const booking = pgTable('booking', {
   rescheduledFromId:   text('rescheduled_from_id'),
   rescheduleCount:     integer('reschedule_count').notNull().default(0),
 
+  // Guest-initiated reschedule of a confirmed booking: the proposed new time is
+  // staged here (status = 'reschedule_requested') and only written to
+  // startTime/endTime once the host approves. The original meeting stays intact
+  // until then. Cleared on approve, reject, or cancel.
+  rescheduleRequestedStart: timestamp('reschedule_requested_start', { withTimezone: true }),
+  rescheduleRequestedEnd:   timestamp('reschedule_requested_end', { withTimezone: true }),
+
   calendarEventId: text('calendar_event_id'),
 
   hostNotes: text('host_notes'),

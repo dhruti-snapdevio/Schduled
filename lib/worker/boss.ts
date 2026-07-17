@@ -81,6 +81,8 @@ export async function startWorker() {
   const { handleBookingApproved } = await import("@/lib/worker/handlers/booking-approved");
   const { handleBookingApprovedNotify } = await import("@/lib/worker/handlers/booking-approved-notify");
   const { handleBookingRejected } = await import("@/lib/worker/handlers/booking-rejected");
+  const { handleBookingRescheduleRequest } = await import("@/lib/worker/handlers/booking-reschedule-request");
+  const { handleBookingRescheduleDeclined } = await import("@/lib/worker/handlers/booking-reschedule-declined");
 
   await Promise.all([
     // Platform
@@ -119,6 +121,10 @@ export async function startWorker() {
     work(JOB_NAMES.BOOKING_APPROVED,         handleBookingApproved),
     work(JOB_NAMES.BOOKING_APPROVED_NOTIFY,  handleBookingApprovedNotify),
     work(JOB_NAMES.BOOKING_REJECTED,         handleBookingRejected),
+
+    // Reschedule approval flow
+    work(JOB_NAMES.BOOKING_RESCHEDULE_REQUEST,  handleBookingRescheduleRequest),
+    work(JOB_NAMES.BOOKING_RESCHEDULE_DECLINED, handleBookingRescheduleDeclined),
   ]);
 
   // ── Cron schedules ─────────────────────────────────────────────────────────

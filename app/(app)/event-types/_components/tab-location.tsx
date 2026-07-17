@@ -303,7 +303,19 @@ export function TabLocation({
                             : "border-border bg-card hover:border-primary/50 hover:bg-muted/30"
                       )}
                       disabled={isDisabled}
-                      onClick={() => { if (!isDisabled) field.onChange(opt.value) }}
+                      onClick={() => {
+                        if (isDisabled) return;
+                        field.onChange(opt.value);
+                        // Clear per-type fields the new type doesn't use, so a
+                        // stale value (e.g. the dial-code PhoneInput auto-fills)
+                        // can't fail the Location step's validation.
+                        if (!opt.requiresPhone) {
+                          form.setValue("hostPhoneNumber", "", { shouldValidate: true, shouldDirty: true });
+                        }
+                        if (!opt.requiresValue) {
+                          form.setValue("locationValue", "", { shouldValidate: true, shouldDirty: true });
+                        }
+                      }}
                       type="button"
                     >
                       <span className="mt-0.5 shrink-0">{opt.icon}</span>

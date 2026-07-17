@@ -159,8 +159,9 @@ export async function GET(request: Request) {
       and(
         eq(booking.hostUserId, host.id),
         // pending (awaiting-approval) bookings also hold the slot — otherwise a
-        // second invitee sees it as open and hits a 409 at submit time
-        inArray(booking.status, ["confirmed", "pending"]),
+        // second invitee sees it as open and hits a 409 at submit time.
+        // reschedule_requested holds its ORIGINAL slot until the host decides.
+        inArray(booking.status, ["confirmed", "pending", "reschedule_requested"]),
         lte(booking.startTime, dayEndUtc),
         gte(booking.endTime, dayStartUtc)
       )

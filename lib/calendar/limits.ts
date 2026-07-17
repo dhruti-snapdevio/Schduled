@@ -34,7 +34,7 @@ export async function checkBookingLimits(
 ): Promise<LimitViolation> {
   const { hostUserId, hostTz, startTime, dayStartUtc, dayEndUtc, maxBookingsPerDay, excludeBookingId } = opts;
 
-  const activeStatus = sql`${booking.status} IN ('confirmed', 'pending')`;
+  const activeStatus = sql`${booking.status} IN ('confirmed', 'pending', 'reschedule_requested')`;
   const excludeSelf = excludeBookingId ? ne(booking.id, excludeBookingId) : undefined;
 
   // ── Per-event daily cap ──────────────────────────────────────────────────

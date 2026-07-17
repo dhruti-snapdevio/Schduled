@@ -156,8 +156,9 @@ export async function GET(request: Request) {
     .where(
       and(
         eq(booking.hostUserId, host.id),
-        // pending bookings also occupy the day — keep them out of open slots
-        inArray(booking.status, ["confirmed", "pending"]),
+        // pending + reschedule_requested bookings also occupy the day (the
+        // latter still holds its original slot) — keep them out of open slots
+        inArray(booking.status, ["confirmed", "pending", "reschedule_requested"]),
         lte(booking.startTime, monthEndUtc),
         gte(booking.endTime, monthStartUtc)
       )

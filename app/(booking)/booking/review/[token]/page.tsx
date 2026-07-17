@@ -21,10 +21,10 @@ export default async function ReviewPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ action?: string }>;
+  searchParams: Promise<{ action?: string; type?: string }>;
 }) {
   const { token } = await params;
-  const { action } = await searchParams;
+  const { action, type } = await searchParams;
 
   const [b] = await db
     .select({
@@ -32,6 +32,7 @@ export default async function ReviewPage({
       approvalToken: booking.approvalToken,
       status: booking.status,
       startTime: booking.startTime,
+      rescheduleRequestedStart: booking.rescheduleRequestedStart,
       inviteeName: booking.inviteeName,
       inviteeEmail: booking.inviteeEmail,
       etName: eventType.name,
@@ -48,9 +49,16 @@ export default async function ReviewPage({
 
   if (!b) notFound();
 
+  const isReschedule = type === "reschedule" || b.status === "reschedule_requested";
   const isPast = new Date(b.startTime).getTime() < Date.now();
-  const isAlreadyActioned = b.status !== "pending";
   const locationLabel = resolveLocationLabel(b.etLocationType, b.etLocationValue);
+
+  // For a reschedule review, the request is actionable only while it's still
+  // pending. If the booking moved on (approved, declined, or cancelled while the
+  // request was pending), show the "no longer valid" state instead.
+  const isAlreadyActioned = isReschedule
+    ? b.status !== "reschedule_requested"
+    : b.status !== "pending";
 
   return (
     <ReviewClient
@@ -65,6 +73,8 @@ export default async function ReviewPage({
       isAlreadyActioned={isAlreadyActioned}
       initialAction={action === "approve" ? "approve" : null}
       startUtc={new Date(b.startTime).toISOString()}
+      requestedStartUtc={b.rescheduleRequestedStart ? new Date(b.rescheduleRequestedStart).toISOString() : null}
+      mode={isReschedule ? "reschedule" : "booking"}
       locationLabel={locationLabel}
     />
   );
