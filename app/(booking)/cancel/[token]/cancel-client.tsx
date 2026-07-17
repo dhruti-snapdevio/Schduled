@@ -64,6 +64,7 @@ export function CancelClient(props: Props) {
         return;
       }
       setDone(true);
+      router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
