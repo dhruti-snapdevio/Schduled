@@ -24,6 +24,10 @@ export const JOB_NAMES = {
   BOOKING_APPROVED_NOTIFY: "booking.approved-notify",
   BOOKING_REJECTED: "booking.rejected",
 
+  // ── Reschedule approval (guest requests to move a confirmed booking) ───────
+  BOOKING_RESCHEDULE_REQUEST: "booking.reschedule-request",
+  BOOKING_RESCHEDULE_DECLINED: "booking.reschedule-declined",
+
   // ── Calendar integrations ─────────────────────────────────────────────
   CALENDAR_SYNC: "calendar.sync",
   CALENDAR_TOKEN_REFRESH: "calendar.token-refresh",
@@ -120,6 +124,20 @@ export interface BookingRejectedPayload {
   bookingId: string;
 }
 
+export interface BookingRescheduleRequestPayload {
+  bookingId: string;
+  /** ISO — the current (still-confirmed) start time, for "Current → Requested" copy. */
+  previousStartUtc: string;
+}
+
+export interface BookingRescheduleDeclinedPayload {
+  bookingId: string;
+  /** Optional host-provided decline reason (not persisted on the booking). */
+  reason?: string;
+  /** ISO — the still-confirmed original start time to show in the email. */
+  originalStartUtc: string;
+}
+
 export type JobPayloads = {
   [JOB_NAMES.EMAIL_SEND]: EmailSendPayload;
   [JOB_NAMES.EMAIL_OUTBOX_REAP]: Record<string, never>;
@@ -145,5 +163,7 @@ export type JobPayloads = {
   [JOB_NAMES.BOOKING_APPROVED]: BookingApprovedPayload;
   [JOB_NAMES.BOOKING_APPROVED_NOTIFY]: BookingApprovedPayload;
   [JOB_NAMES.BOOKING_REJECTED]: BookingRejectedPayload;
+  [JOB_NAMES.BOOKING_RESCHEDULE_REQUEST]: BookingRescheduleRequestPayload;
+  [JOB_NAMES.BOOKING_RESCHEDULE_DECLINED]: BookingRescheduleDeclinedPayload;
   [JOB_NAMES.CALENDAR_SYNC_ALL]: Record<string, never>;
 };

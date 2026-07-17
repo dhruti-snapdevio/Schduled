@@ -36,6 +36,7 @@ const ICONS: Record<string, React.ReactNode> = {
   booking_cancelled:         <CalendarX className="text-red-500" size={16} />,
   booking_rejected:          <CalendarX className="text-red-500" size={16} />,
   booking_rescheduled:       <ArrowsClockwise className="text-amber-500" size={16} />,
+  booking_reschedule_requested: <ArrowsClockwise className="text-amber-500" size={16} />,
   booking_reminder:          <Clock className="text-amber-500" size={16} />,
   booking_pending_approval:  <Hourglass className="text-amber-500" size={16} />,
 };

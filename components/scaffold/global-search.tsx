@@ -4,38 +4,26 @@ import {
   AddressBook,
   CalendarCheck,
   CalendarPlus,
-  Clock,
-  GearSix,
   MagnifyingGlass,
   Spinner,
-  SquaresFour,
-  UserCircle,
+  UsersThree,
 } from '@phosphor-icons/react'
 import { formatInTimeZone } from 'date-fns-tz'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
-type PageEntry = { href: string; label: string; keywords: string; icon: React.ReactNode }
-
-const PAGES: PageEntry[] = [
-  { href: '/dashboard',    label: 'Dashboard',     keywords: 'home overview', icon: <SquaresFour size={14} /> },
-  { href: '/event-types',  label: 'Meeting Types', keywords: 'event types booking page', icon: <CalendarPlus size={14} /> },
-  { href: '/availability', label: 'Availability',  keywords: 'schedule hours', icon: <Clock size={14} /> },
-  { href: '/bookings',     label: 'Bookings',      keywords: 'meetings appointments', icon: <CalendarCheck size={14} /> },
-  { href: '/contacts',     label: 'Contacts',      keywords: 'crm people invitees', icon: <AddressBook size={14} /> },
-  { href: '/settings',     label: 'Settings',      keywords: 'preferences configuration', icon: <GearSix size={14} /> },
-  { href: '/profile/profile', label: 'Profile',    keywords: 'account', icon: <UserCircle size={14} /> },
-]
+const MIN_QUERY = 2
 
 interface SearchResults {
   bookings: { id: string; inviteeName: string; inviteeEmail: string; startTime: string }[]
   contacts: { id: string; name: string; email: string }[]
   eventTypes: { id: string; name: string; slug: string }[]
+  users: { id: string; name: string; email: string; role: string }[]
 }
 
-const EMPTY_RESULTS: SearchResults = { bookings: [], contacts: [], eventTypes: [] }
+const EMPTY_RESULTS: SearchResults = { bookings: [], contacts: [], eventTypes: [], users: [] }
 
 export function GlobalSearch() {
   const router = useRouter()
@@ -47,17 +35,11 @@ export function GlobalSearch() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  const matchingPages = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return PAGES
-    return PAGES.filter((p) => p.label.toLowerCase().includes(q) || p.keywords.includes(q))
-  }, [query])
-
   useEffect(() => {
     const q = query.trim()
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
-    if (q.length < 2) {
+    if (q.length < MIN_QUERY) {
       setResults(EMPTY_RESULTS)
       setLoading(false)
       return
@@ -71,7 +53,7 @@ export function GlobalSearch() {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: controller.signal })
         const data = res.ok ? await res.json() : EMPTY_RESULTS
-        setResults(data)
+        setResults({ ...EMPTY_RESULTS, ...data })
       } catch {
         // aborted or network error — leave last-known results in place
       } finally {
@@ -86,8 +68,9 @@ export function GlobalSearch() {
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
+  const hasQuery = query.trim().length >= MIN_QUERY
   const totalCount =
-    matchingPages.length + results.bookings.length + results.contacts.length + results.eventTypes.length
+    results.bookings.length + results.contacts.length + results.eventTypes.length + results.users.length
 
   function go(href: string) {
     setOpen(false)
@@ -98,18 +81,17 @@ export function GlobalSearch() {
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key !== 'Enter') return
     e.preventDefault()
-    // Enter jumps to the first available result — pages first (instant,
-    // always available), then whichever dynamic category has a match.
+    // Enter jumps to the first available result across all categories.
     const first =
-      matchingPages[0]?.href ??
-      (results.bookings[0] && `/bookings/${results.bookings[0].id}`) ??
       (results.eventTypes[0] && `/event-types/${results.eventTypes[0].id}`) ??
-      (results.contacts[0] && `/contacts?q=${encodeURIComponent(results.contacts[0].email)}`)
+      (results.bookings[0] && `/bookings/${results.bookings[0].id}`) ??
+      (results.contacts[0] && `/contacts?q=${encodeURIComponent(results.contacts[0].email)}`) ??
+      (results.users[0] && `/settings/users/${results.users[0].id}`)
     if (first) go(first)
   }
 
   return (
-    <Popover open={open && totalCount > 0} onOpenChange={setOpen}>
+    <Popover open={open && hasQuery} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <div className="relative hidden sm:block">
           {loading ? (
@@ -134,15 +116,11 @@ export function GlobalSearch() {
           />
         </div>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[340px] p-1">
-        {matchingPages.length > 0 && (
-          <ResultGroup label="Pages">
-            {matchingPages.map((p) => (
-              <ResultRow key={p.href} icon={p.icon} label={p.label} onClick={() => go(p.href)} />
-            ))}
-          </ResultGroup>
-        )}
-
+      <PopoverContent
+        align="start"
+        className="w-[340px] p-1"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         {results.eventTypes.length > 0 && (
           <ResultGroup label="Meeting Types">
             {results.eventTypes.map((et) => (
@@ -183,6 +161,26 @@ export function GlobalSearch() {
               />
             ))}
           </ResultGroup>
+        )}
+
+        {results.users.length > 0 && (
+          <ResultGroup label="Users">
+            {results.users.map((u) => (
+              <ResultRow
+                key={u.id}
+                icon={<UsersThree size={14} />}
+                label={u.name}
+                sub={u.email}
+                onClick={() => go(`/settings/users/${u.id}`)}
+              />
+            ))}
+          </ResultGroup>
+        )}
+
+        {!loading && totalCount === 0 && (
+          <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+            No results for “{query.trim()}”
+          </p>
         )}
       </PopoverContent>
     </Popover>

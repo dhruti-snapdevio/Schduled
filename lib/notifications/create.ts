@@ -8,7 +8,8 @@ export type NotificationType =
   | "booking_reminder"
   | "booking_pending_approval"
   | "booking_approved"
-  | "booking_rejected";
+  | "booking_rejected"
+  | "booking_reschedule_requested";
 
 export interface CreateNotificationInput {
   body?: string | null;

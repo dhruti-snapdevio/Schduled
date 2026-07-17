@@ -85,6 +85,13 @@ export async function POST(request: Request) {
         cancellationReason: reason?.trim() || null,
         cancelledBy: "invitee",
         cancelledAt: new Date(),
+        // Discard any pending reschedule request so it can't later be approved.
+        // (The approve/reject endpoints also guard on status, so a cancelled
+        // booking is unreachable either way.) The approvalToken is intentionally
+        // kept so a stale review link resolves to a friendly "no longer valid"
+        // page rather than a 404.
+        rescheduleRequestedStart: null,
+        rescheduleRequestedEnd: null,
         updatedAt: new Date(),
       })
       .where(eq(booking.id, b.id));

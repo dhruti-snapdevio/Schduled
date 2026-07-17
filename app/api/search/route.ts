@@ -1,7 +1,8 @@
-import { and, eq, ilike, or } from "drizzle-orm";
+import { and, eq, ilike, ne, or } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { booking, contact, eventType } from "@/db/schema";
+import { ADMIN_ROLE } from "@/config/platform";
+import { booking, contact, eventType, user } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { checkRateLimit, rateLimitKey } from "@/lib/api/helpers";
 import { db } from "@/lib/db";
@@ -21,13 +22,20 @@ export async function GET(request: Request) {
 
   const q = new URL(request.url).searchParams.get("q")?.trim() ?? "";
   if (q.length < 2) {
-    return NextResponse.json({ bookings: [], contacts: [], eventTypes: [] });
+    return NextResponse.json({ bookings: [], contacts: [], eventTypes: [], users: [] });
   }
 
   const hostUserId = current.user.id;
   const like = `%${q}%`;
 
-  const [bookingRows, contactRows, eventTypeRows] = await Promise.all([
+  const [currentRow] = await db
+    .select({ role: user.role })
+    .from(user)
+    .where(eq(user.id, hostUserId))
+    .limit(1);
+  const isAdmin = currentRow?.role === ADMIN_ROLE;
+
+  const [bookingRows, contactRows, eventTypeRows, userRows] = await Promise.all([
     db
       .select({
         id: booking.id,
@@ -64,11 +72,33 @@ export async function GET(request: Request) {
         ),
       )
       .limit(RESULT_LIMIT),
+    isAdmin
+      ? db
+          .select({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          })
+          .from(user)
+          .where(
+            and(
+              ne(user.id, hostUserId),
+              or(
+                ilike(user.name, like),
+                ilike(user.email, like),
+                ilike(user.username, like),
+              ),
+            ),
+          )
+          .limit(RESULT_LIMIT)
+      : Promise.resolve([]),
   ]);
 
   return NextResponse.json({
     bookings: bookingRows.map((b) => ({ ...b, startTime: b.startTime.toISOString() })),
     contacts: contactRows,
     eventTypes: eventTypeRows,
+    users: userRows,
   });
 }

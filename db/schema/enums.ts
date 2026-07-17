@@ -58,6 +58,7 @@ export const meetingTypeEnum = pgEnum('meeting_type', [
 export const bookingStatusEnum = pgEnum('booking_status', [
   'pending',
   'confirmed',
+  'reschedule_requested',
   'cancelled',
   'rescheduled',
   'completed',

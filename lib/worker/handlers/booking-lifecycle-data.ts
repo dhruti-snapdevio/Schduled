@@ -22,6 +22,8 @@ export interface BookingLifecycleRow {
   inviteeTimezone: string;
   rejectionReason: string | null;
   rescheduleToken: string;
+  rescheduleRequestedStart: Date | null;
+  rescheduleRequestedEnd: Date | null;
   startTime: Date;
   status: string;
   videoLinkHost: string | null;
@@ -44,6 +46,8 @@ export async function loadBookingForLifecycle(
       videoLinkHost: booking.videoLinkHost,
       cancelToken: booking.cancelToken,
       rescheduleToken: booking.rescheduleToken,
+      rescheduleRequestedStart: booking.rescheduleRequestedStart,
+      rescheduleRequestedEnd: booking.rescheduleRequestedEnd,
       approvalToken: booking.approvalToken,
       status: booking.status,
       cancellationReason: booking.cancellationReason,

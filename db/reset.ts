@@ -1,10 +1,13 @@
 import { existsSync } from "node:fs";
 import postgres from "postgres";
-import { env } from "@/lib/env";
 
 if (existsSync(".env")) {
   process.loadEnvFile();
 }
+
+// Dynamic import so lib/env validates process.env *after* loadEnvFile above;
+// a static import is hoisted and would run validation before .env is loaded.
+const { env } = await import("@/lib/env");
 
 const sql = postgres(env.DATABASE_URL);
 

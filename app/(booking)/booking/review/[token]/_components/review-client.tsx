@@ -25,22 +25,35 @@ interface Props {
   isAlreadyActioned: boolean;
   initialAction?: "approve" | null;
   startUtc: string;
+  requestedStartUtc?: string | null;
+  mode?: "booking" | "reschedule";
   locationLabel: string;
 }
 
 const DATE_FMT = "EEEE, MMMM d, yyyy 'at' h:mm a";
 
 export function ReviewClient(props: Props) {
+  const isReschedule = props.mode === "reschedule";
+  const approveEndpoint = isReschedule
+    ? "/api/bookings/reschedule-approve"
+    : "/api/bookings/approve";
+  const rejectEndpoint = isReschedule
+    ? "/api/bookings/reschedule-reject"
+    : "/api/bookings/reject";
+
   const autoApproving =
     !props.isAlreadyActioned && !props.isPast && props.initialAction === "approve";
 
-  function initialView(): "main" | "reject" | "approved" | "rejected" {
+  function initialView(): "main" | "reject" | "approved" | "rejected" | "invalid" {
     if (!props.isAlreadyActioned) return "main";
+    // A reschedule request that's already been actioned/cancelled can't be told
+    // apart by status alone — show a neutral "no longer valid" screen.
+    if (isReschedule) return "invalid";
     if (props.bookingStatus === "cancelled") return "rejected";
     return "approved";
   }
 
-  const [view, setView] = useState<"main" | "reject" | "approved" | "rejected">(initialView);
+  const [view, setView] = useState<"main" | "reject" | "approved" | "rejected" | "invalid">(initialView);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(autoApproving);
   const [error, setError] = useState<string | null>(null);
@@ -56,12 +69,15 @@ export function ReviewClient(props: Props) {
   }, []);
 
   const when = formatInTimeZone(new Date(props.startUtc), props.hostTimezone, DATE_FMT);
+  const requestedWhen = props.requestedStartUtc
+    ? formatInTimeZone(new Date(props.requestedStartUtc), props.hostTimezone, DATE_FMT)
+    : null;
 
   async function handleApprove() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/bookings/approve", {
+      const res = await fetch(approveEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: props.approvalToken }),
@@ -83,7 +99,7 @@ export function ReviewClient(props: Props) {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/bookings/reject", {
+      const res = await fetch(rejectEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -111,8 +127,25 @@ export function ReviewClient(props: Props) {
       <p className="mt-0.5 text-xs text-muted-foreground">
         with {props.inviteeName} ({props.inviteeEmail})
       </p>
-      <p className="mt-2 text-xs text-muted-foreground">{when}</p>
-      <p className="text-xs text-muted-foreground">{props.hostTimezone}</p>
+      {isReschedule && requestedWhen ? (
+        <div className="mt-3 space-y-2">
+          <div>
+            <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">Current</p>
+            <p className="text-xs text-foreground">{when}</p>
+          </div>
+          <p className="text-xs text-primary">↓</p>
+          <div>
+            <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">Requested</p>
+            <p className="text-xs font-semibold text-foreground">{requestedWhen}</p>
+          </div>
+          <p className="text-xs text-muted-foreground">{props.hostTimezone}</p>
+        </div>
+      ) : (
+        <>
+          <p className="mt-2 text-xs text-muted-foreground">{when}</p>
+          <p className="text-xs text-muted-foreground">{props.hostTimezone}</p>
+        </>
+      )}
       {props.locationLabel.startsWith('http') ? (
         <a
           href={props.locationLabel}
@@ -182,10 +215,13 @@ export function ReviewClient(props: Props) {
         <div className="w-full max-w-md overflow-hidden bg-card border border-border">
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <CheckCircle className="text-primary" size={48} weight="fill" />
-            <h1 className="text-lg font-bold text-foreground">Booking approved</h1>
+            <h1 className="text-lg font-bold text-foreground">
+              {isReschedule ? "Reschedule approved" : "Booking approved"}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              {props.inviteeName} will receive a confirmation email with the
-              booking details.
+              {isReschedule
+                ? `The meeting has been moved to the new time. ${props.inviteeName} will receive a "Meeting Rescheduled" email.`
+                : `${props.inviteeName} will receive a confirmation email with the booking details.`}
             </p>
           </div>
           <div className="border-t border-border px-5 sm:px-8 py-5 flex flex-col sm:flex-row gap-3">
@@ -215,10 +251,46 @@ export function ReviewClient(props: Props) {
         <div className="w-full max-w-md overflow-hidden bg-card border border-border">
           <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
             <CheckCircle className="text-muted-foreground" size={48} weight="fill" />
-            <h1 className="text-lg font-bold text-foreground">Booking declined</h1>
+            <h1 className="text-lg font-bold text-foreground">
+              {isReschedule ? "Reschedule declined" : "Booking declined"}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              {props.inviteeName} will be notified that their booking request was
-              declined.
+              {isReschedule
+                ? `The meeting stays at its original time. ${props.inviteeName} will be notified that the reschedule request was declined.`
+                : `${props.inviteeName} will be notified that their booking request was declined.`}
+            </p>
+          </div>
+          <div className="border-t border-border px-5 sm:px-8 py-5 flex flex-col sm:flex-row gap-3">
+            <Link
+              href="/dashboard"
+              className="flex h-10 flex-1 items-center justify-center gap-2 border border-border text-sm font-semibold text-foreground transition-all hover:bg-muted"
+            >
+              <House size={15} />
+              Dashboard
+            </Link>
+            <Link
+              href="/bookings"
+              className="flex h-10 flex-1 items-center justify-center gap-2 bg-primary text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <CalendarBlank size={15} />
+              View Bookings
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (view === "invalid") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+        <div className="w-full max-w-md overflow-hidden bg-card border border-border">
+          <div className="flex flex-col items-center gap-4 px-5 sm:px-8 py-12 text-center">
+            <Warning className="text-amber-500" size={48} weight="fill" />
+            <h1 className="text-lg font-bold text-foreground">This request is no longer valid</h1>
+            <p className="text-sm text-muted-foreground">
+              This reschedule request has already been handled or the booking
+              changed. No action is needed.
             </p>
           </div>
           <div className="border-t border-border px-5 sm:px-8 py-5 flex flex-col sm:flex-row gap-3">
@@ -248,10 +320,18 @@ export function ReviewClient(props: Props) {
         <div className="w-full max-w-md overflow-hidden bg-card border border-border">
           <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-5 sm:px-8 py-6">
             <X className="text-destructive" size={24} weight="bold" />
-            <h1 className="text-base font-bold text-foreground">Decline this booking?</h1>
+            <h1 className="text-base font-bold text-foreground">
+              {isReschedule ? "Decline this reschedule?" : "Decline this booking?"}
+            </h1>
           </div>
           <div className="px-5 sm:px-8 py-6">
             <BookingCard />
+
+            {isReschedule && (
+              <p className="mb-4 text-xs text-muted-foreground">
+                The current meeting will stay exactly as it is.
+              </p>
+            )}
 
             <label
               className="mb-1.5 block text-xs font-semibold text-muted-foreground"
@@ -310,13 +390,24 @@ export function ReviewClient(props: Props) {
               <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 3.5a.75.75 0 0 1 .75.75v3a.75.75 0 0 1-1.5 0v-3A.75.75 0 0 1 8 4.5zm0 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
             </svg>
           </span>
-          <h1 className="text-base font-bold text-foreground">Review booking request</h1>
+          <h1 className="text-base font-bold text-foreground">
+            {isReschedule ? "Review reschedule request" : "Review booking request"}
+          </h1>
         </div>
 
         <div className="px-5 sm:px-8 py-6">
           <p className="mb-5 text-sm text-muted-foreground">
-            <strong>{props.inviteeName}</strong> has requested to book time with you.
-            Review the details below and approve or decline.
+            {isReschedule ? (
+              <>
+                <strong>{props.inviteeName}</strong> requested to reschedule a
+                confirmed meeting. Review the change below and approve or decline.
+              </>
+            ) : (
+              <>
+                <strong>{props.inviteeName}</strong> has requested to book time with you.
+                Review the details below and approve or decline.
+              </>
+            )}
           </p>
 
           <BookingCard />

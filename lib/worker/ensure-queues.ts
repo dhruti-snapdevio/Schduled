@@ -63,6 +63,10 @@ export const QUEUE_OPTIONS: Record<
   [JOB_NAMES.BOOKING_APPROVED]:         { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
   [JOB_NAMES.BOOKING_APPROVED_NOTIFY]:  { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
   [JOB_NAMES.BOOKING_REJECTED]:         { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
+
+  // Reschedule approval
+  [JOB_NAMES.BOOKING_RESCHEDULE_REQUEST]:  { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
+  [JOB_NAMES.BOOKING_RESCHEDULE_DECLINED]: { expireInSeconds: 120, policy: "standard", retryLimit: 3, retryDelay: 30 },
 };
 
 export async function ensureJobQueues(boss: PgBoss) {

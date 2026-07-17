@@ -22,8 +22,18 @@ export interface SmtpSendResult {
   status: string;
 }
 
+function isPlaceholderHost(host: string) {
+  return /(^|\.)example\.(com|org|net)$/i.test(host.trim());
+}
+
 export function isSmtpConfigured() {
-  return !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS && env.EMAIL_FROM);
+  return !!(
+    env.SMTP_HOST &&
+    !isPlaceholderHost(env.SMTP_HOST) &&
+    env.SMTP_USER &&
+    env.SMTP_PASS &&
+    env.EMAIL_FROM
+  );
 }
 
 export async function sendEmailViaSmtp(

@@ -10,7 +10,7 @@ import {
   resolveLocationLabel,
 } from "@/lib/worker/handlers/booking-lifecycle-data";
 
-const ACTIVE = sql`${booking.status} IN ('confirmed', 'pending')`;
+const ACTIVE = sql`${booking.status} IN ('confirmed', 'pending', 'reschedule_requested')`;
 
 /**
  * Cancel a host's upcoming meetings and notify everyone. Used when an admin
@@ -39,6 +39,9 @@ export async function cancelUpcomingBookingsForHost(
       cancelledBy: "admin",
       cancelledAt: now,
       cancellationReason: reason,
+      rescheduleRequestedStart: null,
+      rescheduleRequestedEnd: null,
+      approvalToken: null,
       updatedAt: now,
     })
     .where(inArray(booking.id, ids));

@@ -70,6 +70,7 @@ export default async function BookingDetailPage({
       cancelToken: booking.cancelToken,
       rescheduleToken: booking.rescheduleToken,
       approvalToken: booking.approvalToken,
+      rescheduleRequestedStart: booking.rescheduleRequestedStart,
       cancellationReason: booking.cancellationReason,
       cancelledBy: booking.cancelledBy,
       cancelledAt: booking.cancelledAt,
@@ -103,6 +104,7 @@ export default async function BookingDetailPage({
   const statusMeta = STATUS_STYLES[b.status] ?? STATUS_STYLES.no_show
   const isUpcoming = b.status === 'confirmed' && b.startTime > now
   const isPending = b.status === 'pending'
+  const isRescheduleReq = b.status === 'reschedule_requested'
   const isCancelled = b.status === 'cancelled'
   const locationLabel = LOCATION_LABEL[b.locationType ?? 'custom'] ?? 'Online'
   const joinUrl =
@@ -112,7 +114,7 @@ export default async function BookingDetailPage({
       : null
   const isLocationLink = b.locationType === 'in_person' && !!joinUrl
   const isPastConfirmed = b.status === 'confirmed' && b.startTime <= now
-  const hasActions = isUpcoming || (isPending && b.approvalToken) || isPastConfirmed
+  const hasActions = isUpcoming || (isPending && b.approvalToken) || (isRescheduleReq && b.approvalToken) || isPastConfirmed
 
   // ── Add-to-calendar links ──
   const gd = (d: Date) => formatInTimeZone(d, 'UTC', "yyyyMMdd'T'HHmmss'Z'")
@@ -330,6 +332,25 @@ export default async function BookingDetailPage({
                     </Button>
                     <Button asChild variant="outline" className="w-full justify-center gap-1.5 text-destructive hover:border-destructive hover:text-destructive">
                       <Link href={`/booking/review/${b.approvalToken}`}><X size={15} weight="bold" /> Decline</Link>
+                    </Button>
+                  </>
+                )}
+                {isRescheduleReq && b.approvalToken && (
+                  <>
+                    {b.rescheduleRequestedStart && (
+                      <p className="text-xs text-muted-foreground">
+                        {b.inviteeName} requested to move this meeting to{' '}
+                        <span className="font-semibold text-foreground">
+                          {formatInTimeZone(b.rescheduleRequestedStart, hostTz, "EEE, MMM d 'at' h:mm a")}
+                        </span>
+                        . The current time stays booked until you approve.
+                      </p>
+                    )}
+                    <Button asChild className="w-full justify-center gap-1.5">
+                      <Link href={`/booking/review/${b.approvalToken}?type=reschedule&action=approve`}><Check size={15} weight="bold" /> Approve reschedule</Link>
+                    </Button>
+                    <Button asChild variant="outline" className="w-full justify-center gap-1.5 text-destructive hover:border-destructive hover:text-destructive">
+                      <Link href={`/booking/review/${b.approvalToken}?type=reschedule`}><X size={15} weight="bold" /> Decline reschedule</Link>
                     </Button>
                   </>
                 )}
