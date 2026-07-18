@@ -52,5 +52,13 @@ services:
         condition: service_healthy
 
 volumes:
+  # Pinned to literal names (not just "postgres-data"/"uploads") on purpose:
+  # Compose namespaces unnamed volumes as "<compose-project-name>_<volume-name>",
+  # and some deploy tools (observed with Dokploy) don't keep the project name
+  # stable across redeploys — that silently creates a NEW, empty volume each
+  # time, orphaning the old one (DB data or uploads) without any error.
+  # Pinning guarantees every deploy reattaches to the same volume.
   postgres-data:
+    name: schduled_postgres_data
   uploads:
+    name: schduled_uploads

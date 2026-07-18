@@ -40,4 +40,8 @@ services:
     env_file: .env
 
 volumes:
+  # Pinned name — see docker-compose.yml for why (Dokploy-observed volume
+  # drift). Same literal name so switching between bundled/external Postgres
+  # keeps the same uploads.
   uploads:
+    name: schduled_uploads
