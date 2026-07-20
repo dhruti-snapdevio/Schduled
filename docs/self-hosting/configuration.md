@@ -42,7 +42,7 @@ when you need the feature:
 | Zoom | `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, `ENCRYPT_KEY` | [Integrations](./integrations.md) |
 | Password login | `NEXT_PUBLIC_PASSWORD_AUTH_ENABLED` | `ENVIRONMENT.md` §3 |
 | Closed signup | `SIGNUP_ENABLED`, `INITIAL_ADMIN_EMAIL` | `ENVIRONMENT.md` §3 |
-| S3/R2 storage | `STORAGE_DRIVER=s3` + `S3_*` | `ENVIRONMENT.md` §7 |
+| S3/R2 storage | `STORAGE_DRIVER=s3` + `S3_*`, or `STORAGE_DRIVER=r2` + `R2_*` | `ENVIRONMENT.md` §7 |
 | Address autocomplete | `GEOCODER_PROVIDER`, `GOOGLE_MAPS_API_KEY`, `MAPBOX_TOKEN` | `ENVIRONMENT.md` §6 |
 | Branding | `NEXT_PUBLIC_PRODUCT_NAME`, `NEXT_PUBLIC_SHOW_POWERED_BY`, `CONTACT_EMAIL`, `NEXT_PUBLIC_CONTACT_EMAIL`, `PRIVACY_EMAIL` | `ENVIRONMENT.md` §8 |
 | Optional landing page | `NEXT_PUBLIC_LANDING_ENABLED` | `ENVIRONMENT.md` §1 |

@@ -3,7 +3,7 @@ import sharp from 'sharp'
 import { user } from '@/db/schema'
 import { requireSession } from '@/lib/authz'
 import { db } from '@/lib/db'
-import { avatarKey, uploadFile } from '@/lib/storage'
+import { avatarKey, storage } from '@/lib/storage'
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const MAX_BYTES = 5 * 1024 * 1024 // 5 MB
@@ -37,7 +37,8 @@ export async function POST(req: Request): Promise<Response> {
       .toBuffer()
 
     const key = avatarKey(session.user.id)
-    const url = await uploadFile({ key, body: processed, contentType: 'image/webp' })
+    await storage.upload(key, processed, 'image/webp')
+    const url = storage.url(key)
 
     // Persist URL to user record
     await db

@@ -50,6 +50,6 @@ next-env.d.ts
 *.dump
 krova-db-*
 
-# local file uploads (dev storage driver — files are stored here, not in git)
-/public/uploads/*
-!/public/uploads/.gitkeep
+# local file uploads (local storage driver — files are stored here, not in
+# git). Docker mounts this as a persistent volume instead — see docker-compose.yml.
+/uploads
