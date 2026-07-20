@@ -65,7 +65,7 @@ export default async function LoginPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Sign-in Methods</CardTitle>
+          <CardTitle>Your Sign-in Methods</CardTitle>
           <CardDescription>
             Choose how you access your Schduled account.
           </CardDescription>

@@ -21,11 +21,14 @@ const WORKSPACE_LINKS = [
 
 const PLATFORM_LINKS = [
   { href: "/settings/authentication", label: "Authentication" },
-  { href: "/settings/platform",       label: "System Settings" },
+  { href: "/settings/platform",       label: "System Status" },
 ];
 
+// "Members" (/settings/users) is intentionally hidden from nav for now — no
+// invite/teams flow exists yet, so admin-visible user management isn't useful
+// until that ships. The route and its code are untouched; re-add the link
+// here when teams/invites land.
 const ADMIN_LINKS = [
-  { href: "/settings/users", label: "Members" },
   { href: "/settings/audit", label: "Audit Logs" },
   { href: "/settings/jobs",  label: "Background Jobs" },
 ];

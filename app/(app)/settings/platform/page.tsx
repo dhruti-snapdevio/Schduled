@@ -11,27 +11,29 @@ import {
   VideoCamera,
   Warning,
 } from '@phosphor-icons/react/dist/ssr'
+import Link from 'next/link'
 import { PageHeader } from '@/components/scaffold/page-header'
 import { Card, CardContent } from '@/components/ui/card'
 import { requireAdmin } from '@/lib/authz'
+import { env } from '@/lib/env'
 import { cn } from '@/lib/utils'
 
-export const metadata = { title: 'System Settings' }
+export const metadata = { title: 'System Status' }
 
 export default async function SettingsPlatformPage() {
   await requireAdmin()
 
-  const smtpConfigured      = !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER)
-  const googleConfigured    = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
-  const zoomConfigured      = !!(process.env.ZOOM_CLIENT_ID && process.env.ZOOM_CLIENT_SECRET)
-  const appSecretSet        = !!process.env.APP_SECRET
-  const encryptionKeySet    = !!process.env.ENCRYPT_KEY
-  const databaseUrlSet      = !!process.env.DATABASE_URL
-  const passwordAuthEnabled = process.env.NEXT_PUBLIC_PASSWORD_AUTH_ENABLED === 'true'
-  const signupEnabled       = process.env.SIGNUP_ENABLED === 'true'
+  const smtpConfigured      = !!(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER)
+  const googleConfigured    = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET)
+  const zoomConfigured      = !!(env.ZOOM_CLIENT_ID && env.ZOOM_CLIENT_SECRET)
+  const appSecretSet        = !!env.APP_SECRET
+  const encryptionKeySet    = !!env.ENCRYPT_KEY
+  const databaseUrlSet      = !!env.DATABASE_URL
+  const passwordAuthEnabled = env.NEXT_PUBLIC_PASSWORD_AUTH_ENABLED
+  const signupEnabled       = env.SIGNUP_ENABLED
 
-  const appUrl  = process.env.NEXT_PUBLIC_APP_URL ?? '—'
-  const nodeEnv = process.env.NODE_ENV ?? '—'
+  const appUrl  = env.NEXT_PUBLIC_APP_URL
+  const nodeEnv = env.NODE_ENV
 
   const healthItems = [
     { label: 'Database',       ok: databaseUrlSet,   description: 'PostgreSQL connection',       icon: <Database size={15} weight="bold" /> },
@@ -53,14 +55,17 @@ export default async function SettingsPlatformPage() {
     <div className="space-y-8">
       <div className="space-y-4">
         <PageHeader
-          title="System Settings"
-          description="Review environment configuration and connected-service status."
+          title="System Status"
+          description="View the health and status of configured services and environment."
         />
         <div className="flex flex-wrap gap-3">
           <StatChip label={allHealthy ? 'Healthy' : 'Needs Attention'} value={`${healthyCount}/${totalCount}`} tone={allHealthy ? 'success' : 'warning'} />
           <StatChip label="Integrations" value={`${integrationCount}/4`} tone="neutral" />
           {warningCount > 0 && <StatChip label="Warnings" value={String(warningCount)} tone="warning" />}
         </div>
+        <p className="text-sm text-muted-foreground">
+          This page is read-only. Configuration is managed through environment variables and integration settings.
+        </p>
       </div>
 
       {/* ── Platform Health ── */}
@@ -91,7 +96,7 @@ export default async function SettingsPlatformPage() {
           <CardContent className="p-0">
             <ConfigRow label="App URL"       value={appUrl}                                      mono first />
             <ConfigRow label="Environment"   value={nodeEnv} />
-            <ConfigRow label="Password Auth" value={passwordAuthEnabled ? 'Enabled' : 'Disabled'} ok={passwordAuthEnabled} />
+            <ConfigRow label="Password Auth" value={passwordAuthEnabled ? 'Enabled' : 'Disabled'} ok={passwordAuthEnabled} manageHref="/settings/authentication" />
             <ConfigRow label="User Signup"   value={signupEnabled ? 'Enabled' : 'Disabled'}       ok={signupEnabled} />
           </CardContent>
         </Card>
@@ -250,25 +255,32 @@ function HealthSummaryChip({
 // ── Row/card primitives ─────────────────────────────────────────────────────────
 
 function ConfigRow({
-  label, value, mono = false, ok, first = false,
+  label, value, mono = false, ok, first = false, manageHref,
 }: {
-  label: string; value: string; mono?: boolean; ok?: boolean; first?: boolean
+  label: string; value: string; mono?: boolean; ok?: boolean; first?: boolean; manageHref?: string
 }) {
   return (
     <div className={cn('flex items-center justify-between px-6 py-3', !first && 'border-t border-border')}>
       <p className="text-sm font-medium">{label}</p>
-      <div className="flex items-center gap-2">
-        {ok !== undefined && (
-          <span className={cn('size-1.5 rounded-full', ok ? 'bg-success' : 'bg-muted-foreground/40')} />
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {ok !== undefined && (
+            <span className={cn('size-1.5 rounded-full', ok ? 'bg-success' : 'bg-muted-foreground/40')} />
+          )}
+          <p className={cn(
+            'text-sm text-muted-foreground',
+            mono && 'font-mono text-xs',
+            ok === true  && 'text-success',
+            ok === false && 'text-muted-foreground',
+          )}>
+            {value}
+          </p>
+        </div>
+        {manageHref && (
+          <Link href={manageHref} className="text-xs font-semibold text-primary hover:underline">
+            Manage →
+          </Link>
         )}
-        <p className={cn(
-          'text-sm text-muted-foreground',
-          mono && 'font-mono text-xs',
-          ok === true  && 'text-success',
-          ok === false && 'text-muted-foreground',
-        )}>
-          {value}
-        </p>
       </div>
     </div>
   )

@@ -313,107 +313,109 @@ export function EventTypeBuilder({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit, onInvalid)}>
-        {/* Header */}
-        <div className="mb-6 border border-border bg-background">
-          {/* Breadcrumb row */}
-          <Breadcrumb className="border-b border-border/60 px-4 py-2 text-xs">
-            <BreadcrumbList className="gap-1.5 font-sans text-xs font-normal normal-case tracking-normal sm:gap-1.5">
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link className="flex items-center gap-1" href="/event-types">
-                    <ArrowLeft size={13} />
-                    Meeting Types
-                  </Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="truncate">
-                  {mode === "create"
-                    ? "New Meeting Type"
-                    : form.watch("name") || "Edit"}
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-
-          {/* Title row */}
-          <div className="flex flex-wrap items-center gap-3 px-4 py-4">
-            {/* Initials avatar */}
-            <span
-              aria-hidden
-              className="h-10 w-10 shrink-0 flex items-center justify-center text-white font-bold text-base ring-2 ring-inset ring-black/10"
-              style={{ backgroundColor: form.watch("color") || "#0d9488" }}
-            >
-              {(form.watch("name") || (mode === "create" ? "N" : "E"))[0].toUpperCase()}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="truncate text-lg font-bold text-foreground">
-                  {form.watch("name") ||
-                    (mode === "create" ? "New Meeting Type" : "Untitled")}
-                </h1>
-              </div>
-              {/* Event type badge */}
-              <span className="mt-1 inline-block text-xs font-medium text-muted-foreground">
-                {MEETING_TYPES.find((m) => m.id === form.watch('meetingType'))?.label ?? "One-on-One"}
-              </span>
-            </div>
-
-            {/* Save / Discard always visible in header */}
-            <div className="flex shrink-0 items-center gap-2">
-              {mode === "edit" && (
-                <Button
-                  className="gap-1.5 text-muted-foreground"
-                  disabled={!isDirty || isPending}
-                  onClick={() => form.reset(savedValuesRef.current)}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <X size={13} />
-                  Discard
-                </Button>
-              )}
-              <Button
-                className="gap-1.5"
-                disabled={(mode === "edit" && !isDirty) || isPending}
-                size="sm"
-                type="submit"
+        {/* Header + tab bar stick together as one unit while the form scrolls */}
+        <div className="sticky top-0 z-20 bg-page">
+          <div className="border border-border bg-background">
+            {/* Breadcrumb row */}
+            <Breadcrumb className="border-b border-border/60 px-4 py-1.5 text-xs">
+              <BreadcrumbList className="gap-1.5 font-sans text-xs font-normal normal-case tracking-normal sm:gap-1.5">
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link className="flex items-center gap-1" href="/event-types">
+                      <ArrowLeft size={13} />
+                      Meeting Types
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="truncate">
+                    {mode === "create"
+                      ? "New Meeting Type"
+                      : form.watch("name") || "Edit"}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+  
+            {/* Title row */}
+            <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+              {/* Initials avatar */}
+              <span
+                aria-hidden
+                className="h-9 w-9 shrink-0 flex items-center justify-center text-white font-bold text-base ring-2 ring-inset ring-black/10"
+                style={{ backgroundColor: form.watch("color") || "#0d9488" }}
               >
-                <FloppyDisk size={13} />
-                {isPending
-                  ? mode === "create" ? "Creating…" : "Saving…"
-                  : mode === "create" ? "Create Meeting Type" : "Save Changes"}
-              </Button>
+                {(form.watch("name") || (mode === "create" ? "N" : "E"))[0].toUpperCase()}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="truncate text-lg font-bold text-foreground">
+                    {form.watch("name") ||
+                      (mode === "create" ? "New Meeting Type" : "Untitled")}
+                  </h1>
+                </div>
+                {/* Event type badge */}
+                <span className="mt-1 inline-block text-xs font-medium text-muted-foreground">
+                  {MEETING_TYPES.find((m) => m.id === form.watch('meetingType'))?.label ?? "One-on-One"}
+                </span>
+              </div>
+  
+              {/* Save / Discard always visible in header */}
+              <div className="flex shrink-0 items-center gap-2">
+                {mode === "edit" && (
+                  <Button
+                    className="gap-1.5 text-muted-foreground"
+                    disabled={!isDirty || isPending}
+                    onClick={() => form.reset(savedValuesRef.current)}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <X size={13} />
+                    Discard
+                  </Button>
+                )}
+                <Button
+                  className="gap-1.5"
+                  disabled={(mode === "edit" && !isDirty) || isPending}
+                  size="sm"
+                  type="submit"
+                >
+                  <FloppyDisk size={13} />
+                  {isPending
+                    ? mode === "create" ? "Creating…" : "Saving…"
+                    : mode === "create" ? "Create Meeting Type" : "Save Changes"}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Tab bar — custom, no Radix Tabs to avoid scroll arrows. Aligns to the
-            header card above (no edge-to-edge bleed) so the borders line up. */}
-        <div className="sticky top-0 z-10 border-b border-border bg-page mb-6">
-          <div className="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {TABS.map((tab) => (
-              <button
-                className={cn(
-                  "shrink-0 flex-1 min-w-[80px] border-b-2 py-3 text-xs font-semibold uppercase tracking-wide whitespace-nowrap transition-colors",
-                  activeTab === tab.id
-                    ? "border-primary text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                )}
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                type="button"
-              >
-                {tab.label}
-              </button>
-            ))}
+  
+          {/* Tab bar — custom, no Radix Tabs to avoid scroll arrows. Aligns to the
+              header card above (no edge-to-edge bleed) so the borders line up. */}
+          <div className="border-b border-border bg-page">
+            <div className="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {TABS.map((tab) => (
+                <button
+                  className={cn(
+                    "shrink-0 flex-1 min-w-[80px] border-b-2 py-3 text-xs font-semibold uppercase tracking-wide whitespace-nowrap transition-colors",
+                    activeTab === tab.id
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                  )}
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  type="button"
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Tab content — two-column layout on all tabs */}
-        <div className="flex gap-10 items-start">
+        <div className="mt-6 flex gap-10 items-start">
           {/* Left: form content */}
           <div className="flex-1 min-w-0 max-w-3xl">
             {activeTab === "general" && (

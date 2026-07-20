@@ -225,7 +225,7 @@ export function GuidedTour({ userId }: { userId: string }) {
 
   // ── Shared card body ──────────────────────────────────────────────────────────
   const card = (
-    <div className="relative w-full max-w-sm border border-border bg-background">
+    <div className="relative w-full max-w-sm bg-popover ring-2 ring-foreground/15">
       {!isLast && (
         <button
           type="button"

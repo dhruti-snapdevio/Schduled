@@ -1,11 +1,12 @@
 "use server";
 
 import { eq, ne } from "drizzle-orm";
-import { ADMIN_ROLE, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/config/platform";
+import { ADMIN_ROLE } from "@/config/platform";
 import { user } from "@/db/schema";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { passwordComplexityError } from "@/lib/password";
 
 type ActionResult<T = Record<never, never>> =
   | { error: string }
@@ -44,11 +45,9 @@ export async function createFirstAdmin(data: {
       return { error: "Enter a valid email address." };
     }
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
-    }
-    if (password.length > MAX_PASSWORD_LENGTH) {
-      return { error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters.` };
+    const complexityError = passwordComplexityError(password);
+    if (complexityError) {
+      return { error: complexityError };
     }
 
     // Create admin user using Better Auth's sign-up

@@ -18,10 +18,11 @@ const WORKSPACE_ENTRIES: SearchEntry[] = [
   { href: "/settings/cookies",       label: "Cookies",        group: "Workspace", keywords: "cookies privacy gdpr consent" },
 ];
 
+// "Members" (/settings/users) is intentionally omitted — see the matching
+// note in settings-nav.tsx. Re-add once teams/invites ship.
 const ADMIN_ENTRIES: SearchEntry[] = [
   { href: "/settings/authentication", label: "Authentication", group: "Platform", keywords: "sign in login password magic link google oauth auth" },
-  { href: "/settings/platform",       label: "System Settings", group: "Platform", keywords: "smtp email health integrations security general environment app secret encryption zoom database" },
-  { href: "/settings/users",          label: "Members",         group: "Administration", keywords: "users members admin ban suspend delete" },
+  { href: "/settings/platform",       label: "System Status", group: "Platform", keywords: "smtp email health integrations security general environment app secret encryption zoom database" },
   { href: "/settings/audit",          label: "Audit Logs",      group: "Administration", keywords: "audit logs history activity timeline" },
   { href: "/settings/jobs",           label: "Background Jobs", group: "Administration", keywords: "jobs queue email outbox background pg-boss" },
 ];
@@ -70,7 +71,11 @@ export function SettingsSearch({ isAdmin = false }: { isAdmin?: boolean }) {
           />
         </div>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-72 p-1">
+      <PopoverContent
+        align="start"
+        className="w-72 p-1"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         {results.map((r) => (
           <button
             key={r.href}

@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
 import { MIN_PASSWORD_LENGTH } from "@/config/platform";
 import { authClient, signIn, signUp, useSession } from "@/lib/auth-client";
+import { passwordComplexityError } from "@/lib/password";
 
 interface AuthFormProps {
   googleEnabled: boolean;
@@ -142,6 +143,15 @@ function AuthFormInner({ googleEnabled, passwordEnabled, magicLinkEnabled }: Aut
   async function onPasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (mode === "password-signup") {
+      const complexityError = passwordComplexityError(password);
+      if (complexityError) {
+        setError(complexityError);
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     const result =

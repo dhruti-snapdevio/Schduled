@@ -1,5 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AutofillScrollFix } from "./autofill-scroll-fix";
 import { HeaderAvatar } from "./header-avatar";
 import { GlobalSearch } from "./global-search";
 import { ImpersonationBanner } from "./impersonation-banner";
@@ -66,6 +67,7 @@ export function AppShell({
         {/* Page content */}
         <main data-app-main className="flex-1 overflow-y-auto overflow-x-clip bg-page pb-16 md:pb-0 [scrollbar-gutter:stable]">
           <ScrollReset />
+          <AutofillScrollFix />
           <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-8">
             {children}
           </div>

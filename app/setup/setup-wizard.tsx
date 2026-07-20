@@ -19,8 +19,9 @@ import { createFirstAdmin } from "@/app/actions/setup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, PRODUCT_NAME } from "@/config/platform";
+import { MIN_PASSWORD_LENGTH, PRODUCT_NAME } from "@/config/platform";
 import { authClient } from "@/lib/auth-client";
+import { passwordComplexityError } from "@/lib/password";
 import { cn } from "@/lib/utils";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -90,15 +91,9 @@ export function SetupWizard() {
     if (!EMAIL_RE.test(email.trim())) {
       return setError("Enter a valid email address");
     }
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      return setError(
-        `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
-      );
-    }
-    if (password.length > MAX_PASSWORD_LENGTH) {
-      return setError(
-        `Password must be at most ${MAX_PASSWORD_LENGTH} characters`
-      );
+    const complexityError = passwordComplexityError(password);
+    if (complexityError) {
+      return setError(complexityError);
     }
     if (password !== confirm) {
       return setError("Passwords do not match");
