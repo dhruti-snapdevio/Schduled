@@ -20,8 +20,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
-import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/config/platform";
+import { MIN_PASSWORD_LENGTH } from "@/config/platform";
 import { authClient } from "@/lib/auth-client";
+import { passwordComplexityError } from "@/lib/password";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -42,12 +43,9 @@ export function ResetPasswordForm() {
     event.preventDefault();
     setError(null);
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-      return;
-    }
-    if (password.length > MAX_PASSWORD_LENGTH) {
-      setError(`Password must be at most ${MAX_PASSWORD_LENGTH} characters.`);
+    const complexityError = passwordComplexityError(password);
+    if (complexityError) {
+      setError(complexityError);
       return;
     }
     if (password !== confirm) {

@@ -13,6 +13,7 @@ import { magicLinkTemplate } from "@/lib/email/templates/magic-link";
 import { resetPasswordTemplate } from "@/lib/email/templates/reset-password";
 import { env } from "@/lib/env";
 import { getEffectiveSignInMethods } from "@/lib/settings/sign-in-methods";
+import { passwordComplexityError } from "@/lib/password";
 
 // Password sign-in / sign-up / reset all funnel through these paths.
 const PASSWORD_PATHS = new Set([
@@ -20,6 +21,14 @@ const PASSWORD_PATHS = new Set([
   "/sign-up/email",
   "/request-password-reset",
 ]);
+
+// Paths where the request body carries a brand-new password to enforce
+// complexity on, keyed by the body field that holds it.
+const NEW_PASSWORD_FIELDS: Record<string, "password" | "newPassword"> = {
+  "/sign-up/email": "password",
+  "/change-password": "newPassword",
+  "/reset-password": "newPassword",
+};
 
 export const googleAuthEnabled = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 export const passwordAuthEnabled = env.NEXT_PUBLIC_PASSWORD_AUTH_ENABLED;
@@ -109,6 +118,18 @@ export const auth = betterAuth({
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       const path = ctx.path;
+
+      const newPasswordField = NEW_PASSWORD_FIELDS[path];
+      if (newPasswordField) {
+        const candidate = (ctx.body as Record<string, unknown> | undefined)?.[newPasswordField];
+        if (typeof candidate === "string") {
+          const complexityError = passwordComplexityError(candidate);
+          if (complexityError) {
+            throw new APIError("BAD_REQUEST", { message: complexityError });
+          }
+        }
+      }
+
       const needsPassword = PASSWORD_PATHS.has(path);
       const needsMagicLink = path === "/sign-in/magic-link";
       const isGoogleSocial =

@@ -378,7 +378,7 @@ export default async function DashboardPage() {
               upcomingMeetings.map((m) => (
                 <Link
                   key={m.id}
-                  href="/bookings"
+                  href={`/bookings?highlight=${m.id}`}
                   className="flex items-center justify-between gap-4 border-t border-border px-6 py-3.5 transition-colors duration-150 hover:bg-primary/[0.02] group"
                 >
                   <div className="min-w-0">
@@ -433,7 +433,7 @@ export default async function DashboardPage() {
               recentBookings.map((b) => (
                 <Link
                   key={b.id}
-                  href="/bookings"
+                  href={`/bookings?highlight=${b.id}`}
                   className="flex items-center justify-between gap-4 border-t border-border px-6 py-3.5 transition-colors duration-150 hover:bg-primary/[0.02] group"
                 >
                   <div className="min-w-0">

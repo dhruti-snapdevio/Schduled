@@ -61,7 +61,6 @@ export default async function ProfilePage() {
             asChild
             className="shrink-0 gap-1.5 text-xs"
             size="sm"
-            variant="outline"
           >
             <Link
               href={`/${freshUser.username}`}

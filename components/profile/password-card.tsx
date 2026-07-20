@@ -4,9 +4,10 @@ import { useState, useTransition } from "react";
 import { LockKey } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { setPasswordAction } from "@/app/actions/auth";
-import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/config/platform";
+import { MIN_PASSWORD_LENGTH } from "@/config/platform";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { passwordComplexityError } from "@/lib/password";
 import { PasswordInput } from "@/components/common/password-input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -47,17 +48,16 @@ export function PasswordCard({ hasPassword: initialHasPassword, passwordAuthEnab
   }
 
   function validate(): string | null {
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
-    }
-    if (newPassword.length > MAX_PASSWORD_LENGTH) {
-      return `Password must be at most ${MAX_PASSWORD_LENGTH} characters.`;
-    }
+    const complexityError = passwordComplexityError(newPassword);
+    if (complexityError) return complexityError;
     if (newPassword !== confirmPassword) {
       return "Passwords do not match.";
     }
     if (hasPassword && !currentPassword) {
       return "Enter your current password.";
+    }
+    if (hasPassword && currentPassword && newPassword === currentPassword) {
+      return "New password must be different from your current password.";
     }
     return null;
   }
