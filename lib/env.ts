@@ -107,16 +107,39 @@ const envSchema = z.object({
   GOOGLE_MAPS_API_KEY: optionalString,
   MAPBOX_TOKEN: optionalString,
 
-  // File storage driver: 'local' (default, saves to public/uploads/) or 's3' (Cloudflare R2 / AWS S3)
-  STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
+  // File storage driver — see lib/storage.ts. "local" (default) needs no
+  // other vars: files go to ./uploads (a persistent volume in Docker).
+  // Files are always served through /api/files/[...key] regardless of
+  // driver, never a direct/signed cloud URL — see lib/storage.ts and
+  // app/api/files/[...key]/route.ts.
+  STORAGE_DRIVER: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.enum(["local", "s3", "r2"]).default("local")
+  ),
 
-  // S3/R2 credentials — only required when STORAGE_DRIVER=s3
+  // s3 driver — generic S3-compatible: AWS S3, MinIO, DigitalOcean Spaces,
+  // Backblaze B2, etc. S3_ENDPOINT/S3_ACCESS_KEY_ID/S3_SECRET_ACCESS_KEY are
+  // only needed for non-AWS endpoints; omit them to use the standard AWS
+  // credential chain (env vars, IAM role, shared profile) against real S3.
   S3_ENDPOINT: optionalString,
   S3_REGION: optionalString,
   S3_BUCKET: optionalString,
   S3_ACCESS_KEY_ID: optionalString,
   S3_SECRET_ACCESS_KEY: optionalString,
-  S3_PUBLIC_URL: optionalString,
+
+  // r2 driver — dedicated Cloudflare R2 support. accessKeyId/secretAccessKey
+  // are also read directly from R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY by
+  // the files-sdk r2 adapter itself (not renamed here) — see lib/storage.ts.
+  R2_BUCKET: optionalString,
+  R2_ACCOUNT_ID: optionalString,
+  R2_ACCESS_KEY_ID: optionalString,
+  R2_SECRET_ACCESS_KEY: optionalString,
+
+  // Optional for either cloud driver: a CDN/public domain bound to the
+  // bucket. Unset is fine — reads always go through /api/files/[...key]
+  // rather than handing out cloud URLs directly, so this only matters if you
+  // also want to point external tooling at the bucket yourself.
+  STORAGE_PUBLIC_BASE_URL: optionalString,
 }).superRefine((val, ctx) => {
   // OAuth integrations store access/refresh tokens encrypted at rest with
   // ENCRYPT_KEY. If an integration is configured but the key is missing, the
@@ -129,6 +152,21 @@ const envSchema = z.object({
       path: ["ENCRYPT_KEY"],
       message:
         "ENCRYPT_KEY is required when Google or Zoom OAuth is configured (it encrypts stored OAuth tokens).",
+    });
+  }
+
+  if (val.STORAGE_DRIVER === "s3" && !val.S3_BUCKET) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["S3_BUCKET"],
+      message: "S3_BUCKET is required when STORAGE_DRIVER=s3.",
+    });
+  }
+  if (val.STORAGE_DRIVER === "r2" && !(val.R2_BUCKET && val.R2_ACCOUNT_ID)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["R2_BUCKET"],
+      message: "R2_BUCKET and R2_ACCOUNT_ID are required when STORAGE_DRIVER=r2.",
     });
   }
 });

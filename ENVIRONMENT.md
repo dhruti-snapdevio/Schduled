@@ -328,27 +328,36 @@ keyless Photon (OpenStreetMap)** — you don't need to set anything.
 
 ### 7. File storage
 
-Default is `local` (writes to `public/uploads/`, served at `/uploads/`) — no
-credentials. Switch to `s3` for durable / multi-instance storage.
+Default is `local` (writes to `./uploads`) — no credentials. Switch to `s3`
+or `r2` for durable / multi-instance storage. Uploads are always served
+through `/api/files/[...key]`, never a direct/public cloud URL — so no
+bucket public-access setup is required for any driver.
 
 | Variable | Req? | Default | Purpose | Alternatives |
 |---|---|---|---|---|
-| `STORAGE_DRIVER` | Opt | `local` | `local` or `s3` | `local` for single node; `s3` for durability/scale. |
-| `S3_ENDPOINT` | Cond | — | S3-compatible endpoint | Required when `STORAGE_DRIVER=s3`. |
-| `S3_REGION` | Cond | — | Region (`auto` for R2) | — |
-| `S3_BUCKET` | Cond | — | Bucket name | — |
-| `S3_ACCESS_KEY_ID` | Cond | — | Access key | — |
-| `S3_SECRET_ACCESS_KEY` | Cond | — | Secret key | — |
-| `S3_PUBLIC_URL` | Opt | — | Public/CDN base URL for objects | Defaults to bucket endpoint if unset. |
+| `STORAGE_DRIVER` | Opt | `local` | `local`, `s3`, or `r2` | `local` for single node; `s3`/`r2` for durability/scale. |
+| `S3_ENDPOINT` | Opt | — | S3-compatible endpoint | Only for non-AWS endpoints (MinIO, DO Spaces, Backblaze B2, ...); omit for real AWS S3. |
+| `S3_REGION` | Cond | — | AWS region | Required when `STORAGE_DRIVER=s3` and not using `S3_ENDPOINT`. |
+| `S3_BUCKET` | Cond | — | Bucket name | Required when `STORAGE_DRIVER=s3`. |
+| `S3_ACCESS_KEY_ID` | Opt | — | Access key | Omit to use the standard AWS credential chain (IAM role, shared profile). |
+| `S3_SECRET_ACCESS_KEY` | Opt | — | Secret key | See above. |
+| `R2_BUCKET` | Cond | — | R2 bucket name | Required when `STORAGE_DRIVER=r2`. |
+| `R2_ACCOUNT_ID` | Cond | — | Cloudflare account ID | Required when `STORAGE_DRIVER=r2`. |
+| `R2_ACCESS_KEY_ID` | Cond | — | R2 access key | Required when `STORAGE_DRIVER=r2`. |
+| `R2_SECRET_ACCESS_KEY` | Cond | — | R2 secret key | Required when `STORAGE_DRIVER=r2`. |
+| `STORAGE_PUBLIC_BASE_URL` | Opt | — | CDN/public domain bound to the bucket | Not required — reads always go through `/api/files/[...key]`. Only matters if you also want to point external tooling at the bucket yourself. |
 
-**S3-compatible backends:** Cloudflare R2, AWS S3, **MinIO (self-hosted)**,
-DigitalOcean Spaces, Backblaze B2.
+**s3 driver also covers:** AWS S3, MinIO (self-hosted), DigitalOcean Spaces,
+Backblaze B2, and any other S3-compatible endpoint (via `S3_ENDPOINT`).
+**r2 driver** is a dedicated Cloudflare R2 integration.
 
-> ✅ **Implemented.** The S3 driver is fully wired up in
-> [`lib/storage/index.ts`](./lib/storage/index.ts) / [`lib/storage/s3.ts`](./lib/storage/s3.ts) —
-> set `STORAGE_DRIVER=s3` and the `S3_*` vars above, no code edits needed.
-> Build-verified (`tsc` + `pnpm build` clean); not yet tested against a real
-> live bucket in this pass — do a test upload before relying on it in production.
+> ✅ **Implemented**, via [files-sdk](https://files-sdk.dev), in
+> [`lib/storage.ts`](./lib/storage.ts) — set `STORAGE_DRIVER=s3` or `r2` and
+> the matching vars above, no code edits needed. Every driver is served
+> through [`app/api/files/[...key]/route.ts`](./app/api/files/%5B...key%5D/route.ts),
+> so the bucket can stay fully private. Build-verified (`tsc` + `pnpm build`
+> clean) and round-trip-tested (upload/download/delete) against a live R2
+> bucket.
 
 ### 8. Branding & contact emails
 
@@ -472,16 +481,25 @@ ZOOM_CLIENT_SECRET=<secret>
 STORAGE_DRIVER=local
 ```
 
-### Production with S3 / Cloudflare R2 storage
+### Production with Cloudflare R2 storage
+
+```env
+STORAGE_DRIVER=r2
+R2_BUCKET=schduled-uploads
+R2_ACCOUNT_ID=<cloudflare-account-id>
+R2_ACCESS_KEY_ID=<key>
+R2_SECRET_ACCESS_KEY=<secret>
+```
+
+### Production with S3-compatible storage (AWS S3, MinIO, DO Spaces, ...)
 
 ```env
 STORAGE_DRIVER=s3
-S3_ENDPOINT=https://<account>.r2.cloudflarestorage.com
-S3_REGION=auto
 S3_BUCKET=schduled-uploads
+S3_REGION=auto
+# S3_ENDPOINT=https://<endpoint>   # only for non-AWS providers
 S3_ACCESS_KEY_ID=<key>
 S3_SECRET_ACCESS_KEY=<secret>
-S3_PUBLIC_URL=https://assets.example.com
 ```
 
 ---

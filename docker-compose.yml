@@ -32,8 +32,8 @@ services:
       - "3000:3000"
     volumes:
       # Only used when STORAGE_DRIVER=local (the default). Not needed if
-      # you've set STORAGE_DRIVER=s3 — see ENVIRONMENT.md §7.
-      - uploads:/app/public/uploads
+      # you've set STORAGE_DRIVER=s3/r2 — see ENVIRONMENT.md §7.
+      - uploads:/app/uploads
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
