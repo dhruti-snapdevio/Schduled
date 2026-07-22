@@ -257,6 +257,7 @@ export function SetupWizard() {
                   disabled={submitting}
                   id="setup-confirm"
                   onChange={(e) => setConfirm(e.target.value)}
+                  onPaste={(e) => e.preventDefault()}
                   placeholder="Re-enter your password"
                   type={showPassword ? "text" : "password"}
                   value={confirm}

@@ -174,6 +174,7 @@ export function PasswordCard({ hasPassword: initialHasPassword, passwordAuthEnab
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              onPaste={(e) => e.preventDefault()}
               disabled={busy}
             />
           </div>

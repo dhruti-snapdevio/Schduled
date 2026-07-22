@@ -178,9 +178,9 @@ export default async function HostProfilePage({
         </div>
       )}
 
-      <footer className="mt-10 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/50">
+      <footer className="mt-10 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
         <span>Scheduling powered by</span>
-        <span className="font-semibold text-primary/60">Schduled</span>
+        <span className="font-semibold text-primary">Schduled</span>
       </footer>
     </main>
   )

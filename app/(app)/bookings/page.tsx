@@ -332,9 +332,12 @@ export default async function BookingsPage({
                         />
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-baseline gap-x-2 min-w-0">
-                            <p className="truncate font-semibold text-foreground transition-colors group-hover:text-primary">
+                            <Link
+                              href={`/bookings/${b.id}`}
+                              className="truncate font-semibold text-foreground underline-offset-2 transition-colors hover:underline group-hover:text-primary"
+                            >
                               {b.inviteeName}
-                            </p>
+                            </Link>
                             <p className="truncate text-sm text-muted-foreground">{b.eventName}</p>
                           </div>
                           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">

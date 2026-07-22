@@ -956,7 +956,7 @@ export function BookingCalendar({
           <div className="flex shrink-0 items-center justify-end gap-1.5 min-w-24">
             {isOwner && (
               <>
-                <DropdownMenu>
+                <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"

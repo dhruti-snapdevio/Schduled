@@ -167,8 +167,9 @@ export function ConfirmationClient({
             }
             <span>{copyLinkDone ? 'Copied!' : 'Copy link'}</span>
           </button>
-          {/* Menu — outlined */}
-          <DropdownMenu>
+          {/* Menu — outlined; non-modal so it doesn't scroll-lock the body and
+              jerk the page when scrollbar-gutter compensation double-applies */}
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
@@ -419,9 +420,9 @@ export function ConfirmationClient({
 
         {/* ── Powered by ── */}
         {showPoweredBy && (
-          <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/40">
+          <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
             <span>Scheduling powered by</span>
-            <span className="font-semibold text-primary/50">{PRODUCT_NAME}</span>
+            <span className="font-semibold text-primary">{PRODUCT_NAME}</span>
           </div>
         )}
       </div>

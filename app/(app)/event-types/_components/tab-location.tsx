@@ -166,7 +166,37 @@ const LOCATION_OPTIONS: LocationOption[] = [
 
 const LS_KEY = 'schduled:lastPhoneNumber'
 
+// E.164 caps the whole number (dial code + local number) at 15 digits; the
+// local number field enforces its own 4–15 digit range so a bare paste of
+// garbage digits can't produce an unusably long value.
+const MIN_LOCAL_DIGITS = 4
+const MAX_LOCAL_DIGITS = 15
+
+// Truncate `raw` so it contains at most `maxDigits` digit characters,
+// preserving any formatting characters (space, -, (, )) up to that point.
+function capDigits(raw: string, maxDigits: number): string {
+  let digitCount = 0
+  for (let i = 0; i < raw.length; i++) {
+    if (/\d/.test(raw[i])) {
+      digitCount++
+      if (digitCount > maxDigits) return raw.slice(0, i)
+    }
+  }
+  return raw
+}
+
 // ── Smart phone input ─────────────────────────────────────────────────────────
+
+// Strip a leading dial code (plus any separator after it) from a stored value,
+// leaving only the local number — so the number field never re-displays the
+// code that's already shown in the dial code field.
+function stripDialCode(value: string, dialCode: string): string {
+  let v = value ?? ''
+  if (dialCode && v.startsWith(dialCode)) {
+    v = v.slice(dialCode.length)
+  }
+  return v.replace(/^[\s\-().]+/, '')
+}
 
 function PhoneInput({
   value,
@@ -177,14 +207,13 @@ function PhoneInput({
   onChange: (v: string) => void
   onBlur?: () => void
 }) {
-  const inputRef = useRef<HTMLInputElement>(null)
   const initialized = useRef(false)
 
-  // Badge: show the code the host typed (matched against known country codes,
+  // Dial code: the code the host typed (matched against known country codes,
   // so "+918790056786" → "+91"); when none is typed, fall back to the code
-  // derived from their timezone — so it always shows a sensible code (e.g. +91)
-  // and follows the timezone, without ever altering the typed number.
-  const dialCode = extractDialCode(value ?? '') || detectDialCode()
+  // derived from their timezone — so it always shows a sensible code (e.g. +91).
+  const dialCode = extractDialCode(value ?? '') || detectDialCode() || '+1'
+  const localNumber = stripDialCode(value ?? '', dialCode)
 
   // Auto-fill on first mount only (new event or switching to phone type)
   useEffect(() => {
@@ -199,23 +228,29 @@ function PhoneInput({
       const saved = localStorage.getItem(LS_KEY)
       if (saved && saved.trim()) {
         onChange(saved.trim())
-        return
       }
     } catch { /* ignore */ }
-
-    // Priority 3: detect country code from browser timezone
-    const code = detectDialCode()
-    if (code) onChange(code + ' ')
+    // Priority 3 (no saved number): leave the number blank — the dial code
+    // field already shows the timezone-detected code, so there's nothing
+    // to pre-fill into the stored value.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    let raw = e.target.value
-    // Strip everything except digits, +, space, -, (, ), .
-    raw = raw.replace(/[^\d+\s\-().]/g, '')
-    // + is only valid at position 0 — remove any + that crept in elsewhere
-    if (raw.indexOf('+') > 0) raw = '+' + raw.replace(/\+/g, '')
-    onChange(raw)
+  function composeAndEmit(nextDialCode: string, nextLocalNumber: string) {
+    const trimmedNumber = nextLocalNumber.trim()
+    onChange(trimmedNumber ? `${nextDialCode} ${trimmedNumber}` : '')
+  }
+
+  function handleDialCodeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    let raw = e.target.value.replace(/[^\d+]/g, '')
+    raw = '+' + raw.replace(/\+/g, '')
+    composeAndEmit(raw, localNumber)
+  }
+
+  function handleNumberChange(e: React.ChangeEvent<HTMLInputElement>) {
+    let raw = e.target.value.replace(/[^\d\s\-().]/g, '')
+    raw = capDigits(raw, MAX_LOCAL_DIGITS)
+    composeAndEmit(dialCode, raw)
   }
 
   function handleBlur() {
@@ -228,19 +263,25 @@ function PhoneInput({
   }
 
   return (
-    <div className="flex items-stretch border border-input focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
-      {/* Dial code badge — derived from value, always reactive */}
-      <div className="flex shrink-0 items-center border-r border-input bg-muted px-3 text-sm font-mono font-semibold text-foreground min-w-[52px] justify-center select-none">
-        {dialCode || '+'}
-      </div>
-      <input
-        ref={inputRef}
+    <div className="flex items-stretch gap-2">
+      <Input
         type="tel"
-        value={value ?? ''}
-        onChange={handleChange}
+        value={dialCode}
+        onChange={handleDialCodeChange}
         onBlur={handleBlur}
-        placeholder={dialCode ? `${dialCode} XXXXX XXXXX` : '+91 98765 43210'}
-        className="flex-1 bg-background px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 outline-none"
+        placeholder="+91"
+        className="w-20 shrink-0 font-mono"
+        aria-label="Country dial code"
+      />
+      <Input
+        type="tel"
+        value={localNumber}
+        onChange={handleNumberChange}
+        onBlur={handleBlur}
+        placeholder="98765 43210"
+        maxLength={20}
+        className="flex-1 font-mono"
+        aria-label="Phone number"
       />
     </div>
   )
@@ -448,7 +489,7 @@ export function TabLocation({
                 />
               </FormControl>
               <FormDescription>
-                Shown to invitees so they know how to reach you. Include your country code.
+                Shown to invitees so they know how to reach you.
               </FormDescription>
               <FormMessage />
             </FormItem>
