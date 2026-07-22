@@ -271,7 +271,7 @@ export default async function DashboardPage() {
       {/* ── Next meeting focal strip ─────────────────────────────────── */}
       {upcomingMeetings[0] && (
         <Link
-          href="/bookings"
+          href={`/bookings/${upcomingMeetings[0].id}`}
           className="group flex flex-wrap items-center gap-4 border border-primary/30 bg-primary/[0.04] px-5 py-4 transition-colors hover:bg-primary/[0.07]"
         >
           <div

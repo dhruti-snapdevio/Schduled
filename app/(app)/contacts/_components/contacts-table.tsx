@@ -120,8 +120,7 @@ export function ContactsTable({ contacts, total, page, pageSize, search, archive
       const result = await archiveContact(email, name)
       if ('error' in result) { toast.error(result.error); return }
       toast.success(`${name} archived.`)
-      // Navigate to Archived tab so the user can see the contact + Unarchive button
-      router.push('/contacts?archived=1')
+      router.refresh()
     })
   }
 

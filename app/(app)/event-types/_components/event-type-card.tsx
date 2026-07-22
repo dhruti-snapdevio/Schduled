@@ -328,7 +328,7 @@ export function EventTypeCard({
         <div className="flex items-center justify-between border-t border-border px-3 py-2">
           <div className="flex items-center gap-0.5">
             {isActive && (
-              <button type="button" title={copied ? 'Copied!' : 'Copy link'} onClick={copyLink} disabled={!bookingUrl}
+              <button type="button" data-tour="booking-link" title={copied ? 'Copied!' : 'Copy link'} onClick={copyLink} disabled={!bookingUrl}
                 className={cn('flex h-7 w-7 items-center justify-center transition-colors disabled:pointer-events-none',
                   copied ? 'text-emerald-600' : 'text-muted-foreground hover:bg-primary/10 hover:text-primary')}>
                 {copied ? <Check size={13} weight="bold" /> : <LinkIcon size={13} />}
@@ -455,7 +455,7 @@ export function EventTypeCard({
 
           {/* Copy link */}
           {isActive && (
-            <button type="button" title={copied ? 'Copied!' : 'Copy link'} onClick={copyLink} disabled={!bookingUrl}
+            <button type="button" data-tour="booking-link" title={copied ? 'Copied!' : 'Copy link'} onClick={copyLink} disabled={!bookingUrl}
               className={cn('hidden h-8 w-8 items-center justify-center transition-colors disabled:pointer-events-none sm:flex',
                 copied ? 'text-emerald-600 bg-emerald-50' : 'text-muted-foreground hover:bg-primary/10 hover:text-primary')}>
               {copied ? <Check size={15} weight="bold" /> : <LinkIcon size={15} />}

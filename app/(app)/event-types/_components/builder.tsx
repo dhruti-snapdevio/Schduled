@@ -87,8 +87,18 @@ const schema = z.object({
     .string()
     .max(25)
     .refine(
-      (v) => !v || v.trim() === '' || /^\+[1-9][\d\s\-().]{5,20}$/.test(v.trim()),
+      (v) => !v || v.trim() === '' || /^\+[1-9][\d\s\-().]*$/.test(v.trim()),
       { message: 'Enter a valid number with country code (e.g. +91 98765 43210)' }
+    )
+    .refine(
+      (v) => {
+        if (!v || v.trim() === '') return true
+        // Digits after the dial code's leading "+" — bounds the local
+        // number to a plausible length (4–15 digits, per E.164).
+        const digits = v.trim().replace(/\D/g, '')
+        return digits.length >= 5 && digits.length <= 18
+      },
+      { message: 'Phone number must be between 4 and 15 digits (plus country code)' }
     )
     .optional(),
   confirmationNote: z.string().max(1000).optional(),
