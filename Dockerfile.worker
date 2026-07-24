@@ -15,14 +15,12 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 # Caps V8's heap so an OOM shows up as a clean, restartable crash instead of
 # the container being silently killed by the host's OOM killer. Raise this if
 # your container's memory limit is higher than the default assumption below.
 ENV NODE_OPTIONS=--max-old-space-size=384
 
-RUN corepack enable \
-  && groupadd --system --gid 1001 app \
+RUN groupadd --system --gid 1001 app \
   && useradd --system --uid 1001 --gid app app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -39,4 +37,13 @@ USER app
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "process.exit((Date.now() - require('fs').statSync('/tmp/worker-heartbeat').mtimeMs) < 60000 ? 0 : 1)"
 
-CMD ["pnpm", "worker:start"]
+# Run tsx directly, not via `pnpm worker:start`. `pnpm` here is Corepack's
+# shim — invoking it re-checks package.json's "packageManager" pin and, if
+# that exact version isn't already cached for the CURRENT user, tries to
+# download it into $COREPACK_HOME (~/.cache/node/corepack by default). The
+# `deps` stage prepares/caches it as root at build time; this stage runs as
+# non-root `app` at runtime, whose home isn't writable — so a runtime `pnpm`
+# invocation fails with EACCES. Calling the real binary in node_modules/.bin
+# needs no pnpm/Corepack involvement at all: no network fetch, no cache dir,
+# no permission surface. tsx is a production dependency (see package.json).
+CMD ["/app/node_modules/.bin/tsx", "scripts/worker.ts"]
