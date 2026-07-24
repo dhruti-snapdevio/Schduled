@@ -17,6 +17,16 @@ WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Placeholders so build-time env validation (lib/env.ts) passes. middleware.ts
+# imports `env` eagerly, and Next.js bundles middleware during `next build` —
+# without these, the build throws "Invalid environment variables" before it
+# ever produces an image. NOT used at runtime: env_file/.env supplies the real
+# values when the container starts, so one built image works for any
+# domain/database (see docker-compose.yml).
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
+ENV APP_SECRET="build-time-placeholder-value-000000000000"
+ENV NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -39,26 +49,19 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 # your container's memory limit is higher than the default assumption below.
 ENV NODE_OPTIONS=--max-old-space-size=768
 
-RUN corepack enable \
-  && groupadd --system --gid 1001 app \
+RUN groupadd --system --gid 1001 app \
   && useradd --system --uid 1001 --gid app app
 
-# drizzle-kit (for migrate-on-boot, see docker/entrypoint.sh) lives in
-# "dependencies", not devDependencies, specifically so this --prod install
-# includes it.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml drizzle.config.ts ./
-RUN pnpm install --frozen-lockfile --prod
-
-# Next.js standalone output: a minimal, self-traced server — copied on top
-# of the full node_modules above (traded some image size for drizzle-kit
-# being available at runtime; see SELF-HOSTING.md Part 4 §C).
+# Next.js standalone output: a minimal, self-traced server with its own
+# node_modules (only what's actually used at runtime) — no separate install
+# needed. Migrations run in a dedicated `migrate` service before this
+# container starts (see docker-compose.yml, Dockerfile.worker), so this image
+# no longer needs drizzle-kit, drizzle.config.ts, or db/migrations.
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-COPY db ./db
-COPY docker/entrypoint.sh ./docker/entrypoint.sh
 
-RUN chown -R app:app /app && chmod +x ./docker/entrypoint.sh
+RUN chown -R app:app /app
 
 USER app
 
@@ -66,5 +69,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-ENTRYPOINT ["./docker/entrypoint.sh"]
 CMD ["node", "server.js"]

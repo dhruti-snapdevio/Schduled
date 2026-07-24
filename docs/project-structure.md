@@ -21,7 +21,6 @@ schduled/
 ├── config/       ← Small app-wide config (platform.ts — branding, product name)
 ├── hooks/        ← Shared client-side React hooks
 ├── scripts/      ← One-off/dev scripts (make-admin, local db, worker entrypoint)
-├── docker/       ← entrypoint.sh used by the Docker images
 ├── docs/         ← This documentation set
 ├── public/       ← Static assets
 ├── docker-compose.yml              ← Bundled Postgres (default)
@@ -79,8 +78,9 @@ Plus, not route groups:
   `notifications.ts`, `audit-logs.ts`, `email-outbox.ts`, `email-events.ts`,
   `job-logs.ts`, `platform.ts`, `security.ts`, `enums.ts`, `relations.ts`),
   re-exported from `index.ts`
-- `migrations/` — SQL migration files (Drizzle), applied on boot via
-  `pnpm db:migrate` (see `docker/entrypoint.sh`)
+- `migrations/` — SQL migration files (Drizzle), applied by the dedicated
+  `migrate` service (`pnpm db:migrate`) before `web`/`worker` start — see
+  `docker-compose.yml`
 - `reset.ts` — local dev database reset script
 
 ## `components/`

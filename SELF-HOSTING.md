@@ -36,8 +36,8 @@ and Phase 5 (teams/multi-tenant) remain explicitly out of scope for v1.
 | Background worker (pg-boss, no Redis) | ✅ Ready | K |
 | **Login works on a fresh install (no SMTP/Google)** | ✅ **Done** — email + password is the primary method, on by default | **E** |
 | **Signup is closed by default when self-hosted the recommended way** | ✅ **Done** (`SIGNUP_ENABLED`, verified live) | **E** |
-| One-command deploy (Docker Compose + web image) | ✅ **Done** — `Dockerfile`, `docker-compose.yml`, migrate-on-boot | C |
-| DB migrations on boot | ✅ Done (`docker/entrypoint.sh`) | C, D |
+| One-command deploy (Docker Compose + web image) | ✅ **Done** — `Dockerfile`, `docker-compose.yml`, dedicated `migrate` service | C |
+| DB migrations before app/worker start | ✅ Done (dedicated `migrate` service gates `web`/`worker` via `service_completed_successfully`) | C, D |
 | HTTP health endpoint | ✅ Done (`/api/health`, DB-backed) + worker heartbeat | C, L |
 | First-admin bootstrap (env-driven) | ✅ Done (`INITIAL_ADMIN_EMAIL`) | E |
 | S3/R2 storage | ✅ **Done** — driver activated, no more "uncomment to enable" | H |
@@ -93,7 +93,7 @@ Each maps to a section in Part 4.
 
 | Concern | Cal.com / Rallly / n8n pattern | Our target |
 |---|---|---|
-| Deploy | one compose file, migrate-on-boot | `docker-compose.yml` + entrypoint |
+| Deploy | one compose file, migrate-on-boot | `docker-compose.yml` + dedicated `migrate` service |
 | Encryption key | `CALENDSO_ENCRYPTION_KEY` etc. | we already have `ENCRYPT_KEY` |
 | Auth on fresh box | email+password baseline | **add email+password** (§E) |
 | License | AGPLv3 (keep commercial edge) | decision deferred (§A) |
@@ -183,12 +183,12 @@ are real · P0/P1/P2 priority.
 | Type | Change | Where | P |
 |---|---|---|---|
 | ✅ DONE | Web `Dockerfile` (multi-stage, `output: 'standalone'`, `NODE_OPTIONS` heap cap, non-root `app` user matching `Dockerfile.worker`) | `Dockerfile` | **P0** |
-| ✅ DONE | `docker-compose.yml` — `web` + `worker` + `postgres`, minimal (no MinIO/Caddy — self-hosters bring their own reverse proxy/storage per decision in Part 5). Plus `docker-compose.external-db.yml` — same, minus `postgres`, for self-hosters with their own database | `docker-compose.yml`, `docker-compose.external-db.yml` | **P0** |
-| ✅ DONE | `docker/entrypoint.sh` — runs `pnpm db:migrate` then execs the CMD | `docker/entrypoint.sh` | **P0** |
+| ✅ DONE | `docker-compose.yml` — `migrate` + `web` + `worker` + `postgres`. A dedicated `migrate` service (built from `Dockerfile.worker`, runs `pnpm db:migrate` once) gates `web` and `worker` via `depends_on: migrate: condition: service_completed_successfully`, so neither starts before the schema is up to date. No MinIO/Caddy bundled — self-hosters bring their own reverse proxy/storage per decision in Part 5. Plus `docker-compose.external-db.yml` — same shape minus `postgres`, `migrate` runs against `DATABASE_URL` directly with `restart: on-failure` (no local DB to health-gate on), for self-hosters with their own database | `docker-compose.yml`, `docker-compose.external-db.yml` | **P0** |
 | ✅ DONE | `next.config.mjs` → `output: 'standalone'`, build-verified | `next.config.mjs` | **P0** |
 | ✅ DONE | `HTTP /api/health` (real DB ping, not just process-alive) — verified live: returns `{"status":"ok"}` | `app/api/health/route.ts` | **P0** |
 | ✅ DONE | Worker liveness heartbeat (`/tmp/worker-heartbeat`, written every 15s) + Docker `HEALTHCHECK` reading it | `scripts/worker.ts`, `Dockerfile.worker` | P1 |
-| ✅ DONE | `drizzle-kit` moved from `devDependencies` → `dependencies` so the production `--prod` install still has it for `pnpm db:migrate` at boot | `package.json` | P0 |
+| ✅ DONE | `drizzle-kit` moved from `devDependencies` → `dependencies` so the production `--prod` install still has it for `pnpm db:migrate` in the `migrate` service | `package.json` | P0 |
+| ✅ DONE | Dockerfile builder stage sets placeholder `DATABASE_URL`/`APP_SECRET`/`NEXT_PUBLIC_APP_URL` — `middleware.ts` imports `lib/env.ts` eagerly, and without these `next build` throws "Invalid environment variables" before an image is even produced. Real values still come from `env_file: .env` at runtime | `Dockerfile` | **P0** |
 | ✅ DONE | systemd unit examples (web + worker) for the manual path | `docs/self-hosting/installation.md` | P1 |
 | ✅ DONE | Resource sizing table (min RAM/CPU/disk for web/worker/Postgres) | `docs/self-hosting/docker.md` | P1 |
 | — | **Note:** `Dockerfile.worker` already existed — only the **web** `Dockerfile` was new | `Dockerfile.worker` | ✅ |
@@ -207,15 +207,17 @@ are real · P0/P1/P2 priority.
 > Docker wasn't available in the environment this was implemented in. Verified
 > instead: `pnpm build` succeeds with `output: 'standalone'` and produces
 > `.next/standalone/server.js` + `.next/static` + `public` exactly where the
-> Dockerfile's `COPY` steps expect them; `docker-compose.yml` parses as valid
-> YAML with the 3 expected services; `docker/entrypoint.sh` passes `sh -n`
-> syntax check. **Run an actual `docker compose up -d` before relying on this
+> Dockerfile's `COPY` steps expect them; both compose files parse as valid
+> YAML with the 4 expected services (`postgres` only in the bundled file);
+> static trace of `middleware.ts`'s `lib/env.ts` import confirmed the builder
+> stage's placeholder env vars are the only 3 unconditionally-required fields
+> in the schema. **Run an actual `docker compose up -d` before relying on this
 > in production.**
 
 ### D. Database & migrations
 | Type | Change | Where | P |
 |---|---|---|---|
-| ✅ DONE | Migrations run on boot via `docker/entrypoint.sh` (`pnpm db:migrate` before `exec`) | `docker/entrypoint.sh` | **P0** |
+| ✅ DONE | Migrations run via a dedicated `migrate` service (`Dockerfile.worker`, `pnpm db:migrate`) that must exit 0 before `web`/`worker` start (`depends_on: ... condition: service_completed_successfully`) | `docker-compose.yml`, `docker-compose.external-db.yml` | **P0** |
 | ✅ DONE | Postgres pool size env-configurable via `DB_POOL_MAX` (was hardcoded `max: 20`) | `lib/db.ts`, `lib/env.ts` | P1 |
 | ✅ DONE | Startup connect-retry for the web app, matching the worker's `startBossWithRetry()` pattern — wired into Next.js's `instrumentation.ts` `register()` hook so it runs once per server boot, smoothing over Compose startup ordering | `lib/db.ts` (`waitForDatabase`), `instrumentation.ts` | P1 |
 | ADD | Backup/restore docs (`pg_dump`/`pg_restore`) | docs | P1 |
@@ -373,7 +375,7 @@ a real first deploy):
 - ✅ Done: Google button hides itself when unconfigured
 - ✅ Done: closed-signup control via `SIGNUP_ENABLED` (see §E — verified live)
 - ✅ Done: reverse-proxy cookies — **turned out not to be a bug**, corrected in §M
-- ✅ Done: web `Dockerfile` + `docker-compose.yml` + migrate-on-boot entrypoint
+- ✅ Done: web `Dockerfile` + `docker-compose.yml` + dedicated `migrate` service
   (built and build-verified; **`docker build`/`docker compose up` itself not
   yet run — no Docker available in the implementation environment**)
 - ✅ Done: `/api/health` (web, DB-backed, verified live) + worker liveness heartbeat
@@ -441,7 +443,8 @@ cp .env.example .env
 #     SIGNUP_ENABLED=false                  (INITIAL_ADMIN_EMAIL is exempt — no open window)
 #     INITIAL_ADMIN_EMAIL=you@example.com   (this account auto-becomes admin on signup)
 nano .env
-docker compose up -d                 # postgres + web + worker; migrations auto-run
+docker compose up -d                 # postgres + migrate + web + worker; migrate runs first
+docker compose logs -f migrate       # confirm migrations applied cleanly
 docker compose logs -f web worker    # wait for "ready"
 curl http://localhost:3000/api/health  # expect {"status":"ok"}
 # open NEXT_PUBLIC_APP_URL → sign up with INITIAL_ADMIN_EMAIL using a password
@@ -534,7 +537,7 @@ run — see the caveat in Part 7)
 - [x] Google login button hides itself when unconfigured — done (`lib/auth.ts` `googleAuthEnabled`, `auth-form.tsx`)
 - [x] **Closed-signup control via `SIGNUP_ENABLED`** — done, **verified live**: random email rejected (`HTTP 400`, no DB row); `INITIAL_ADMIN_EMAIL` succeeded and was promoted to admin (`lib/auth.ts`, `lib/env.ts`)
 - [x] **Reverse-proxy cookies** — investigated, turned out to be a non-issue (Better Auth uses `baseURL`, not request headers); corrected in §M, no code change needed
-- [x] Web `Dockerfile` + `docker-compose.yml` + migrate-on-boot entrypoint — done (`Dockerfile`, `docker-compose.yml`, `docker/entrypoint.sh`); reuses existing `Dockerfile.worker`
+- [x] Web `Dockerfile` + `docker-compose.yml` + dedicated `migrate` service — done (`Dockerfile`, `docker-compose.yml`, `docker-compose.external-db.yml`); `migrate` reuses existing `Dockerfile.worker`, gates `web`/`worker` via `service_completed_successfully`
 - [x] `next.config.mjs` `output: 'standalone'` — done, build-verified (`.next/standalone/server.js` produced)
 - [x] `/api/health` (web, DB-backed, verified live: `{"status":"ok"}`) + worker liveness heartbeat (`scripts/worker.ts` + `Dockerfile.worker` `HEALTHCHECK`)
 - [x] Auto-load S3 driver from `STORAGE_DRIVER` — done (`lib/storage/index.ts`, `lib/storage/s3.ts`), build-verified, no live bucket tested
