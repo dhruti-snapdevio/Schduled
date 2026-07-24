@@ -538,13 +538,15 @@ All are tracked with fixes in `SELF-HOSTING.md` Part 4.
   connect-retry now runs once at server boot via `instrumentation.ts`, smoothing
   over Docker Compose startup ordering.
 - **Docker packaging is build-verified, not deploy-verified.** The `Dockerfile`,
-  `docker-compose.yml`, and `docker/entrypoint.sh` were written and every piece
-  they depend on was individually confirmed (standalone build output exists at
-  the right paths, YAML parses, shell syntax is valid, `drizzle-kit` is now a
-  production dependency so migrate-on-boot can find it) — but an actual
-  `docker build` / `docker compose up` has not been run, since Docker wasn't
-  available in the environment this was built in. Run it once yourself before
-  trusting it in production.
+  `Dockerfile.worker`, and both compose files were written and every piece they
+  depend on was individually confirmed (standalone build output exists at the
+  right paths, both compose files parse as valid YAML, `drizzle-kit` is a
+  production dependency so the dedicated `migrate` service can find it,
+  `middleware.ts`'s eager `lib/env.ts` import is satisfied by the Dockerfile's
+  build-time placeholder env vars) — but an actual `docker build` /
+  `docker compose up` has not been run, since Docker wasn't available in the
+  environment this was built in. Run it once yourself before trusting it in
+  production.
 - **Logs are unstructured.** Plain `console.log`/`console.error` to stdout, no
   `LOG_LEVEL`, no JSON output. Fine for `docker compose logs`; more work if
   you're piping to Loki/CloudWatch/Datadog.

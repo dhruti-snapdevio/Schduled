@@ -76,7 +76,6 @@ db/
 
 config/          — app-wide constants (product name, ADMIN_ROLE/USER_ROLE)
 scripts/         — dev-db.ts (embedded Postgres), make-admin.ts, worker.ts entrypoint
-docker/          — entrypoint.sh (migrate-on-boot for the web container)
 docs/            — architecture, DB schema, feature specs, self-hosting guide set, bug reports
 public/          — static assets + local-disk upload target
 hooks/           — one custom hook (use-username-check.ts)
@@ -594,7 +593,7 @@ All routes live under `app/api/`. **Validation approach note:** despite `zod` be
 | Monitoring | ❌ Missing — no APM/error-tracking integration |
 | Health checks | ✅ Ready — `/api/health` (DB-backed) + worker heartbeat file, both wired into Docker healthchecks |
 | CI/CD | ⚠️ Needs Improvement — CI verifies typecheck/migrate/build; no test step (none exists); no CD/deploy automation |
-| Docker | ✅ Ready — separate web/worker Dockerfiles, non-root users, heap caps, migrate-on-boot entrypoint |
+| Docker | ✅ Ready — separate web/worker Dockerfiles, non-root users, heap caps, dedicated `migrate` service gates web/worker startup |
 | Environment separation | ✅ Ready — fail-fast Zod-validated env schema |
 | Secrets management | ✅ Ready — server-only secrets, no leakage into client bundles observed |
 | Backups | ⚠️ Needs Improvement — documented (`docs/self-hosting/backup.md`, `restore.md`) but manual/operator-driven, not automated |
@@ -630,9 +629,9 @@ All routes live under `app/api/`. **Validation approach note:** despite `zod` be
 
 **CI/CD:** GitHub Actions runs typecheck → migrate (against a real Postgres service container) → build, on every push/PR to `main`. **No test step** (none exists to run) and **no deploy step** — CI verifies buildability only; deployment is manual/external.
 
-**Rollback strategy:** **Not Implemented / not automated.** No blue-green or canary mechanism visible; rollback would mean redeploying a prior image tag manually. Migrations run automatically on web-container boot via `docker/entrypoint.sh`, which also means a rollback to an older image after a forward migration has run would need a corresponding down-migration or manual DB intervention — not addressed anywhere in the repo.
+**Rollback strategy:** **Not Implemented / not automated.** No blue-green or canary mechanism visible; rollback would mean redeploying a prior image tag manually. Migrations run once via a dedicated `migrate` service before `web`/`worker` start (not on every container boot, so replicas can't race to migrate simultaneously on scale-out), but a rollback to an older image after a forward migration has run would still need a corresponding down-migration or manual DB intervention — not addressed anywhere in the repo.
 
-**Improvements to consider:** an actual CD step (even a simple "build and push image on merge to main"), a documented/tested rollback procedure, and moving migration execution to a dedicated one-shot job rather than running it on every web-container boot (to avoid multiple replicas racing to migrate simultaneously on scale-out).
+**Improvements to consider:** an actual CD step (even a simple "build and push image on merge to main") and a documented/tested rollback procedure.
 
 ---
 

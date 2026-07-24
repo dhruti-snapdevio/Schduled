@@ -26,7 +26,7 @@ RUN corepack enable \
   && useradd --system --uid 1001 --gid app app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json drizzle.config.ts ./
 COPY config ./config
 COPY db ./db
 COPY lib ./lib

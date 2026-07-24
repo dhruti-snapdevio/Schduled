@@ -14,14 +14,15 @@ pg_dump "$DATABASE_URL" -Fc -f pre-upgrade-$(date +%F).dump
 
 ```bash
 git pull                       # or update to the new release/tag
-docker compose build           # rebuild web + worker images
-docker compose up -d           # recreate containers; migrations run automatically
-docker compose logs -f web     # watch for "[entrypoint] running database migrations..."
+docker compose build           # rebuild migrate + web + worker images
+docker compose up -d           # recreates containers; migrate runs before web/worker start
+docker compose logs -f migrate # confirm migrations applied cleanly, exits 0
 curl http://localhost:3000/api/health   # confirm {"status":"ok"}
 ```
 
-Migrations run automatically via `docker/entrypoint.sh` before the server
-starts — there's no separate manual migration step on this path.
+Migrations run once via a dedicated `migrate` service, which `web` and
+`worker` wait on (`depends_on: migrate: condition: service_completed_successfully`)
+before starting — there's no separate manual migration step on this path.
 
 ## Manual / Node path
 

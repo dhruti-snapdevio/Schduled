@@ -8,17 +8,29 @@
 # POSTGRES_PASSWORD/POSTGRES_DB are not used by this file (those only exist to
 # configure the bundled postgres service in docker-compose.yml).
 #
-# There's no local Postgres container to wait on here, so migrations run
+# There's no local Postgres container to wait on here, so `migrate` runs
 # against DATABASE_URL directly on boot. If your database isn't reachable yet
-# when the container starts, `restart: unless-stopped` below will keep retrying.
+# when the container starts, `restart: on-failure` below keeps retrying until
+# it succeeds — web/worker won't start until migrate exits 0.
 
 services:
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command: ["pnpm", "db:migrate"]
+    env_file: .env
+    restart: on-failure
+
   web:
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "3000:3000"
     volumes:
@@ -38,6 +50,9 @@ services:
       dockerfile: Dockerfile.worker
     restart: unless-stopped
     env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   # Pinned name — see docker-compose.yml for why (Dokploy-observed volume

@@ -40,7 +40,8 @@ Two database options — pick one before editing `.env`:
   `docker-compose.yml` as-is.
 - **A2 — Bring your own Postgres** (managed service like Supabase/Neon/RDS,
   or an instance you already run). Use `docker-compose.external-db.yml`
-  instead — it only runs `web` and `worker`, no local database container.
+  instead — it only runs `migrate`, `web`, and `worker`, no local database
+  container.
 
 ### A1 — Bundled Postgres
 
@@ -66,6 +67,7 @@ INITIAL_ADMIN_EMAIL=you@example.com
 Start the stack:
 ```bash
 docker compose up -d
+docker compose logs -f migrate      # confirm migrations applied cleanly, exits 0
 docker compose logs -f web worker   # watch until both say "ready"/"started"
 curl http://localhost:3000/api/health   # expect {"status":"ok"}
 ```
@@ -99,19 +101,21 @@ INITIAL_ADMIN_EMAIL=you@example.com
 Start the stack:
 ```bash
 docker compose -f docker-compose.external-db.yml up -d
+docker compose -f docker-compose.external-db.yml logs -f migrate
 docker compose -f docker-compose.external-db.yml logs -f web worker
 curl http://localhost:3000/api/health   # expect {"status":"ok"}
 ```
 
 There's no local database container to wait on in this path, so if your
-database isn't reachable yet when the containers start, migrations will fail
-and `restart: unless-stopped` will keep retrying until it is.
+database isn't reachable yet when `migrate` starts, it fails and — because
+it's `restart: on-failure` — keeps retrying until the database is reachable
+and migrations succeed. `web`/`worker` won't start until `migrate` exits 0.
 
 ---
 
-Migrations run automatically on boot (`docker/entrypoint.sh` runs
-`pnpm db:migrate` before starting the server) — no manual migration step,
-either way.
+Migrations run once via a dedicated `migrate` service (`pnpm db:migrate`)
+that must complete successfully before `web`/`worker` start — no manual
+migration step, either way.
 
 Open `NEXT_PUBLIC_APP_URL` in a browser and sign up with the email you set
 as `INITIAL_ADMIN_EMAIL` — that account is automatically promoted to admin.
