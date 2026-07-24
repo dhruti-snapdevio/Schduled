@@ -113,7 +113,7 @@ and migrations succeed. `web`/`worker` won't start until `migrate` exits 0.
 
 ---
 
-Migrations run once via a dedicated `migrate` service (`pnpm db:migrate`)
+Migrations run once via a dedicated `migrate` service (`pnpm db:migrate:docker`)
 that must complete successfully before `web`/`worker` start — no manual
 migration step, either way.
 
