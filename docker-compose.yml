@@ -23,11 +23,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
-    # Real binary, not `pnpm db:migrate` — see Dockerfile.worker's CMD
-    # comment: `pnpm` here is a Corepack shim that tries to fetch/cache the
-    # pinned pnpm version for the current user at invocation time, which
-    # fails with EACCES as the non-root `app` user has no writable home.
-    command: ["/app/node_modules/.bin/drizzle-kit", "migrate", "--config=drizzle.config.ts"]
+    command: ["pnpm", "db:migrate"]
     env_file: .env
     depends_on:
       postgres:
