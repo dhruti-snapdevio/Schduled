@@ -16,6 +16,7 @@ FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=6144"
 
 # Placeholders so build-time env validation (lib/env.ts) passes. middleware.ts
 # imports `env` eagerly, and Next.js bundles middleware during `next build` —

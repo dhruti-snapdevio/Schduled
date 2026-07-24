@@ -7,6 +7,12 @@ export const metadata = {
   title: "Sign in",
 };
 
+// Never statically prerender: redirectToSetupIfNeeded() and
+// getEffectiveSignInMethods() both hit the database on every visit (first-run
+// setup gate, live sign-in-method config) — that must run per-request, not
+// once at build time.
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
   await redirectToSetupIfNeeded();
   const methods = await getEffectiveSignInMethods();
