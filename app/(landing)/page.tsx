@@ -39,6 +39,11 @@ export const metadata = {
   description: 'Share a link. Let people book time with you automatically. No back-and-forth emails.',
 }
 
+// Never statically prerender: redirectToSetupIfNeeded() hits the database on
+// every visit (first-run setup gate) — that must run per-request, not once
+// at build time.
+export const dynamic = 'force-dynamic'
+
 // ── Static data ───────────────────────────────────────────────────────────────
 
 /* The real, open-source stack this project actually runs on (see README.md) */
