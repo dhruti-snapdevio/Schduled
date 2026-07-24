@@ -18,7 +18,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
-    command: ["pnpm", "db:migrate"]
+    # Not `pnpm db:migrate` (drizzle-kit's CLI) — it was observed to exit 1
+    # on failure without printing the underlying error. `db:migrate:docker`
+    # (scripts/migrate.ts) uses the same postgres/drizzle-orm migrator
+    # lib/db.ts already depends on, with a plain try/catch that always logs
+    # what it caught.
+    command: ["pnpm", "db:migrate:docker"]
     env_file: .env
     restart: on-failure
 

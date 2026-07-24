@@ -79,7 +79,8 @@ Plus, not route groups:
   `job-logs.ts`, `platform.ts`, `security.ts`, `enums.ts`, `relations.ts`),
   re-exported from `index.ts`
 - `migrations/` — SQL migration files (Drizzle), applied by the dedicated
-  `migrate` service (`pnpm db:migrate`) before `web`/`worker` start — see
+  `migrate` service (`pnpm db:migrate:docker`, `scripts/migrate.ts`) before
+  `web`/`worker` start — see
   `docker-compose.yml`
 - `reset.ts` — local dev database reset script
 
