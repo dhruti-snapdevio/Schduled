@@ -116,6 +116,19 @@ export default async function BookingDetailPage({
   const isPastConfirmed = b.status === 'confirmed' && b.startTime <= now
   const hasActions = isUpcoming || (isPending && b.approvalToken) || (isRescheduleReq && b.approvalToken) || isPastConfirmed
 
+  // Which /bookings tab this booking lives under — mirrors the tab resolution
+  // in app/(app)/bookings/page.tsx so the breadcrumb and back link return to
+  // the tab that actually shows this booking, not always "Upcoming".
+  const bookingsTab =
+    isPending || isRescheduleReq ? 'pending'
+    : isCancelled || b.status === 'rescheduled' ? 'cancelled'
+    : b.startTime > now ? 'upcoming'
+    : 'past'
+  const BOOKINGS_TAB_LABEL: Record<typeof bookingsTab, string> = {
+    upcoming: 'Upcoming', pending: 'Pending', past: 'Past', cancelled: 'Cancelled',
+  }
+  const bookingsHref = `/bookings?tab=${bookingsTab}`
+
   // ── Add-to-calendar links ──
   const gd = (d: Date) => formatInTimeZone(d, 'UTC', "yyyyMMdd'T'HHmmss'Z'")
   const calTitle = `${b.eventName} with ${b.inviteeName}`
@@ -155,12 +168,12 @@ export default async function BookingDetailPage({
         <nav className="flex items-center gap-2 text-xs font-medium">
           <Link href="/dashboard" className="text-muted-foreground transition-colors hover:text-primary">Dashboard</Link>
           <CaretRight size={10} className="text-muted-foreground/40" />
-          <Link href="/bookings" className="text-muted-foreground transition-colors hover:text-primary">Bookings</Link>
+          <Link href={bookingsHref} className="text-muted-foreground transition-colors hover:text-primary">{BOOKINGS_TAB_LABEL[bookingsTab]}</Link>
           <CaretRight size={10} className="text-muted-foreground/40" />
           <span className="font-semibold text-foreground">Booking details</span>
         </nav>
         <Link
-          href="/bookings"
+          href={bookingsHref}
           className="inline-flex items-center gap-1.5 border border-border bg-background px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-primary"
         >
           <ArrowLeft size={15} /> Back to bookings
